@@ -1,0 +1,69 @@
+#####################################################
+#  ▗▖ ▄▖          ▗▖             
+#  ▐▌▐▛           ▐▌             
+#  ▐▙█   █▟█▌ ▟██▖▐▌▟▛  ▟█▙ ▐▙██▖
+#  ▐██   █▘   ▘▄▟▌▐▙█  ▐▙▄▟▌▐▛ ▐▌
+#  ▐▌▐▙  █   ▗█▀▜▌▐▛█▖ ▐▛▀▀▘▐▌ ▐▌
+#  ▐▌ █▖ █   ▐▙▄█▌▐▌▝▙ ▝█▄▄▌▐▌ ▐▌
+#  ▝▘ ▝▘ ▀    ▀▀▝▘▝▘ ▀▘ ▝▀▀ ▝▘ ▝▘
+#
+#####################################################
+[package]
+#####################################################
+name = "kraken"
+# ========================
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+# ========================
+documentation.workspace = true
+repository.workspace    = true
+homepage.workspace      = true
+# ========================
+publish = false
+
+
+# Binaries
+#####################################################
+[[bin]]
+name = "kraken"
+path = "src/main.rs"
+
+
+# Dependencies
+[dependencies]
+#####################################################
+
+# Local Dependencies
+kraken-runtime = { path = "../runtime" }
+
+# Internal Dependencies
+config-lib  = { workspace = true }
+error-forge = { workspace = true }
+metrics-lib = { workspace = true }
+mod-cli     = { workspace = true }
+
+# External Dependencies
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+llvm-sys = { workspace = true }
+clap = { workspace = true }
+
+# Async Runtime
+tokio = { workspace = true }
+futures = { workspace = true }
+
+# Parallel Processing
+rayon = { workspace = true }
+dashmap = { workspace = true }
+
+# File Watching & Discovery
+notify = { workspace = true }
+notify-debouncer-full = { workspace = true }
+glob = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true }

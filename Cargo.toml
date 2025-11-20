@@ -1,0 +1,82 @@
+#▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐
+#
+#  /##   /##                    /%%                           
+# | ##  /##/                   | ##                           
+# | $$ /$$/   /$$$$$$  /$$$$$$ | $$   /$$  /$$$$$$  /$$$$$$$  
+# | $$$$$/   /$$__  $$|____  $$| $$  /$$/ /$$__  $$| $$__  $$ 
+# | $$  $$  | $$  \__/ /$$$$$$$| $$$$$$/ | $$$$$$$$| $$  \ $$ 
+# | $$\  $$ | $$      /$$__  $$| $$_  $$ | $$_____/| $$  | $$ 
+# | $$ \  $$| $$     |  $$$$$$$| $$ \  $$|  $$$$$$$| $$  | $$ 
+# |__/  \__/|__/      \_______/|__/  \__/ \_______/|__/  |__/ 
+#
+#▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐
+# 
+#
+#▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐
+[workspace]
+members = [
+    "compiler",
+    "runtime",
+    #"tools/forge",
+    #"tools/fmt",
+]
+resolver = "2"
+
+
+
+# Workspace Package
+[workspace.package]
+#####################################################
+version       = "0.2.0"
+readme        = "README.md"
+license       = "Apache-2.0"
+publish       = false
+# ========================
+edition       = "2021"
+rust-version  = "1.80"
+# ========================
+documentation = "https://anvil-lang.org/documentation/"
+repository    = "https://github.com/anvil-lang/anvil"
+homepage      = "https://anvil-lang.org"
+# ========================
+authors = [
+    "James Gober <code@jamesgober.dev>"
+]
+
+
+
+# Workspace Dependencies
+[workspace.dependencies]
+#####################################################
+
+# Internal Dependencie
+# ========================s
+error-forge  = "0.9.6"
+metrics-lib  = { version = "0.9.0", features = ["timer", "count", "gauge", "meter", "async"] }
+config-lib   = { version = "0.9.0", features = ["json", "toml", "noml", "validation", "async"] }
+mod-cli      = { version = "0.6.4" }
+
+# External Dependencies
+# ========================
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "1.0"
+llvm-sys = "180"
+clap = { version = "4.5", features = ["derive", "cargo"] }
+
+# Async Runtime
+tokio = { version = "1.40", features = ["full"] }
+futures = "0.3"
+
+# File Watching
+notify = "6.0"
+notify-debouncer-full = "0.3"
+glob = "0.3"
+
+# Parallel Processing
+rayon = "1.10"
+dashmap = "5.5"
+
+# Testing
+criterion = "0.5"

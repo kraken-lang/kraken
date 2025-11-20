@@ -1,0 +1,5 @@
+// Hello World in Kraken
+fn main() -> int {
+    let message = "Hello, Kraken!";
+    return 0;
+}

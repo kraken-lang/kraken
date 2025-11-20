@@ -1,0 +1,23 @@
+[package]
+#####################################################
+name = "kraken-runtime"
+# ========================
+version.workspace = true
+edition.workspace = true
+# ========================
+publish = false
+
+[features]
+#####################################################
+default = ["tokio"]
+# ========================
+tokio = ["dep:tokio"]
+cycle = ["dep:cycle"]
+# ========================
+
+
+[dependencies]
+#####################################################
+tokio = { workspace = true, optional = true }
+cycle = { git = "https://github.com/jamesgober/cycle", optional = true }
+serde = { workspace = true }
