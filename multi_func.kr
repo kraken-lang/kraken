@@ -1,0 +1,11 @@
+fn double(x: int) -> int {
+    return x + x;
+}
+
+fn quadruple(x: int) -> int {
+    return double(double(x));
+}
+
+fn main() -> int {
+    return quadruple(10) + 2;
+}

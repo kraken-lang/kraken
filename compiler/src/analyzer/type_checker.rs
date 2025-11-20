@@ -17,8 +17,28 @@ pub struct TypeChecker {
 impl TypeChecker {
     /// Create a new type checker.
     pub fn new(file_path: PathBuf) -> Self {
+        let mut env = TypeEnvironment::new();
+        
+        // Add standard library functions
+        env.define_function(
+            "printf".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "puts".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        
         Self {
-            env: TypeEnvironment::new(),
+            env,
             file_path,
             current_function_return_type: None,
         }
@@ -347,8 +367,7 @@ impl TypeChecker {
             }
 
             Expression::Call { callee, arguments } => {
-                let _callee_type = self.check_expression(callee)?;
-
+                // Check if it's a function call first (before checking as variable)
                 if let Expression::Identifier(func_name) = callee.as_ref() {
                     if let Some(func_type) = self.env.lookup_function(func_name) {
                         if arguments.len() != func_type.parameter_types.len() {

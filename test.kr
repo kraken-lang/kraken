@@ -1,3 +1,6 @@
+
+// Entry point of the program
+// @return int
 fn main() -> int {
     return 42;
 }

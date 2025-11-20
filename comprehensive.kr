@@ -1,0 +1,27 @@
+fn factorial(n: int) -> int {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+fn count_down(n: int) -> int {
+    let i = n;
+    while (i > 0) {
+        puts("Counting...");
+        i = i - 1;
+    }
+    return 0;
+}
+
+fn main() -> int {
+    puts("=== Kraken Compiler Test ===");
+    
+    let result = factorial(5);
+    puts("Factorial(5) calculated\!");
+    
+    count_down(3);
+    
+    puts("All tests passed\!");
+    return result;
+}
