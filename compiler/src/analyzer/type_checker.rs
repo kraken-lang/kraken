@@ -481,6 +481,38 @@ impl TypeChecker {
                 }
             }
 
+            Expression::StructLiteral { name, fields } => {
+                // Look up the struct type
+                let struct_type = self.env.lookup_struct(name).ok_or_else(|| {
+                    CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Undefined struct: {name}"),
+                    )
+                })?;
+
+                // Check that all fields are provided and have correct types
+                for (field_name, field_expr) in fields {
+                    let field_type = struct_type.get_field_type(field_name).ok_or_else(|| {
+                        CompilerError::type_error(
+                            SourceLocation::new(self.file_path.clone(), 0, 0),
+                            format!("Struct {name} has no field {field_name}"),
+                        )
+                    })?;
+
+                    let expr_type = self.check_expression(field_expr)?;
+                    if !self.types_compatible(field_type, &expr_type) {
+                        return Err(CompilerError::type_error(
+                            SourceLocation::new(self.file_path.clone(), 0, 0),
+                            format!(
+                                "Field {field_name} expects type {field_type}, found {expr_type}"
+                            ),
+                        ));
+                    }
+                }
+
+                Ok(Type::Custom(name.clone()))
+            }
+
             Expression::Assignment { target, value } => {
                 let target_type = self.check_expression(target)?;
                 let value_type = self.check_expression(value)?;

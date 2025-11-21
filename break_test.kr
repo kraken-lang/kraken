@@ -1,0 +1,25 @@
+fn find_first_even(max: int) -> int {
+    for (let i = 1; i <= max; i = i + 1) {
+        if (i % 2 == 0) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+fn skip_odds(max: int) -> int {
+    let sum = 0;
+    for (let i = 1; i <= max; i = i + 1) {
+        if (i % 2 == 1) {
+            continue;
+        }
+        sum = sum + i;
+    }
+    return sum;
+}
+
+fn main() -> int {
+    let first = find_first_even(10);
+    let evens = skip_odds(10);
+    return first + evens;
+}

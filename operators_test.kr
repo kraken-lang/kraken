@@ -1,0 +1,16 @@
+fn test_modulo() -> int {
+    return 17 % 5;
+}
+
+fn test_logical() -> int {
+    if ((1 > 0) && (2 > 1)) {
+        return 10;
+    }
+    return 0;
+}
+
+fn main() -> int {
+    let mod_result = test_modulo();
+    let logical_result = test_logical();
+    return mod_result + logical_result;
+}

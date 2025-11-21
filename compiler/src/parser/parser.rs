@@ -646,6 +646,31 @@ impl Parser {
                     object: Box::new(expr),
                     member,
                 };
+            } else if self.check_token(TokenKind::LeftBrace) {
+                // Struct literal: Identifier { field: value, ... }
+                if let Expression::Identifier(struct_name) = expr {
+                    self.advance(); // consume {
+                    let mut fields = Vec::new();
+                    
+                    while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
+                        let field_name = self.consume_identifier()?;
+                        self.expect_token(TokenKind::Colon)?;
+                        let field_value = self.parse_expression()?;
+                        fields.push((field_name, field_value));
+                        
+                        if !self.match_token(TokenKind::Comma) {
+                            break;
+                        }
+                    }
+                    
+                    self.expect_token(TokenKind::RightBrace)?;
+                    expr = Expression::StructLiteral {
+                        name: struct_name,
+                        fields,
+                    };
+                } else {
+                    break;
+                }
             } else {
                 break;
             }

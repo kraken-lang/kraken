@@ -165,6 +165,12 @@ pub enum Expression {
         member: String,
     },
 
+    /// Struct literal (Point { x: 1, y: 2 })
+    StructLiteral {
+        name: String,
+        fields: Vec<(String, Expression)>,
+    },
+
     /// Assignment
     Assignment {
         target: Box<Expression>,

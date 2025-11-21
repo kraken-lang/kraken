@@ -1,0 +1,16 @@
+fn test_match(x: int) -> int {
+    match (x) {
+        1 -> { return 10; }
+        2 -> { return 20; }
+        3 -> { return 30; }
+        _ -> { return 99; }
+    }
+}
+
+fn main() -> int {
+    let a = test_match(1);
+    let b = test_match(2);
+    let c = test_match(3);
+    let d = test_match(5);
+    return a + b + c + d;
+}

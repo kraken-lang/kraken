@@ -19,8 +19,13 @@ pub struct LLVMCodegen {
     module: LLVMModuleRef,
     builder: LLVMBuilderRef,
     named_values: HashMap<String, LLVMValueRef>,
+    array_variables: HashMap<String, bool>, // Track which variables are arrays
+    struct_variables: HashMap<String, String>, // Track which variables are structs (var name -> struct name)
+    struct_types: HashMap<String, (LLVMTypeRef, Vec<String>, Vec<LLVMTypeRef>)>, // struct name -> (LLVM type, field names, field types)
     functions: HashMap<String, LLVMValueRef>,
     current_function: Option<LLVMValueRef>,
+    loop_exit_blocks: Vec<LLVMBasicBlockRef>,
+    loop_continue_blocks: Vec<LLVMBasicBlockRef>,
     file_path: PathBuf,
 }
 
@@ -42,8 +47,13 @@ impl LLVMCodegen {
                 module,
                 builder,
                 named_values: HashMap::new(),
+                array_variables: HashMap::new(),
+                struct_variables: HashMap::new(),
+                struct_types: HashMap::new(),
                 functions: HashMap::new(),
                 current_function: None,
+                loop_exit_blocks: Vec::new(),
+                loop_continue_blocks: Vec::new(),
                 file_path,
             }
         }
@@ -182,6 +192,35 @@ impl LLVMCodegen {
                 Ok(())
             }
 
+            Statement::StructDeclaration { name, fields, is_public: _ } => {
+                unsafe {
+                    // Create LLVM struct type
+                    let struct_name = CString::new(name.as_str()).expect("CString failed");
+                    let struct_type = LLVMStructCreateNamed(self.context, struct_name.as_ptr());
+
+                    // Get field types
+                    let mut field_types: Vec<LLVMTypeRef> = Vec::new();
+                    let mut field_names: Vec<String> = Vec::new();
+                    
+                    for field in fields {
+                        field_types.push(self.get_llvm_type(&field.field_type));
+                        field_names.push(field.name.clone());
+                    }
+
+                    // Set struct body
+                    LLVMStructSetBody(
+                        struct_type,
+                        field_types.as_mut_ptr(),
+                        field_types.len() as u32,
+                        0, // not packed
+                    );
+
+                    // Store struct type, field names, and field types
+                    self.struct_types.insert(name.clone(), (struct_type, field_names, field_types));
+                }
+                Ok(())
+            }
+
             Statement::Return { value } => {
                 unsafe {
                     if let Some(expr) = value {
@@ -201,13 +240,55 @@ impl LLVMCodegen {
                 is_mutable: _,
             } => {
                 unsafe {
+                    // Check if this is an array or struct type
+                    let is_array = if let Some(Type::Array { .. }) = type_annotation {
+                        true
+                    } else {
+                        false
+                    };
+                    
+                    let struct_name = if let Some(Type::Custom(sname)) = type_annotation {
+                        Some(sname.clone())
+                    } else {
+                        None
+                    };
+
+                    // For array/struct literals without type annotation, generate them first
+                    let pregenerated_value = if type_annotation.is_none() {
+                        if let Some(init_expr) = initializer {
+                            if matches!(init_expr, Expression::StructLiteral { .. } | Expression::Array { .. }) {
+                                Some(self.codegen_expression(init_expr)?)
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    };
+
                     // Allocate stack space for the variable
                     let var_type = if let Some(ty) = type_annotation {
                         self.get_llvm_type(ty)
+                    } else if let Some(pregen) = pregenerated_value {
+                        // Use the type from the pregenerated value
+                        LLVMGetAllocatedType(pregen)
                     } else if let Some(init_expr) = initializer {
-                        // Infer type from initializer
-                        let init_val = self.codegen_expression(init_expr)?;
-                        LLVMTypeOf(init_val)
+                        // Infer type from initializer (for non-array/struct)
+                        if let Expression::StructLiteral { name: sname, .. } = init_expr {
+                            // Track this as a struct variable
+                            self.struct_variables.insert(name.clone(), sname.clone());
+                            let (st, _, _) = self.struct_types.get(sname)
+                                .cloned()
+                                .ok_or_else(|| {
+                                    CompilerError::codegen_error(format!("Undefined struct: {sname}"))
+                                })?;
+                            st
+                        } else {
+                            let init_val = self.codegen_expression(init_expr)?;
+                            LLVMTypeOf(init_val)
+                        }
                     } else {
                         return Err(CompilerError::codegen_error(
                             "Variable must have type annotation or initializer"
@@ -219,12 +300,47 @@ impl LLVMCodegen {
 
                     // Store initial value if provided
                     if let Some(init_expr) = initializer {
-                        let init_val = self.codegen_expression(init_expr)?;
-                        LLVMBuildStore(self.builder, init_val, alloca);
+                        let init_val = if let Some(pregen) = pregenerated_value {
+                            pregen
+                        } else {
+                            self.codegen_expression(init_expr)?
+                        };
+                        
+                        // Check if this is a struct literal or array - if so, we need to copy it
+                        if matches!(init_expr, Expression::StructLiteral { .. } | Expression::Array { .. }) {
+                            // init_val is a pointer to the struct/array, we need to copy the data
+                            // Use memcpy to copy the data
+                            let size = LLVMSizeOf(var_type);
+                            LLVMBuildMemCpy(
+                                self.builder,
+                                alloca,
+                                0, // dest align
+                                init_val,
+                                0, // src align
+                                size,
+                            );
+                            
+                            // Track arrays
+                            if matches!(init_expr, Expression::Array { .. }) {
+                                self.array_variables.insert(name.clone(), true);
+                            }
+                        } else {
+                            LLVMBuildStore(self.builder, init_val, alloca);
+                        }
                     }
 
                     // Store the alloca pointer in named_values
                     self.named_values.insert(name.clone(), alloca);
+                    
+                    // Track if this is an array (from type annotation)
+                    if is_array {
+                        self.array_variables.insert(name.clone(), true);
+                    }
+                    
+                    // Track if this is a struct (from type annotation)
+                    if let Some(sname) = struct_name {
+                        self.struct_variables.insert(name.clone(), sname);
+                    }
                 }
                 Ok(())
             }
@@ -271,8 +387,10 @@ impl LLVMCodegen {
                     for stmt in &then_branch.statements {
                         self.codegen_statement(stmt)?;
                     }
-                    // Branch to merge if no terminator
-                    if LLVMGetBasicBlockTerminator(then_bb).is_null() {
+                    // Check current block for terminator (might have changed during codegen)
+                    let current_then_bb = LLVMGetInsertBlock(self.builder);
+                    let then_has_terminator = !LLVMGetBasicBlockTerminator(current_then_bb).is_null();
+                    if !then_has_terminator {
                         LLVMBuildBr(self.builder, merge_bb);
                     }
 
@@ -283,13 +401,22 @@ impl LLVMCodegen {
                             self.codegen_statement(stmt)?;
                         }
                     }
-                    // Branch to merge if no terminator
-                    if LLVMGetBasicBlockTerminator(else_bb).is_null() {
+                    // Check current block for terminator
+                    let current_else_bb = LLVMGetInsertBlock(self.builder);
+                    let else_has_terminator = !LLVMGetBasicBlockTerminator(current_else_bb).is_null();
+                    if !else_has_terminator {
                         LLVMBuildBr(self.builder, merge_bb);
                     }
 
-                    // Continue at merge block
-                    LLVMPositionBuilderAtEnd(self.builder, merge_bb);
+                    // Continue at merge block (only if at least one branch reaches it)
+                    if !then_has_terminator || !else_has_terminator {
+                        LLVMPositionBuilderAtEnd(self.builder, merge_bb);
+                    } else {
+                        // Both branches have terminators, merge block is unreachable
+                        // Delete the unreachable merge block
+                        LLVMDeleteBasicBlock(merge_bb);
+                        // Don't position builder anywhere - caller must check if current block has terminator
+                    }
                 }
                 Ok(())
             }
@@ -317,6 +444,10 @@ impl LLVMCodegen {
                         CString::new("while.end").expect("CString failed").as_ptr(),
                     );
 
+                    // Push loop blocks for break/continue
+                    self.loop_exit_blocks.push(after_bb);
+                    self.loop_continue_blocks.push(cond_bb);
+
                     // Branch to condition
                     LLVMBuildBr(self.builder, cond_bb);
 
@@ -335,8 +466,210 @@ impl LLVMCodegen {
                         LLVMBuildBr(self.builder, cond_bb);
                     }
 
+                    // Pop loop blocks
+                    self.loop_exit_blocks.pop();
+                    self.loop_continue_blocks.pop();
+
                     // Continue after loop
                     LLVMPositionBuilderAtEnd(self.builder, after_bb);
+                }
+                Ok(())
+            }
+
+            Statement::For {
+                initializer,
+                condition,
+                increment,
+                body,
+            } => {
+                unsafe {
+                    let function = self.current_function.ok_or_else(|| {
+                        CompilerError::codegen_error("No current function for for loop")
+                    })?;
+
+                    // Generate initializer if present
+                    if let Some(init) = initializer {
+                        self.codegen_statement(init)?;
+                    }
+
+                    // Create blocks
+                    let cond_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        function,
+                        CString::new("for.cond").expect("CString failed").as_ptr(),
+                    );
+                    let loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        function,
+                        CString::new("for.body").expect("CString failed").as_ptr(),
+                    );
+                    let inc_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        function,
+                        CString::new("for.inc").expect("CString failed").as_ptr(),
+                    );
+                    let after_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        function,
+                        CString::new("for.end").expect("CString failed").as_ptr(),
+                    );
+
+                    // Push loop blocks for break/continue
+                    self.loop_exit_blocks.push(after_bb);
+                    self.loop_continue_blocks.push(inc_bb);
+
+                    // Branch to condition
+                    LLVMBuildBr(self.builder, cond_bb);
+
+                    // Generate condition block
+                    LLVMPositionBuilderAtEnd(self.builder, cond_bb);
+                    if let Some(cond) = condition {
+                        let cond_val = self.codegen_expression(cond)?;
+                        LLVMBuildCondBr(self.builder, cond_val, loop_bb, after_bb);
+                    } else {
+                        // No condition means infinite loop
+                        LLVMBuildBr(self.builder, loop_bb);
+                    }
+
+                    // Generate loop body
+                    LLVMPositionBuilderAtEnd(self.builder, loop_bb);
+                    for stmt in &body.statements {
+                        self.codegen_statement(stmt)?;
+                        // Stop generating if we hit a terminator
+                        let current_bb = LLVMGetInsertBlock(self.builder);
+                        if !LLVMGetBasicBlockTerminator(current_bb).is_null() {
+                            break;
+                        }
+                    }
+                    // Branch to increment if no terminator
+                    let current_bb = LLVMGetInsertBlock(self.builder);
+                    if LLVMGetBasicBlockTerminator(current_bb).is_null() {
+                        LLVMBuildBr(self.builder, inc_bb);
+                    }
+
+                    // Generate increment block
+                    LLVMPositionBuilderAtEnd(self.builder, inc_bb);
+                    if let Some(inc) = increment {
+                        self.codegen_expression(inc)?;
+                    }
+                    // Branch back to condition
+                    LLVMBuildBr(self.builder, cond_bb);
+
+                    // Pop loop blocks
+                    self.loop_exit_blocks.pop();
+                    self.loop_continue_blocks.pop();
+
+                    // Continue after loop
+                    LLVMPositionBuilderAtEnd(self.builder, after_bb);
+                }
+                Ok(())
+            }
+
+            Statement::Break => {
+                unsafe {
+                    if let Some(&exit_bb) = self.loop_exit_blocks.last() {
+                        LLVMBuildBr(self.builder, exit_bb);
+                    } else {
+                        return Err(CompilerError::codegen_error("Break outside of loop"));
+                    }
+                }
+                Ok(())
+            }
+
+            Statement::Continue => {
+                unsafe {
+                    if let Some(&continue_bb) = self.loop_continue_blocks.last() {
+                        LLVMBuildBr(self.builder, continue_bb);
+                    } else {
+                        return Err(CompilerError::codegen_error("Continue outside of loop"));
+                    }
+                }
+                Ok(())
+            }
+
+            Statement::Match { expression, arms } => {
+                unsafe {
+                    let match_val = self.codegen_expression(expression)?;
+                    
+                    let function = self.current_function.ok_or_else(|| {
+                        CompilerError::codegen_error("Match outside of function")
+                    })?;
+                    
+                    // Create basic blocks for each arm and the merge block
+                    let mut arm_blocks = Vec::new();
+                    let mut next_check_blocks = Vec::new();
+                    
+                    for _ in 0..arms.len() {
+                        let arm_name = CString::new("match.arm").expect("CString failed");
+                        let arm_bb = LLVMAppendBasicBlockInContext(self.context, function, arm_name.as_ptr());
+                        arm_blocks.push(arm_bb);
+                        
+                        let next_name = CString::new("match.next").expect("CString failed");
+                        let next_bb = LLVMAppendBasicBlockInContext(self.context, function, next_name.as_ptr());
+                        next_check_blocks.push(next_bb);
+                    }
+                    
+                    let merge_name = CString::new("match.merge").expect("CString failed");
+                    let merge_bb = LLVMAppendBasicBlockInContext(self.context, function, merge_name.as_ptr());
+                    
+                    // Generate code for each arm
+                    for (i, arm) in arms.iter().enumerate() {
+                        // Check pattern
+                        match &arm.pattern {
+                            Pattern::Literal(lit_expr) => {
+                                let lit_val = self.codegen_expression(lit_expr)?;
+                                let cmp_name = CString::new("match.cmp").expect("CString failed");
+                                let cond = LLVMBuildICmp(
+                                    self.builder,
+                                    llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                                    match_val,
+                                    lit_val,
+                                    cmp_name.as_ptr(),
+                                );
+                                
+                                // Branch to arm or next check
+                                LLVMBuildCondBr(self.builder, cond, arm_blocks[i], next_check_blocks[i]);
+                            }
+                            Pattern::Identifier(_name) => {
+                                // Bind the value and execute arm
+                                // For now, just jump to the arm (binding would need scope management)
+                                LLVMBuildBr(self.builder, arm_blocks[i]);
+                            }
+                            Pattern::Wildcard => {
+                                // Always matches
+                                LLVMBuildBr(self.builder, arm_blocks[i]);
+                            }
+                        }
+                        
+                        // Generate arm body
+                        LLVMPositionBuilderAtEnd(self.builder, arm_blocks[i]);
+                        for stmt in &arm.body.statements {
+                            self.codegen_statement(stmt)?;
+                            // Check if we hit a terminator
+                            if !LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(self.builder)).is_null() {
+                                break;
+                            }
+                        }
+                        
+                        // Branch to merge if no terminator
+                        if LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(self.builder)).is_null() {
+                            LLVMBuildBr(self.builder, merge_bb);
+                        }
+                        
+                        // Position at next check block
+                        if i < arms.len() - 1 {
+                            LLVMPositionBuilderAtEnd(self.builder, next_check_blocks[i]);
+                        }
+                    }
+                    
+                    // Last next_check block should jump to merge (no match case)
+                    if let Some(&last_next) = next_check_blocks.last() {
+                        LLVMPositionBuilderAtEnd(self.builder, last_next);
+                        LLVMBuildBr(self.builder, merge_bb);
+                    }
+                    
+                    // Position at merge block
+                    LLVMPositionBuilderAtEnd(self.builder, merge_bb);
                 }
                 Ok(())
             }
@@ -520,14 +853,21 @@ impl LLVMCodegen {
                             )
                         })?;
 
-                    // Load the value from the alloca
+                    // Check if this variable is an array or struct - if so, return pointer directly
+                    if self.array_variables.get(name).copied().unwrap_or(false) || self.struct_variables.contains_key(name) {
+                        return Ok(alloca);
+                    }
+
+                    // Load the value from the alloca (original working code)
                     let load_name = CString::new(format!("{name}.load")).expect("CString failed");
-                    Ok(LLVMBuildLoad2(
-                        self.builder,
-                        LLVMGetAllocatedType(alloca),
-                        alloca,
-                        load_name.as_ptr(),
-                    ))
+                    unsafe {
+                        Ok(LLVMBuildLoad2(
+                            self.builder,
+                            LLVMGetAllocatedType(alloca),
+                            alloca,
+                            load_name.as_ptr(),
+                        ))
+                    }
                 }
 
                 Expression::Binary { left, operator, right } => {
@@ -611,6 +951,18 @@ impl LLVMCodegen {
                                 name.as_ptr(),
                             )
                         }
+                        Operator::Percent => {
+                            let name = CString::new("modtmp").expect("CString failed");
+                            LLVMBuildSRem(self.builder, lhs, rhs, name.as_ptr())
+                        }
+                        Operator::And => {
+                            let name = CString::new("andtmp").expect("CString failed");
+                            LLVMBuildAnd(self.builder, lhs, rhs, name.as_ptr())
+                        }
+                        Operator::Or => {
+                            let name = CString::new("ortmp").expect("CString failed");
+                            LLVMBuildOr(self.builder, lhs, rhs, name.as_ptr())
+                        }
                         _ => {
                             return Err(CompilerError::codegen_error(format!(
                                 "Unsupported binary operator: {operator}"
@@ -651,6 +1003,202 @@ impl LLVMCodegen {
                         ))
                     } else {
                         Err(CompilerError::codegen_error("Only direct function calls supported"))
+                    }
+                }
+
+                Expression::Unary { operator, operand } => {
+                    let operand_val = self.codegen_expression(operand)?;
+                    
+                    let result = match operator {
+                        Operator::Not => {
+                            let name = CString::new("nottmp").expect("CString failed");
+                            // Logical NOT: compare with 0 and invert
+                            let zero = LLVMConstInt(LLVMTypeOf(operand_val), 0, 0);
+                            LLVMBuildICmp(
+                                self.builder,
+                                llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                                operand_val,
+                                zero,
+                                name.as_ptr(),
+                            )
+                        }
+                        Operator::Minus => {
+                            let name = CString::new("negtmp").expect("CString failed");
+                            LLVMBuildNeg(self.builder, operand_val, name.as_ptr())
+                        }
+                        _ => {
+                            return Err(CompilerError::codegen_error(format!(
+                                "Unsupported unary operator: {operator}"
+                            )));
+                        }
+                    };
+
+                    Ok(result)
+                }
+
+                Expression::Array { elements } => {
+                    unsafe {
+                        if elements.is_empty() {
+                            return Err(CompilerError::codegen_error("Empty array literals not supported"));
+                        }
+
+                        // Generate code for all elements
+                        let mut element_values: Vec<LLVMValueRef> = Vec::new();
+                        for elem in elements {
+                            element_values.push(self.codegen_expression(elem)?);
+                        }
+
+                        // Get element type from first element
+                        let elem_type = LLVMTypeOf(element_values[0]);
+                        let array_type = LLVMArrayType(elem_type, elements.len() as u32);
+
+                        // Allocate array on stack
+                        let array_name = CString::new("array").expect("CString failed");
+                        let array_alloca = LLVMBuildAlloca(self.builder, array_type, array_name.as_ptr());
+
+                        // Store each element
+                        for (i, &val) in element_values.iter().enumerate() {
+                            let idx_name = CString::new(format!("idx{i}")).expect("CString failed");
+                            let zero = LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0);
+                            let idx = LLVMConstInt(LLVMInt32TypeInContext(self.context), i as u64, 0);
+                            
+                            let mut indices = [zero, idx];
+                            let elem_ptr = LLVMBuildInBoundsGEP2(
+                                self.builder,
+                                array_type,
+                                array_alloca,
+                                indices.as_mut_ptr(),
+                                2,
+                                idx_name.as_ptr(),
+                            );
+                            LLVMBuildStore(self.builder, val, elem_ptr);
+                        }
+
+                        Ok(array_alloca)
+                    }
+                }
+
+                Expression::Index { array, index } => {
+                    unsafe {
+                        let array_val = self.codegen_expression(array)?;
+                        let index_val = self.codegen_expression(index)?;
+
+                        // Get array type (array_val is a pointer to the array)
+                        let array_type = LLVMGetAllocatedType(array_val);
+
+                        // Build GEP to get element pointer
+                        let zero = LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0);
+                        let elem_ptr_name = CString::new("elemptr").expect("CString failed");
+                        let mut indices = [zero, index_val];
+                        let elem_ptr = LLVMBuildInBoundsGEP2(
+                            self.builder,
+                            array_type,
+                            array_val,
+                            indices.as_mut_ptr(),
+                            2,
+                            elem_ptr_name.as_ptr(),
+                        );
+
+                        // Get element type from array type
+                        let elem_type = LLVMGetElementType(array_type);
+                        let load_name = CString::new("elem").expect("CString failed");
+                        Ok(LLVMBuildLoad2(self.builder, elem_type, elem_ptr, load_name.as_ptr()))
+                    }
+                }
+
+                Expression::StructLiteral { name, fields } => {
+                    unsafe {
+                        // Get the struct type (clone to avoid borrow issues)
+                        let (struct_type, field_names, _) = self.struct_types.get(name)
+                            .cloned()
+                            .ok_or_else(|| {
+                                CompilerError::codegen_error(format!("Undefined struct: {name}"))
+                            })?;
+                        
+                        // Allocate struct on stack
+                        let struct_name = CString::new(format!("{name}.tmp")).expect("CString failed");
+                        let struct_alloca = LLVMBuildAlloca(self.builder, struct_type, struct_name.as_ptr());
+                        
+                        // Store each field
+                        for (field_name, field_expr) in fields {
+                            // Find field index
+                            let field_idx = field_names.iter().position(|f| f == field_name)
+                                .ok_or_else(|| {
+                                    CompilerError::codegen_error(format!("Field {field_name} not found in struct {name}"))
+                                })? as u32;
+                            
+                            // Generate field value
+                            let field_val = self.codegen_expression(field_expr)?;
+                            
+                            // Get pointer to field
+                            let zero = LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0);
+                            let idx = LLVMConstInt(LLVMInt32TypeInContext(self.context), field_idx as u64, 0);
+                            let mut indices = [zero, idx];
+                            
+                            let field_ptr_name = CString::new(format!("{field_name}.ptr")).expect("CString failed");
+                            let field_ptr = LLVMBuildInBoundsGEP2(
+                                self.builder,
+                                struct_type,
+                                struct_alloca,
+                                indices.as_mut_ptr(),
+                                2,
+                                field_ptr_name.as_ptr(),
+                            );
+                            
+                            // Store field value
+                            LLVMBuildStore(self.builder, field_val, field_ptr);
+                        }
+                        
+                        Ok(struct_alloca)
+                    }
+                }
+
+                Expression::MemberAccess { object, member } => {
+                    unsafe {
+                        // Get the object (should be a struct pointer)
+                        let obj_val = self.codegen_expression(object)?;
+                        
+                        // Get struct name from the object expression
+                        let struct_name = if let Expression::Identifier(var_name) = &**object {
+                            self.struct_variables.get(var_name).cloned()
+                        } else {
+                            None
+                        }.ok_or_else(|| {
+                            CompilerError::codegen_error("Member access only supported on struct variables")
+                        })?;
+                        
+                        // Get struct type, field names, and field types
+                        let (struct_type, field_names, field_types) = self.struct_types.get(&struct_name)
+                            .cloned()
+                            .ok_or_else(|| {
+                                CompilerError::codegen_error(format!("Undefined struct: {struct_name}"))
+                            })?;
+                        
+                        // Find field index
+                        let field_idx = field_names.iter().position(|f| f == member)
+                            .ok_or_else(|| {
+                                CompilerError::codegen_error(format!("Field {member} not found in struct {struct_name}"))
+                            })?;
+                        
+                        // Get pointer to field using GEP
+                        let zero = LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0);
+                        let idx = LLVMConstInt(LLVMInt32TypeInContext(self.context), field_idx as u64, 0);
+                        let mut indices = [zero, idx];
+                        
+                        let field_ptr_name = CString::new(format!("{member}.ptr")).expect("CString failed");
+                        let field_ptr = LLVMBuildInBoundsGEP2(
+                            self.builder,
+                            struct_type,
+                            obj_val,
+                            indices.as_mut_ptr(),
+                            2,
+                            field_ptr_name.as_ptr(),
+                        );
+                        
+                        // Load the field value using the stored field type
+                        let field_type = field_types[field_idx];
+                        let load_name = CString::new(format!("{member}.load")).expect("CString failed");
+                        Ok(LLVMBuildLoad2(self.builder, field_type, field_ptr, load_name.as_ptr()))
                     }
                 }
 
@@ -708,9 +1256,14 @@ impl LLVMCodegen {
                     let inner = self.get_llvm_type(inner_type);
                     LLVMPointerType(inner, 0)
                 }
-                Type::Custom(_) => {
-                    // Struct types would be handled here
-                    LLVMPointerType(LLVMInt8TypeInContext(self.context), 0)
+                Type::Custom(name) => {
+                    // Look up struct type
+                    if let Some((struct_type, _, _)) = self.struct_types.get(name) {
+                        *struct_type
+                    } else {
+                        // Unknown type, use i8* as fallback
+                        LLVMPointerType(LLVMInt8TypeInContext(self.context), 0)
+                    }
                 }
                 Type::Generic { .. } => {
                     LLVMPointerType(LLVMInt8TypeInContext(self.context), 0)

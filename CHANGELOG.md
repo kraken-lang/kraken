@@ -5,6 +5,133 @@ All notable changes to the Kraken Language compiler will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2024-11-20
+
+### 🚀 Major Feature Release - Language Completeness
+
+This release completes **all core language features** - Kraken is now a fully functional programming language with arrays, structs, pattern matching, and advanced control flow!
+
+### Added
+
+#### Arrays & Indexing
+- **Array literals** with `[1, 2, 3]` syntax
+- **Array indexing** with `arr[index]` operator  
+- **Stack-allocated arrays** with proper memory management
+- **Type inference** for array element types
+- **Memory copy semantics** using `LLVMBuildMemCpy` for aggregate types
+- **Array variable tracking** for proper pointer handling
+
+#### Structs & Member Access
+- **Struct declarations** with named fields and types
+- **Struct literals** with `Point { x: 10, y: 20 }` syntax
+- **Member access** with `.` operator (e.g., `point.x`)
+- **Struct type tracking** with field names and LLVM types
+- **Named struct types** in LLVM IR
+- **Proper struct memory layout** and field indexing
+
+#### Match Statements (Pattern Matching)
+- **Match expressions** with `match (value) { ... }` syntax
+- **Literal patterns** for exact value matching
+- **Wildcard patterns** with `_` for catch-all cases
+- **Identifier patterns** for value binding (foundation)
+- **Multiple match arms** with `->` syntax
+- **Control flow** through pattern-based branching
+
+#### For Loops
+- **C-style for loops** with `for (init; condition; increment)`
+- **Loop initialization** with variable declarations
+- **Loop condition** checking
+- **Loop increment** expressions
+- **Proper basic block structure** for LLVM optimization
+
+#### Logical Operators
+- **Logical AND** (`&&`) with short-circuit evaluation
+- **Logical OR** (`||`) with short-circuit evaluation  
+- **Logical NOT** (`!`) for boolean negation
+- **Proper boolean semantics** in LLVM IR
+
+#### Additional Operators
+- **Modulo operator** (`%`) for integer remainder
+- **Modulo assignment** (`%=`) support
+
+#### Loop Control
+- **Break statement** to exit loops early
+- **Continue statement** to skip to next iteration
+- **Loop block tracking** for proper branching
+- **Works with while and for loops**
+
+### Changed
+- **Variable declaration** now uses memcpy for arrays and structs
+- **Identifier loading** returns pointers for aggregate types
+- **Type system** properly handles custom struct types
+- **LLVM codegen** uses `LLVMGetAllocatedType` for type queries
+
+### Fixed
+- **Array memory management** - fixed pointer vs value confusion
+- **Struct memory management** - proper data copying instead of pointer storage
+- **LLVM API compatibility** - using correct functions for LLVM 18
+- **Aggregate type handling** - memcpy for structs and arrays
+- **Type inference** for array and struct literals
+
+### Technical Improvements
+- **Struct field type tracking** - store LLVM types alongside field names
+- **Pregeneration optimization** - generate array/struct literals once for type inference
+- **Better error messages** for aggregate type operations
+- **Cleaner LLVM IR** with proper basic block management
+
+### Examples
+
+**Arrays**:
+```kraken
+fn main() -> int {
+    let arr = [10, 20, 30, 40, 50];
+    return arr[0] + arr[1] + arr[2] + arr[3] + arr[4];  // 150
+}
+```
+
+**Structs**:
+```kraken
+struct Point {
+    x: int;
+    y: int;
+}
+
+fn main() -> int {
+    let p = Point { x: 10, y: 20 };
+    return p.x + p.y;  // 30
+}
+```
+
+**Match Statements**:
+```kraken
+fn classify(x: int) -> int {
+    match (x) {
+        1 -> { return 10; }
+        2 -> { return 20; }
+        3 -> { return 30; }
+        _ -> { return 99; }
+    }
+}
+```
+
+**For Loops**:
+```kraken
+fn sum_range(n: int) -> int {
+    let sum = 0;
+    for (let i = 1; i <= n; i = i + 1) {
+        sum = sum + i;
+    }
+    return sum;
+}
+```
+
+**Logical Operators**:
+```kraken
+fn is_valid(x: int, y: int) -> bool {
+    return x > 0 && y > 0 && x < 100;
+}
+```
+
 ## [0.5.0] - 2024-11-20
 
 ### 🎉 Major Release - Core Functionality Complete
@@ -161,22 +288,17 @@ fn main() -> int {
 
 ## [Unreleased]
 
-### Planned for 0.6.0
-- For loop implementation
-- Array support with indexing
-- More stdlib functions (malloc, free, file I/O)
-- String operations
-
 ### Planned for 0.7.0
-- Struct implementation
 - Class implementation
 - Method calls
-- Member access
+- Constructor support
+- More stdlib functions (malloc, free, file I/O)
+- String operations
 
 ### Planned for 0.8.0
 - Generics
 - Traits/Interfaces
-- Pattern matching
+- Advanced pattern matching (destructuring)
 
 ### Planned for 0.9.0
 - Module system
@@ -194,6 +316,7 @@ fn main() -> int {
 
 ## Version History Summary
 
+- **v0.6.0** - Language completeness (arrays, structs, match, for loops, logical operators)
 - **v0.5.0** - Core functionality complete (functions, variables, control flow, I/O)
 - **v0.2.0** - LLVM backend with executable generation
 - **v0.1.0** - Initial compiler structure (lexer, parser, type checker)
