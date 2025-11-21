@@ -1,0 +1,11 @@
+fn main() -> int {
+    let file = fopen("test_output.txt", "r");
+    let buffer = malloc(100);
+    
+    fgets(buffer, 100, file);
+    puts(buffer);
+    
+    fclose(file);
+    
+    return 0;
+}

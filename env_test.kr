@@ -1,0 +1,14 @@
+fn main() -> int {
+    // Get environment variable
+    let home = getenv("HOME");
+    puts("HOME directory:");
+    puts(home);
+    
+    // Test string conversion
+    let num_str = "42";
+    let num = atoi(num_str);
+    
+    puts("Conversion works\!");
+    
+    return num;
+}

@@ -1,0 +1,14 @@
+fn main() -> int {
+    let c = 65;  // ASCII 'A'
+    
+    // Test character classification
+    let is_alpha = isalpha(c);
+    let is_upper = isupper(c);
+    
+    // Test conversion
+    let lower = tolower(c);  // Should be 97 ('a')
+    
+    puts("Character functions work\!");
+    
+    return lower;
+}

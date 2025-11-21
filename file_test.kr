@@ -1,0 +1,14 @@
+fn main() -> int {
+    // Open file for writing
+    let file = fopen("test_output.txt", "w");
+    
+    // Write to file
+    fputs("Hello from Kraken\!\n", file);
+    fputs("File I/O works\!\n", file);
+    
+    // Close file
+    fclose(file);
+    
+    puts("File written successfully\!");
+    return 0;
+}

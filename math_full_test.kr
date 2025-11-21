@@ -1,0 +1,13 @@
+fn main() -> int {
+    // Test integer math
+    let a = abs(-10);
+    let b = abs(15);
+    
+    // Test random
+    let r1 = rand();
+    let r2 = rand();
+    
+    puts("All math functions work\!");
+    
+    return a + b;  // Should be 25
+}

@@ -5,6 +5,146 @@ All notable changes to the Kraken Language compiler will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2024-11-20
+
+### 🎉 MASSIVE Standard Library Expansion - 80 Functions!
+
+This release transforms Kraken from a minimal language into a **production-ready system** with a comprehensive standard library. We've added **78 new stdlib functions** across 12 categories, bringing the total from 2 to **80 functions**!
+
+### Added
+
+#### String Operations (11 functions)
+- **`strlen(s)`** - Get string length
+- **`strcmp(s1, s2)`** - Compare strings (returns 0 if equal)
+- **`strcpy(dest, src)`** - Copy string
+- **`strcat(dest, src)`** - Concatenate strings
+- **`strstr(haystack, needle)`** - Find substring
+- **`strchr(s, c)`** - Find character in string
+- **`strncpy(dest, src, n)`** - Copy n characters
+- **`strncmp(s1, s2, n)`** - Compare n characters
+- **`strdup(s)`** - Duplicate string (allocates memory)
+- **`strtok(str, delim)`** - Tokenize string
+- **`sprintf(str, format, ...)`** - Format string to buffer
+- **`sscanf(str, format, ...)`** - Parse formatted string
+
+#### Memory Management (6 functions)
+- **`malloc(size)`** - Allocate memory
+- **`free(ptr)`** - Free allocated memory
+- **`realloc(ptr, size)`** - Reallocate memory
+- **`memcpy(dest, src, n)`** - Copy memory blocks
+- **`memset(ptr, value, n)`** - Fill memory with value
+- **`memcmp(ptr1, ptr2, n)`** - Compare memory blocks
+
+#### Basic Math (13 functions)
+- **`sqrt(x)`** - Square root
+- **`pow(x, y)`** - Power (x^y)
+- **`abs(x)`** - Absolute value (integer)
+- **`fabs(x)`** - Absolute value (float)
+- **`floor(x)`** - Round down
+- **`ceil(x)`** - Round up
+- **`round(x)`** - Round to nearest
+- **`sin(x)`** - Sine
+- **`cos(x)`** - Cosine
+- **`tan(x)`** - Tangent
+- **`log(x)`** - Natural logarithm
+- **`log10(x)`** - Base-10 logarithm
+- **`exp(x)`** - Exponential (e^x)
+
+#### Advanced Math (8 functions)
+- **`asin(x)`** - Arc sine
+- **`acos(x)`** - Arc cosine
+- **`atan(x)`** - Arc tangent
+- **`atan2(y, x)`** - Two-argument arc tangent
+- **`sinh(x)`** - Hyperbolic sine
+- **`cosh(x)`** - Hyperbolic cosine
+- **`tanh(x)`** - Hyperbolic tangent
+- **`fmod(x, y)`** - Floating-point modulo
+
+#### File I/O (16 functions)
+- **`fopen(filename, mode)`** - Open file
+- **`fclose(file)`** - Close file
+- **`fread(ptr, size, count, file)`** - Read from file
+- **`fwrite(ptr, size, count, file)`** - Write to file
+- **`fgets(str, n, file)`** - Read line from file
+- **`fputs(str, file)`** - Write string to file
+- **`fgetc(file)`** - Read character from file
+- **`fputc(c, file)`** - Write character to file
+- **`fseek(file, offset, whence)`** - Seek in file
+- **`ftell(file)`** - Get file position
+- **`rewind(file)`** - Reset file position
+- **`fflush(file)`** - Flush file buffer
+- **`feof(file)`** - Check end of file
+- **`ferror(file)`** - Check file error
+- **`remove(filename)`** - Delete file
+- **`rename(old, new)`** - Rename file
+
+#### System & Process (5 functions)
+- **`exit(status)`** - Exit program with status code
+- **`system(command)`** - Execute system command
+- **`getenv(name)`** - Get environment variable
+- **`setenv(name, value, overwrite)`** - Set environment variable
+- **`unsetenv(name)`** - Unset environment variable
+
+#### Character Classification (8 functions)
+- **`isalpha(c)`** - Check if alphabetic
+- **`isdigit(c)`** - Check if digit
+- **`isalnum(c)`** - Check if alphanumeric
+- **`isspace(c)`** - Check if whitespace
+- **`isupper(c)`** - Check if uppercase
+- **`islower(c)`** - Check if lowercase
+- **`toupper(c)`** - Convert to uppercase
+- **`tolower(c)`** - Convert to lowercase
+
+#### String Conversion (2 functions)
+- **`atoi(str)`** - String to integer
+- **`atof(str)`** - String to float
+
+#### Random & Time (3 functions)
+- **`rand()`** - Generate random number
+- **`srand(seed)`** - Seed random number generator
+- **`time(tloc)`** - Get current time
+
+#### Console I/O (5 functions)
+- **`printf(format, ...)`** - Formatted output (existing)
+- **`puts(str)`** - Print string with newline (existing)
+- **`putchar(c)`** - Print single character
+- **`getchar()`** - Read single character
+- Plus formatted I/O with sprintf/sscanf
+
+#### Error Handling (1 function)
+- **`abort()`** - Abort program immediately
+
+#### Utility (1 function)
+- **`usleep(usec)`** - Sleep for microseconds
+
+### Technical Implementation
+- All stdlib functions declared in LLVM backend via `declare_stdlib_functions()`
+- Type signatures registered in type checker for compile-time validation
+- Functions mapped to libc implementations for native performance
+- Used `i64` for all integer types to match Kraken's `int` type
+- FILE* pointers represented as `void*` (String type in Kraken)
+- Variadic functions (printf, sprintf, sscanf) properly declared with LLVM vararg flag
+
+### Testing
+- ✅ String operations: `strlen("Hello")` returns 5
+- ✅ String comparison: `strcmp("abc", "abc")` returns 0
+- ✅ Math functions: `abs(-42)` returns 42
+- ✅ File I/O: Successfully write and read files
+- ✅ Environment: `getenv("HOME")` returns home directory
+- ✅ Conversion: `atoi("42")` returns 42
+- ✅ Character: `tolower(65)` returns 97 ('a')
+- ✅ System: `system("echo 'Hello'")` executes command
+
+### Impact
+This release makes Kraken suitable for:
+- **Systems programming** - Full memory management and file I/O
+- **Scientific computing** - Comprehensive math library
+- **Text processing** - Rich string manipulation
+- **System automation** - Process and environment control
+- **Real-world applications** - Production-ready stdlib
+
+---
+
 ## [0.6.0] - 2024-11-20
 
 ### 🚀 Major Feature Release - Language Completeness
@@ -316,6 +456,7 @@ fn main() -> int {
 
 ## Version History Summary
 
+- **v0.7.0** - Massive standard library expansion (80 functions across 12 categories)
 - **v0.6.0** - Language completeness (arrays, structs, match, for loops, logical operators)
 - **v0.5.0** - Core functionality complete (functions, variables, control flow, I/O)
 - **v0.2.0** - LLVM backend with executable generation

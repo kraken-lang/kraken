@@ -707,6 +707,490 @@ impl LLVMCodegen {
             let puts_func = LLVMAddFunction(self.module, puts_name.as_ptr(), puts_type);
             self.functions.insert("puts".to_string(), puts_func);
 
+            // String functions from libc
+            let int_type = LLVMInt64TypeInContext(self.context); // Use i64 to match Kraken's int type
+
+            // strlen: int strlen(const char* s)
+            let strlen_type = LLVMFunctionType(int_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let strlen_name = CString::new("strlen").expect("CString failed");
+            let strlen_func = LLVMAddFunction(self.module, strlen_name.as_ptr(), strlen_type);
+            self.functions.insert("strlen".to_string(), strlen_func);
+
+            // strcmp: int strcmp(const char* s1, const char* s2)
+            let strcmp_type = LLVMFunctionType(int_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
+            let strcmp_name = CString::new("strcmp").expect("CString failed");
+            let strcmp_func = LLVMAddFunction(self.module, strcmp_name.as_ptr(), strcmp_type);
+            self.functions.insert("strcmp".to_string(), strcmp_func);
+
+            // strcpy: char* strcpy(char* dest, const char* src)
+            let strcpy_type = LLVMFunctionType(i8_ptr_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
+            let strcpy_name = CString::new("strcpy").expect("CString failed");
+            let strcpy_func = LLVMAddFunction(self.module, strcpy_name.as_ptr(), strcpy_type);
+            self.functions.insert("strcpy".to_string(), strcpy_func);
+
+            // strcat: char* strcat(char* dest, const char* src)
+            let strcat_type = LLVMFunctionType(i8_ptr_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
+            let strcat_name = CString::new("strcat").expect("CString failed");
+            let strcat_func = LLVMAddFunction(self.module, strcat_name.as_ptr(), strcat_type);
+            self.functions.insert("strcat".to_string(), strcat_func);
+
+            // strstr: char* strstr(const char* haystack, const char* needle)
+            let strstr_type = LLVMFunctionType(i8_ptr_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
+            let strstr_name = CString::new("strstr").expect("CString failed");
+            let strstr_func = LLVMAddFunction(self.module, strstr_name.as_ptr(), strstr_type);
+            self.functions.insert("strstr".to_string(), strstr_func);
+
+            // strchr: char* strchr(const char* s, int c)
+            let strchr_type = LLVMFunctionType(i8_ptr_type, [i8_ptr_type, int_type].as_mut_ptr(), 2, 0);
+            let strchr_name = CString::new("strchr").expect("CString failed");
+            let strchr_func = LLVMAddFunction(self.module, strchr_name.as_ptr(), strchr_type);
+            self.functions.insert("strchr".to_string(), strchr_func);
+
+            // strncpy: char* strncpy(char* dest, const char* src, int n)
+            let strncpy_type = LLVMFunctionType(i8_ptr_type, [i8_ptr_type, i8_ptr_type, int_type].as_mut_ptr(), 3, 0);
+            let strncpy_name = CString::new("strncpy").expect("CString failed");
+            let strncpy_func = LLVMAddFunction(self.module, strncpy_name.as_ptr(), strncpy_type);
+            self.functions.insert("strncpy".to_string(), strncpy_func);
+
+            // strncmp: int strncmp(const char* s1, const char* s2, int n)
+            let strncmp_type = LLVMFunctionType(int_type, [i8_ptr_type, i8_ptr_type, int_type].as_mut_ptr(), 3, 0);
+            let strncmp_name = CString::new("strncmp").expect("CString failed");
+            let strncmp_func = LLVMAddFunction(self.module, strncmp_name.as_ptr(), strncmp_type);
+            self.functions.insert("strncmp".to_string(), strncmp_func);
+
+            // Memory functions
+            // malloc: void* malloc(int size)
+            let void_ptr_type = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+            let malloc_type = LLVMFunctionType(void_ptr_type, [int_type].as_mut_ptr(), 1, 0);
+            let malloc_name = CString::new("malloc").expect("CString failed");
+            let malloc_func = LLVMAddFunction(self.module, malloc_name.as_ptr(), malloc_type);
+            self.functions.insert("malloc".to_string(), malloc_func);
+
+            // free: void free(void* ptr)
+            let void_type = LLVMVoidTypeInContext(self.context);
+            let free_type = LLVMFunctionType(void_type, [void_ptr_type].as_mut_ptr(), 1, 0);
+            let free_name = CString::new("free").expect("CString failed");
+            let free_func = LLVMAddFunction(self.module, free_name.as_ptr(), free_type);
+            self.functions.insert("free".to_string(), free_func);
+
+            // realloc: void* realloc(void* ptr, int size)
+            let realloc_type = LLVMFunctionType(void_ptr_type, [void_ptr_type, int_type].as_mut_ptr(), 2, 0);
+            let realloc_name = CString::new("realloc").expect("CString failed");
+            let realloc_func = LLVMAddFunction(self.module, realloc_name.as_ptr(), realloc_type);
+            self.functions.insert("realloc".to_string(), realloc_func);
+
+            // memcpy: void* memcpy(void* dest, const void* src, int n)
+            let memcpy_type = LLVMFunctionType(void_ptr_type, [void_ptr_type, void_ptr_type, int_type].as_mut_ptr(), 3, 0);
+            let memcpy_name = CString::new("memcpy").expect("CString failed");
+            let memcpy_func = LLVMAddFunction(self.module, memcpy_name.as_ptr(), memcpy_type);
+            self.functions.insert("memcpy".to_string(), memcpy_func);
+
+            // Math functions from libm
+            let float_type = LLVMDoubleTypeInContext(self.context);
+            
+            // sqrt: double sqrt(double x)
+            let sqrt_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let sqrt_name = CString::new("sqrt").expect("CString failed");
+            let sqrt_func = LLVMAddFunction(self.module, sqrt_name.as_ptr(), sqrt_type);
+            self.functions.insert("sqrt".to_string(), sqrt_func);
+            
+            // pow: double pow(double x, double y)
+            let pow_type = LLVMFunctionType(float_type, [float_type, float_type].as_mut_ptr(), 2, 0);
+            let pow_name = CString::new("pow").expect("CString failed");
+            let pow_func = LLVMAddFunction(self.module, pow_name.as_ptr(), pow_type);
+            self.functions.insert("pow".to_string(), pow_func);
+            
+            // abs: int abs(int x)
+            let abs_type = LLVMFunctionType(int_type, [int_type].as_mut_ptr(), 1, 0);
+            let abs_name = CString::new("abs").expect("CString failed");
+            let abs_func = LLVMAddFunction(self.module, abs_name.as_ptr(), abs_type);
+            self.functions.insert("abs".to_string(), abs_func);
+            
+            // fabs: double fabs(double x)
+            let fabs_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let fabs_name = CString::new("fabs").expect("CString failed");
+            let fabs_func = LLVMAddFunction(self.module, fabs_name.as_ptr(), fabs_type);
+            self.functions.insert("fabs".to_string(), fabs_func);
+            
+            // floor: double floor(double x)
+            let floor_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let floor_name = CString::new("floor").expect("CString failed");
+            let floor_func = LLVMAddFunction(self.module, floor_name.as_ptr(), floor_type);
+            self.functions.insert("floor".to_string(), floor_func);
+            
+            // ceil: double ceil(double x)
+            let ceil_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let ceil_name = CString::new("ceil").expect("CString failed");
+            let ceil_func = LLVMAddFunction(self.module, ceil_name.as_ptr(), ceil_type);
+            self.functions.insert("ceil".to_string(), ceil_func);
+            
+            // round: double round(double x)
+            let round_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let round_name = CString::new("round").expect("CString failed");
+            let round_func = LLVMAddFunction(self.module, round_name.as_ptr(), round_type);
+            self.functions.insert("round".to_string(), round_func);
+            
+            // sin: double sin(double x)
+            let sin_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let sin_name = CString::new("sin").expect("CString failed");
+            let sin_func = LLVMAddFunction(self.module, sin_name.as_ptr(), sin_type);
+            self.functions.insert("sin".to_string(), sin_func);
+            
+            // cos: double cos(double x)
+            let cos_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let cos_name = CString::new("cos").expect("CString failed");
+            let cos_func = LLVMAddFunction(self.module, cos_name.as_ptr(), cos_type);
+            self.functions.insert("cos".to_string(), cos_func);
+            
+            // tan: double tan(double x)
+            let tan_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let tan_name = CString::new("tan").expect("CString failed");
+            let tan_func = LLVMAddFunction(self.module, tan_name.as_ptr(), tan_type);
+            self.functions.insert("tan".to_string(), tan_func);
+            
+            // log: double log(double x)
+            let log_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let log_name = CString::new("log").expect("CString failed");
+            let log_func = LLVMAddFunction(self.module, log_name.as_ptr(), log_type);
+            self.functions.insert("log".to_string(), log_func);
+            
+            // log10: double log10(double x)
+            let log10_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let log10_name = CString::new("log10").expect("CString failed");
+            let log10_func = LLVMAddFunction(self.module, log10_name.as_ptr(), log10_type);
+            self.functions.insert("log10".to_string(), log10_func);
+            
+            // exp: double exp(double x)
+            let exp_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let exp_name = CString::new("exp").expect("CString failed");
+            let exp_func = LLVMAddFunction(self.module, exp_name.as_ptr(), exp_type);
+            self.functions.insert("exp".to_string(), exp_func);
+            
+            // Random number functions
+            // rand: int rand()
+            let rand_type = LLVMFunctionType(int_type, [].as_mut_ptr(), 0, 0);
+            let rand_name = CString::new("rand").expect("CString failed");
+            let rand_func = LLVMAddFunction(self.module, rand_name.as_ptr(), rand_type);
+            self.functions.insert("rand".to_string(), rand_func);
+            
+            // srand: void srand(unsigned int seed)
+            let srand_type = LLVMFunctionType(void_type, [int_type].as_mut_ptr(), 1, 0);
+            let srand_name = CString::new("srand").expect("CString failed");
+            let srand_func = LLVMAddFunction(self.module, srand_name.as_ptr(), srand_type);
+            self.functions.insert("srand".to_string(), srand_func);
+            
+            // Time functions
+            // time: int time(void* tloc)
+            let time_type = LLVMFunctionType(int_type, [void_ptr_type].as_mut_ptr(), 1, 0);
+            let time_name = CString::new("time").expect("CString failed");
+            let time_func = LLVMAddFunction(self.module, time_name.as_ptr(), time_type);
+            self.functions.insert("time".to_string(), time_func);
+
+            // File I/O functions
+            // FILE* is represented as void* (i8*)
+            
+            // fopen: FILE* fopen(const char* filename, const char* mode)
+            let fopen_type = LLVMFunctionType(void_ptr_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
+            let fopen_name = CString::new("fopen").expect("CString failed");
+            let fopen_func = LLVMAddFunction(self.module, fopen_name.as_ptr(), fopen_type);
+            self.functions.insert("fopen".to_string(), fopen_func);
+            
+            // fclose: int fclose(FILE* stream)
+            let fclose_type = LLVMFunctionType(int_type, [void_ptr_type].as_mut_ptr(), 1, 0);
+            let fclose_name = CString::new("fclose").expect("CString failed");
+            let fclose_func = LLVMAddFunction(self.module, fclose_name.as_ptr(), fclose_type);
+            self.functions.insert("fclose".to_string(), fclose_func);
+            
+            // fread: int fread(void* ptr, int size, int count, FILE* stream)
+            let fread_type = LLVMFunctionType(int_type, [void_ptr_type, int_type, int_type, void_ptr_type].as_mut_ptr(), 4, 0);
+            let fread_name = CString::new("fread").expect("CString failed");
+            let fread_func = LLVMAddFunction(self.module, fread_name.as_ptr(), fread_type);
+            self.functions.insert("fread".to_string(), fread_func);
+            
+            // fwrite: int fwrite(const void* ptr, int size, int count, FILE* stream)
+            let fwrite_type = LLVMFunctionType(int_type, [void_ptr_type, int_type, int_type, void_ptr_type].as_mut_ptr(), 4, 0);
+            let fwrite_name = CString::new("fwrite").expect("CString failed");
+            let fwrite_func = LLVMAddFunction(self.module, fwrite_name.as_ptr(), fwrite_type);
+            self.functions.insert("fwrite".to_string(), fwrite_func);
+            
+            // fgets: char* fgets(char* str, int n, FILE* stream)
+            let fgets_type = LLVMFunctionType(i8_ptr_type, [i8_ptr_type, int_type, void_ptr_type].as_mut_ptr(), 3, 0);
+            let fgets_name = CString::new("fgets").expect("CString failed");
+            let fgets_func = LLVMAddFunction(self.module, fgets_name.as_ptr(), fgets_type);
+            self.functions.insert("fgets".to_string(), fgets_func);
+            
+            // fputs: int fputs(const char* str, FILE* stream)
+            let fputs_type = LLVMFunctionType(int_type, [i8_ptr_type, void_ptr_type].as_mut_ptr(), 2, 0);
+            let fputs_name = CString::new("fputs").expect("CString failed");
+            let fputs_func = LLVMAddFunction(self.module, fputs_name.as_ptr(), fputs_type);
+            self.functions.insert("fputs".to_string(), fputs_func);
+            
+            // fgetc: int fgetc(FILE* stream)
+            let fgetc_type = LLVMFunctionType(int_type, [void_ptr_type].as_mut_ptr(), 1, 0);
+            let fgetc_name = CString::new("fgetc").expect("CString failed");
+            let fgetc_func = LLVMAddFunction(self.module, fgetc_name.as_ptr(), fgetc_type);
+            self.functions.insert("fgetc".to_string(), fgetc_func);
+            
+            // fputc: int fputc(int c, FILE* stream)
+            let fputc_type = LLVMFunctionType(int_type, [int_type, void_ptr_type].as_mut_ptr(), 2, 0);
+            let fputc_name = CString::new("fputc").expect("CString failed");
+            let fputc_func = LLVMAddFunction(self.module, fputc_name.as_ptr(), fputc_type);
+            self.functions.insert("fputc".to_string(), fputc_func);
+            
+            // fseek: int fseek(FILE* stream, int offset, int whence)
+            let fseek_type = LLVMFunctionType(int_type, [void_ptr_type, int_type, int_type].as_mut_ptr(), 3, 0);
+            let fseek_name = CString::new("fseek").expect("CString failed");
+            let fseek_func = LLVMAddFunction(self.module, fseek_name.as_ptr(), fseek_type);
+            self.functions.insert("fseek".to_string(), fseek_func);
+            
+            // ftell: int ftell(FILE* stream)
+            let ftell_type = LLVMFunctionType(int_type, [void_ptr_type].as_mut_ptr(), 1, 0);
+            let ftell_name = CString::new("ftell").expect("CString failed");
+            let ftell_func = LLVMAddFunction(self.module, ftell_name.as_ptr(), ftell_type);
+            self.functions.insert("ftell".to_string(), ftell_func);
+            
+            // rewind: void rewind(FILE* stream)
+            let rewind_type = LLVMFunctionType(void_type, [void_ptr_type].as_mut_ptr(), 1, 0);
+            let rewind_name = CString::new("rewind").expect("CString failed");
+            let rewind_func = LLVMAddFunction(self.module, rewind_name.as_ptr(), rewind_type);
+            self.functions.insert("rewind".to_string(), rewind_func);
+            
+            // fflush: int fflush(FILE* stream)
+            let fflush_type = LLVMFunctionType(int_type, [void_ptr_type].as_mut_ptr(), 1, 0);
+            let fflush_name = CString::new("fflush").expect("CString failed");
+            let fflush_func = LLVMAddFunction(self.module, fflush_name.as_ptr(), fflush_type);
+            self.functions.insert("fflush".to_string(), fflush_func);
+            
+            // feof: int feof(FILE* stream)
+            let feof_type = LLVMFunctionType(int_type, [void_ptr_type].as_mut_ptr(), 1, 0);
+            let feof_name = CString::new("feof").expect("CString failed");
+            let feof_func = LLVMAddFunction(self.module, feof_name.as_ptr(), feof_type);
+            self.functions.insert("feof".to_string(), feof_func);
+            
+            // ferror: int ferror(FILE* stream)
+            let ferror_type = LLVMFunctionType(int_type, [void_ptr_type].as_mut_ptr(), 1, 0);
+            let ferror_name = CString::new("ferror").expect("CString failed");
+            let ferror_func = LLVMAddFunction(self.module, ferror_name.as_ptr(), ferror_type);
+            self.functions.insert("ferror".to_string(), ferror_func);
+            
+            // remove: int remove(const char* filename)
+            let remove_type = LLVMFunctionType(int_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let remove_name = CString::new("remove").expect("CString failed");
+            let remove_func = LLVMAddFunction(self.module, remove_name.as_ptr(), remove_type);
+            self.functions.insert("remove".to_string(), remove_func);
+            
+            // rename: int rename(const char* old, const char* new)
+            let rename_type = LLVMFunctionType(int_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
+            let rename_name = CString::new("rename").expect("CString failed");
+            let rename_func = LLVMAddFunction(self.module, rename_name.as_ptr(), rename_type);
+            self.functions.insert("rename".to_string(), rename_func);
+
+            // System & Process functions
+            // exit: void exit(int status)
+            let exit_type = LLVMFunctionType(void_type, [int_type].as_mut_ptr(), 1, 0);
+            let exit_name = CString::new("exit").expect("CString failed");
+            let exit_func = LLVMAddFunction(self.module, exit_name.as_ptr(), exit_type);
+            self.functions.insert("exit".to_string(), exit_func);
+            
+            // system: int system(const char* command)
+            let system_type = LLVMFunctionType(int_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let system_name = CString::new("system").expect("CString failed");
+            let system_func = LLVMAddFunction(self.module, system_name.as_ptr(), system_type);
+            self.functions.insert("system".to_string(), system_func);
+            
+            // getenv: char* getenv(const char* name)
+            let getenv_type = LLVMFunctionType(i8_ptr_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let getenv_name = CString::new("getenv").expect("CString failed");
+            let getenv_func = LLVMAddFunction(self.module, getenv_name.as_ptr(), getenv_type);
+            self.functions.insert("getenv".to_string(), getenv_func);
+            
+            // setenv: int setenv(const char* name, const char* value, int overwrite)
+            let setenv_type = LLVMFunctionType(int_type, [i8_ptr_type, i8_ptr_type, int_type].as_mut_ptr(), 3, 0);
+            let setenv_name = CString::new("setenv").expect("CString failed");
+            let setenv_func = LLVMAddFunction(self.module, setenv_name.as_ptr(), setenv_type);
+            self.functions.insert("setenv".to_string(), setenv_func);
+            
+            // unsetenv: int unsetenv(const char* name)
+            let unsetenv_type = LLVMFunctionType(int_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let unsetenv_name = CString::new("unsetenv").expect("CString failed");
+            let unsetenv_func = LLVMAddFunction(self.module, unsetenv_name.as_ptr(), unsetenv_type);
+            self.functions.insert("unsetenv".to_string(), unsetenv_func);
+            
+            // Additional string conversion functions
+            // atoi: int atoi(const char* str)
+            let atoi_type = LLVMFunctionType(int_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let atoi_name = CString::new("atoi").expect("CString failed");
+            let atoi_func = LLVMAddFunction(self.module, atoi_name.as_ptr(), atoi_type);
+            self.functions.insert("atoi".to_string(), atoi_func);
+            
+            // atof: double atof(const char* str)
+            let atof_type = LLVMFunctionType(float_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let atof_name = CString::new("atof").expect("CString failed");
+            let atof_func = LLVMAddFunction(self.module, atof_name.as_ptr(), atof_type);
+            self.functions.insert("atof".to_string(), atof_func);
+            
+            // More advanced math
+            // asin: double asin(double x)
+            let asin_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let asin_name = CString::new("asin").expect("CString failed");
+            let asin_func = LLVMAddFunction(self.module, asin_name.as_ptr(), asin_type);
+            self.functions.insert("asin".to_string(), asin_func);
+            
+            // acos: double acos(double x)
+            let acos_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let acos_name = CString::new("acos").expect("CString failed");
+            let acos_func = LLVMAddFunction(self.module, acos_name.as_ptr(), acos_type);
+            self.functions.insert("acos".to_string(), acos_func);
+            
+            // atan: double atan(double x)
+            let atan_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let atan_name = CString::new("atan").expect("CString failed");
+            let atan_func = LLVMAddFunction(self.module, atan_name.as_ptr(), atan_type);
+            self.functions.insert("atan".to_string(), atan_func);
+            
+            // atan2: double atan2(double y, double x)
+            let atan2_type = LLVMFunctionType(float_type, [float_type, float_type].as_mut_ptr(), 2, 0);
+            let atan2_name = CString::new("atan2").expect("CString failed");
+            let atan2_func = LLVMAddFunction(self.module, atan2_name.as_ptr(), atan2_type);
+            self.functions.insert("atan2".to_string(), atan2_func);
+            
+            // sinh: double sinh(double x)
+            let sinh_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let sinh_name = CString::new("sinh").expect("CString failed");
+            let sinh_func = LLVMAddFunction(self.module, sinh_name.as_ptr(), sinh_type);
+            self.functions.insert("sinh".to_string(), sinh_func);
+            
+            // cosh: double cosh(double x)
+            let cosh_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let cosh_name = CString::new("cosh").expect("CString failed");
+            let cosh_func = LLVMAddFunction(self.module, cosh_name.as_ptr(), cosh_type);
+            self.functions.insert("cosh".to_string(), cosh_func);
+            
+            // tanh: double tanh(double x)
+            let tanh_type = LLVMFunctionType(float_type, [float_type].as_mut_ptr(), 1, 0);
+            let tanh_name = CString::new("tanh").expect("CString failed");
+            let tanh_func = LLVMAddFunction(self.module, tanh_name.as_ptr(), tanh_type);
+            self.functions.insert("tanh".to_string(), tanh_func);
+            
+            // fmod: double fmod(double x, double y)
+            let fmod_type = LLVMFunctionType(float_type, [float_type, float_type].as_mut_ptr(), 2, 0);
+            let fmod_name = CString::new("fmod").expect("CString failed");
+            let fmod_func = LLVMAddFunction(self.module, fmod_name.as_ptr(), fmod_type);
+            self.functions.insert("fmod".to_string(), fmod_func);
+            
+            // Sleep function (platform-specific, using usleep for microseconds)
+            // usleep: int usleep(int usec)
+            let usleep_type = LLVMFunctionType(int_type, [int_type].as_mut_ptr(), 1, 0);
+            let usleep_name = CString::new("usleep").expect("CString failed");
+            let usleep_func = LLVMAddFunction(self.module, usleep_name.as_ptr(), usleep_type);
+            self.functions.insert("usleep".to_string(), usleep_func);
+
+            // Character classification functions (ctype.h)
+            // isalpha: int isalpha(int c)
+            let isalpha_type = LLVMFunctionType(int_type, [int_type].as_mut_ptr(), 1, 0);
+            let isalpha_name = CString::new("isalpha").expect("CString failed");
+            let isalpha_func = LLVMAddFunction(self.module, isalpha_name.as_ptr(), isalpha_type);
+            self.functions.insert("isalpha".to_string(), isalpha_func);
+            
+            // isdigit: int isdigit(int c)
+            let isdigit_type = LLVMFunctionType(int_type, [int_type].as_mut_ptr(), 1, 0);
+            let isdigit_name = CString::new("isdigit").expect("CString failed");
+            let isdigit_func = LLVMAddFunction(self.module, isdigit_name.as_ptr(), isdigit_type);
+            self.functions.insert("isdigit".to_string(), isdigit_func);
+            
+            // isalnum: int isalnum(int c)
+            let isalnum_type = LLVMFunctionType(int_type, [int_type].as_mut_ptr(), 1, 0);
+            let isalnum_name = CString::new("isalnum").expect("CString failed");
+            let isalnum_func = LLVMAddFunction(self.module, isalnum_name.as_ptr(), isalnum_type);
+            self.functions.insert("isalnum".to_string(), isalnum_func);
+            
+            // isspace: int isspace(int c)
+            let isspace_type = LLVMFunctionType(int_type, [int_type].as_mut_ptr(), 1, 0);
+            let isspace_name = CString::new("isspace").expect("CString failed");
+            let isspace_func = LLVMAddFunction(self.module, isspace_name.as_ptr(), isspace_type);
+            self.functions.insert("isspace".to_string(), isspace_func);
+            
+            // isupper: int isupper(int c)
+            let isupper_type = LLVMFunctionType(int_type, [int_type].as_mut_ptr(), 1, 0);
+            let isupper_name = CString::new("isupper").expect("CString failed");
+            let isupper_func = LLVMAddFunction(self.module, isupper_name.as_ptr(), isupper_type);
+            self.functions.insert("isupper".to_string(), isupper_func);
+            
+            // islower: int islower(int c)
+            let islower_type = LLVMFunctionType(int_type, [int_type].as_mut_ptr(), 1, 0);
+            let islower_name = CString::new("islower").expect("CString failed");
+            let islower_func = LLVMAddFunction(self.module, islower_name.as_ptr(), islower_type);
+            self.functions.insert("islower".to_string(), islower_func);
+            
+            // toupper: int toupper(int c)
+            let toupper_type = LLVMFunctionType(int_type, [int_type].as_mut_ptr(), 1, 0);
+            let toupper_name = CString::new("toupper").expect("CString failed");
+            let toupper_func = LLVMAddFunction(self.module, toupper_name.as_ptr(), toupper_type);
+            self.functions.insert("toupper".to_string(), toupper_func);
+            
+            // tolower: int tolower(int c)
+            let tolower_type = LLVMFunctionType(int_type, [int_type].as_mut_ptr(), 1, 0);
+            let tolower_name = CString::new("tolower").expect("CString failed");
+            let tolower_func = LLVMAddFunction(self.module, tolower_name.as_ptr(), tolower_type);
+            self.functions.insert("tolower".to_string(), tolower_func);
+            
+            // Additional string utilities
+            // strdup: char* strdup(const char* s)
+            let strdup_type = LLVMFunctionType(i8_ptr_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let strdup_name = CString::new("strdup").expect("CString failed");
+            let strdup_func = LLVMAddFunction(self.module, strdup_name.as_ptr(), strdup_type);
+            self.functions.insert("strdup".to_string(), strdup_func);
+            
+            // strtok: char* strtok(char* str, const char* delim)
+            let strtok_type = LLVMFunctionType(i8_ptr_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
+            let strtok_name = CString::new("strtok").expect("CString failed");
+            let strtok_func = LLVMAddFunction(self.module, strtok_name.as_ptr(), strtok_type);
+            self.functions.insert("strtok".to_string(), strtok_func);
+            
+            // memset: void* memset(void* ptr, int value, int num)
+            let memset_type = LLVMFunctionType(void_ptr_type, [void_ptr_type, int_type, int_type].as_mut_ptr(), 3, 0);
+            let memset_name = CString::new("memset").expect("CString failed");
+            let memset_func = LLVMAddFunction(self.module, memset_name.as_ptr(), memset_type);
+            self.functions.insert("memset".to_string(), memset_func);
+            
+            // memcmp: int memcmp(const void* ptr1, const void* ptr2, int num)
+            let memcmp_type = LLVMFunctionType(int_type, [void_ptr_type, void_ptr_type, int_type].as_mut_ptr(), 3, 0);
+            let memcmp_name = CString::new("memcmp").expect("CString failed");
+            let memcmp_func = LLVMAddFunction(self.module, memcmp_name.as_ptr(), memcmp_type);
+            self.functions.insert("memcmp".to_string(), memcmp_func);
+            
+            // Assertion and error handling
+            // abort: void abort()
+            let abort_type = LLVMFunctionType(void_type, [].as_mut_ptr(), 0, 0);
+            let abort_name = CString::new("abort").expect("CString failed");
+            let abort_func = LLVMAddFunction(self.module, abort_name.as_ptr(), abort_type);
+            self.functions.insert("abort".to_string(), abort_func);
+            
+            // Additional I/O
+            // putchar: int putchar(int c)
+            let putchar_type = LLVMFunctionType(int_type, [int_type].as_mut_ptr(), 1, 0);
+            let putchar_name = CString::new("putchar").expect("CString failed");
+            let putchar_func = LLVMAddFunction(self.module, putchar_name.as_ptr(), putchar_type);
+            self.functions.insert("putchar".to_string(), putchar_func);
+            
+            // getchar: int getchar()
+            let getchar_type = LLVMFunctionType(int_type, [].as_mut_ptr(), 0, 0);
+            let getchar_name = CString::new("getchar").expect("CString failed");
+            let getchar_func = LLVMAddFunction(self.module, getchar_name.as_ptr(), getchar_type);
+            self.functions.insert("getchar".to_string(), getchar_func);
+            
+            // sprintf: int sprintf(char* str, const char* format, ...)
+            let sprintf_type = LLVMFunctionType(int_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 1);
+            let sprintf_name = CString::new("sprintf").expect("CString failed");
+            let sprintf_func = LLVMAddFunction(self.module, sprintf_name.as_ptr(), sprintf_type);
+            self.functions.insert("sprintf".to_string(), sprintf_func);
+            
+            // sscanf: int sscanf(const char* str, const char* format, ...)
+            let sscanf_type = LLVMFunctionType(int_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 1);
+            let sscanf_name = CString::new("sscanf").expect("CString failed");
+            let sscanf_func = LLVMAddFunction(self.module, sscanf_name.as_ptr(), sscanf_type);
+            self.functions.insert("sscanf".to_string(), sscanf_func);
+
             Ok(())
         }
     }

@@ -1,0 +1,15 @@
+fn main() -> int {
+    let s1 = "Hello";
+    let s2 = "World";
+    
+    // Test strstr (find substring)
+    let found = strstr("Hello World", "World");
+    
+    // Test strcmp
+    let cmp1 = strcmp("abc", "abc");  // Should be 0
+    let cmp2 = strcmp("abc", "xyz");  // Should be negative
+    
+    puts("String tests complete\!");
+    
+    return cmp1;  // Should return 0
+}

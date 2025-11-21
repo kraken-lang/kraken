@@ -1,0 +1,6 @@
+fn main() -> int {
+    puts("Running system command...");
+    let result = system("echo 'Hello from system call\!'");
+    puts("Command executed\!");
+    return result;
+}

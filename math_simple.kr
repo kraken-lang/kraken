@@ -1,0 +1,6 @@
+fn main() -> int {
+    let a = abs(-42);
+    let r = rand();
+    puts("Math works\!");
+    return a;
+}

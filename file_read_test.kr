@@ -1,0 +1,20 @@
+fn main() -> int {
+    // Open file for reading
+    let file = fopen("test_output.txt", "r");
+    
+    // Allocate buffer
+    let buffer = malloc(100);
+    
+    // Read from file
+    fgets(buffer, 100, file);
+    puts(buffer);
+    
+    fgets(buffer, 100, file);
+    puts(buffer);
+    
+    // Close and cleanup
+    fclose(file);
+    free(buffer);
+    
+    return 0;
+}

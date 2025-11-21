@@ -37,6 +37,388 @@ impl TypeChecker {
             },
         );
         
+        // String functions
+        env.define_function("strlen".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("strcmp".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("strcpy".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String],
+            return_type: Type::String,
+            is_async: false,
+        });
+        env.define_function("strcat".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String],
+            return_type: Type::String,
+            is_async: false,
+        });
+        env.define_function("strstr".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String],
+            return_type: Type::String,
+            is_async: false,
+        });
+        env.define_function("strchr".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::Int],
+            return_type: Type::String,
+            is_async: false,
+        });
+        env.define_function("strncpy".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String, Type::Int],
+            return_type: Type::String,
+            is_async: false,
+        });
+        env.define_function("strncmp".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String, Type::Int],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        
+        // Memory functions
+        env.define_function("malloc".to_string(), FunctionType {
+            parameter_types: vec![Type::Int],
+            return_type: Type::String, // void* represented as string for now
+            is_async: false,
+        });
+        env.define_function("free".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Void,
+            is_async: false,
+        });
+        env.define_function("realloc".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::Int],
+            return_type: Type::String,
+            is_async: false,
+        });
+        env.define_function("memcpy".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String, Type::Int],
+            return_type: Type::String,
+            is_async: false,
+        });
+        
+        // Math functions
+        env.define_function("sqrt".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("pow".to_string(), FunctionType {
+            parameter_types: vec![Type::Float, Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("abs".to_string(), FunctionType {
+            parameter_types: vec![Type::Int],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("fabs".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("floor".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("ceil".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("round".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("sin".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("cos".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("tan".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("log".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("log10".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("exp".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        
+        // Random functions
+        env.define_function("rand".to_string(), FunctionType {
+            parameter_types: vec![],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("srand".to_string(), FunctionType {
+            parameter_types: vec![Type::Int],
+            return_type: Type::Void,
+            is_async: false,
+        });
+        
+        // Time functions
+        env.define_function("time".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        
+        // File I/O functions (FILE* represented as String)
+        env.define_function("fopen".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String],
+            return_type: Type::String,
+            is_async: false,
+        });
+        env.define_function("fclose".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("fread".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::Int, Type::Int, Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("fwrite".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::Int, Type::Int, Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("fgets".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::Int, Type::String],
+            return_type: Type::String,
+            is_async: false,
+        });
+        env.define_function("fputs".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("fgetc".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("fputc".to_string(), FunctionType {
+            parameter_types: vec![Type::Int, Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("fseek".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::Int, Type::Int],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("ftell".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("rewind".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Void,
+            is_async: false,
+        });
+        env.define_function("fflush".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("feof".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("ferror".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("remove".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("rename".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        
+        // System & Process functions
+        env.define_function("exit".to_string(), FunctionType {
+            parameter_types: vec![Type::Int],
+            return_type: Type::Void,
+            is_async: false,
+        });
+        env.define_function("system".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("getenv".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::String,
+            is_async: false,
+        });
+        env.define_function("setenv".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String, Type::Int],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("unsetenv".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        
+        // String conversion functions
+        env.define_function("atoi".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("atof".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        
+        // Advanced math functions
+        env.define_function("asin".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("acos".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("atan".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("atan2".to_string(), FunctionType {
+            parameter_types: vec![Type::Float, Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("sinh".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("cosh".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("tanh".to_string(), FunctionType {
+            parameter_types: vec![Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        env.define_function("fmod".to_string(), FunctionType {
+            parameter_types: vec![Type::Float, Type::Float],
+            return_type: Type::Float,
+            is_async: false,
+        });
+        
+        // Sleep function
+        env.define_function("usleep".to_string(), FunctionType {
+            parameter_types: vec![Type::Int],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        
+        // Character classification
+        for func in ["isalpha", "isdigit", "isalnum", "isspace", "isupper", "islower", "toupper", "tolower"] {
+            env.define_function(func.to_string(), FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::Int,
+                is_async: false,
+            });
+        }
+        
+        // String utilities
+        env.define_function("strdup".to_string(), FunctionType {
+            parameter_types: vec![Type::String],
+            return_type: Type::String,
+            is_async: false,
+        });
+        env.define_function("strtok".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String],
+            return_type: Type::String,
+            is_async: false,
+        });
+        
+        // Memory operations
+        env.define_function("memset".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::Int, Type::Int],
+            return_type: Type::String,
+            is_async: false,
+        });
+        env.define_function("memcmp".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String, Type::Int],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        
+        // Error handling
+        env.define_function("abort".to_string(), FunctionType {
+            parameter_types: vec![],
+            return_type: Type::Void,
+            is_async: false,
+        });
+        
+        // Additional I/O
+        env.define_function("putchar".to_string(), FunctionType {
+            parameter_types: vec![Type::Int],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("getchar".to_string(), FunctionType {
+            parameter_types: vec![],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("sprintf".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        env.define_function("sscanf".to_string(), FunctionType {
+            parameter_types: vec![Type::String, Type::String],
+            return_type: Type::Int,
+            is_async: false,
+        });
+        
         Self {
             env,
             file_path,

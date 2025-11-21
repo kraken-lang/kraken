@@ -1,0 +1,14 @@
+fn main() -> int {
+    let s1 = "Hello";
+    let s2 = "World";
+    
+    // Test strlen
+    let len = strlen(s1);
+    puts("Testing strlen...");
+    
+    // Test strcmp
+    let cmp = strcmp(s1, s2);
+    puts("Testing strcmp...");
+    
+    return len;
+}
