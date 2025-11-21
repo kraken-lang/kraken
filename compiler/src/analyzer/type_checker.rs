@@ -992,6 +992,17 @@ impl TypeChecker {
                 }
             }
 
+            Operator::BitAnd | Operator::BitOr | Operator::BitXor | Operator::LeftShift | Operator::RightShift => {
+                if left == &Type::Int && right == &Type::Int {
+                    Ok(Type::Int)
+                } else {
+                    Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Bitwise operators require int operands, found {left} and {right}"),
+                    ))
+                }
+            }
+
             _ => Err(CompilerError::type_error(
                 SourceLocation::new(self.file_path.clone(), 0, 0),
                 format!("Unsupported binary operator: {operator}"),
@@ -1020,6 +1031,17 @@ impl TypeChecker {
                     Err(CompilerError::type_error(
                         SourceLocation::new(self.file_path.clone(), 0, 0),
                         format!("Logical not requires bool operand, found {operand}"),
+                    ))
+                }
+            }
+
+            Operator::BitNot => {
+                if operand == &Type::Int {
+                    Ok(Type::Int)
+                } else {
+                    Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Bitwise not requires int operand, found {operand}"),
                     ))
                 }
             }

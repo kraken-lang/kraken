@@ -5,6 +5,73 @@ All notable changes to the Kraken Language compiler will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2024-11-20
+
+### 🔧 Complete Bitwise Operations Support
+
+This release adds **full bitwise operation support**, making Kraken suitable for low-level systems programming, embedded systems, and performance-critical applications requiring bit manipulation.
+
+### Added
+
+#### Bitwise Binary Operators (5 operators)
+- **`&`** - Bitwise AND - Performs AND operation on each bit pair
+- **`|`** - Bitwise OR - Performs OR operation on each bit pair
+- **`^`** - Bitwise XOR - Performs exclusive OR on each bit pair
+- **`<<`** - Left Shift - Shifts bits left by specified positions
+- **`>>`** - Right Shift - Arithmetic right shift (preserves sign bit)
+
+#### Bitwise Unary Operator (1 operator)
+- **`~`** - Bitwise NOT - Inverts all bits (one's complement)
+
+### Technical Implementation
+- **Parser**: Added bitwise operators to expression precedence chain
+  - Bitwise OR (`|`) - Lower precedence than logical AND
+  - Bitwise XOR (`^`) - Between bitwise OR and AND
+  - Bitwise AND (`&`) - Between XOR and equality
+  - Shift operators (`<<`, `>>`) - Between comparison and arithmetic
+- **Tokenizer**: Updated `&` operator to use `BitAnd` instead of `Ampersand`
+- **Type Checker**: Added type validation for bitwise operations (requires `int` operands)
+- **Code Generator**: Implemented LLVM IR generation using:
+  - `LLVMBuildAnd` for bitwise AND
+  - `LLVMBuildOr` for bitwise OR
+  - `LLVMBuildXor` for bitwise XOR
+  - `LLVMBuildShl` for left shift
+  - `LLVMBuildAShr` for arithmetic right shift
+  - `LLVMBuildNot` for bitwise NOT
+
+### Operator Precedence (Complete)
+1. Postfix (calls, indexing, member access)
+2. Unary (`!`, `-`, `~`, `&`, `*`)
+3. Multiplicative (`*`, `/`, `%`)
+4. Additive (`+`, `-`)
+5. Shift (`<<`, `>>`)
+6. Comparison (`<`, `<=`, `>`, `>=`)
+7. Equality (`==`, `!=`)
+8. Bitwise AND (`&`)
+9. Bitwise XOR (`^`)
+10. Bitwise OR (`|`)
+11. Logical AND (`&&`)
+12. Logical OR (`||`)
+
+### Testing
+- ✅ Bitwise AND: `12 & 10` returns `8` (binary: 1100 & 1010 = 1000)
+- ✅ Bitwise OR: `12 | 10` returns `14` (binary: 1100 | 1010 = 1110)
+- ✅ Bitwise XOR: `12 ^ 10` returns `6` (binary: 1100 ^ 1010 = 0110)
+- ✅ Left shift: `5 << 2` returns `20` (multiply by 4)
+- ✅ Right shift: `20 >> 2` returns `5` (divide by 4)
+- ✅ Bitwise NOT: `~0` returns `-1` (two's complement)
+
+### Use Cases
+This release enables:
+- **Low-level programming** - Direct bit manipulation for hardware control
+- **Embedded systems** - Efficient flag and register operations
+- **Cryptography** - Bitwise operations for encryption algorithms
+- **Graphics programming** - Color manipulation and pixel operations
+- **Network protocols** - Packet header manipulation
+- **Performance optimization** - Fast multiplication/division by powers of 2
+
+---
+
 ## [0.7.0] - 2024-11-20
 
 ### 🎉 MASSIVE Standard Library Expansion - 80 Functions!
@@ -456,6 +523,7 @@ fn main() -> int {
 
 ## Version History Summary
 
+- **v0.8.0** - Complete bitwise operations support (6 operators for low-level programming)
 - **v0.7.0** - Massive standard library expansion (80 functions across 12 categories)
 - **v0.6.0** - Language completeness (arrays, structs, match, for loops, logical operators)
 - **v0.5.0** - Core functionality complete (functions, variables, control flow, I/O)

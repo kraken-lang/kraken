@@ -1,0 +1,26 @@
+fn main() -> int {
+    puts("Testing all bitwise operations:");
+    
+    // AND: 12 & 10 = 8
+    let and_val = 12 & 10;
+    
+    // OR: 12 | 10 = 14
+    let or_val = 12 | 10;
+    
+    // XOR: 12 ^ 10 = 6
+    let xor_val = 12 ^ 10;
+    
+    // Left shift: 5 << 2 = 20
+    let shl_val = 5 << 2;
+    
+    // Right shift: 20 >> 2 = 5
+    let shr_val = 20 >> 2;
+    
+    // NOT: ~0 = -1
+    let not_val = ~0;
+    
+    puts("All bitwise operations successful\!");
+    
+    // Return sum: 8 + 14 + 6 + 20 + 5 = 53
+    return and_val + or_val + xor_val + shl_val + shr_val;
+}

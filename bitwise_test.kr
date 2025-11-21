@@ -1,0 +1,26 @@
+fn main() -> int {
+    let a = 12;   // 1100 in binary
+    let b = 10;   // 1010 in binary
+    
+    // Bitwise AND: 1100 & 1010 = 1000 (8)
+    let and_result = a & b;
+    
+    // Bitwise OR: 1100 | 1010 = 1110 (14)
+    let or_result = a | b;
+    
+    // Bitwise XOR: 1100 ^ 1010 = 0110 (6)
+    let xor_result = a ^ b;
+    
+    // Left shift: 5 << 2 = 20
+    let shift_left = 5 << 2;
+    
+    // Right shift: 20 >> 2 = 5
+    let shift_right = 20 >> 2;
+    
+    // Bitwise NOT: ~5 = -6 (two's complement)
+    let not_result = ~5;
+    
+    puts("Bitwise operations work\!");
+    
+    return and_result;  // Should return 8
+}

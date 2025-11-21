@@ -522,10 +522,61 @@ impl Parser {
 
     /// Parse logical AND expression.
     fn parse_logical_and(&mut self) -> CompilerResult<Expression> {
-        let mut left = self.parse_equality()?;
+        let mut left = self.parse_bitwise_or()?;
 
         while self.match_operator(Operator::And) {
             let operator = Operator::And;
+            let right = self.parse_bitwise_or()?;
+            left = Expression::Binary {
+                left: Box::new(left),
+                operator,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(left)
+    }
+
+    /// Parse bitwise OR expression.
+    fn parse_bitwise_or(&mut self) -> CompilerResult<Expression> {
+        let mut left = self.parse_bitwise_xor()?;
+
+        while self.match_operator(Operator::BitOr) {
+            let operator = Operator::BitOr;
+            let right = self.parse_bitwise_xor()?;
+            left = Expression::Binary {
+                left: Box::new(left),
+                operator,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(left)
+    }
+
+    /// Parse bitwise XOR expression.
+    fn parse_bitwise_xor(&mut self) -> CompilerResult<Expression> {
+        let mut left = self.parse_bitwise_and()?;
+
+        while self.match_operator(Operator::BitXor) {
+            let operator = Operator::BitXor;
+            let right = self.parse_bitwise_and()?;
+            left = Expression::Binary {
+                left: Box::new(left),
+                operator,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(left)
+    }
+
+    /// Parse bitwise AND expression.
+    fn parse_bitwise_and(&mut self) -> CompilerResult<Expression> {
+        let mut left = self.parse_equality()?;
+
+        while self.match_operator(Operator::BitAnd) {
+            let operator = Operator::BitAnd;
             let right = self.parse_equality()?;
             left = Expression::Binary {
                 left: Box::new(left),
@@ -555,7 +606,7 @@ impl Parser {
 
     /// Parse comparison expression.
     fn parse_comparison(&mut self) -> CompilerResult<Expression> {
-        let mut left = self.parse_term()?;
+        let mut left = self.parse_shift()?;
 
         while let Some(op) = self.match_operators(&[
             Operator::Less,
@@ -563,6 +614,22 @@ impl Parser {
             Operator::Greater,
             Operator::GreaterEqual,
         ]) {
+            let right = self.parse_shift()?;
+            left = Expression::Binary {
+                left: Box::new(left),
+                operator: op,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(left)
+    }
+
+    /// Parse shift expression (<<, >>).
+    fn parse_shift(&mut self) -> CompilerResult<Expression> {
+        let mut left = self.parse_term()?;
+
+        while let Some(op) = self.match_operators(&[Operator::LeftShift, Operator::RightShift]) {
             let right = self.parse_term()?;
             left = Expression::Binary {
                 left: Box::new(left),
@@ -608,11 +675,11 @@ impl Parser {
 
     /// Parse unary expression.
     fn parse_unary(&mut self) -> CompilerResult<Expression> {
-        if let Some(op) = self.match_operators(&[Operator::Not, Operator::Minus, Operator::Ampersand, Operator::Star]) {
+        if let Some(op) = self.match_operators(&[Operator::Not, Operator::Minus, Operator::BitNot, Operator::BitAnd, Operator::Star]) {
             let operand = Box::new(self.parse_unary()?);
             
             return Ok(match op {
-                Operator::Ampersand => Expression::Reference { expression: operand },
+                Operator::BitAnd => Expression::Reference { expression: operand },
                 Operator::Star => Expression::Dereference { expression: operand },
                 _ => Expression::Unary { operator: op, operand },
             });

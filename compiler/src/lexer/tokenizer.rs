@@ -164,7 +164,7 @@ impl Tokenizer {
                 if self.match_char('&') {
                     TokenKind::Operator(Operator::And)
                 } else {
-                    TokenKind::Operator(Operator::Ampersand)
+                    TokenKind::Operator(Operator::BitAnd)
                 }
             }
             '|' => {

@@ -1447,6 +1447,26 @@ impl LLVMCodegen {
                             let name = CString::new("ortmp").expect("CString failed");
                             LLVMBuildOr(self.builder, lhs, rhs, name.as_ptr())
                         }
+                        Operator::BitAnd => {
+                            let name = CString::new("bitandtmp").expect("CString failed");
+                            LLVMBuildAnd(self.builder, lhs, rhs, name.as_ptr())
+                        }
+                        Operator::BitOr => {
+                            let name = CString::new("bitortmp").expect("CString failed");
+                            LLVMBuildOr(self.builder, lhs, rhs, name.as_ptr())
+                        }
+                        Operator::BitXor => {
+                            let name = CString::new("bitxortmp").expect("CString failed");
+                            LLVMBuildXor(self.builder, lhs, rhs, name.as_ptr())
+                        }
+                        Operator::LeftShift => {
+                            let name = CString::new("shltmp").expect("CString failed");
+                            LLVMBuildShl(self.builder, lhs, rhs, name.as_ptr())
+                        }
+                        Operator::RightShift => {
+                            let name = CString::new("shrtmp").expect("CString failed");
+                            LLVMBuildAShr(self.builder, lhs, rhs, name.as_ptr())
+                        }
                         _ => {
                             return Err(CompilerError::codegen_error(format!(
                                 "Unsupported binary operator: {operator}"
@@ -1509,6 +1529,10 @@ impl LLVMCodegen {
                         Operator::Minus => {
                             let name = CString::new("negtmp").expect("CString failed");
                             LLVMBuildNeg(self.builder, operand_val, name.as_ptr())
+                        }
+                        Operator::BitNot => {
+                            let name = CString::new("bitnottmp").expect("CString failed");
+                            LLVMBuildNot(self.builder, operand_val, name.as_ptr())
                         }
                         _ => {
                             return Err(CompilerError::codegen_error(format!(
