@@ -540,5 +540,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
-[Unreleased]: https://github.com/kraken-lang/kraken/compare/0.8.1...HEAD
-[0.8.1]: https://github.com/kraken-lang/kraken/tree/0.8.1
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/kraken-lang/kraken/tree/v0.8.1
