@@ -1,4 +1,4 @@
-// Kraken Calculator - Demonstrates all v0.8.0 features
+// Kraken Calculator - Demonstrates all v0.8.1 features
 // Features: structs, arrays, match, loops, bitwise, stdlib
 
 struct Operation {
@@ -68,7 +68,7 @@ fn calculate(op: Operation) -> int {
 
 fn main() -> int {
     puts("=================================");
-    puts("  KRAKEN CALCULATOR v0.8.0");
+    puts("  KRAKEN CALCULATOR v0.8.1");
     puts("=================================");
     puts("");
     

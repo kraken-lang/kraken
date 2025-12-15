@@ -1,8 +1,8 @@
-// Kraken v0.8.0 - Feature Showcase
+// Kraken v0.8.1 - Feature Showcase
 // Demonstrates: stdlib, bitwise ops, arrays, structs, match, loops
 
 fn main() -> int {
-    puts("=== KRAKEN v0.8.0 SHOWCASE ===");
+    puts("=== KRAKEN v0.8.1 SHOWCASE ===");
     puts("");
     
     // 1. String operations

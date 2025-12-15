@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2025-12-15
+
 ### Changed
 - Moved compiler output artifacts into `./build/` (instead of emitting no-extension binaries next to source files).
 - Reorganized Kraken source programs into:
@@ -26,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Verified clean builds with `cargo test` and `cargo clippy` under `RUSTFLAGS="-D warnings"`.
 
 
-## [0.8.0] - 2024-11-20
+## 0.8.0 - 2024-11-20
 
 ### 🔧 Bitwise Operations & Pointer Infrastructure
 
@@ -100,9 +102,9 @@ This release enables:
 
 ---
 
-## [0.7.0] - 2024-11-20
+## 0.7.0 - 2024-11-20
 
-### 🎉 MASSIVE Standard Library Expansion - 80 Functions!
+### MASSIVE Standard Library Expansion - 80 Functions!
 
 This release transforms Kraken from a minimal language into a **production-ready system** with a comprehensive standard library. We've added **78 new stdlib functions** across 12 categories, bringing the total from 2 to **80 functions**!
 
@@ -240,9 +242,9 @@ This release makes Kraken suitable for:
 
 ---
 
-## [0.6.0] - 2024-11-20
+## 0.6.0 - 2024-11-20
 
-### 🚀 Major Feature Release - Language Completeness
+### Major Feature Release - Language Completeness
 
 This release completes **all core language features** - Kraken is now a fully functional programming language with arrays, structs, pattern matching, and advanced control flow!
 
@@ -367,9 +369,9 @@ fn is_valid(x: int, y: int) -> bool {
 }
 ```
 
-## [0.5.0] - 2024-11-20
+## 0.5.0 - 2024-11-20
 
-### 🎉 Major Release - Core Functionality Complete
+### Major Release - Core Functionality Complete
 
 This release represents a **massive leap forward** - the Kraken compiler can now compile real, working programs with recursion, loops, and I/O!
 
@@ -477,7 +479,7 @@ fn main() -> int {
 }
 ```
 
-## [0.2.0] - 2024-11-19
+## 0.2.0 - 2024-11-19
 
 ### Added
 - **LLVM backend** with basic code generation
@@ -497,7 +499,7 @@ fn main() -> int {
 - LLVM environment variable setup
 - Clippy warnings with inline format args
 
-## [0.1.0] - 2024-11-18
+## 0.1.0 - 2024-11-18
 
 ### Added
 - **Lexer** with full tokenization support
@@ -521,34 +523,6 @@ fn main() -> int {
 - Structs, classes, interfaces
 - Comments (line and block)
 
-## [Unreleased]
-
-### Planned for 0.7.0
-- Class implementation
-- Method calls
-- Constructor support
-- More stdlib functions (malloc, free, file I/O)
-- String operations
-
-### Planned for 0.8.0
-- Generics
-- Traits/Interfaces
-- Advanced pattern matching (destructuring)
-
-### Planned for 0.9.0
-- Module system
-- Import/export
-- Package management
-
-### Planned for 1.0.0
-- Complete standard library
-- Full documentation
-- Production stability
-- Performance optimization
-- LSP server
-
----
-
 ## Version History Summary
 
 - **v0.8.0** - Complete bitwise operations support (6 operators for low-level programming)
@@ -565,3 +539,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 ## License
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
+
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/0.8.1...HEAD
+[0.8.1]: https://github.com/kraken-lang/kraken/tree/0.8.1

@@ -21,7 +21,7 @@ cargo run -p kraken -- build examples/<example>.kr
 
 ### 2. showcase.kr
 **Comprehensive Feature Showcase**
-- Demonstrates: All major v0.8.0 features
+- Demonstrates: All major v0.8.1 features
 - Features:
   - Fibonacci sequence with loops
   - Pattern matching with `match`

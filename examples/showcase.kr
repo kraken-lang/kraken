@@ -1,4 +1,4 @@
-// Kraken v0.8.0 Feature Showcase
+// Kraken v0.8.1 Feature Showcase
 // Demonstrates: stdlib, bitwise, arrays, match, loops
 
 fn fibonacci(n: int) -> int {
@@ -107,7 +107,7 @@ fn math_demo() -> int {
 
 fn main() -> int {
     puts("========================================");
-    puts("   KRAKEN v0.8.0 - FEATURE SHOWCASE");
+    puts("   KRAKEN v0.8.1 - FEATURE SHOWCASE");
     puts("========================================");
     puts("");
     

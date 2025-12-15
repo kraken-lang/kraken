@@ -1,5 +1,5 @@
 fn main() -> int {
-    puts("=== KRAKEN v0.8.0 ===");
+    puts("=== KRAKEN v0.8.1 ===");
     
     // Bitwise: 8 + 14 + 6 + 20 = 48
     let result = (12 & 10) + (12 | 10) + (12 ^ 10) + (5 << 2);

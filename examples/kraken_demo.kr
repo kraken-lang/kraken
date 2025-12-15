@@ -1,7 +1,7 @@
-// Kraken v0.8.0 - Comprehensive Demo
+// Kraken v0.8.1 - Comprehensive Demo
 
 fn main() -> int {
-    puts("=== KRAKEN v0.8.0 DEMO ===");
+    puts("=== KRAKEN v0.8.1 DEMO ===");
     puts("");
     
     // String operations
