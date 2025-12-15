@@ -1,11 +1,12 @@
 fn main() -> int {
     let path = "kraken_example_tmp_read.txt";
 
-    let file = fopen(path, "wb+");
-    fwrite("hello\n", 1, 6, file);
+    let file: bytes = fopen(path, "wb+");
+    let data: bytes = "hello\n";
+    fwrite(data, 1, 6, file);
     rewind(file);
 
-    let buffer = malloc(100);
+    let buffer: bytes = malloc(100);
     fgets(buffer, 100, file);
     puts(buffer);
 

@@ -32,6 +32,23 @@ impl TypeChecker {
             );
         }
 
+        env.define_function(
+            "cstr".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Bytes,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "from_cstr".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+
         // String functions
         env.define_function(
             "strcpy".to_string(),
@@ -879,6 +896,7 @@ impl TypeChecker {
 
                 match array_type {
                     Type::Array { element_type, .. } => Ok(*element_type),
+                    Type::Bytes | Type::String => Ok(Type::Int),
                     _ => Err(CompilerError::type_error(
                         SourceLocation::new(self.file_path.clone(), 0, 0),
                         "Cannot index non-array type",
@@ -1116,7 +1134,14 @@ impl TypeChecker {
 
     /// Check if two types are compatible.
     fn types_compatible(&self, expected: &Type, actual: &Type) -> bool {
-        expected == actual
+        if expected == actual {
+            return true;
+        }
+
+        matches!(
+            (expected, actual),
+            (Type::String, Type::Bytes) | (Type::Bytes, Type::String)
+        )
     }
 }
 

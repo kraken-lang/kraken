@@ -1,6 +1,7 @@
 fn main() -> int {
-    let f = fopen("kraken_ffi_tmp.bin", "wb");
-    let n = fwrite("abcd", 1, 4, f);
+    let f: bytes = fopen("kraken_ffi_tmp.bin", "wb");
+    let data: bytes = "abcd";
+    let n = fwrite(data, 1, 4, f);
     if (n != 4) {
         return 10;
     }

@@ -1,9 +1,9 @@
 fn main() -> int {
     // Open file for reading
-    let file = fopen("test_output.txt", "r");
+    let file: bytes = fopen("test_output.txt", "r");
     
     // Allocate buffer
-    let buffer = malloc(100);
+    let buffer: bytes = malloc(100);
     
     // Read from file
     fgets(buffer, 100, file);

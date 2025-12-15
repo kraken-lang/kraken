@@ -2,7 +2,7 @@ fn main() -> int {
     let path1 = "kraken_ffi_tmp_ops.bin";
     let path2 = "kraken_ffi_tmp_ops_renamed.bin";
 
-    let f = fopen(path1, "wb+");
+    let f: bytes = fopen(path1, "wb+");
 
     // Write one byte, flush, then read it back.
     if (fputc(65, f) == -1) {

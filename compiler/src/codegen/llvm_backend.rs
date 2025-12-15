@@ -1568,6 +1568,85 @@ impl LLVMCodegen {
                 Expression::Call { callee, arguments } => {
                     // For now, only support direct function calls (identifier)
                     if let Expression::Identifier(name) = &**callee {
+                        if name == "cstr" {
+                            if arguments.len() != 1 {
+                                return Err(CompilerError::codegen_error(
+                                    "cstr expects exactly 1 argument",
+                                ));
+                            }
+
+                            let val = self.codegen_expression(&arguments[0])?;
+                            let i8_ptr_type =
+                                LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                            let cast_name = CString::new("cstr.cast").expect("CString failed");
+                            return Ok(LLVMBuildBitCast(
+                                self.builder,
+                                val,
+                                i8_ptr_type,
+                                cast_name.as_ptr(),
+                            ));
+                        }
+
+                        if name == "from_cstr" {
+                            if arguments.len() != 1 {
+                                return Err(CompilerError::codegen_error(
+                                    "from_cstr expects exactly 1 argument",
+                                ));
+                            }
+
+                            let val = self.codegen_expression(&arguments[0])?;
+                            let i8_ptr_type =
+                                LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                            let cast_name = CString::new("from_cstr.cast").expect("CString failed");
+                            let val = LLVMBuildBitCast(
+                                self.builder,
+                                val,
+                                i8_ptr_type,
+                                cast_name.as_ptr(),
+                            );
+
+                            // Trap on null pointer.
+                            let current_bb = LLVMGetInsertBlock(self.builder);
+                            let current_fn = LLVMGetBasicBlockParent(current_bb);
+                            let trap_bb = LLVMAppendBasicBlockInContext(
+                                self.context,
+                                current_fn,
+                                c"from_cstr_null".as_ptr(),
+                            );
+                            let cont_bb = LLVMAppendBasicBlockInContext(
+                                self.context,
+                                current_fn,
+                                c"from_cstr_ok".as_ptr(),
+                            );
+
+                            let is_null = LLVMBuildICmp(
+                                self.builder,
+                                LLVMIntPredicate::LLVMIntEQ,
+                                val,
+                                LLVMConstNull(i8_ptr_type),
+                                c"isnull".as_ptr(),
+                            );
+                            LLVMBuildCondBr(self.builder, is_null, trap_bb, cont_bb);
+
+                            LLVMPositionBuilderAtEnd(self.builder, trap_bb);
+                            let abort = *self.functions.get("abort").ok_or_else(|| {
+                                CompilerError::codegen_error("Missing stdlib function: abort")
+                            })?;
+                            let abort_ty = LLVMGlobalGetValueType(abort);
+                            LLVMBuildCall2(
+                                self.builder,
+                                abort_ty,
+                                abort,
+                                [].as_mut_ptr(),
+                                0,
+                                c"".as_ptr(),
+                            );
+                            LLVMBuildUnreachable(self.builder);
+
+                            LLVMPositionBuilderAtEnd(self.builder, cont_bb);
+                            return Ok(val);
+                        }
+
                         // Look up the function
                         let function = self.functions.get(name).copied().ok_or_else(|| {
                             CompilerError::type_error(
@@ -1720,30 +1799,57 @@ impl LLVMCodegen {
                     let array_val = self.codegen_expression(array)?;
                     let index_val = self.codegen_expression(index)?;
 
-                    // Get array type (array_val is a pointer to the array)
-                    let array_type = LLVMGetAllocatedType(array_val);
+                    // array_val can be either:
+                    // - an alloca (stack allocated arrays / array literals)
+                    // - an i8* pointer (bytes/string pointers)
+                    if !LLVMIsAAllocaInst(array_val).is_null() {
+                        // Array indexing: *(array_ptr + [0, idx])
+                        let array_type = LLVMGetAllocatedType(array_val);
+                        let zero = LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0);
+                        let elem_ptr_name = CString::new("elemptr").expect("CString failed");
+                        let mut indices = [zero, index_val];
+                        let elem_ptr = LLVMBuildInBoundsGEP2(
+                            self.builder,
+                            array_type,
+                            array_val,
+                            indices.as_mut_ptr(),
+                            2,
+                            elem_ptr_name.as_ptr(),
+                        );
 
-                    // Build GEP to get element pointer
-                    let zero = LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0);
-                    let elem_ptr_name = CString::new("elemptr").expect("CString failed");
-                    let mut indices = [zero, index_val];
-                    let elem_ptr = LLVMBuildInBoundsGEP2(
+                        let elem_type = LLVMGetElementType(array_type);
+                        let load_name = CString::new("elem").expect("CString failed");
+                        return Ok(LLVMBuildLoad2(
+                            self.builder,
+                            elem_type,
+                            elem_ptr,
+                            load_name.as_ptr(),
+                        ));
+                    }
+
+                    // Byte indexing on bytes/string: *(i8* + idx) -> zext to i64
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let byte_ptr_name = CString::new("byteptr").expect("CString failed");
+                    let mut indices = [index_val];
+                    let byte_ptr = LLVMBuildInBoundsGEP2(
                         self.builder,
-                        array_type,
+                        i8_ty,
                         array_val,
                         indices.as_mut_ptr(),
-                        2,
-                        elem_ptr_name.as_ptr(),
+                        1,
+                        byte_ptr_name.as_ptr(),
                     );
 
-                    // Get element type from array type
-                    let elem_type = LLVMGetElementType(array_type);
-                    let load_name = CString::new("elem").expect("CString failed");
-                    Ok(LLVMBuildLoad2(
+                    let byte_name = CString::new("byte").expect("CString failed");
+                    let byte_val =
+                        LLVMBuildLoad2(self.builder, i8_ty, byte_ptr, byte_name.as_ptr());
+
+                    let zext_name = CString::new("byte.zext").expect("CString failed");
+                    Ok(LLVMBuildZExt(
                         self.builder,
-                        elem_type,
-                        elem_ptr,
-                        load_name.as_ptr(),
+                        byte_val,
+                        LLVMInt64TypeInContext(self.context),
+                        zext_name.as_ptr(),
                     ))
                 }
 
@@ -1933,6 +2039,7 @@ impl LLVMCodegen {
                 Type::Float => LLVMDoubleTypeInContext(self.context),
                 Type::Bool => LLVMInt1TypeInContext(self.context),
                 Type::String => LLVMPointerType(LLVMInt8TypeInContext(self.context), 0),
+                Type::Bytes => LLVMPointerType(LLVMInt8TypeInContext(self.context), 0),
                 Type::Void => LLVMVoidTypeInContext(self.context),
                 Type::Array { element_type, size } => {
                     let elem_type = self.get_llvm_type(element_type);

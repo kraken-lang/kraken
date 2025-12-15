@@ -70,7 +70,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         StdlibFnSig {
             name: "malloc",
             kraken_params: &[Type::Int],
-            kraken_return: Type::String,
+            kraken_return: Type::Bytes,
             is_vararg: false,
             c_abi_params: &[AbiType::I64],
             c_abi_param_nullability: &[Nullability::NonNull],
@@ -83,7 +83,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "free",
-            kraken_params: &[Type::String],
+            kraken_params: &[Type::Bytes],
             kraken_return: Type::Void,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr],
@@ -97,8 +97,8 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "realloc",
-            kraken_params: &[Type::String, Type::Int],
-            kraken_return: Type::String,
+            kraken_params: &[Type::Bytes, Type::Int],
+            kraken_return: Type::Bytes,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr, AbiType::I64],
             c_abi_param_nullability: &[Nullability::Nullable, Nullability::NonNull],
@@ -164,7 +164,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         StdlibFnSig {
             name: "fopen",
             kraken_params: &[Type::String, Type::String],
-            kraken_return: Type::String,
+            kraken_return: Type::Bytes,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr, AbiType::I8Ptr],
             c_abi_param_nullability: &[Nullability::NonNull, Nullability::NonNull],
@@ -177,7 +177,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "fclose",
-            kraken_params: &[Type::String],
+            kraken_params: &[Type::Bytes],
             kraken_return: Type::Int,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr],
@@ -191,7 +191,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "fread",
-            kraken_params: &[Type::String, Type::Int, Type::Int, Type::String],
+            kraken_params: &[Type::Bytes, Type::Int, Type::Int, Type::Bytes],
             kraken_return: Type::Int,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr, AbiType::I64, AbiType::I64, AbiType::I8Ptr],
@@ -215,7 +215,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "fwrite",
-            kraken_params: &[Type::String, Type::Int, Type::Int, Type::String],
+            kraken_params: &[Type::Bytes, Type::Int, Type::Int, Type::Bytes],
             kraken_return: Type::Int,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr, AbiType::I64, AbiType::I64, AbiType::I8Ptr],
@@ -239,8 +239,8 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "fgets",
-            kraken_params: &[Type::String, Type::Int, Type::String],
-            kraken_return: Type::String,
+            kraken_params: &[Type::Bytes, Type::Int, Type::Bytes],
+            kraken_return: Type::Bytes,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr, AbiType::I64, AbiType::I8Ptr],
             c_abi_param_nullability: &[
@@ -261,7 +261,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "fputs",
-            kraken_params: &[Type::String, Type::String],
+            kraken_params: &[Type::String, Type::Bytes],
             kraken_return: Type::Int,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr, AbiType::I8Ptr],
@@ -275,7 +275,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "fflush",
-            kraken_params: &[Type::String],
+            kraken_params: &[Type::Bytes],
             kraken_return: Type::Int,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr],
@@ -289,7 +289,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "fgetc",
-            kraken_params: &[Type::String],
+            kraken_params: &[Type::Bytes],
             kraken_return: Type::Int,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr],
@@ -303,7 +303,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "fputc",
-            kraken_params: &[Type::Int, Type::String],
+            kraken_params: &[Type::Int, Type::Bytes],
             kraken_return: Type::Int,
             is_vararg: false,
             c_abi_params: &[AbiType::I32, AbiType::I8Ptr],
@@ -317,7 +317,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "fseek",
-            kraken_params: &[Type::String, Type::Int, Type::Int],
+            kraken_params: &[Type::Bytes, Type::Int, Type::Int],
             kraken_return: Type::Int,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr, AbiType::I64, AbiType::I32],
@@ -339,7 +339,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "ftell",
-            kraken_params: &[Type::String],
+            kraken_params: &[Type::Bytes],
             kraken_return: Type::Int,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr],
@@ -353,7 +353,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "feof",
-            kraken_params: &[Type::String],
+            kraken_params: &[Type::Bytes],
             kraken_return: Type::Int,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr],
@@ -367,7 +367,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "ferror",
-            kraken_params: &[Type::String],
+            kraken_params: &[Type::Bytes],
             kraken_return: Type::Int,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr],
@@ -409,7 +409,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "rewind",
-            kraken_params: &[Type::String],
+            kraken_params: &[Type::Bytes],
             kraken_return: Type::Void,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr],
@@ -451,8 +451,8 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "memcpy",
-            kraken_params: &[Type::String, Type::String, Type::Int],
-            kraken_return: Type::String,
+            kraken_params: &[Type::Bytes, Type::Bytes, Type::Int],
+            kraken_return: Type::Bytes,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr, AbiType::I8Ptr, AbiType::I64],
             c_abi_param_nullability: &[
@@ -473,8 +473,8 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "memset",
-            kraken_params: &[Type::String, Type::Int, Type::Int],
-            kraken_return: Type::String,
+            kraken_params: &[Type::Bytes, Type::Int, Type::Int],
+            kraken_return: Type::Bytes,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr, AbiType::I32, AbiType::I64],
             c_abi_param_nullability: &[
@@ -495,7 +495,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
         },
         StdlibFnSig {
             name: "memcmp",
-            kraken_params: &[Type::String, Type::String, Type::Int],
+            kraken_params: &[Type::Bytes, Type::Bytes, Type::Int],
             kraken_return: Type::Int,
             is_vararg: false,
             c_abi_params: &[AbiType::I8Ptr, AbiType::I8Ptr, AbiType::I64],

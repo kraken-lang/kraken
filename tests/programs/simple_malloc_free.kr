@@ -1,5 +1,5 @@
 fn main() -> int {
-    let p: string = malloc(1);
+    let p: bytes = malloc(1);
     free(p);
     return 0;
 }

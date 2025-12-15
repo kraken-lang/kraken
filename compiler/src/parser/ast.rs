@@ -255,6 +255,7 @@ pub enum Type {
     Float,
     Bool,
     String,
+    Bytes,
     Void,
 
     /// Array type
@@ -293,6 +294,7 @@ impl Type {
             Keyword::Float => Some(Type::Float),
             Keyword::Bool => Some(Type::Bool),
             Keyword::String => Some(Type::String),
+            Keyword::Bytes => Some(Type::Bytes),
             Keyword::Void => Some(Type::Void),
             _ => None,
         }
@@ -306,6 +308,7 @@ impl std::fmt::Display for Type {
             Type::Float => write!(f, "float"),
             Type::Bool => write!(f, "bool"),
             Type::String => write!(f, "string"),
+            Type::Bytes => write!(f, "bytes"),
             Type::Void => write!(f, "void"),
             Type::Array { element_type, size } => {
                 if let Some(s) = size {
@@ -358,6 +361,7 @@ mod tests {
         assert_eq!(Type::from_keyword(Keyword::Int), Some(Type::Int));
         assert_eq!(Type::from_keyword(Keyword::Float), Some(Type::Float));
         assert_eq!(Type::from_keyword(Keyword::Bool), Some(Type::Bool));
+        assert_eq!(Type::from_keyword(Keyword::Bytes), Some(Type::Bytes));
         assert_eq!(Type::from_keyword(Keyword::If), None);
     }
 
@@ -365,6 +369,7 @@ mod tests {
     fn test_type_display() {
         assert_eq!(Type::Int.to_string(), "int");
         assert_eq!(Type::Float.to_string(), "float");
+        assert_eq!(Type::Bytes.to_string(), "bytes");
         assert_eq!(
             Type::Array {
                 element_type: Box::new(Type::Int),

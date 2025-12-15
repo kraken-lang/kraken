@@ -1,3 +1,5 @@
 fn main() -> int {
-    return memcmp("abc", "abc", 3);
+    let a: bytes = "abc";
+    let b: bytes = "abc";
+    return memcmp(a, b, 3);
 }

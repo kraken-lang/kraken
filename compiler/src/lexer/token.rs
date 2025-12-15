@@ -75,6 +75,7 @@ pub enum Keyword {
     Float,
     Bool,
     String,
+    Bytes,
     Void,
 
     // Declarations
@@ -130,6 +131,7 @@ impl Keyword {
             "float" => Some(Self::Float),
             "bool" => Some(Self::Bool),
             "string" => Some(Self::String),
+            "bytes" => Some(Self::Bytes),
             "void" => Some(Self::Void),
             "fn" => Some(Self::Fn),
             "let" => Some(Self::Let),
@@ -177,6 +179,7 @@ impl Keyword {
             Self::Float => "float",
             Self::Bool => "bool",
             Self::String => "string",
+            Self::Bytes => "bytes",
             Self::Void => "void",
             Self::Fn => "fn",
             Self::Let => "let",
@@ -309,6 +312,7 @@ mod tests {
         assert_eq!(Keyword::from_str("if"), Some(Keyword::If));
         assert_eq!(Keyword::from_str("fn"), Some(Keyword::Fn));
         assert_eq!(Keyword::from_str("true"), Some(Keyword::True));
+        assert_eq!(Keyword::from_str("bytes"), Some(Keyword::Bytes));
         assert_eq!(Keyword::from_str("invalid"), None);
     }
 
@@ -317,6 +321,7 @@ mod tests {
         assert_eq!(Keyword::If.as_str(), "if");
         assert_eq!(Keyword::Fn.as_str(), "fn");
         assert_eq!(Keyword::True.as_str(), "true");
+        assert_eq!(Keyword::Bytes.as_str(), "bytes");
     }
 
     #[test]

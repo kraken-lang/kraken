@@ -408,6 +408,25 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn bytes_index_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/simple_bytes_index.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn cstr_roundtrip_compile_and_run() -> Result<()> {
+        assert_program_exit_code(
+            PathBuf::from("../tests/programs/simple_cstr_roundtrip.kr"),
+            0,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn cstr_strlen_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/simple_cstr_strlen.kr"), 0).await
+    }
+
+    #[tokio::test]
     async fn ffi_malloc_free_compile_and_run() -> Result<()> {
         assert_program_exit_code(PathBuf::from("../tests/programs/simple_malloc_free.kr"), 0).await
     }
@@ -462,6 +481,14 @@ mod tests {
     async fn ffi_negative_malloc_null_traps() -> Result<()> {
         assert_program_terminated_by_signal(PathBuf::from("../tests/programs/neg_malloc_null.kr"))
             .await
+    }
+
+    #[tokio::test]
+    async fn ffi_negative_from_cstr_null_traps() -> Result<()> {
+        assert_program_terminated_by_signal(PathBuf::from(
+            "../tests/programs/neg_from_cstr_null.kr",
+        ))
+        .await
     }
 
     #[tokio::test]

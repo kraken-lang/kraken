@@ -1,0 +1,11 @@
+fn main() -> int {
+    let s: string = "hello";
+    let p: bytes = cstr(s);
+    let t: string = from_cstr(p);
+
+    if (strlen(t) != 5) {
+        return 1;
+    }
+
+    return 0;
+}

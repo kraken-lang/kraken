@@ -1,0 +1,13 @@
+fn main() -> int {
+    let b: bytes = "abc";
+    if (b[0] != 97) {
+        return 1;
+    }
+
+    let s: string = "abc";
+    if (s[1] != 98) {
+        return 2;
+    }
+
+    return 0;
+}

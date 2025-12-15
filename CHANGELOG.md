@@ -20,6 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.8.4] - 2025-12-15
+
+### Added
+
+- Added a new primitive type `bytes` for raw pointer/buffer values (separate from `string`).
+- Added v1 byte indexing support for `bytes[i]` and `string[i]` (returns `int`).
+- Added FFI C-string boundary helpers `cstr(string) -> bytes` and `from_cstr(bytes) -> string` (traps on null).
+
+### Changed
+
+- Stdlib/FFI signatures now use `bytes` for raw buffers and opaque pointer handles (e.g. `malloc/free/realloc`, `mem*`, and `FILE*`-like values), while `string` remains for C-string text.
+
 ## [0.8.3] - 2025-12-15
 
 ### Added

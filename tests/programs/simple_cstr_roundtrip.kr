@@ -1,0 +1,6 @@
+fn main() -> int {
+    let s: string = "hello";
+    let p: bytes = cstr(s);
+    let t: string = from_cstr(p);
+    return strcmp(s, t);
+}

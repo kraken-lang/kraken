@@ -1,0 +1,6 @@
+fn main() -> int {
+    // strstr returns null when the needle is not found.
+    let p: bytes = strstr("abc", "z");
+    from_cstr(p);
+    return 0;
+}
