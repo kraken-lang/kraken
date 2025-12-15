@@ -1,0 +1,4 @@
+fn main() -> int {
+    getenv("PATH");
+    return 0;
+}

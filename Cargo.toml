@@ -27,7 +27,7 @@ resolver = "2"
 # Workspace Package
 [workspace.package]
 #####################################################
-version       = "0.8.1"
+version       = "0.8.2"
 readme        = "README.md"
 license       = "Apache-2.0"
 publish       = false
@@ -35,9 +35,9 @@ publish       = false
 edition       = "2021"
 rust-version  = "1.80"
 # ========================
-documentation = "https://anvil-lang.org/documentation/"
-repository    = "https://github.com/anvil-lang/anvil"
-homepage      = "https://anvil-lang.org"
+documentation = "https://github.com/kraken-lang/kraken"
+repository    = "https://github.com/kraken-lang/kraken"
+homepage      = "https://github.com/kraken-lang/kraken"
 # ========================
 authors = [
     "James Gober <code@jamesgober.dev>"

@@ -1,0 +1,21 @@
+fn main() -> int {
+    let f = fopen("kraken_ffi_tmp_roundtrip.bin", "wb+");
+    let w = fwrite("abcd", 1, 4, f);
+    if (w != 4) {
+        return 10;
+    }
+
+    rewind(f);
+
+    let buf = malloc(4);
+    let r = fread(buf, 1, 4, f);
+    if (r != 4) {
+        return 11;
+    }
+
+    if (memcmp(buf, "abcd", 4) != 0) {
+        return 12;
+    }
+
+    return 0;
+}

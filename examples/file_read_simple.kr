@@ -1,11 +1,16 @@
 fn main() -> int {
-    let file = fopen("tests/fixtures/test_output.txt", "r");
+    let path = "kraken_example_tmp_read.txt";
+
+    let file = fopen(path, "wb+");
+    fwrite("hello\n", 1, 6, file);
+    rewind(file);
+
     let buffer = malloc(100);
-    
     fgets(buffer, 100, file);
     puts(buffer);
-    
+
     fclose(file);
-    
+    remove(path);
+
     return 0;
 }

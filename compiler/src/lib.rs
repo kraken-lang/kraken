@@ -6,6 +6,7 @@
 pub mod analyzer;
 pub mod codegen;
 pub mod error;
+pub mod ffi;
 pub mod lexer;
 pub mod parser;
 

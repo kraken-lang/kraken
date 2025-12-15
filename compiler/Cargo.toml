@@ -30,6 +30,10 @@ publish = false
 name = "kraken"
 path = "src/main.rs"
 
+[[bench]]
+name = "stdlib_sig"
+harness = false
+
 
 # Dependencies
 [dependencies]

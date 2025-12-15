@@ -1,0 +1,48 @@
+fn main() -> int {
+    let path1 = "kraken_ffi_tmp_ops.bin";
+    let path2 = "kraken_ffi_tmp_ops_renamed.bin";
+
+    let f = fopen(path1, "wb+");
+
+    // Write one byte, flush, then read it back.
+    if (fputc(65, f) == -1) {
+        return 10;
+    }
+
+    if (fflush(f) == -1) {
+        return 11;
+    }
+
+    if (fseek(f, 0, 0) == -1) {
+        return 12;
+    }
+
+    fgetc(f);
+
+    // Seek to end and validate ftell.
+    if (fseek(f, 0, 2) == -1) {
+        return 14;
+    }
+
+    let pos = ftell(f);
+    if (pos < 0) {
+        return 15;
+    }
+
+    feof(f);
+    ferror(f);
+
+    if (fclose(f) == -1) {
+        return 18;
+    }
+
+    if (rename(path1, path2) == -1) {
+        return 19;
+    }
+
+    if (remove(path2) == -1) {
+        return 20;
+    }
+
+    return 0;
+}

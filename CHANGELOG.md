@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2025-12-15
+
+### Added
+- Initial compile+run FFI integration smoke test (`strcmp`).
+- Additional compile+run smoke tests for libc calls: `strlen`, `memcmp`, and `malloc/free`.
+- Additional compile+run smoke test for libc `getenv`.
+- Additional compile+run smoke test for libc env roundtrip: `setenv` + `getenv`.
+- Additional compile+run smoke test for libc file I/O: `fopen`.
+- Additional compile+run smoke test for libc file I/O: `fwrite`.
+- Additional compile+run smoke test for libc file I/O: `fread`.
+- Additional compile+run smoke test for libc file ops: `fgetc`, `fputc`, `fseek`, `ftell`, `feof`, `ferror`, `fflush`, `fclose`, `rename`, `remove`.
+- Documented compiler-enforced FFI/C boundary rules (ownership, nullability/trap policy, errno conventions, and C `int` widening).
+- Documented macOS/Linux platform notes and CI requirements (`docs/platform.md`).
+- Negative runtime test: `fopen` returning null triggers a trap.
+- Negative runtime test: `realloc` returning null triggers a trap.
+- Negative runtime test: `malloc` returning null triggers a trap.
+
+### Changed
+- Centralized selected libc/stdlib function metadata into a single shared table used by both the type checker and LLVM codegen.
+- Made stdlib call lowering ABI-aware by inserting explicit argument casts and return widening at the call boundary.
+- Extended the shared stdlib signature table with canonical FFI conventions (nullability, ownership, and errno behavior metadata).
+- Centralized additional file/FILE* libc APIs into the shared stdlib table: `fgetc`, `fputc`, `fseek`, `ftell`, `feof`, `ferror`, `remove`, `rename`.
+- Updated examples to use deterministic, hardened FFI patterns (file I/O uses temporary files; env demo uses `setenv` + `getenv`).
+- Added validation for the shared stdlib/FFI signature table and enforced it during `check` and `compile`.
+- Enforced explicit C `int` widening policy for stdlib signatures returning `I32` but modeled as Kraken `int`.
+- Integer widening policy: default `c_int` widening is **signed**, with `unsigned` reserved for explicit per-function overrides when introduced.
+- Optimized stdlib signature lookup in codegen by using a cached map instead of a linear scan.
+
+### Fixed
+- Fixed struct codegen invariants by ensuring struct types are registered before function declaration and avoiding duplicate struct type creation.
+- Fixed function call lowering for struct arguments to pass structs with consistent ABI (load from alloca when needed).
+- Fixed example programs to parse/typecheck under current language rules (structs declared before use; struct field declarations use `;`; removed unsupported `mut` syntax).
+- Enforced fallible pointer-returning FFI behavior for `malloc`: trap immediately if libc returns null.
+- Made `kraken run` execute the produced binary and propagate non-zero exit status.
+- Made object-file linking platform-aware (macOS defaults; Linux links `-lm` for math symbols).
+- Eliminated several silent FFI ABI mismatches (notably C `int` return values) by making widening rules explicit and consistent.
+- Fixed LLVM stdlib call emission for `void`-returning functions (do not assign SSA names to `call void`).
+- Fixed duplicate libc symbol declarations during codegen that could lead to renamed symbols (e.g. `memcmp.2`) and link failures.
+
 ## [0.8.1] - 2025-12-15
 
 ### Changed
@@ -540,5 +579,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
-[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.2...HEAD
+[0.8.2]: https://github.com/kraken-lang/kraken/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/kraken-lang/kraken/tree/v0.8.1

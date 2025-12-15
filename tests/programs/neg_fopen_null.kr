@@ -1,0 +1,4 @@
+fn main() -> int {
+    fopen("/this/path/should/not/exist/kraken_ffi_missing_file", "r");
+    return 0;
+}

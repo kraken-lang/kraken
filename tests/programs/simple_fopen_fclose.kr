@@ -1,0 +1,4 @@
+fn main() -> int {
+    fopen("kraken_ffi_tmp.txt", "w");
+    return 0;
+}

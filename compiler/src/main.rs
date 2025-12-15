@@ -10,6 +10,7 @@ use tokio::fs;
 mod analyzer;
 mod codegen;
 mod error;
+mod ffi;
 mod lexer;
 mod parser;
 
@@ -126,7 +127,7 @@ async fn build_command(path: PathBuf, output: Option<PathBuf>, verbose: bool) ->
             println!("Compiling: {}", file.display());
         }
 
-        compile_file(file)
+        let _executable = compile_file(file)
             .await
             .context(format!("Failed to compile {}", file.display()))?;
     }
@@ -150,7 +151,15 @@ async fn run_command(file: PathBuf, _args: Vec<String>) -> Result<()> {
 
     println!("Compiling and running: {}", file.display());
 
-    compile_file(&file).await?;
+    let executable = compile_file(&file).await?;
+
+    let status = std::process::Command::new(&executable)
+        .status()
+        .with_context(|| format!("Failed to run executable: {}", executable.display()))?;
+
+    if !status.success() {
+        anyhow::bail!("Execution failed");
+    }
 
     println!("Execution complete.");
     Ok(())
@@ -229,7 +238,11 @@ version = "0.1.0"
 }
 
 /// Compile a single source file to executable.
-async fn compile_file(file: &PathBuf) -> Result<()> {
+async fn compile_file(file: &PathBuf) -> Result<PathBuf> {
+    crate::ffi::stdlib::validate_stdlib_table()
+        .map_err(|e| anyhow::anyhow!(e))
+        .context("Invalid stdlib/FFI signature table")?;
+
     let source = fs::read_to_string(file)
         .await
         .context("Failed to read source file")?;
@@ -270,17 +283,23 @@ async fn compile_file(file: &PathBuf) -> Result<()> {
     // Clean up object file
     std::fs::remove_file(&object_file).ok();
 
-    Ok(())
+    Ok(executable)
 }
 
 /// Link object file to executable.
 fn link_executable(object_file: &PathBuf, output: &PathBuf) -> Result<()> {
-    let status = std::process::Command::new("clang")
-        .arg(object_file)
-        .arg("-o")
-        .arg(output)
-        .status()
-        .context("Failed to run linker")?;
+    let mut cmd = std::process::Command::new("clang");
+    cmd.arg(object_file).arg("-o").arg(output);
+
+    // Platform-aware link rules:
+    // - macOS: clang driver links libSystem by default; keep flags minimal.
+    // - Linux: libc is default but libm is not; add -lm for math symbols.
+    #[cfg(target_os = "linux")]
+    {
+        cmd.arg("-lm");
+    }
+
+    let status = cmd.status().context("Failed to run linker")?;
 
     if !status.success() {
         anyhow::bail!("Linking failed");
@@ -291,6 +310,10 @@ fn link_executable(object_file: &PathBuf, output: &PathBuf) -> Result<()> {
 
 /// Check a single source file without generating code.
 async fn check_file(file: &PathBuf) -> Result<()> {
+    crate::ffi::stdlib::validate_stdlib_table()
+        .map_err(|e| anyhow::anyhow!(e))
+        .context("Invalid stdlib/FFI signature table")?;
+
     let source = fs::read_to_string(file)
         .await
         .context("Failed to read source file")?;
@@ -345,5 +368,173 @@ mod tests {
         assert!(is_kraken_source_file(&PathBuf::from("test.kr")));
         assert!(is_kraken_source_file(&PathBuf::from("test.krak")));
         assert!(!is_kraken_source_file(&PathBuf::from("test.rs")));
+    }
+
+    #[test]
+    fn stdlib_table_is_valid() {
+        crate::ffi::stdlib::validate_stdlib_table().unwrap();
+    }
+
+    #[tokio::test]
+    async fn ffi_negative_strlen_wrong_arity_fails() -> Result<()> {
+        assert_check_fails_contains(
+            PathBuf::from("../tests/programs/neg_strlen_arity.kr"),
+            "strlen",
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn ffi_negative_strcmp_wrong_types_fails() -> Result<()> {
+        assert_check_fails_contains(
+            PathBuf::from("../tests/programs/neg_strcmp_types.kr"),
+            "strcmp",
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn ffi_strcmp_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/simple_strcmp.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn ffi_strlen_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/simple_strlen.kr"), 4).await
+    }
+
+    #[tokio::test]
+    async fn ffi_memcmp_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/simple_memcmp.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn ffi_malloc_free_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/simple_malloc_free.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn ffi_getenv_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/simple_getenv.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn ffi_setenv_getenv_compile_and_run() -> Result<()> {
+        assert_program_exit_code(
+            PathBuf::from("../tests/programs/simple_setenv_getenv.kr"),
+            0,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn ffi_fopen_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/simple_fopen_fclose.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn ffi_fwrite_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/simple_fwrite.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn ffi_fread_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/simple_fread.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn ffi_file_ops_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/simple_file_ops.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn ffi_negative_fopen_null_traps() -> Result<()> {
+        assert_program_terminated_by_signal(PathBuf::from("../tests/programs/neg_fopen_null.kr"))
+            .await
+    }
+
+    #[tokio::test]
+    async fn ffi_negative_realloc_null_traps() -> Result<()> {
+        assert_program_terminated_by_signal(PathBuf::from("../tests/programs/neg_realloc_null.kr"))
+            .await
+    }
+
+    #[tokio::test]
+    async fn ffi_negative_malloc_null_traps() -> Result<()> {
+        assert_program_terminated_by_signal(PathBuf::from("../tests/programs/neg_malloc_null.kr"))
+            .await
+    }
+
+    async fn assert_program_exit_code(program: PathBuf, expected_exit_code: i32) -> Result<()> {
+        let executable = compile_file(&program)
+            .await
+            .with_context(|| format!("Failed to compile {}", program.display()))?;
+
+        let output = std::process::Command::new(&executable)
+            .output()
+            .with_context(|| format!("Failed to run executable: {}", executable.display()))?;
+
+        let code = output
+            .status
+            .code()
+            .ok_or_else(|| anyhow::anyhow!("Executable terminated by signal"))?;
+
+        if code != expected_exit_code {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!(
+                "Unexpected exit code. expected={expected_exit_code} actual={code}\nstdout:\n{stdout}\nstderr:\n{stderr}"
+            );
+        }
+
+        Ok(())
+    }
+
+    async fn assert_program_terminated_by_signal(program: PathBuf) -> Result<()> {
+        let executable = compile_file(&program)
+            .await
+            .with_context(|| format!("Failed to compile {}", program.display()))?;
+
+        let output = std::process::Command::new(&executable)
+            .output()
+            .with_context(|| format!("Failed to run executable: {}", executable.display()))?;
+
+        if output.status.code().is_some() {
+            let code = output.status.code().unwrap_or(-1);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!(
+                "Expected executable to terminate by signal, but it exited normally: code={code}\nstdout:\n{stdout}\nstderr:\n{stderr}"
+            );
+        }
+
+        Ok(())
+    }
+
+    async fn assert_check_fails_contains(program: PathBuf, needle: &str) -> Result<()> {
+        let result = check_file(&program).await;
+        if result.is_ok() {
+            anyhow::bail!("Expected check to fail for {}", program.display());
+        }
+
+        let err = result.unwrap_err();
+        let mut combined = String::new();
+        let mut found = false;
+        for (idx, cause) in err.chain().enumerate() {
+            let s = cause.to_string();
+            if idx > 0 {
+                combined.push_str("\ncaused by: ");
+            }
+            combined.push_str(&s);
+            if s.contains(needle) {
+                found = true;
+            }
+        }
+
+        if !found {
+            anyhow::bail!("Expected error chain to contain {needle}, got: {combined}");
+        }
+
+        Ok(())
     }
 }

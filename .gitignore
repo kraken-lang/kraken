@@ -6,6 +6,9 @@ modcli/tests_disabled/
 # Development
 /dev
 
+# Private (not for GitHub)
+/.private/
+
 # Rust/Cargo Build Artifacts
 /target/
 **/*.rs.bk

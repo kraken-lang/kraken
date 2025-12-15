@@ -5,6 +5,7 @@
 //! garbage collection for development mode.
 
 pub mod async_adapter;
+pub mod ffi;
 pub mod gc;
 pub mod memory;
 

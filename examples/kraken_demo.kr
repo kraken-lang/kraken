@@ -1,5 +1,10 @@
 // Kraken v0.8.1 - Comprehensive Demo
 
+struct Point {
+    x: int;
+    y: int;
+}
+
 fn main() -> int {
     puts("=== KRAKEN v0.8.1 DEMO ===");
     puts("");
@@ -45,9 +50,4 @@ fn main() -> int {
     puts("");
     puts("=== SUCCESS\! ===");
     return 0;
-}
-
-struct Point {
-    x: int,
-    y: int,
 }

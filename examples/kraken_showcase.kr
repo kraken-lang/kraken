@@ -1,6 +1,11 @@
 // Kraken v0.8.1 - Feature Showcase
 // Demonstrates: stdlib, bitwise ops, arrays, structs, match, loops
 
+struct Point {
+    x: int;
+    y: int;
+}
+
 fn main() -> int {
     puts("=== KRAKEN v0.8.1 SHOWCASE ===");
     puts("");
@@ -52,23 +57,19 @@ fn main() -> int {
     
     // 7. Loops
     puts("7. Loops:");
-    let mut i = 0;
-    let mut total = 0;
-    for (i = 0; i < 5; i = i + 1) {
+    let total = 0;
+    for (let i = 0; i < 5; i = i + 1) {
         total = total + i;
     }
     
     // 8. Environment
     puts("8. System Integration:");
-    let home = getenv("HOME");
+    setenv("KRAKEN_EXAMPLE_KEY", "KRAKEN_EXAMPLE_VALUE", 1);
+    let v = getenv("KRAKEN_EXAMPLE_KEY");
+    puts(v);
     
     puts("");
     puts("=== ALL FEATURES WORKING\! ===");
     
     return 0;
-}
-
-struct Point {
-    x: int,
-    y: int,
 }

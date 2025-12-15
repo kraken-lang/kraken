@@ -1,4 +1,5 @@
 use crate::error::{CompilerError, CompilerResult, SourceLocation};
+use crate::ffi::stdlib::{AbiType, CIntWidening, StdlibFnSig};
 use crate::lexer::token::Operator;
 use crate::parser::ast::*;
 use llvm_sys::analysis::*;
@@ -6,6 +7,7 @@ use llvm_sys::core::*;
 use llvm_sys::prelude::*;
 use llvm_sys::target::*;
 use llvm_sys::target_machine::*;
+use llvm_sys::LLVMIntPredicate;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::path::Path;
@@ -61,6 +63,168 @@ impl LLVMCodegen {
         }
     }
 
+    fn maybe_trap_on_null_stdlib_result(
+        &mut self,
+        name: &str,
+        value: LLVMValueRef,
+    ) -> CompilerResult<LLVMValueRef> {
+        let Some(sig) = self.stdlib_sig(name) else {
+            return Ok(value);
+        };
+
+        let should_trap = sig.c_abi_return == AbiType::I8Ptr
+            && sig.c_abi_return_nullability == crate::ffi::types::Nullability::Nullable
+            && sig.c_abi_return_ownership == crate::ffi::types::Ownership::Owned
+            && sig.errno == crate::ffi::types::ErrnoConvention::ReturnsNull;
+
+        if !should_trap {
+            return Ok(value);
+        }
+
+        unsafe {
+            let current_bb = LLVMGetInsertBlock(self.builder);
+            let current_fn = LLVMGetBasicBlockParent(current_bb);
+
+            let trap_bb =
+                LLVMAppendBasicBlockInContext(self.context, current_fn, c"stdlib_null".as_ptr());
+            let cont_bb =
+                LLVMAppendBasicBlockInContext(self.context, current_fn, c"stdlib_ok".as_ptr());
+
+            let is_null = LLVMBuildICmp(
+                self.builder,
+                LLVMIntPredicate::LLVMIntEQ,
+                value,
+                LLVMConstNull(LLVMTypeOf(value)),
+                c"isnull".as_ptr(),
+            );
+
+            LLVMBuildCondBr(self.builder, is_null, trap_bb, cont_bb);
+
+            LLVMPositionBuilderAtEnd(self.builder, trap_bb);
+            let abort = *self
+                .functions
+                .get("abort")
+                .ok_or_else(|| CompilerError::codegen_error("Missing stdlib function: abort"))?;
+            let abort_ty = LLVMGlobalGetValueType(abort);
+            LLVMBuildCall2(
+                self.builder,
+                abort_ty,
+                abort,
+                [].as_mut_ptr(),
+                0,
+                c"".as_ptr(),
+            );
+            LLVMBuildUnreachable(self.builder);
+
+            LLVMPositionBuilderAtEnd(self.builder, cont_bb);
+            Ok(value)
+        }
+    }
+
+    fn stdlib_sig(&self, name: &str) -> Option<&'static StdlibFnSig> {
+        crate::ffi::stdlib::stdlib_sig(name)
+    }
+
+    fn abi_type_to_llvm(&self, ty: AbiType) -> LLVMTypeRef {
+        unsafe {
+            match ty {
+                AbiType::Void => LLVMVoidTypeInContext(self.context),
+                AbiType::I32 => LLVMInt32TypeInContext(self.context),
+                AbiType::I64 => LLVMInt64TypeInContext(self.context),
+                AbiType::I8Ptr => LLVMPointerType(LLVMInt8TypeInContext(self.context), 0),
+            }
+        }
+    }
+
+    fn coerce_stdlib_call_args(
+        &mut self,
+        name: &str,
+        args: &mut [LLVMValueRef],
+    ) -> CompilerResult<()> {
+        let Some(sig) = self.stdlib_sig(name) else {
+            return Ok(());
+        };
+
+        if sig.c_abi_params.len() > args.len() {
+            return Err(CompilerError::codegen_error(format!(
+                "Stdlib call {name} missing args: expected >= {}, got {}",
+                sig.c_abi_params.len(),
+                args.len()
+            )));
+        }
+
+        unsafe {
+            for (idx, abi_ty) in sig.c_abi_params.iter().copied().enumerate() {
+                let expected = self.abi_type_to_llvm(abi_ty);
+                let actual = LLVMTypeOf(args[idx]);
+                if actual == expected {
+                    continue;
+                }
+
+                let cast_name = CString::new(format!("arg_cast_{idx}")).expect("CString failed");
+                args[idx] = match abi_ty {
+                    AbiType::I32 => {
+                        LLVMBuildTrunc(self.builder, args[idx], expected, cast_name.as_ptr())
+                    }
+                    AbiType::I64 => {
+                        // Currently Kraken int is i64; accept i32 by widening if it appears.
+                        let i32_ty = LLVMInt32TypeInContext(self.context);
+                        if actual == i32_ty {
+                            LLVMBuildSExt(self.builder, args[idx], expected, cast_name.as_ptr())
+                        } else {
+                            LLVMBuildIntCast2(
+                                self.builder,
+                                args[idx],
+                                expected,
+                                1,
+                                cast_name.as_ptr(),
+                            )
+                        }
+                    }
+                    AbiType::I8Ptr => {
+                        LLVMBuildBitCast(self.builder, args[idx], expected, cast_name.as_ptr())
+                    }
+                    AbiType::Void => args[idx],
+                };
+            }
+        }
+
+        Ok(())
+    }
+
+    fn maybe_widen_stdlib_result(&mut self, name: &str, value: LLVMValueRef) -> LLVMValueRef {
+        let Some(sig) = self.stdlib_sig(name) else {
+            return value;
+        };
+
+        let Some(widening) = sig.c_int_widening else {
+            return value;
+        };
+
+        if sig.kraken_return != Type::Int {
+            return value;
+        }
+
+        unsafe {
+            let value_ty = LLVMTypeOf(value);
+            let i32_ty = LLVMInt32TypeInContext(self.context);
+            if value_ty != i32_ty {
+                return value;
+            }
+
+            let i64_ty = LLVMInt64TypeInContext(self.context);
+            let cast_name = CString::new("cint_widen").expect("CString failed");
+            match widening {
+                CIntWidening::Signed => {
+                    LLVMBuildSExt(self.builder, value, i64_ty, cast_name.as_ptr())
+                }
+                CIntWidening::Unsigned => {
+                    LLVMBuildZExt(self.builder, value, i64_ty, cast_name.as_ptr())
+                }
+            }
+        }
+    }
+
     /// Generate LLVM IR and compile to object file.
     ///
     /// # Arguments
@@ -80,6 +244,12 @@ impl LLVMCodegen {
 
             // Declare standard library functions
             self.declare_stdlib_functions()?;
+
+            for statement in &program.statements {
+                if matches!(statement, Statement::StructDeclaration { .. }) {
+                    self.codegen_statement(statement)?;
+                }
+            }
 
             // Two-pass compilation:
             // Pass 1: Declare all functions (so they can call each other)
@@ -217,6 +387,10 @@ impl LLVMCodegen {
                 is_public: _,
             } => {
                 unsafe {
+                    if self.struct_types.contains_key(name) {
+                        return Ok(());
+                    }
+
                     // Create LLVM struct type
                     let struct_name = CString::new(name.as_str()).expect("CString failed");
                     let struct_type = LLVMStructCreateNamed(self.context, struct_name.as_ptr());
@@ -280,6 +454,9 @@ impl LLVMCodegen {
                                 init_expr,
                                 Expression::StructLiteral { .. } | Expression::Array { .. }
                             ) {
+                                if let Expression::StructLiteral { name: sname, .. } = init_expr {
+                                    self.struct_variables.insert(name.clone(), sname.clone());
+                                }
                                 Some(self.codegen_expression(init_expr)?)
                             } else {
                                 None
@@ -729,44 +906,33 @@ impl LLVMCodegen {
     /// Declare standard library functions (printf, etc.).
     fn declare_stdlib_functions(&mut self) -> CompilerResult<()> {
         unsafe {
-            // Declare printf: int printf(const char* format, ...)
             let i8_ptr_type = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
-            let printf_type = LLVMFunctionType(
-                LLVMInt32TypeInContext(self.context),
-                [i8_ptr_type].as_mut_ptr(),
-                1,
-                1, // vararg
-            );
-            let printf_name = CString::new("printf").expect("CString failed");
-            let printf_func = LLVMAddFunction(self.module, printf_name.as_ptr(), printf_type);
-            self.functions.insert("printf".to_string(), printf_func);
+            let void_ptr_type = i8_ptr_type;
+            let void_type = LLVMVoidTypeInContext(self.context);
 
-            // Declare puts: int puts(const char* s)
-            let puts_type = LLVMFunctionType(
-                LLVMInt32TypeInContext(self.context),
-                [i8_ptr_type].as_mut_ptr(),
-                1,
-                0, // not vararg
-            );
-            let puts_name = CString::new("puts").expect("CString failed");
-            let puts_func = LLVMAddFunction(self.module, puts_name.as_ptr(), puts_type);
-            self.functions.insert("puts".to_string(), puts_func);
+            for sig in crate::ffi::stdlib::stdlib_functions() {
+                let mut params: Vec<LLVMTypeRef> = sig
+                    .c_abi_params
+                    .iter()
+                    .copied()
+                    .map(|t| self.abi_type_to_llvm(t))
+                    .collect();
+
+                let ret_type = self.abi_type_to_llvm(sig.c_abi_return);
+                let fn_type = LLVMFunctionType(
+                    ret_type,
+                    params.as_mut_ptr(),
+                    params.len() as u32,
+                    if sig.is_vararg { 1 } else { 0 },
+                );
+
+                let fn_name = CString::new(sig.name).expect("CString failed");
+                let func = LLVMAddFunction(self.module, fn_name.as_ptr(), fn_type);
+                self.functions.insert(sig.name.to_string(), func);
+            }
 
             // String functions from libc
             let int_type = LLVMInt64TypeInContext(self.context); // Use i64 to match Kraken's int type
-
-            // strlen: int strlen(const char* s)
-            let strlen_type = LLVMFunctionType(int_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
-            let strlen_name = CString::new("strlen").expect("CString failed");
-            let strlen_func = LLVMAddFunction(self.module, strlen_name.as_ptr(), strlen_type);
-            self.functions.insert("strlen".to_string(), strlen_func);
-
-            // strcmp: int strcmp(const char* s1, const char* s2)
-            let strcmp_type =
-                LLVMFunctionType(int_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
-            let strcmp_name = CString::new("strcmp").expect("CString failed");
-            let strcmp_func = LLVMAddFunction(self.module, strcmp_name.as_ptr(), strcmp_type);
-            self.functions.insert("strcmp".to_string(), strcmp_func);
 
             // strcpy: char* strcpy(char* dest, const char* src)
             let strcpy_type =
@@ -819,37 +985,7 @@ impl LLVMCodegen {
             self.functions.insert("strncmp".to_string(), strncmp_func);
 
             // Memory functions
-            // malloc: void* malloc(int size)
-            let void_ptr_type = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
-            let malloc_type = LLVMFunctionType(void_ptr_type, [int_type].as_mut_ptr(), 1, 0);
-            let malloc_name = CString::new("malloc").expect("CString failed");
-            let malloc_func = LLVMAddFunction(self.module, malloc_name.as_ptr(), malloc_type);
-            self.functions.insert("malloc".to_string(), malloc_func);
-
-            // free: void free(void* ptr)
-            let void_type = LLVMVoidTypeInContext(self.context);
-            let free_type = LLVMFunctionType(void_type, [void_ptr_type].as_mut_ptr(), 1, 0);
-            let free_name = CString::new("free").expect("CString failed");
-            let free_func = LLVMAddFunction(self.module, free_name.as_ptr(), free_type);
-            self.functions.insert("free".to_string(), free_func);
-
-            // realloc: void* realloc(void* ptr, int size)
-            let realloc_type =
-                LLVMFunctionType(void_ptr_type, [void_ptr_type, int_type].as_mut_ptr(), 2, 0);
-            let realloc_name = CString::new("realloc").expect("CString failed");
-            let realloc_func = LLVMAddFunction(self.module, realloc_name.as_ptr(), realloc_type);
-            self.functions.insert("realloc".to_string(), realloc_func);
-
-            // memcpy: void* memcpy(void* dest, const void* src, int n)
-            let memcpy_type = LLVMFunctionType(
-                void_ptr_type,
-                [void_ptr_type, void_ptr_type, int_type].as_mut_ptr(),
-                3,
-                0,
-            );
-            let memcpy_name = CString::new("memcpy").expect("CString failed");
-            let memcpy_func = LLVMAddFunction(self.module, memcpy_name.as_ptr(), memcpy_type);
-            self.functions.insert("memcpy".to_string(), memcpy_func);
+            // Core memory functions are declared via the shared stdlib table above.
 
             // Math functions from libm
             let float_type = LLVMDoubleTypeInContext(self.context);
@@ -953,129 +1089,6 @@ impl LLVMCodegen {
             let time_func = LLVMAddFunction(self.module, time_name.as_ptr(), time_type);
             self.functions.insert("time".to_string(), time_func);
 
-            // File I/O functions
-            // FILE* is represented as void* (i8*)
-
-            // fopen: FILE* fopen(const char* filename, const char* mode)
-            let fopen_type =
-                LLVMFunctionType(void_ptr_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
-            let fopen_name = CString::new("fopen").expect("CString failed");
-            let fopen_func = LLVMAddFunction(self.module, fopen_name.as_ptr(), fopen_type);
-            self.functions.insert("fopen".to_string(), fopen_func);
-
-            // fclose: int fclose(FILE* stream)
-            let fclose_type = LLVMFunctionType(int_type, [void_ptr_type].as_mut_ptr(), 1, 0);
-            let fclose_name = CString::new("fclose").expect("CString failed");
-            let fclose_func = LLVMAddFunction(self.module, fclose_name.as_ptr(), fclose_type);
-            self.functions.insert("fclose".to_string(), fclose_func);
-
-            // fread: int fread(void* ptr, int size, int count, FILE* stream)
-            let fread_type = LLVMFunctionType(
-                int_type,
-                [void_ptr_type, int_type, int_type, void_ptr_type].as_mut_ptr(),
-                4,
-                0,
-            );
-            let fread_name = CString::new("fread").expect("CString failed");
-            let fread_func = LLVMAddFunction(self.module, fread_name.as_ptr(), fread_type);
-            self.functions.insert("fread".to_string(), fread_func);
-
-            // fwrite: int fwrite(const void* ptr, int size, int count, FILE* stream)
-            let fwrite_type = LLVMFunctionType(
-                int_type,
-                [void_ptr_type, int_type, int_type, void_ptr_type].as_mut_ptr(),
-                4,
-                0,
-            );
-            let fwrite_name = CString::new("fwrite").expect("CString failed");
-            let fwrite_func = LLVMAddFunction(self.module, fwrite_name.as_ptr(), fwrite_type);
-            self.functions.insert("fwrite".to_string(), fwrite_func);
-
-            // fgets: char* fgets(char* str, int n, FILE* stream)
-            let fgets_type = LLVMFunctionType(
-                i8_ptr_type,
-                [i8_ptr_type, int_type, void_ptr_type].as_mut_ptr(),
-                3,
-                0,
-            );
-            let fgets_name = CString::new("fgets").expect("CString failed");
-            let fgets_func = LLVMAddFunction(self.module, fgets_name.as_ptr(), fgets_type);
-            self.functions.insert("fgets".to_string(), fgets_func);
-
-            // fputs: int fputs(const char* str, FILE* stream)
-            let fputs_type =
-                LLVMFunctionType(int_type, [i8_ptr_type, void_ptr_type].as_mut_ptr(), 2, 0);
-            let fputs_name = CString::new("fputs").expect("CString failed");
-            let fputs_func = LLVMAddFunction(self.module, fputs_name.as_ptr(), fputs_type);
-            self.functions.insert("fputs".to_string(), fputs_func);
-
-            // fgetc: int fgetc(FILE* stream)
-            let fgetc_type = LLVMFunctionType(int_type, [void_ptr_type].as_mut_ptr(), 1, 0);
-            let fgetc_name = CString::new("fgetc").expect("CString failed");
-            let fgetc_func = LLVMAddFunction(self.module, fgetc_name.as_ptr(), fgetc_type);
-            self.functions.insert("fgetc".to_string(), fgetc_func);
-
-            // fputc: int fputc(int c, FILE* stream)
-            let fputc_type =
-                LLVMFunctionType(int_type, [int_type, void_ptr_type].as_mut_ptr(), 2, 0);
-            let fputc_name = CString::new("fputc").expect("CString failed");
-            let fputc_func = LLVMAddFunction(self.module, fputc_name.as_ptr(), fputc_type);
-            self.functions.insert("fputc".to_string(), fputc_func);
-
-            // fseek: int fseek(FILE* stream, int offset, int whence)
-            let fseek_type = LLVMFunctionType(
-                int_type,
-                [void_ptr_type, int_type, int_type].as_mut_ptr(),
-                3,
-                0,
-            );
-            let fseek_name = CString::new("fseek").expect("CString failed");
-            let fseek_func = LLVMAddFunction(self.module, fseek_name.as_ptr(), fseek_type);
-            self.functions.insert("fseek".to_string(), fseek_func);
-
-            // ftell: int ftell(FILE* stream)
-            let ftell_type = LLVMFunctionType(int_type, [void_ptr_type].as_mut_ptr(), 1, 0);
-            let ftell_name = CString::new("ftell").expect("CString failed");
-            let ftell_func = LLVMAddFunction(self.module, ftell_name.as_ptr(), ftell_type);
-            self.functions.insert("ftell".to_string(), ftell_func);
-
-            // rewind: void rewind(FILE* stream)
-            let rewind_type = LLVMFunctionType(void_type, [void_ptr_type].as_mut_ptr(), 1, 0);
-            let rewind_name = CString::new("rewind").expect("CString failed");
-            let rewind_func = LLVMAddFunction(self.module, rewind_name.as_ptr(), rewind_type);
-            self.functions.insert("rewind".to_string(), rewind_func);
-
-            // fflush: int fflush(FILE* stream)
-            let fflush_type = LLVMFunctionType(int_type, [void_ptr_type].as_mut_ptr(), 1, 0);
-            let fflush_name = CString::new("fflush").expect("CString failed");
-            let fflush_func = LLVMAddFunction(self.module, fflush_name.as_ptr(), fflush_type);
-            self.functions.insert("fflush".to_string(), fflush_func);
-
-            // feof: int feof(FILE* stream)
-            let feof_type = LLVMFunctionType(int_type, [void_ptr_type].as_mut_ptr(), 1, 0);
-            let feof_name = CString::new("feof").expect("CString failed");
-            let feof_func = LLVMAddFunction(self.module, feof_name.as_ptr(), feof_type);
-            self.functions.insert("feof".to_string(), feof_func);
-
-            // ferror: int ferror(FILE* stream)
-            let ferror_type = LLVMFunctionType(int_type, [void_ptr_type].as_mut_ptr(), 1, 0);
-            let ferror_name = CString::new("ferror").expect("CString failed");
-            let ferror_func = LLVMAddFunction(self.module, ferror_name.as_ptr(), ferror_type);
-            self.functions.insert("ferror".to_string(), ferror_func);
-
-            // remove: int remove(const char* filename)
-            let remove_type = LLVMFunctionType(int_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
-            let remove_name = CString::new("remove").expect("CString failed");
-            let remove_func = LLVMAddFunction(self.module, remove_name.as_ptr(), remove_type);
-            self.functions.insert("remove".to_string(), remove_func);
-
-            // rename: int rename(const char* old, const char* new)
-            let rename_type =
-                LLVMFunctionType(int_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
-            let rename_name = CString::new("rename").expect("CString failed");
-            let rename_func = LLVMAddFunction(self.module, rename_name.as_ptr(), rename_type);
-            self.functions.insert("rename".to_string(), rename_func);
-
             // System & Process functions
             // exit: void exit(int status)
             let exit_type = LLVMFunctionType(void_type, [int_type].as_mut_ptr(), 1, 0);
@@ -1088,29 +1101,6 @@ impl LLVMCodegen {
             let system_name = CString::new("system").expect("CString failed");
             let system_func = LLVMAddFunction(self.module, system_name.as_ptr(), system_type);
             self.functions.insert("system".to_string(), system_func);
-
-            // getenv: char* getenv(const char* name)
-            let getenv_type = LLVMFunctionType(i8_ptr_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
-            let getenv_name = CString::new("getenv").expect("CString failed");
-            let getenv_func = LLVMAddFunction(self.module, getenv_name.as_ptr(), getenv_type);
-            self.functions.insert("getenv".to_string(), getenv_func);
-
-            // setenv: int setenv(const char* name, const char* value, int overwrite)
-            let setenv_type = LLVMFunctionType(
-                int_type,
-                [i8_ptr_type, i8_ptr_type, int_type].as_mut_ptr(),
-                3,
-                0,
-            );
-            let setenv_name = CString::new("setenv").expect("CString failed");
-            let setenv_func = LLVMAddFunction(self.module, setenv_name.as_ptr(), setenv_type);
-            self.functions.insert("setenv".to_string(), setenv_func);
-
-            // unsetenv: int unsetenv(const char* name)
-            let unsetenv_type = LLVMFunctionType(int_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
-            let unsetenv_name = CString::new("unsetenv").expect("CString failed");
-            let unsetenv_func = LLVMAddFunction(self.module, unsetenv_name.as_ptr(), unsetenv_type);
-            self.functions.insert("unsetenv".to_string(), unsetenv_func);
 
             // Additional string conversion functions
             // atoi: int atoi(const char* str)
@@ -1246,28 +1236,6 @@ impl LLVMCodegen {
             let strtok_func = LLVMAddFunction(self.module, strtok_name.as_ptr(), strtok_type);
             self.functions.insert("strtok".to_string(), strtok_func);
 
-            // memset: void* memset(void* ptr, int value, int num)
-            let memset_type = LLVMFunctionType(
-                void_ptr_type,
-                [void_ptr_type, int_type, int_type].as_mut_ptr(),
-                3,
-                0,
-            );
-            let memset_name = CString::new("memset").expect("CString failed");
-            let memset_func = LLVMAddFunction(self.module, memset_name.as_ptr(), memset_type);
-            self.functions.insert("memset".to_string(), memset_func);
-
-            // memcmp: int memcmp(const void* ptr1, const void* ptr2, int num)
-            let memcmp_type = LLVMFunctionType(
-                int_type,
-                [void_ptr_type, void_ptr_type, int_type].as_mut_ptr(),
-                3,
-                0,
-            );
-            let memcmp_name = CString::new("memcmp").expect("CString failed");
-            let memcmp_func = LLVMAddFunction(self.module, memcmp_name.as_ptr(), memcmp_type);
-            self.functions.insert("memcmp".to_string(), memcmp_func);
-
             // Assertion and error handling
             // abort: void abort()
             let abort_type = LLVMFunctionType(void_type, [].as_mut_ptr(), 0, 0);
@@ -1369,10 +1337,17 @@ impl LLVMCodegen {
 
             // Add parameters to named values (allocate on stack for mutability)
             self.named_values.clear();
+            self.array_variables.clear();
+            self.struct_variables.clear();
             for (i, param) in parameters.iter().enumerate() {
                 let param_val = LLVMGetParam(function, i as u32);
                 let param_name = CString::new(param.name.as_str()).expect("CString failed");
                 LLVMSetValueName2(param_val, param_name.as_ptr(), param.name.len());
+
+                if let Type::Custom(struct_name) = &param.param_type {
+                    self.struct_variables
+                        .insert(param.name.clone(), struct_name.clone());
+                }
 
                 // Allocate stack space for parameter
                 let param_type = self.get_llvm_type(&param.param_type);
@@ -1604,23 +1579,62 @@ impl LLVMCodegen {
                         // Generate code for arguments
                         let mut arg_values: Vec<LLVMValueRef> = Vec::new();
                         for arg in arguments {
-                            arg_values.push(self.codegen_expression(arg)?);
+                            let arg_val = self.codegen_expression(arg)?;
+
+                            let arg_val = match arg {
+                                Expression::Identifier(var_name)
+                                    if self.struct_variables.contains_key(var_name) =>
+                                {
+                                    let load_name = CString::new(format!("{var_name}.load"))
+                                        .expect("CString failed");
+                                    LLVMBuildLoad2(
+                                        self.builder,
+                                        LLVMGetAllocatedType(arg_val),
+                                        arg_val,
+                                        load_name.as_ptr(),
+                                    )
+                                }
+                                Expression::StructLiteral { .. } => {
+                                    let load_name =
+                                        CString::new("struct.load").expect("CString failed");
+                                    LLVMBuildLoad2(
+                                        self.builder,
+                                        LLVMGetAllocatedType(arg_val),
+                                        arg_val,
+                                        load_name.as_ptr(),
+                                    )
+                                }
+                                _ => arg_val,
+                            };
+
+                            arg_values.push(arg_val);
                         }
 
+                        self.coerce_stdlib_call_args(name, &mut arg_values)?;
+
                         // Build the call
-                        let call_name = CString::new("calltmp").expect("CString failed");
                         let func_type = LLVMGlobalGetValueType(function);
-                        Ok(LLVMBuildCall2(
+                        let ret_type = LLVMGetReturnType(func_type);
+                        let void_type = LLVMVoidTypeInContext(self.context);
+                        let call_name = if ret_type == void_type {
+                            CString::new("").expect("CString failed")
+                        } else {
+                            CString::new("calltmp").expect("CString failed")
+                        };
+                        let call = LLVMBuildCall2(
                             self.builder,
                             func_type,
                             function,
                             arg_values.as_mut_ptr(),
                             arg_values.len() as u32,
                             call_name.as_ptr(),
-                        ))
+                        );
+
+                        let call = self.maybe_trap_on_null_stdlib_result(name, call)?;
+                        Ok(self.maybe_widen_stdlib_result(name, call))
                     } else {
                         Err(CompilerError::codegen_error(
-                            "Only direct function calls supported",
+                            "Only direct function calls are supported",
                         ))
                     }
                 }

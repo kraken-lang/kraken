@@ -144,8 +144,9 @@ fn main() -> int {
     
     // 7. System
     puts("7. System Integration:");
-    let home = getenv("HOME");
-    puts("   HOME environment variable read");
+    setenv("KRAKEN_EXAMPLE_KEY", "KRAKEN_EXAMPLE_VALUE", 1);
+    let v = getenv("KRAKEN_EXAMPLE_KEY");
+    puts(v);
     puts("");
     
     puts("========================================");

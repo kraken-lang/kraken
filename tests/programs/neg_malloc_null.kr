@@ -1,0 +1,4 @@
+fn main() -> int {
+    malloc(-1);
+    return 0;
+}

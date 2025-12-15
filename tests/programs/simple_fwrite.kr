@@ -1,0 +1,8 @@
+fn main() -> int {
+    let f = fopen("kraken_ffi_tmp.bin", "wb");
+    let n = fwrite("abcd", 1, 4, f);
+    if (n != 4) {
+        return 10;
+    }
+    return 0;
+}

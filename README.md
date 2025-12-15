@@ -17,6 +17,8 @@
  - **LLVM 18** (required to build the compiler via `llvm-sys`)
  - **Clang** (used for linking)
 
+See `docs/platform.md` for macOS/Linux platform notes.
+
 ### macOS (Homebrew)
 
 ```bash
@@ -41,10 +43,9 @@ cargo build -p kraken
 ## Lint & Tests (Strict)
 
 ```bash
-cargo fmt
-cargo check
-cargo test
-cargo clippy --all-targets --all-features -- -D warnings
+cargo fmt --check
+RUSTFLAGS="-D warnings" cargo test --workspace
+RUSTFLAGS="-D warnings" cargo clippy --workspace --all-targets --all-features
 ```
 
 ## Run an Example

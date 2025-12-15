@@ -21,7 +21,7 @@ cargo run -p kraken -- build examples/<example>.kr
 
 ### 2. showcase.kr
 **Comprehensive Feature Showcase**
-- Demonstrates: All major v0.8.1 features
+- Demonstrates: All major v0.8.2 features
 - Features:
   - Fibonacci sequence with loops
   - Pattern matching with `match`
@@ -29,7 +29,7 @@ cargo run -p kraken -- build examples/<example>.kr
   - Array operations and indexing
   - String operations (`strlen`, `strcmp`)
   - Math operations (`abs`, `rand`)
-  - System integration (`getenv`)
+  - System integration (`setenv`, `getenv`)
 
 ### 3. calculator.kr
 **Calculator with Structs**
