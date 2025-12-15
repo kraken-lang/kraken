@@ -1,0 +1,5 @@
+module neg_duplicate_b;
+
+pub fn dup() -> int {
+    return 2;
+}

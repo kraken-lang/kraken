@@ -30,8 +30,8 @@ impl TypeEnvironment {
     pub fn child(&self) -> Self {
         Self {
             variables: HashMap::new(),
-            functions: HashMap::new(),
-            structs: HashMap::new(),
+            functions: self.functions.clone(),
+            structs: self.structs.clone(),
             parent: Some(Box::new(self.clone())),
         }
     }
@@ -86,6 +86,16 @@ impl TypeEnvironment {
         } else {
             None
         }
+    }
+
+    pub fn function_names(&self) -> Vec<String> {
+        let mut names: Vec<String> = self.functions.keys().cloned().collect();
+        if let Some(parent) = &self.parent {
+            names.extend(parent.function_names());
+        }
+        names.sort();
+        names.dedup();
+        names
     }
 
     /// Define a struct in the current scope.

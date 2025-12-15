@@ -1,0 +1,7 @@
+module modules_example_main;
+
+import modules_example_util;
+
+fn main() -> int {
+    return answer();
+}

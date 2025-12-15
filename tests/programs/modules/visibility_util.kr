@@ -1,0 +1,9 @@
+module visibility_util;
+
+pub fn get() -> int {
+    return helper();
+}
+
+fn helper() -> int {
+    return 42;
+}

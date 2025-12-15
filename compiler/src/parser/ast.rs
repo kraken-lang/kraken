@@ -15,6 +15,14 @@ impl Program {
 /// Statement types in Kraken.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
+    Module {
+        path: Vec<String>,
+    },
+
+    Import {
+        path: Vec<String>,
+    },
+
     /// Variable declaration: let x = expr;
     VariableDeclaration {
         name: String,
@@ -62,7 +70,9 @@ pub enum Statement {
     },
 
     /// Return statement
-    Return { value: Option<Expression> },
+    Return {
+        value: Option<Expression>,
+    },
 
     /// Expression statement
     Expression(Expression),
@@ -75,7 +85,10 @@ pub enum Statement {
     },
 
     /// While loop
-    While { condition: Expression, body: Block },
+    While {
+        condition: Expression,
+        body: Block,
+    },
 
     /// For loop
     For {
@@ -98,7 +111,9 @@ pub enum Statement {
     Continue,
 
     /// Defer statement
-    Defer { statement: Box<Statement> },
+    Defer {
+        statement: Box<Statement>,
+    },
 }
 
 /// Expression types in Kraken.

@@ -1,0 +1,5 @@
+import does_not_exist;
+
+fn main() -> int {
+    return 0;
+}

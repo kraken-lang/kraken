@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+
+### Changed
+
+
+### Fixed
+
+
+### Removed
+
+### Security
+
+## [0.8.3] - 2025-12-15
+
+### Added
+- Introduced file-based modules via `import foo.bar;` and recursive module loading.
+- Added parsing support for `module foo.bar;` declarations.
+- Added module integration and negative tests (missing imports, import cycles, duplicate symbols, visibility, and module declaration validation).
+- Added a multi-file modules example in `examples/`.
+
+### Changed
+- Type checking now predeclares top-level functions and types before checking bodies, enabling order-independent multi-file programs.
+- Module imports now enforce basic symbol visibility: non-`pub` top-level functions/types are module-private via name mangling, while `pub` items remain import-visible.
+- `module foo.bar;` declarations are validated against the file path relative to the program root (entry directory).
+- Imported files must declare their module path with `module ...;` and it must match the import path.
+
+### Fixed
+- Allowed `import` and `module` statements during type checking as no-ops while module resolution/expansion is handled by the compiler's module loader.
+- Added enforceable duplicate symbol diagnostics for top-level functions/types during module predeclaration.
+- Preserved the executable entrypoint `main` from module-private symbol mangling so single-file programs continue to link.
+- Made module-private symbol mangling stable across machines by hashing the file path relative to the project root.
+- `kraken build <dir>` now skips module-only files that do not define a `main` entrypoint.
+- `kraken run` now propagates the program's exit code (including non-zero) instead of treating non-zero as an error.
+
 ## [0.8.2] - 2025-12-15
 
 ### Added
@@ -579,6 +614,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
-[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.2...HEAD
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.3...HEAD
+[0.8.3]: https://github.com/kraken-lang/kraken/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/kraken-lang/kraken/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/kraken-lang/kraken/tree/v0.8.1

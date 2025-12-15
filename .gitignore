@@ -15,6 +15,7 @@ modcli/tests_disabled/
 
 # Kraken Build Artifacts
 /build/
+/compiler/build/
 
 # Dependencies
 /node_modules/

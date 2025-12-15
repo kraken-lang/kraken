@@ -8,6 +8,10 @@ This directory contains example programs demonstrating Kraken's features.
 # From the repo root
 cargo run -p kraken -- build examples/<example>.kr
 
+# Build everything in the examples directory.
+# Note: files without a `main` entrypoint (module-only sources) are skipped.
+cargo run -p kraken -- build examples/
+
 # Executables are emitted to ./build/
 ./build/<example>
 ```
@@ -39,6 +43,13 @@ cargo run -p kraken -- build examples/<example>.kr
   - Arithmetic operations
   - Bitwise operations
   - Match-based operation dispatch
+
+### 4. modules_example_main.kr
+**Multi-file Modules + Imports**
+- Demonstrates: File-based modules via `module` declarations + `import`
+- Files:
+  - `modules_example_main.kr` (entrypoint)
+  - `modules_example_util.kr` (imported module, no `main`)
 
 ## Feature Coverage
 

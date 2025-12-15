@@ -46,6 +46,10 @@ impl Parser {
             self.parse_constant_declaration()
         } else if self.match_keyword(Keyword::Fn) {
             self.parse_function_declaration(false, false)
+        } else if self.match_keyword(Keyword::Module) {
+            self.parse_module_statement()
+        } else if self.match_keyword(Keyword::Import) {
+            self.parse_import_statement()
         } else if self.match_keyword(Keyword::Pub) {
             self.parse_public_declaration()
         } else if self.match_keyword(Keyword::Struct) {
@@ -101,6 +105,28 @@ impl Parser {
             initializer,
             is_mutable,
         })
+    }
+
+    fn parse_import_statement(&mut self) -> CompilerResult<Statement> {
+        let mut path = Vec::new();
+        path.push(self.consume_identifier()?);
+        while self.match_token(TokenKind::Dot) {
+            path.push(self.consume_identifier()?);
+        }
+
+        self.consume_semicolon()?;
+        Ok(Statement::Import { path })
+    }
+
+    fn parse_module_statement(&mut self) -> CompilerResult<Statement> {
+        let mut path = Vec::new();
+        path.push(self.consume_identifier()?);
+        while self.match_token(TokenKind::Dot) {
+            path.push(self.consume_identifier()?);
+        }
+
+        self.consume_semicolon()?;
+        Ok(Statement::Module { path })
     }
 
     /// Parse a constant declaration.
@@ -969,6 +995,20 @@ mod tests {
         let tokens = tokenizer.tokenize()?;
         let mut parser = Parser::new(tokens, PathBuf::from("test.kr"));
         parser.parse()
+    }
+
+    #[test]
+    fn test_parse_import_statement() {
+        let program = parse_source("import foo.bar;").expect("parse failed");
+        assert_eq!(program.statements.len(), 1);
+        assert!(matches!(program.statements[0], Statement::Import { .. }));
+    }
+
+    #[test]
+    fn test_parse_module_statement() {
+        let program = parse_source("module foo.bar;").expect("parse failed");
+        assert_eq!(program.statements.len(), 1);
+        assert!(matches!(program.statements[0], Statement::Module { .. }));
     }
 
     #[test]

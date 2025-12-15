@@ -1,0 +1,7 @@
+module neg_import_cycle_b;
+
+import neg_import_cycle_a;
+
+fn b() -> int {
+    return 2;
+}

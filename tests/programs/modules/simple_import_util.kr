@@ -1,0 +1,5 @@
+module simple_import_util;
+
+pub fn forty_two() -> int {
+    return 42;
+}

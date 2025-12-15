@@ -1,0 +1,5 @@
+import neg_import_cycle_a;
+
+fn main() -> int {
+    return 0;
+}

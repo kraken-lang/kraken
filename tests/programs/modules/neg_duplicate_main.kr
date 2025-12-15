@@ -1,0 +1,6 @@
+import neg_duplicate_a;
+import neg_duplicate_b;
+
+fn main() -> int {
+    return dup();
+}

@@ -1,0 +1,4 @@
+// Intentionally missing module declaration
+pub fn x() -> int {
+    return 1;
+}

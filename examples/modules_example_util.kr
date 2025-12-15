@@ -1,0 +1,9 @@
+module modules_example_util;
+
+pub fn answer() -> int {
+    return helper();
+}
+
+fn helper() -> int {
+    return 42;
+}

@@ -1,0 +1,5 @@
+import visibility_util;
+
+fn main() -> int {
+    return get();
+}

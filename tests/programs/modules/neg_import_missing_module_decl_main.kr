@@ -1,0 +1,7 @@
+module neg_import_missing_module_decl_main;
+
+import neg_import_missing_module_decl_util;
+
+fn main() -> int {
+    return 0;
+}

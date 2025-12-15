@@ -4,7 +4,7 @@
 
 use anyhow::{Context, Result};
 use clap::{Parser as ClapParser, Subcommand};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tokio::fs;
 
 mod analyzer;
@@ -12,12 +12,14 @@ mod codegen;
 mod error;
 mod ffi;
 mod lexer;
+mod modules;
 mod parser;
 
 use analyzer::TypeChecker;
 use codegen::LLVMCodegen;
-use lexer::tokenizer::{is_kraken_source_file, Tokenizer};
-use parser::Parser;
+use lexer::tokenizer::is_kraken_source_file;
+use modules::loader;
+use parser::ast::Statement;
 
 /// Kraken Programming Language Compiler
 #[derive(ClapParser, Debug)]
@@ -123,6 +125,19 @@ async fn build_command(path: PathBuf, output: Option<PathBuf>, verbose: bool) ->
     }
 
     for file in &files {
+        let program = loader::load_program(file).await?;
+        let has_main = program.statements.iter().any(|s| match s {
+            Statement::FunctionDeclaration { name, .. } => name == "main",
+            _ => false,
+        });
+
+        if !has_main {
+            if verbose {
+                println!("Skipping (no main entrypoint): {}", file.display());
+            }
+            continue;
+        }
+
         if verbose {
             println!("Compiling: {}", file.display());
         }
@@ -157,12 +172,12 @@ async fn run_command(file: PathBuf, _args: Vec<String>) -> Result<()> {
         .status()
         .with_context(|| format!("Failed to run executable: {}", executable.display()))?;
 
-    if !status.success() {
-        anyhow::bail!("Execution failed");
-    }
-
     println!("Execution complete.");
-    Ok(())
+
+    match status.code() {
+        Some(code) => std::process::exit(code),
+        None => anyhow::bail!("Execution terminated by signal"),
+    }
 }
 
 /// Check command implementation.
@@ -238,22 +253,14 @@ version = "0.1.0"
 }
 
 /// Compile a single source file to executable.
-async fn compile_file(file: &PathBuf) -> Result<PathBuf> {
+async fn compile_file(file: &Path) -> Result<PathBuf> {
     crate::ffi::stdlib::validate_stdlib_table()
         .map_err(|e| anyhow::anyhow!(e))
         .context("Invalid stdlib/FFI signature table")?;
 
-    let source = fs::read_to_string(file)
-        .await
-        .context("Failed to read source file")?;
+    let program = loader::load_program(file).await?;
 
-    let mut tokenizer = Tokenizer::new(source, file.clone());
-    let tokens = tokenizer.tokenize().context("Lexer error")?;
-
-    let mut parser = Parser::new(tokens, file.clone());
-    let program = parser.parse().context("Parser error")?;
-
-    let mut type_checker = TypeChecker::new(file.clone());
+    let mut type_checker = TypeChecker::new(file.to_path_buf());
     type_checker
         .check_program(&program)
         .context("Type checking error")?;
@@ -270,7 +277,7 @@ async fn compile_file(file: &PathBuf) -> Result<PathBuf> {
     std::fs::create_dir_all(&build_dir).context("Failed to create build directory")?;
 
     // Generate object file
-    let mut codegen = LLVMCodegen::new(module_name.clone(), file.clone());
+    let mut codegen = LLVMCodegen::new(module_name.clone(), file.to_path_buf());
     let object_file = build_dir.join(format!("{module_name}.o"));
     codegen
         .compile(&program, &object_file)
@@ -309,22 +316,14 @@ fn link_executable(object_file: &PathBuf, output: &PathBuf) -> Result<()> {
 }
 
 /// Check a single source file without generating code.
-async fn check_file(file: &PathBuf) -> Result<()> {
+async fn check_file(file: &Path) -> Result<()> {
     crate::ffi::stdlib::validate_stdlib_table()
         .map_err(|e| anyhow::anyhow!(e))
         .context("Invalid stdlib/FFI signature table")?;
 
-    let source = fs::read_to_string(file)
-        .await
-        .context("Failed to read source file")?;
+    let program = loader::load_program(file).await?;
 
-    let mut tokenizer = Tokenizer::new(source, file.clone());
-    let tokens = tokenizer.tokenize().context("Lexer error")?;
-
-    let mut parser = Parser::new(tokens, file.clone());
-    let program = parser.parse().context("Parser error")?;
-
-    let mut type_checker = TypeChecker::new(file.clone());
+    let mut type_checker = TypeChecker::new(file.to_path_buf());
     type_checker
         .check_program(&program)
         .context("Type checking error")?;
@@ -463,6 +462,88 @@ mod tests {
     async fn ffi_negative_malloc_null_traps() -> Result<()> {
         assert_program_terminated_by_signal(PathBuf::from("../tests/programs/neg_malloc_null.kr"))
             .await
+    }
+
+    #[tokio::test]
+    async fn modules_simple_import_compile_and_run() -> Result<()> {
+        let program_path = PathBuf::from("../tests/programs/modules/simple_import_main.kr");
+        let program = loader::load_program(&program_path).await?;
+        let has_forty_two = program.statements.iter().any(|s| match s {
+            parser::ast::Statement::FunctionDeclaration { name, .. } => name == "forty_two",
+            _ => false,
+        });
+        if !has_forty_two {
+            anyhow::bail!("Expected merged program to contain imported function forty_two");
+        }
+
+        let mut tc = TypeChecker::new(program_path.clone());
+        tc.check_program(&program)
+            .with_context(|| "Typechecking merged program failed")?;
+
+        assert_program_exit_code(program_path, 42).await
+    }
+
+    #[tokio::test]
+    async fn modules_negative_missing_import_fails() -> Result<()> {
+        assert_check_fails_contains(
+            PathBuf::from("../tests/programs/modules/neg_import_missing.kr"),
+            "Import not found",
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn modules_negative_import_cycle_fails() -> Result<()> {
+        assert_check_fails_contains(
+            PathBuf::from("../tests/programs/modules/neg_import_cycle_main.kr"),
+            "Import cycle detected",
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn modules_negative_duplicate_symbol_fails() -> Result<()> {
+        assert_check_fails_contains(
+            PathBuf::from("../tests/programs/modules/neg_duplicate_main.kr"),
+            "Duplicate function: dup",
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn modules_visibility_public_api_can_use_private_helper() -> Result<()> {
+        assert_program_exit_code(
+            PathBuf::from("../tests/programs/modules/visibility_main.kr"),
+            42,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn modules_negative_private_symbol_not_visible_to_importer() -> Result<()> {
+        assert_check_fails_contains(
+            PathBuf::from("../tests/programs/modules/neg_visibility_private_access.kr"),
+            "Undefined function: helper",
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn modules_negative_module_declaration_mismatch_fails() -> Result<()> {
+        assert_check_fails_contains(
+            PathBuf::from("../tests/programs/modules/neg_module_decl_mismatch.kr"),
+            "Module declaration does not match file path",
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn modules_negative_imported_module_requires_module_declaration() -> Result<()> {
+        assert_check_fails_contains(
+            PathBuf::from("../tests/programs/modules/neg_import_missing_module_decl_main.kr"),
+            "Imported module must declare its module path",
+        )
+        .await
     }
 
     async fn assert_program_exit_code(program: PathBuf, expected_exit_code: i32) -> Result<()> {

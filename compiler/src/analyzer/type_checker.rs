@@ -425,14 +425,72 @@ impl TypeChecker {
     /// Returns `CompilerError::TypeError` if type checking fails
     pub fn check_program(&mut self, program: &Program) -> CompilerResult<()> {
         for statement in &program.statements {
+            self.predeclare_statement(statement)?;
+        }
+
+        for statement in &program.statements {
             self.check_statement(statement)?;
         }
+
         Ok(())
+    }
+
+    fn predeclare_statement(&mut self, statement: &Statement) -> CompilerResult<()> {
+        match statement {
+            Statement::Module { .. } => Ok(()),
+            Statement::Import { .. } => Ok(()),
+
+            Statement::FunctionDeclaration {
+                name,
+                parameters,
+                return_type,
+                is_async,
+                ..
+            } => {
+                if self.env.lookup_function(name).is_some() {
+                    return Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Duplicate function: {name}"),
+                    ));
+                }
+
+                let param_types: Vec<Type> =
+                    parameters.iter().map(|p| p.param_type.clone()).collect();
+                let ret_type = return_type.clone().unwrap_or(Type::Void);
+                let func_type = FunctionType::new(param_types, ret_type, *is_async);
+                self.env.define_function(name.clone(), func_type);
+                Ok(())
+            }
+
+            Statement::StructDeclaration { name, fields, .. }
+            | Statement::ClassDeclaration { name, fields, .. } => {
+                if self.env.lookup_struct(name).is_some() {
+                    return Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Duplicate type: {name}"),
+                    ));
+                }
+
+                let mut field_map = HashMap::new();
+                for field in fields {
+                    field_map.insert(field.name.clone(), field.field_type.clone());
+                }
+
+                let struct_type = StructType::new(field_map);
+                self.env.define_struct(name.clone(), struct_type);
+                Ok(())
+            }
+
+            _ => Ok(()),
+        }
     }
 
     /// Type check a statement.
     fn check_statement(&mut self, statement: &Statement) -> CompilerResult<()> {
         match statement {
+            Statement::Module { .. } => Ok(()),
+            Statement::Import { .. } => Ok(()),
+
             Statement::VariableDeclaration {
                 name,
                 type_annotation,
@@ -487,19 +545,14 @@ impl TypeChecker {
             }
 
             Statement::FunctionDeclaration {
-                name,
+                name: _,
                 parameters,
                 return_type,
                 body,
-                is_async,
+                is_async: _,
                 is_public: _,
             } => {
-                let param_types: Vec<Type> =
-                    parameters.iter().map(|p| p.param_type.clone()).collect();
                 let ret_type = return_type.clone().unwrap_or(Type::Void);
-
-                let func_type = FunctionType::new(param_types, ret_type.clone(), *is_async);
-                self.env.define_function(name.clone(), func_type);
 
                 let previous_return_type = self.current_function_return_type.clone();
                 self.current_function_return_type = Some(ret_type);
@@ -771,6 +824,14 @@ impl TypeChecker {
 
                         return Ok(func_type.return_type.clone());
                     }
+
+                    return Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!(
+                            "Undefined function: {func_name}. Known functions: {}",
+                            self.env.function_names().join(", ")
+                        ),
+                    ));
                 }
 
                 Err(CompilerError::type_error(
@@ -1064,6 +1125,7 @@ mod tests {
     use super::*;
     use crate::lexer::tokenizer::Tokenizer;
     use crate::parser::parser::Parser;
+    use std::path::PathBuf;
 
     fn type_check_source(source: &str) -> CompilerResult<()> {
         let mut tokenizer = Tokenizer::new(source.to_string(), PathBuf::from("test.kr"));

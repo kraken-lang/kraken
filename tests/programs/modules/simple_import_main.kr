@@ -1,0 +1,7 @@
+module simple_import_main;
+
+import simple_import_util;
+
+fn main() -> int {
+    return forty_two();
+}
