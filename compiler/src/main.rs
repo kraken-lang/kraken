@@ -1,5 +1,5 @@
 //! Kraken Compiler CLI
-//! 
+//!
 //! High-performance systems programming language compiler.
 
 use anyhow::{Context, Result};
@@ -7,16 +7,16 @@ use clap::{Parser as ClapParser, Subcommand};
 use std::path::PathBuf;
 use tokio::fs;
 
+mod analyzer;
+mod codegen;
 mod error;
 mod lexer;
 mod parser;
-mod analyzer;
-mod codegen;
 
-use lexer::tokenizer::{Tokenizer, is_kraken_source_file};
-use parser::Parser;
 use analyzer::TypeChecker;
 use codegen::LLVMCodegen;
+use lexer::tokenizer::{is_kraken_source_file, Tokenizer};
+use parser::Parser;
 
 /// Kraken Programming Language Compiler
 #[derive(ClapParser, Debug)]
@@ -84,7 +84,11 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Build { path, output, verbose } => {
+        Commands::Build {
+            path,
+            output,
+            verbose,
+        } => {
             build_command(path, output, verbose).await?;
         }
         Commands::Run { file, args } => {
@@ -122,11 +126,13 @@ async fn build_command(path: PathBuf, output: Option<PathBuf>, verbose: bool) ->
             println!("Compiling: {}", file.display());
         }
 
-        compile_file(file).await.context(format!("Failed to compile {}", file.display()))?;
+        compile_file(file)
+            .await
+            .context(format!("Failed to compile {}", file.display()))?;
     }
 
     let output_path = output.unwrap_or_else(|| PathBuf::from("output"));
-    
+
     if verbose {
         println!("Build successful! Output: {}", output_path.display());
     } else {
@@ -235,20 +241,30 @@ async fn compile_file(file: &PathBuf) -> Result<()> {
     let program = parser.parse().context("Parser error")?;
 
     let mut type_checker = TypeChecker::new(file.clone());
-    type_checker.check_program(&program).context("Type checking error")?;
+    type_checker
+        .check_program(&program)
+        .context("Type checking error")?;
 
-    let module_name = file.file_stem()
+    let module_name = file
+        .file_stem()
         .and_then(|s| s.to_str())
         .unwrap_or("module")
         .to_string();
 
+    let build_dir = std::env::current_dir()
+        .context("Failed to determine current working directory")?
+        .join("build");
+    std::fs::create_dir_all(&build_dir).context("Failed to create build directory")?;
+
     // Generate object file
     let mut codegen = LLVMCodegen::new(module_name.clone(), file.clone());
-    let object_file = file.with_extension("o");
-    codegen.compile(&program, &object_file).context("Code generation error")?;
+    let object_file = build_dir.join(format!("{module_name}.o"));
+    codegen
+        .compile(&program, &object_file)
+        .context("Code generation error")?;
 
     // Link to executable
-    let executable = file.with_extension("");
+    let executable = build_dir.join(&module_name);
     link_executable(&object_file, &executable)?;
 
     // Clean up object file
@@ -286,7 +302,9 @@ async fn check_file(file: &PathBuf) -> Result<()> {
     let program = parser.parse().context("Parser error")?;
 
     let mut type_checker = TypeChecker::new(file.clone());
-    type_checker.check_program(&program).context("Type checking error")?;
+    type_checker
+        .check_program(&program)
+        .context("Type checking error")?;
 
     Ok(())
 }
@@ -294,7 +312,7 @@ async fn check_file(file: &PathBuf) -> Result<()> {
 /// Discover Kraken source files in a directory.
 fn discover_source_files(path: &PathBuf) -> Result<Vec<PathBuf>> {
     use std::fs;
-    
+
     let mut files = Vec::new();
 
     if path.is_file() {

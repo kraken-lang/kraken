@@ -1,9 +1,9 @@
-use std::path::Path;
+use super::token::{Keyword, Operator, Token, TokenKind};
 use crate::error::{CompilerError, CompilerResult, SourceLocation};
-use super::token::{Token, TokenKind, Keyword, Operator};
+use std::path::Path;
 
 /// Tokenizer for Kraken source code.
-/// 
+///
 /// Converts source code into a stream of tokens for parsing.
 /// Supports both .kr and .krak file extensions.
 pub struct Tokenizer {
@@ -16,7 +16,7 @@ pub struct Tokenizer {
 
 impl Tokenizer {
     /// Create a new tokenizer for the given source code.
-    /// 
+    ///
     /// # Arguments
     /// * `source` - The source code to tokenize
     /// * `file_path` - Path to the source file
@@ -31,10 +31,10 @@ impl Tokenizer {
     }
 
     /// Tokenize the entire source code.
-    /// 
+    ///
     /// # Returns
     /// A vector of tokens
-    /// 
+    ///
     /// # Errors
     /// Returns `CompilerError::LexerError` if tokenization fails
     pub fn tokenize(&mut self) -> CompilerResult<Vec<Token>> {
@@ -42,13 +42,13 @@ impl Tokenizer {
 
         while !self.is_at_end() {
             self.skip_whitespace();
-            
+
             if self.is_at_end() {
                 break;
             }
 
             let token = self.next_token()?;
-            
+
             // Skip comments and newlines for now
             if !matches!(token.kind, TokenKind::Comment | TokenKind::Newline) {
                 tokens.push(token);
@@ -201,9 +201,7 @@ impl Tokenizer {
             }
         };
 
-        let lexeme = self.source[self.current - 1..self.current]
-            .iter()
-            .collect();
+        let lexeme = self.source[self.current - 1..self.current].iter().collect();
 
         Ok(Token::new(kind, lexeme, start_line, start_column))
     }
@@ -217,7 +215,7 @@ impl Tokenizer {
                 self.line += 1;
                 self.column = 0;
             }
-            
+
             if self.peek() == '\\' {
                 self.advance();
                 if !self.is_at_end() {
@@ -267,10 +265,13 @@ impl Tokenizer {
             value.push(self.advance());
         }
 
-        if !self.is_at_end() && self.peek() == '.' && self.peek_next().is_some_and(|c| c.is_ascii_digit()) {
+        if !self.is_at_end()
+            && self.peek() == '.'
+            && self.peek_next().is_some_and(|c| c.is_ascii_digit())
+        {
             is_float = true;
             value.push(self.advance()); // .
-            
+
             while !self.is_at_end() && self.peek().is_ascii_digit() {
                 value.push(self.advance());
             }
@@ -342,12 +343,12 @@ impl Tokenizer {
                 comment.push(self.advance()); // /
                 break;
             }
-            
+
             if self.peek() == '\n' {
                 self.line += 1;
                 self.column = 0;
             }
-            
+
             comment.push(self.advance());
         }
 
@@ -443,7 +444,10 @@ mod tests {
         assert_eq!(tokens.len(), 6); // let, x, =, 42, ;, EOF
         assert!(matches!(tokens[0].kind, TokenKind::Keyword(Keyword::Let)));
         assert!(matches!(tokens[1].kind, TokenKind::Identifier));
-        assert!(matches!(tokens[2].kind, TokenKind::Operator(Operator::Assign)));
+        assert!(matches!(
+            tokens[2].kind,
+            TokenKind::Operator(Operator::Assign)
+        ));
         assert!(matches!(tokens[3].kind, TokenKind::IntLiteral));
         assert!(matches!(tokens[4].kind, TokenKind::Semicolon));
         assert!(matches!(tokens[5].kind, TokenKind::Eof));
@@ -455,12 +459,30 @@ mod tests {
         let mut tokenizer = Tokenizer::new(source, PathBuf::from("test.kr"));
         let tokens = tokenizer.tokenize().expect("tokenization failed");
 
-        assert!(matches!(tokens[0].kind, TokenKind::Operator(Operator::Plus)));
-        assert!(matches!(tokens[1].kind, TokenKind::Operator(Operator::Minus)));
-        assert!(matches!(tokens[2].kind, TokenKind::Operator(Operator::Star)));
-        assert!(matches!(tokens[3].kind, TokenKind::Operator(Operator::Slash)));
-        assert!(matches!(tokens[4].kind, TokenKind::Operator(Operator::Equal)));
-        assert!(matches!(tokens[5].kind, TokenKind::Operator(Operator::NotEqual)));
+        assert!(matches!(
+            tokens[0].kind,
+            TokenKind::Operator(Operator::Plus)
+        ));
+        assert!(matches!(
+            tokens[1].kind,
+            TokenKind::Operator(Operator::Minus)
+        ));
+        assert!(matches!(
+            tokens[2].kind,
+            TokenKind::Operator(Operator::Star)
+        ));
+        assert!(matches!(
+            tokens[3].kind,
+            TokenKind::Operator(Operator::Slash)
+        ));
+        assert!(matches!(
+            tokens[4].kind,
+            TokenKind::Operator(Operator::Equal)
+        ));
+        assert!(matches!(
+            tokens[5].kind,
+            TokenKind::Operator(Operator::NotEqual)
+        ));
     }
 
     #[test]

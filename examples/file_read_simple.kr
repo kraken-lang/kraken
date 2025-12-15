@@ -1,5 +1,5 @@
 fn main() -> int {
-    let file = fopen("test_output.txt", "r");
+    let file = fopen("tests/fixtures/test_output.txt", "r");
     let buffer = malloc(100);
     
     fgets(buffer, 100, file);

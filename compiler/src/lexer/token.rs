@@ -29,27 +29,27 @@ pub enum TokenKind {
     FloatLiteral,
     StringLiteral,
     BoolLiteral,
-    
+
     // Identifiers and Keywords
     Identifier,
     Keyword(Keyword),
-    
+
     // Operators
     Operator(Operator),
-    
+
     // Delimiters
-    LeftParen,      // (
-    RightParen,     // )
-    LeftBrace,      // {
-    RightBrace,     // }
-    LeftBracket,    // [
-    RightBracket,   // ]
-    Semicolon,      // ;
-    Comma,          // ,
-    Dot,            // .
-    Colon,          // :
-    Arrow,          // ->
-    
+    LeftParen,    // (
+    RightParen,   // )
+    LeftBrace,    // {
+    RightBrace,   // }
+    LeftBracket,  // [
+    RightBracket, // ]
+    Semicolon,    // ;
+    Comma,        // ,
+    Dot,          // .
+    Colon,        // :
+    Arrow,        // ->
+
     // Special
     Eof,
     Newline,
@@ -69,14 +69,14 @@ pub enum Keyword {
     Break,
     Continue,
     Return,
-    
+
     // Types
     Int,
     Float,
     Bool,
     String,
     Void,
-    
+
     // Declarations
     Fn,
     Let,
@@ -86,7 +86,7 @@ pub enum Keyword {
     Interface,
     Trait,
     Impl,
-    
+
     // Modifiers
     Pub,
     Priv,
@@ -94,7 +94,7 @@ pub enum Keyword {
     Async,
     Ref,
     Mut,
-    
+
     // Special
     True,
     False,
@@ -102,7 +102,7 @@ pub enum Keyword {
     Self_,
     Super,
     Defer,
-    
+
     // Advanced
     Generic,
     Where,
@@ -112,6 +112,7 @@ pub enum Keyword {
 
 impl Keyword {
     /// Parse a keyword from a string.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "if" => Some(Self::If),
@@ -211,44 +212,44 @@ impl fmt::Display for Keyword {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Operator {
     // Arithmetic
-    Plus,           // +
-    Minus,          // -
-    Star,           // *
-    Slash,          // /
-    Percent,        // %
-    
+    Plus,    // +
+    Minus,   // -
+    Star,    // *
+    Slash,   // /
+    Percent, // %
+
     // Comparison
-    Equal,          // ==
-    NotEqual,       // !=
-    Less,           // <
-    LessEqual,      // <=
-    Greater,        // >
-    GreaterEqual,   // >=
-    
+    Equal,        // ==
+    NotEqual,     // !=
+    Less,         // <
+    LessEqual,    // <=
+    Greater,      // >
+    GreaterEqual, // >=
+
     // Logical
-    And,            // &&
-    Or,             // ||
-    Not,            // !
-    
+    And, // &&
+    Or,  // ||
+    Not, // !
+
     // Bitwise
-    BitAnd,         // &
-    BitOr,          // |
-    BitXor,         // ^
-    BitNot,         // ~
-    LeftShift,      // <<
-    RightShift,     // >>
-    
+    BitAnd,     // &
+    BitOr,      // |
+    BitXor,     // ^
+    BitNot,     // ~
+    LeftShift,  // <<
+    RightShift, // >>
+
     // Assignment
-    Assign,         // =
-    PlusAssign,     // +=
-    MinusAssign,    // -=
-    StarAssign,     // *=
-    SlashAssign,    // /=
-    PercentAssign,  // %=
-    
+    Assign,        // =
+    PlusAssign,    // +=
+    MinusAssign,   // -=
+    StarAssign,    // *=
+    SlashAssign,   // /=
+    PercentAssign, // %=
+
     // Other
-    Question,       // ?
-    Ampersand,      // & (also used for references)
+    Question,  // ?
+    Ampersand, // & (also used for references)
 }
 
 impl Operator {

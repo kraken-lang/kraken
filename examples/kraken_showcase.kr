@@ -1,0 +1,74 @@
+// Kraken v0.8.0 - Feature Showcase
+// Demonstrates: stdlib, bitwise ops, arrays, structs, match, loops
+
+fn main() -> int {
+    puts("=== KRAKEN v0.8.0 SHOWCASE ===");
+    puts("");
+    
+    // 1. String operations
+    puts("1. String Operations:");
+    let msg = "Hello, Kraken\!";
+    let len = strlen(msg);
+    puts(msg);
+    
+    // 2. Math operations
+    puts("");
+    puts("2. Math Operations:");
+    let a = abs(-100);
+    let b = 10 << 2;  // Bitwise shift: 10 * 4 = 40
+    let sum = a + b;  // 100 + 40 = 140
+    
+    // 3. Bitwise operations
+    puts("3. Bitwise Operations:");
+    let x = 12;  // 1100
+    let y = 10;  // 1010
+    let and_result = x & y;  // 1000 = 8
+    let or_result = x | y;   // 1110 = 14
+    let xor_result = x ^ y;  // 0110 = 6
+    
+    // 4. Arrays
+    puts("4. Arrays:");
+    let nums = [1, 2, 3, 4, 5];
+    let first = nums[0];
+    let last = nums[4];
+    
+    // 5. Structs
+    puts("5. Structs:");
+    let point = Point { x: 10, y: 20 };
+    let px = point.x;
+    let py = point.y;
+    
+    // 6. Match statement
+    puts("6. Pattern Matching:");
+    let value = 42;
+    match (value) {
+        42 -> {
+            puts("  Matched 42\!");
+        }
+        _ -> {
+            puts("  No match");
+        }
+    }
+    
+    // 7. Loops
+    puts("7. Loops:");
+    let mut i = 0;
+    let mut total = 0;
+    for (i = 0; i < 5; i = i + 1) {
+        total = total + i;
+    }
+    
+    // 8. Environment
+    puts("8. System Integration:");
+    let home = getenv("HOME");
+    
+    puts("");
+    puts("=== ALL FEATURES WORKING\! ===");
+    
+    return 0;
+}
+
+struct Point {
+    x: int,
+    y: int,
+}

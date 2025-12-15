@@ -62,9 +62,7 @@ pub enum Statement {
     },
 
     /// Return statement
-    Return {
-        value: Option<Expression>,
-    },
+    Return { value: Option<Expression> },
 
     /// Expression statement
     Expression(Expression),
@@ -77,10 +75,7 @@ pub enum Statement {
     },
 
     /// While loop
-    While {
-        condition: Expression,
-        body: Block,
-    },
+    While { condition: Expression, body: Block },
 
     /// For loop
     For {
@@ -103,9 +98,7 @@ pub enum Statement {
     Continue,
 
     /// Defer statement
-    Defer {
-        statement: Box<Statement>,
-    },
+    Defer { statement: Box<Statement> },
 }
 
 /// Expression types in Kraken.
@@ -149,9 +142,7 @@ pub enum Expression {
     },
 
     /// Array literal
-    Array {
-        elements: Vec<Expression>,
-    },
+    Array { elements: Vec<Expression> },
 
     /// Array indexing
     Index {
@@ -178,14 +169,10 @@ pub enum Expression {
     },
 
     /// Reference (&expr)
-    Reference {
-        expression: Box<Expression>,
-    },
+    Reference { expression: Box<Expression> },
 
     /// Dereference (*expr)
-    Dereference {
-        expression: Box<Expression>,
-    },
+    Dereference { expression: Box<Expression> },
 }
 
 /// Code block containing statements.
@@ -236,16 +223,17 @@ pub struct MatchArm {
 pub enum Pattern {
     /// Literal pattern
     Literal(Expression),
-    
+
     /// Identifier pattern (binds value)
     Identifier(String),
-    
+
     /// Wildcard pattern (_)
     Wildcard,
 }
 
 /// Type representation.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[allow(dead_code)]
 pub enum Type {
     /// Primitive types
     Int,
@@ -262,6 +250,12 @@ pub enum Type {
 
     /// Reference type
     Reference {
+        inner_type: Box<Type>,
+        is_mutable: bool,
+    },
+
+    /// Pointer type
+    Pointer {
         inner_type: Box<Type>,
         is_mutable: bool,
     },
@@ -305,11 +299,24 @@ impl std::fmt::Display for Type {
                     write!(f, "[{element_type}]")
                 }
             }
-            Type::Reference { inner_type, is_mutable } => {
+            Type::Reference {
+                inner_type,
+                is_mutable,
+            } => {
                 if *is_mutable {
                     write!(f, "&mut {inner_type}")
                 } else {
                     write!(f, "&{inner_type}")
+                }
+            }
+            Type::Pointer {
+                inner_type,
+                is_mutable,
+            } => {
+                if *is_mutable {
+                    write!(f, "*mut {inner_type}")
+                } else {
+                    write!(f, "*{inner_type}")
                 }
             }
             Type::Custom(name) => write!(f, "{name}"),

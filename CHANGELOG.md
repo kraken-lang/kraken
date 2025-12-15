@@ -5,11 +5,32 @@ All notable changes to the Kraken Language compiler will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Moved compiler output artifacts into `./build/` (instead of emitting no-extension binaries next to source files).
+- Reorganized Kraken source programs into:
+  - `examples/` for user-facing demos
+  - `tests/programs/` for compiler regression/integration programs
+- Moved test fixture data into `tests/fixtures/`.
+
+### Fixed
+- Updated example file I/O program to reference the relocated fixture path.
+- Corrected documentation links and example/run instructions.
+- Resolved LLVM codegen warnings (deprecated LLVM APIs and redundant `unsafe` blocks).
+- Addressed clippy findings across compiler/runtime to support strict `-D warnings` builds.
+
+### Chore
+- Added `build/` to `.gitignore` to keep build artifacts out of the repo.
+- Ran `cargo fmt` to keep Rust sources consistently formatted.
+- Verified clean builds with `cargo test` and `cargo clippy` under `RUSTFLAGS="-D warnings"`.
+
+
 ## [0.8.0] - 2024-11-20
 
-### 🔧 Complete Bitwise Operations Support
+### 🔧 Bitwise Operations & Pointer Infrastructure
 
-This release adds **full bitwise operation support**, making Kraken suitable for low-level systems programming, embedded systems, and performance-critical applications requiring bit manipulation.
+This release adds **full bitwise operation support** and **pointer/reference infrastructure**, making Kraken suitable for low-level systems programming, embedded systems, and performance-critical applications requiring bit manipulation and memory control.
 
 ### Added
 
@@ -22,6 +43,13 @@ This release adds **full bitwise operation support**, making Kraken suitable for
 
 #### Bitwise Unary Operator (1 operator)
 - **`~`** - Bitwise NOT - Inverts all bits (one's complement)
+
+#### Pointer & Reference Infrastructure
+- **Pointer Type** - Added `Pointer { inner_type, is_mutable }` to type system
+- **Reference Operator** (`&`) - Takes address of variables
+- **Dereference Operator** (`*`) - Accesses value at pointer/reference
+- **Type Checking** - Validates pointer and reference operations
+- **LLVM Codegen** - Basic pointer operations (foundation for future enhancements)
 
 ### Technical Implementation
 - **Parser**: Added bitwise operators to expression precedence chain

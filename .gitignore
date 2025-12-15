@@ -10,6 +10,9 @@ modcli/tests_disabled/
 /target/
 **/*.rs.bk
 
+# Kraken Build Artifacts
+/build/
+
 # Dependencies
 /node_modules/
 /vendor/

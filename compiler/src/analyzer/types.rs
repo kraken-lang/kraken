@@ -1,8 +1,8 @@
-use std::collections::HashMap;
 use crate::parser::ast::Type;
+use std::collections::HashMap;
 
 /// Type environment for tracking variable and function types.
-/// 
+///
 /// Maintains symbol tables for type checking and inference.
 pub struct TypeEnvironment {
     /// Variable types in current scope
@@ -37,7 +37,7 @@ impl TypeEnvironment {
     }
 
     /// Define a variable in the current scope.
-    /// 
+    ///
     /// # Arguments
     /// * `name` - Variable name
     /// * `var_type` - Variable type
@@ -46,10 +46,10 @@ impl TypeEnvironment {
     }
 
     /// Look up a variable type.
-    /// 
+    ///
     /// # Arguments
     /// * `name` - Variable name
-    /// 
+    ///
     /// # Returns
     /// The variable's type if found
     pub fn lookup_variable(&self, name: &str) -> Option<Type> {
@@ -63,7 +63,7 @@ impl TypeEnvironment {
     }
 
     /// Define a function in the current scope.
-    /// 
+    ///
     /// # Arguments
     /// * `name` - Function name
     /// * `func_type` - Function type signature
@@ -72,10 +72,10 @@ impl TypeEnvironment {
     }
 
     /// Look up a function type.
-    /// 
+    ///
     /// # Arguments
     /// * `name` - Function name
-    /// 
+    ///
     /// # Returns
     /// The function's type signature if found
     pub fn lookup_function(&self, name: &str) -> Option<FunctionType> {
@@ -89,7 +89,7 @@ impl TypeEnvironment {
     }
 
     /// Define a struct in the current scope.
-    /// 
+    ///
     /// # Arguments
     /// * `name` - Struct name
     /// * `struct_type` - Struct definition
@@ -98,10 +98,10 @@ impl TypeEnvironment {
     }
 
     /// Look up a struct definition.
-    /// 
+    ///
     /// # Arguments
     /// * `name` - Struct name
-    /// 
+    ///
     /// # Returns
     /// The struct definition if found
     pub fn lookup_struct(&self, name: &str) -> Option<StructType> {
@@ -115,6 +115,7 @@ impl TypeEnvironment {
     }
 
     /// Check if a variable exists in the current scope (not parent scopes).
+    #[allow(dead_code)]
     pub fn has_variable_in_scope(&self, name: &str) -> bool {
         self.variables.contains_key(name)
     }
@@ -174,6 +175,7 @@ impl StructType {
     }
 
     /// Check if a field exists.
+    #[allow(dead_code)]
     pub fn has_field(&self, name: &str) -> bool {
         self.fields.contains_key(name)
     }
@@ -187,7 +189,7 @@ mod tests {
     fn test_variable_definition_and_lookup() {
         let mut env = TypeEnvironment::new();
         env.define_variable("x".to_string(), Type::Int);
-        
+
         assert_eq!(env.lookup_variable("x"), Some(Type::Int));
         assert_eq!(env.lookup_variable("y"), None);
     }
@@ -196,10 +198,10 @@ mod tests {
     fn test_child_environment() {
         let mut parent = TypeEnvironment::new();
         parent.define_variable("x".to_string(), Type::Int);
-        
+
         let mut child = parent.child();
         child.define_variable("y".to_string(), Type::Float);
-        
+
         assert_eq!(child.lookup_variable("x"), Some(Type::Int));
         assert_eq!(child.lookup_variable("y"), Some(Type::Float));
         assert_eq!(parent.lookup_variable("y"), None);
@@ -208,13 +210,9 @@ mod tests {
     #[test]
     fn test_function_definition() {
         let mut env = TypeEnvironment::new();
-        let func_type = FunctionType::new(
-            vec![Type::Int, Type::Int],
-            Type::Int,
-            false,
-        );
+        let func_type = FunctionType::new(vec![Type::Int, Type::Int], Type::Int, false);
         env.define_function("add".to_string(), func_type.clone());
-        
+
         assert_eq!(env.lookup_function("add"), Some(func_type));
     }
 
@@ -224,10 +222,10 @@ mod tests {
         let mut fields = HashMap::new();
         fields.insert("x".to_string(), Type::Int);
         fields.insert("y".to_string(), Type::Float);
-        
+
         let struct_type = StructType::new(fields);
         env.define_struct("Point".to_string(), struct_type.clone());
-        
+
         assert_eq!(env.lookup_struct("Point"), Some(struct_type));
     }
 }

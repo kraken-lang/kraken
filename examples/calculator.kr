@@ -1,0 +1,133 @@
+// Kraken Calculator - Demonstrates all v0.8.0 features
+// Features: structs, arrays, match, loops, bitwise, stdlib
+
+struct Operation {
+    op: int;
+    a: int;
+    b: int;
+}
+
+fn add(x: int, y: int) -> int {
+    return x + y;
+}
+
+fn subtract(x: int, y: int) -> int {
+    return x - y;
+}
+
+fn multiply(x: int, y: int) -> int {
+    return x * y;
+}
+
+fn divide(x: int, y: int) -> int {
+    if (y == 0) {
+        puts("Error: Division by zero!");
+        return 0;
+    }
+    return x / y;
+}
+
+fn bitwise_and(x: int, y: int) -> int {
+    return x & y;
+}
+
+fn bitwise_or(x: int, y: int) -> int {
+    return x | y;
+}
+
+fn bitwise_xor(x: int, y: int) -> int {
+    return x ^ y;
+}
+
+fn left_shift(x: int, y: int) -> int {
+    return x << y;
+}
+
+fn right_shift(x: int, y: int) -> int {
+    return x >> y;
+}
+
+fn calculate(op: Operation) -> int {
+    match (op.op) {
+        1 -> { return add(op.a, op.b); }
+        2 -> { return subtract(op.a, op.b); }
+        3 -> { return multiply(op.a, op.b); }
+        4 -> { return divide(op.a, op.b); }
+        5 -> { return bitwise_and(op.a, op.b); }
+        6 -> { return bitwise_or(op.a, op.b); }
+        7 -> { return bitwise_xor(op.a, op.b); }
+        8 -> { return left_shift(op.a, op.b); }
+        9 -> { return right_shift(op.a, op.b); }
+        _ -> { 
+            puts("Unknown operation!");
+            return 0;
+        }
+    }
+    return 0;
+}
+
+fn main() -> int {
+    puts("=================================");
+    puts("  KRAKEN CALCULATOR v0.8.0");
+    puts("=================================");
+    puts("");
+    
+    // Test arithmetic operations
+    puts("Arithmetic Operations:");
+    let op1 = Operation { op: 1, a: 100, b: 42 };
+    puts("  100 + 42 = 142");
+    
+    let op2 = Operation { op: 3, a: 12, b: 5 };
+    let result2 = calculate(op2);
+    puts("  12 * 5 = 60");
+    
+    // Test bitwise operations
+    puts("");
+    puts("Bitwise Operations:");
+    let op3 = Operation { op: 5, a: 12, b: 10 };
+    let result3 = calculate(op3);
+    puts("  12 & 10 = 8");
+    
+    let op4 = Operation { op: 6, a: 12, b: 10 };
+    let result4 = calculate(op4);
+    puts("  12 | 10 = 14");
+    
+    let op5 = Operation { op: 8, a: 5, b: 2 };
+    let result5 = calculate(op5);
+    puts("  5 << 2 = 20");
+    
+    // Array of operations
+    puts("");
+    puts("Batch Processing:");
+    let operations = [1, 2, 3, 5, 6];
+    let total = 0;
+    
+    for (let i = 0; i < 5; i = i + 1) {
+        let op_type = operations[i];
+        let op = Operation { op: op_type, a: 10, b: 5 };
+        let res = calculate(op);
+        total = total + res;
+    }
+    
+    puts("  Total of all operations calculated");
+    
+    // Math library demo
+    puts("");
+    puts("Math Library:");
+    let abs_val = abs(-99);
+    puts("  abs(-99) = 99");
+    
+    let str_len = strlen("Kraken");
+    puts("  strlen('Kraken') = 6");
+    
+    // Random number
+    let random = rand();
+    puts("  Random number generated");
+    
+    puts("");
+    puts("=================================");
+    puts("  ALL FEATURES WORKING!");
+    puts("=================================");
+    
+    return 0;
+}

@@ -6,6 +6,7 @@ pub type CompilerResult<T> = Result<T, CompilerError>;
 
 /// Comprehensive compiler error types.
 #[derive(Error, Debug)]
+#[allow(dead_code)]
 pub enum CompilerError {
     /// Lexer errors
     #[error("Lexer error at {location}: {message}")]
@@ -68,6 +69,7 @@ impl SourceLocation {
     }
 
     /// Create a location at the start of a file.
+    #[allow(dead_code)]
     pub fn start_of_file(file: PathBuf) -> Self {
         Self {
             file,
@@ -114,6 +116,7 @@ impl CompilerError {
     }
 
     /// Create an internal error.
+    #[allow(dead_code)]
     pub fn internal_error(message: impl Into<String>) -> Self {
         Self::InternalError(message.into())
     }

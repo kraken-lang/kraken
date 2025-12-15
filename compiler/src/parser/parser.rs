@@ -1,6 +1,6 @@
-use crate::error::{CompilerError, CompilerResult, SourceLocation};
-use crate::lexer::token::{Token, TokenKind, Keyword, Operator};
 use super::ast::*;
+use crate::error::{CompilerError, CompilerResult, SourceLocation};
+use crate::lexer::token::{Keyword, Operator, Token, TokenKind};
 use std::path::PathBuf;
 
 /// Recursive descent parser for Kraken language.
@@ -21,10 +21,10 @@ impl Parser {
     }
 
     /// Parse the token stream into an AST.
-    /// 
+    ///
     /// # Returns
     /// The parsed program AST
-    /// 
+    ///
     /// # Errors
     /// Returns `CompilerError::ParserError` if parsing fails
     pub fn parse(&mut self) -> CompilerResult<Program> {
@@ -80,7 +80,7 @@ impl Parser {
     /// Parse a variable declaration.
     fn parse_variable_declaration(&mut self, is_mutable: bool) -> CompilerResult<Statement> {
         let name = self.consume_identifier()?;
-        
+
         let type_annotation = if self.match_token(TokenKind::Colon) {
             Some(self.parse_type()?)
         } else {
@@ -106,7 +106,7 @@ impl Parser {
     /// Parse a constant declaration.
     fn parse_constant_declaration(&mut self) -> CompilerResult<Statement> {
         let name = self.consume_identifier()?;
-        
+
         let type_annotation = if self.match_token(TokenKind::Colon) {
             Some(self.parse_type()?)
         } else {
@@ -125,9 +125,13 @@ impl Parser {
     }
 
     /// Parse a function declaration.
-    fn parse_function_declaration(&mut self, is_async: bool, is_public: bool) -> CompilerResult<Statement> {
+    fn parse_function_declaration(
+        &mut self,
+        is_async: bool,
+        is_public: bool,
+    ) -> CompilerResult<Statement> {
         let name = self.consume_identifier()?;
-        
+
         self.expect_token(TokenKind::LeftParen)?;
         let parameters = self.parse_parameter_list()?;
         self.expect_token(TokenKind::RightParen)?;
@@ -166,7 +170,7 @@ impl Parser {
     /// Parse a struct declaration.
     fn parse_struct_declaration(&mut self, is_public: bool) -> CompilerResult<Statement> {
         let name = self.consume_identifier()?;
-        
+
         self.expect_token(TokenKind::LeftBrace)?;
         let fields = self.parse_struct_fields()?;
         self.expect_token(TokenKind::RightBrace)?;
@@ -202,9 +206,9 @@ impl Parser {
     /// Parse a class declaration.
     fn parse_class_declaration(&mut self, is_public: bool) -> CompilerResult<Statement> {
         let name = self.consume_identifier()?;
-        
+
         self.expect_token(TokenKind::LeftBrace)?;
-        
+
         let mut fields = Vec::new();
         let mut methods = Vec::new();
 
@@ -240,14 +244,14 @@ impl Parser {
     /// Parse an interface declaration.
     fn parse_interface_declaration(&mut self) -> CompilerResult<Statement> {
         let name = self.consume_identifier()?;
-        
+
         self.expect_token(TokenKind::LeftBrace)?;
         let mut methods = Vec::new();
 
         while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
             self.expect_keyword(Keyword::Fn)?;
             let method_name = self.consume_identifier()?;
-            
+
             self.expect_token(TokenKind::LeftParen)?;
             let parameters = self.parse_parameter_list()?;
             self.expect_token(TokenKind::RightParen)?;
@@ -438,14 +442,16 @@ impl Parser {
 
         if self.match_token(TokenKind::LeftBracket) {
             let element_type = Box::new(self.parse_type()?);
-            
+
             let size = if self.match_token(TokenKind::Semicolon) {
                 if let TokenKind::IntLiteral = self.peek().kind {
                     let size_str = self.peek().lexeme.clone();
                     self.advance();
-                    Some(size_str.parse::<usize>().map_err(|_| {
-                        self.error("Invalid array size")
-                    })?)
+                    Some(
+                        size_str
+                            .parse::<usize>()
+                            .map_err(|_| self.error("Invalid array size"))?,
+                    )
                 } else {
                     return Err(self.error("Expected array size"));
                 }
@@ -454,14 +460,17 @@ impl Parser {
             };
 
             self.expect_token(TokenKind::RightBracket)?;
-            
+
             return Ok(Type::Array { element_type, size });
         }
 
         if self.match_operator(Operator::Ampersand) {
             let is_mutable = self.match_keyword(Keyword::Mut);
             let inner_type = Box::new(self.parse_type()?);
-            return Ok(Type::Reference { inner_type, is_mutable });
+            return Ok(Type::Reference {
+                inner_type,
+                is_mutable,
+            });
         }
 
         let name = self.consume_identifier()?;
@@ -661,7 +670,9 @@ impl Parser {
     fn parse_factor(&mut self) -> CompilerResult<Expression> {
         let mut left = self.parse_unary()?;
 
-        while let Some(op) = self.match_operators(&[Operator::Star, Operator::Slash, Operator::Percent]) {
+        while let Some(op) =
+            self.match_operators(&[Operator::Star, Operator::Slash, Operator::Percent])
+        {
             let right = self.parse_unary()?;
             left = Expression::Binary {
                 left: Box::new(left),
@@ -675,13 +686,26 @@ impl Parser {
 
     /// Parse unary expression.
     fn parse_unary(&mut self) -> CompilerResult<Expression> {
-        if let Some(op) = self.match_operators(&[Operator::Not, Operator::Minus, Operator::BitNot, Operator::BitAnd, Operator::Star]) {
+        if let Some(op) = self.match_operators(&[
+            Operator::Not,
+            Operator::Minus,
+            Operator::BitNot,
+            Operator::BitAnd,
+            Operator::Star,
+        ]) {
             let operand = Box::new(self.parse_unary()?);
-            
+
             return Ok(match op {
-                Operator::BitAnd => Expression::Reference { expression: operand },
-                Operator::Star => Expression::Dereference { expression: operand },
-                _ => Expression::Unary { operator: op, operand },
+                Operator::BitAnd => Expression::Reference {
+                    expression: operand,
+                },
+                Operator::Star => Expression::Dereference {
+                    expression: operand,
+                },
+                _ => Expression::Unary {
+                    operator: op,
+                    operand,
+                },
             });
         }
 
@@ -718,18 +742,18 @@ impl Parser {
                 if let Expression::Identifier(struct_name) = expr {
                     self.advance(); // consume {
                     let mut fields = Vec::new();
-                    
+
                     while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
                         let field_name = self.consume_identifier()?;
                         self.expect_token(TokenKind::Colon)?;
                         let field_value = self.parse_expression()?;
                         fields.push((field_name, field_value));
-                        
+
                         if !self.match_token(TokenKind::Comma) {
                             break;
                         }
                     }
-                    
+
                     self.expect_token(TokenKind::RightBrace)?;
                     expr = Expression::StructLiteral {
                         name: struct_name,
@@ -752,16 +776,18 @@ impl Parser {
 
         match &token.kind {
             TokenKind::IntLiteral => {
-                let value = token.lexeme.parse::<i64>().map_err(|_| {
-                    self.error("Invalid integer literal")
-                })?;
+                let value = token
+                    .lexeme
+                    .parse::<i64>()
+                    .map_err(|_| self.error("Invalid integer literal"))?;
                 self.advance();
                 Ok(Expression::IntLiteral(value))
             }
             TokenKind::FloatLiteral => {
-                let value = token.lexeme.parse::<f64>().map_err(|_| {
-                    self.error("Invalid float literal")
-                })?;
+                let value = token
+                    .lexeme
+                    .parse::<f64>()
+                    .map_err(|_| self.error("Invalid float literal"))?;
                 self.advance();
                 Ok(Expression::FloatLiteral(value))
             }
@@ -878,7 +904,10 @@ impl Parser {
     }
 
     fn match_operators(&mut self, operators: &[Operator]) -> Option<Operator> {
-        operators.iter().find(|&&op| self.match_operator(op)).copied()
+        operators
+            .iter()
+            .find(|&&op| self.match_operator(op))
+            .copied()
     }
 
     fn expect_token(&mut self, kind: TokenKind) -> CompilerResult<()> {
@@ -954,7 +983,8 @@ mod tests {
 
     #[test]
     fn test_parse_function_declaration() {
-        let program = parse_source("fn add(a: int, b: int) -> int { return a + b; }").expect("parse failed");
+        let program =
+            parse_source("fn add(a: int, b: int) -> int { return a + b; }").expect("parse failed");
         assert_eq!(program.statements.len(), 1);
         assert!(matches!(
             program.statements[0],

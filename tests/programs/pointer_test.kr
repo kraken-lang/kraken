@@ -1,0 +1,9 @@
+fn main() -> int {
+    let x = 42;
+    let ptr = &x;      // Get reference to x
+    let val = *ptr;    // Dereference to get value
+    
+    puts("Pointer test works\!");
+    
+    return val;  // Should return 42
+}

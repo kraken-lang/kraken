@@ -1,0 +1,53 @@
+// Kraken v0.8.0 - Comprehensive Demo
+
+fn main() -> int {
+    puts("=== KRAKEN v0.8.0 DEMO ===");
+    puts("");
+    
+    // String operations
+    puts("String ops: strlen, strcmp");
+    let msg = "Kraken";
+    let len = strlen(msg);
+    
+    // Math operations  
+    puts("Math: abs, sqrt, pow");
+    let num = abs(-42);
+    
+    // Bitwise operations
+    puts("Bitwise: AND, OR, XOR, shifts");
+    let bits = (12 & 10) + (12 | 10) + (12 ^ 10);
+    let shifted = 5 << 2;
+    
+    // Arrays
+    puts("Arrays: literals and indexing");
+    let arr = [10, 20, 30];
+    let val = arr[1];
+    
+    // Structs
+    puts("Structs: Point with x, y");
+    let p = Point { x: 100, y: 200 };
+    let px = p.x;
+    
+    // Match
+    puts("Match: pattern matching");
+    match (42) {
+        42 -> { puts("  Matched\!"); }
+        _ -> { puts("  No match"); }
+    }
+    
+    // Loops
+    puts("Loops: for loop");
+    let total = 0;
+    for (let i = 0; i < 3; i = i + 1) {
+        total = total + i;
+    }
+    
+    puts("");
+    puts("=== SUCCESS\! ===");
+    return 0;
+}
+
+struct Point {
+    x: int,
+    y: int,
+}
