@@ -1,0 +1,11 @@
+// Debug: check values after push
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    vec_int_push(v, 10);
+    vec_int_push(v, 20);
+    vec_int_push(v, 30);
+    // Return value at index 2 (should be 30)
+    let x = vec_int_get(v, 2);
+    vec_int_free(v);
+    return x;
+}

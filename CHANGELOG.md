@@ -9,16 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-
 ### Changed
 
-
 ### Fixed
-
 
 ### Removed
 
 ### Security
+
+## [0.8.5] - 2025-12-15
+
+### Added
+
+- Added `docs/CONTAINERS.md` semantics reference for Containers v1 (VecInt, VecString, VecBytes, MapStringInt, MapStringString).
+- Added container type keywords and AST types: `VecInt`, `VecString`, `VecBytes`, `MapStringInt`, `MapStringString`.
+- Added `VecInt` intrinsics: `vec_int_new`, `vec_int_push`, `vec_int_len`, `vec_int_get`, `vec_int_set`, `vec_int_clear`, `vec_int_free` (v1: no bounds checking).
+- Added `VecString` intrinsics: `vec_string_new`, `vec_string_push`, `vec_string_len`, `vec_string_get`, `vec_string_set`, `vec_string_pop`, `vec_string_clear`, `vec_string_free`.
+- Added `VecBytes` intrinsics: `vec_bytes_new`, `vec_bytes_push`, `vec_bytes_len`, `vec_bytes_get`, `vec_bytes_set`, `vec_bytes_pop`, `vec_bytes_clear`, `vec_bytes_free`.
+- Added `MapStringInt` intrinsics: `map_string_int_new`, `map_string_int_set`, `map_string_int_get`, `map_string_int_has`, `map_string_int_delete`, `map_string_int_len`, `map_string_int_clear`, `map_string_int_free`.
+- Added `MapStringString` intrinsics: `map_string_string_new`, `map_string_string_set`, `map_string_string_get`, `map_string_string_has`, `map_string_string_delete`, `map_string_string_len`, `map_string_string_clear`, `map_string_string_free`.
+- Added example programs: `examples/vec_demo.kr`, `examples/map_demo.kr`.
+
+### Known Issues
+
+- `vec_int_pop` returns incorrect value - under investigation.
 
 ## [0.8.4] - 2025-12-15
 
@@ -626,7 +640,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
-[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.3...HEAD
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.5...HEAD
+[0.8.5]: https://github.com/kraken-lang/kraken/compare/v0.8.4...v0.8.5
+[0.8.4]: https://github.com/kraken-lang/kraken/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/kraken-lang/kraken/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/kraken-lang/kraken/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/kraken-lang/kraken/tree/v0.8.1

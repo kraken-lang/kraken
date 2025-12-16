@@ -1,0 +1,8 @@
+// Negative test: vec_int_get out of bounds should trap
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    vec_int_push(v, 10);
+    // Index 5 is out of bounds (len=1)
+    let x = vec_int_get(v, 5);
+    return 0;
+}

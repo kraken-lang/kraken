@@ -1,0 +1,43 @@
+// MapStringInt demonstration - Kraken 0.8.5 Containers v1
+// This example shows basic MapStringInt operations
+
+fn main() -> int {
+    // Create a new map
+    let m: MapStringInt = map_string_int_new();
+    
+    // Set some key-value pairs
+    map_string_int_set(m, "apple", 5);
+    map_string_int_set(m, "banana", 3);
+    map_string_int_set(m, "cherry", 8);
+    
+    // Get the length
+    let len = map_string_int_len(m);
+    print_int(len);  // 3
+    
+    // Check if keys exist
+    let has_apple = map_string_int_has(m, "apple");
+    let has_grape = map_string_int_has(m, "grape");
+    print_int(has_apple);  // 1
+    print_int(has_grape);  // 0
+    
+    // Get values by key
+    let apple_count = map_string_int_get(m, "apple");
+    let cherry_count = map_string_int_get(m, "cherry");
+    print_int(apple_count);   // 5
+    print_int(cherry_count);  // 8
+    
+    // Update an existing key
+    map_string_int_set(m, "banana", 10);
+    let new_banana = map_string_int_get(m, "banana");
+    print_int(new_banana);  // 10
+    
+    // Clear the map
+    map_string_int_clear(m);
+    let after_clear = map_string_int_len(m);
+    print_int(after_clear);  // 0
+    
+    // Free the map
+    map_string_int_free(m);
+    
+    return 0;
+}

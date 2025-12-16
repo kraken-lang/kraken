@@ -49,6 +49,336 @@ impl TypeChecker {
             },
         );
 
+        // VecInt intrinsics
+        env.define_function(
+            "vec_int_new".to_string(),
+            FunctionType {
+                parameter_types: vec![],
+                return_type: Type::VecInt,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_int_push".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecInt, Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_int_pop".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecInt],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_int_len".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecInt],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_int_get".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecInt, Type::Int],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_int_set".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecInt, Type::Int, Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_int_clear".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecInt],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_int_free".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecInt],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // VecString intrinsics
+        env.define_function(
+            "vec_string_new".to_string(),
+            FunctionType {
+                parameter_types: vec![],
+                return_type: Type::VecString,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_string_push".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecString, Type::String],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_string_pop".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecString],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_string_len".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecString],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_string_get".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecString, Type::Int],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_string_set".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecString, Type::Int, Type::String],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_string_clear".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecString],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_string_free".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecString],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // VecBytes intrinsics
+        env.define_function(
+            "vec_bytes_new".to_string(),
+            FunctionType {
+                parameter_types: vec![],
+                return_type: Type::VecBytes,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_bytes_push".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecBytes, Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_bytes_pop".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecBytes],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_bytes_len".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecBytes],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_bytes_get".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecBytes, Type::Int],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_bytes_set".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecBytes, Type::Int, Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_bytes_clear".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecBytes],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_bytes_free".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecBytes],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // MapStringInt intrinsics
+        env.define_function(
+            "map_string_int_new".to_string(),
+            FunctionType {
+                parameter_types: vec![],
+                return_type: Type::MapStringInt,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_int_set".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringInt, Type::String, Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_int_get".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringInt, Type::String],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_int_has".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringInt, Type::String],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_int_delete".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringInt, Type::String],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_int_len".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringInt],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_int_clear".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringInt],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_int_free".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringInt],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // MapStringString intrinsics
+        env.define_function(
+            "map_string_string_new".to_string(),
+            FunctionType {
+                parameter_types: vec![],
+                return_type: Type::MapStringString,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_string_set".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringString, Type::String, Type::String],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_string_get".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringString, Type::String],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_string_has".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringString, Type::String],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_string_delete".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringString, Type::String],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_string_len".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringString],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_string_clear".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringString],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_string_free".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringString],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
         // String functions
         env.define_function(
             "strcpy".to_string(),

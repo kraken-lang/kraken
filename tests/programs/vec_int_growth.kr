@@ -1,0 +1,28 @@
+// Test VecInt growth beyond initial capacity (4)
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    
+    // Push 10 values (should trigger growth)
+    let i = 0;
+    while (i < 10) {
+        vec_int_push(v, i * 10);
+        i = i + 1;
+    }
+    
+    // Check length
+    if (vec_int_len(v) != 10) {
+        return 1;
+    }
+    
+    // Verify all values
+    i = 0;
+    while (i < 10) {
+        if (vec_int_get(v, i) != i * 10) {
+            return 2;
+        }
+        i = i + 1;
+    }
+    
+    vec_int_free(v);
+    return 0;
+}

@@ -1,0 +1,17 @@
+// Test VecBytes basic operations
+fn main() -> int {
+    let v: VecBytes = vec_bytes_new();
+    
+    vec_bytes_push(v, 65);
+    vec_bytes_push(v, 66);
+    vec_bytes_push(v, 67);
+    
+    let a = vec_bytes_get(v, 0);
+    let b = vec_bytes_get(v, 1);
+    let c = vec_bytes_get(v, 2);
+    
+    vec_bytes_free(v);
+    
+    // Should return 65 + 66 + 67 = 198
+    return a + b + c;
+}

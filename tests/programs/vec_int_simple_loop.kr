@@ -1,0 +1,14 @@
+// Simple while loop with VecInt - no if statements
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    
+    let i = 0;
+    while (i < 5) {
+        vec_int_push(v, i * 10);
+        i = i + 1;
+    }
+    
+    let result = vec_int_len(v);
+    vec_int_free(v);
+    return result;
+}

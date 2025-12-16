@@ -1,0 +1,39 @@
+// Test VecInt basic operations: new, push, len, get, pop, free
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    
+    // Push some values
+    vec_int_push(v, 10);
+    vec_int_push(v, 20);
+    vec_int_push(v, 30);
+    
+    // Check length
+    if (vec_int_len(v) != 3) {
+        return 1;
+    }
+    
+    // Check get
+    if (vec_int_get(v, 0) != 10) {
+        return 2;
+    }
+    if (vec_int_get(v, 1) != 20) {
+        return 3;
+    }
+    if (vec_int_get(v, 2) != 30) {
+        return 4;
+    }
+    
+    // Pop and check
+    let popped = vec_int_pop(v);
+    if (popped != 30) {
+        return 5;
+    }
+    if (vec_int_len(v) != 2) {
+        return 6;
+    }
+    
+    // Free
+    vec_int_free(v);
+    
+    return 0;
+}

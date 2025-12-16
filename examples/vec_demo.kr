@@ -1,0 +1,48 @@
+// VecInt demonstration - Kraken 0.8.5 Containers v1
+// This example shows basic VecInt operations
+
+fn main() -> int {
+    // Create a new vector
+    let v: VecInt = vec_int_new();
+    
+    // Push some values
+    vec_int_push(v, 10);
+    vec_int_push(v, 20);
+    vec_int_push(v, 30);
+    vec_int_push(v, 40);
+    vec_int_push(v, 50);
+    
+    // Get the length
+    let len = vec_int_len(v);
+    print_int(len);  // 5
+    
+    // Access elements by index
+    let first = vec_int_get(v, 0);
+    let third = vec_int_get(v, 2);
+    print_int(first);  // 10
+    print_int(third);  // 30
+    
+    // Modify an element
+    vec_int_set(v, 2, 999);
+    let modified = vec_int_get(v, 2);
+    print_int(modified);  // 999
+    
+    // Sum all elements
+    let sum = 0;
+    let i = 0;
+    while (i < vec_int_len(v)) {
+        sum = sum + vec_int_get(v, i);
+        i = i + 1;
+    }
+    print_int(sum);  // 10 + 20 + 999 + 40 + 50 = 1119
+    
+    // Clear the vector
+    vec_int_clear(v);
+    let after_clear = vec_int_len(v);
+    print_int(after_clear);  // 0
+    
+    // Free the vector
+    vec_int_free(v);
+    
+    return 0;
+}

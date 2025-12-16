@@ -1,0 +1,10 @@
+// Debug VecInt - return what pop returns
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    vec_int_push(v, 10);
+    vec_int_push(v, 20);
+    vec_int_push(v, 30);
+    let x = vec_int_pop(v);
+    vec_int_free(v);
+    return x;
+}

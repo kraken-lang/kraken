@@ -1,0 +1,7 @@
+// Negative test: vec_int_pop on empty vector should trap
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    // This should trap
+    let x = vec_int_pop(v);
+    return 0;
+}

@@ -1,0 +1,12 @@
+// Test VecString basic operations
+fn main() -> int {
+    let v: VecString = vec_string_new();
+    
+    vec_string_push(v, "hello");
+    vec_string_push(v, "world");
+    vec_string_push(v, "kraken");
+    
+    let len = vec_string_len(v);
+    vec_string_free(v);
+    return len;
+}

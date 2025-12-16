@@ -984,6 +984,20 @@ impl LLVMCodegen {
             let strncmp_func = LLVMAddFunction(self.module, strncmp_name.as_ptr(), strncmp_type);
             self.functions.insert("strncmp".to_string(), strncmp_func);
 
+            // strcmp: int strcmp(const char* s1, const char* s2) - returns C int (i32)
+            // Use LLVMGetNamedFunction first to avoid duplicate declaration
+            let strcmp_name = CString::new("strcmp").expect("CString failed");
+            let strcmp_func = LLVMGetNamedFunction(self.module, strcmp_name.as_ptr());
+            let strcmp_func = if strcmp_func.is_null() {
+                let i32_type = LLVMInt32TypeInContext(self.context);
+                let strcmp_type =
+                    LLVMFunctionType(i32_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
+                LLVMAddFunction(self.module, strcmp_name.as_ptr(), strcmp_type)
+            } else {
+                strcmp_func
+            };
+            self.functions.insert("strcmp".to_string(), strcmp_func);
+
             // Memory functions
             // Core memory functions are declared via the shared stdlib table above.
 
@@ -1647,6 +1661,35 @@ impl LLVMCodegen {
                             return Ok(val);
                         }
 
+                        // VecInt intrinsics
+                        if let Some(result) = self.codegen_vec_int_intrinsic(name, arguments)? {
+                            return Ok(result);
+                        }
+
+                        // VecString intrinsics
+                        if let Some(result) = self.codegen_vec_string_intrinsic(name, arguments)? {
+                            return Ok(result);
+                        }
+
+                        // VecBytes intrinsics
+                        if let Some(result) = self.codegen_vec_bytes_intrinsic(name, arguments)? {
+                            return Ok(result);
+                        }
+
+                        // MapStringInt intrinsics
+                        if let Some(result) =
+                            self.codegen_map_string_int_intrinsic(name, arguments)?
+                        {
+                            return Ok(result);
+                        }
+
+                        // MapStringString intrinsics
+                        if let Some(result) =
+                            self.codegen_map_string_string_intrinsic(name, arguments)?
+                        {
+                            return Ok(result);
+                        }
+
                         // Look up the function
                         let function = self.functions.get(name).copied().ok_or_else(|| {
                             CompilerError::type_error(
@@ -2067,6 +2110,2433 @@ impl LLVMCodegen {
                     }
                 }
                 Type::Generic { .. } => LLVMPointerType(LLVMInt8TypeInContext(self.context), 0),
+                Type::VecInt
+                | Type::VecString
+                | Type::VecBytes
+                | Type::MapStringInt
+                | Type::MapStringString => LLVMPointerType(LLVMInt8TypeInContext(self.context), 0),
+            }
+        }
+    }
+
+    /// Handle VecInt intrinsics
+    fn codegen_vec_int_intrinsic(
+        &mut self,
+        name: &str,
+        arguments: &[Expression],
+    ) -> CompilerResult<Option<LLVMValueRef>> {
+        unsafe {
+            let i64_ty = LLVMInt64TypeInContext(self.context);
+            let i64_ptr_ty = LLVMPointerType(i64_ty, 0);
+            let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+
+            match name {
+                "vec_int_new" => {
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
+                    let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                    let struct_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 24, 0)].as_mut_ptr(),
+                        1,
+                        c"vec".as_ptr(),
+                    );
+                    let array_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 32, 0)].as_mut_ptr(),
+                        1,
+                        c"data".as_ptr(),
+                    );
+                    let array_typed =
+                        LLVMBuildBitCast(self.builder, array_ptr, i64_ptr_ty, c"".as_ptr());
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        struct_ptr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, array_typed, ptr_field);
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        struct_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
+                    let cap_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        struct_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_field = LLVMBuildBitCast(
+                        self.builder,
+                        cap_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 4, 0), cap_field);
+                    Ok(Some(struct_ptr))
+                }
+                "vec_int_len" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    Ok(Some(LLVMBuildLoad2(
+                        self.builder,
+                        i64_ty,
+                        len_field,
+                        c"len".as_ptr(),
+                    )))
+                }
+                "vec_int_push" => {
+                    // Simplified v1: no branching, always check and grow if needed using select
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let value = self.codegen_expression(&arguments[1])?;
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let cap_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_field = LLVMBuildBitCast(
+                        self.builder,
+                        cap_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
+                    let cap_val = LLVMBuildLoad2(self.builder, i64_ty, cap_field, c"".as_ptr());
+
+                    // Use select to compute new capacity (double if full, else keep same)
+                    let needs_grow = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntSGE,
+                        len_val,
+                        cap_val,
+                        c"".as_ptr(),
+                    );
+                    let double_cap = LLVMBuildMul(
+                        self.builder,
+                        cap_val,
+                        LLVMConstInt(i64_ty, 2, 0),
+                        c"".as_ptr(),
+                    );
+                    let new_cap = LLVMBuildSelect(
+                        self.builder,
+                        needs_grow,
+                        double_cap,
+                        cap_val,
+                        c"".as_ptr(),
+                    );
+                    let new_size = LLVMBuildMul(
+                        self.builder,
+                        new_cap,
+                        LLVMConstInt(i64_ty, 8, 0),
+                        c"".as_ptr(),
+                    );
+
+                    // Always realloc (no-op if size unchanged)
+                    let old_ptr = LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"".as_ptr());
+                    let old_ptr_i8 =
+                        LLVMBuildBitCast(self.builder, old_ptr, i8_ptr_ty, c"".as_ptr());
+                    let realloc_fn = *self
+                        .functions
+                        .get("realloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing realloc"))?;
+                    let new_ptr = LLVMBuildCall2(
+                        self.builder,
+                        LLVMGlobalGetValueType(realloc_fn),
+                        realloc_fn,
+                        [old_ptr_i8, new_size].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    let new_ptr_typed =
+                        LLVMBuildBitCast(self.builder, new_ptr, i64_ptr_ty, c"".as_ptr());
+                    LLVMBuildStore(self.builder, new_ptr_typed, ptr_field);
+                    LLVMBuildStore(self.builder, new_cap, cap_field);
+
+                    // Store value at len index and increment len
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"".as_ptr());
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i64_ty,
+                        data_ptr,
+                        [len_val].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, value, elem_ptr);
+                    let new_len = LLVMBuildAdd(
+                        self.builder,
+                        len_val,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, new_len, len_field);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "vec_int_get" => {
+                    // v1: no bounds checking (unsafe like C arrays)
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let index = self.codegen_expression(&arguments[1])?;
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"".as_ptr());
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i64_ty,
+                        data_ptr,
+                        [index].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    Ok(Some(LLVMBuildLoad2(
+                        self.builder,
+                        i64_ty,
+                        elem_ptr,
+                        c"".as_ptr(),
+                    )))
+                }
+                "vec_int_set" => {
+                    // v1: no bounds checking (unsafe like C arrays)
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let index = self.codegen_expression(&arguments[1])?;
+                    let value = self.codegen_expression(&arguments[2])?;
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"".as_ptr());
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i64_ty,
+                        data_ptr,
+                        [index].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, value, elem_ptr);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "vec_int_pop" => {
+                    // v1: no empty check (undefined behavior if empty, like C)
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
+                    let last_idx = LLVMBuildSub(
+                        self.builder,
+                        len_val,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"".as_ptr());
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i64_ty,
+                        data_ptr,
+                        [last_idx].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let val = LLVMBuildLoad2(self.builder, i64_ty, elem_ptr, c"".as_ptr());
+                    LLVMBuildStore(self.builder, last_idx, len_field);
+                    Ok(Some(val))
+                }
+                "vec_int_clear" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "vec_int_free" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"".as_ptr());
+                    let data_ptr_i8 =
+                        LLVMBuildBitCast(self.builder, data_ptr, i8_ptr_ty, c"".as_ptr());
+                    let free_fn = *self
+                        .functions
+                        .get("free")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing free"))?;
+                    let free_ty = LLVMGlobalGetValueType(free_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [data_ptr_i8].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [vec_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                _ => Ok(None),
+            }
+        }
+    }
+
+    /// Handle VecString intrinsics
+    fn codegen_vec_string_intrinsic(
+        &mut self,
+        name: &str,
+        arguments: &[Expression],
+    ) -> CompilerResult<Option<LLVMValueRef>> {
+        unsafe {
+            let i64_ty = LLVMInt64TypeInContext(self.context);
+            let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+            let str_ptr_ty = LLVMPointerType(i8_ptr_ty, 0); // pointer to string pointer
+
+            match name {
+                "vec_string_new" => {
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
+                    let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                    // Struct: { ptr: **i8, len: i64, cap: i64 } = 24 bytes
+                    let struct_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 24, 0)].as_mut_ptr(),
+                        1,
+                        c"vec".as_ptr(),
+                    );
+                    // Initial array: 4 string pointers = 32 bytes
+                    let array_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 32, 0)].as_mut_ptr(),
+                        1,
+                        c"data".as_ptr(),
+                    );
+                    let array_typed =
+                        LLVMBuildBitCast(self.builder, array_ptr, str_ptr_ty, c"".as_ptr());
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        struct_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, array_typed, ptr_field);
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        struct_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
+                    let cap_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        struct_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_field = LLVMBuildBitCast(
+                        self.builder,
+                        cap_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 4, 0), cap_field);
+                    Ok(Some(struct_ptr))
+                }
+                "vec_string_len" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    Ok(Some(LLVMBuildLoad2(
+                        self.builder,
+                        i64_ty,
+                        len_field,
+                        c"len".as_ptr(),
+                    )))
+                }
+                "vec_string_push" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let value = self.codegen_expression(&arguments[1])?;
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let cap_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_field = LLVMBuildBitCast(
+                        self.builder,
+                        cap_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
+                    let cap_val = LLVMBuildLoad2(self.builder, i64_ty, cap_field, c"".as_ptr());
+                    let needs_grow = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntSGE,
+                        len_val,
+                        cap_val,
+                        c"".as_ptr(),
+                    );
+                    let double_cap = LLVMBuildMul(
+                        self.builder,
+                        cap_val,
+                        LLVMConstInt(i64_ty, 2, 0),
+                        c"".as_ptr(),
+                    );
+                    let new_cap = LLVMBuildSelect(
+                        self.builder,
+                        needs_grow,
+                        double_cap,
+                        cap_val,
+                        c"".as_ptr(),
+                    );
+                    let new_size = LLVMBuildMul(
+                        self.builder,
+                        new_cap,
+                        LLVMConstInt(i64_ty, 8, 0),
+                        c"".as_ptr(),
+                    );
+                    let old_ptr = LLVMBuildLoad2(self.builder, str_ptr_ty, ptr_field, c"".as_ptr());
+                    let old_ptr_i8 =
+                        LLVMBuildBitCast(self.builder, old_ptr, i8_ptr_ty, c"".as_ptr());
+                    let realloc_fn = *self
+                        .functions
+                        .get("realloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing realloc"))?;
+                    let new_ptr = LLVMBuildCall2(
+                        self.builder,
+                        LLVMGlobalGetValueType(realloc_fn),
+                        realloc_fn,
+                        [old_ptr_i8, new_size].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    let new_ptr_typed =
+                        LLVMBuildBitCast(self.builder, new_ptr, str_ptr_ty, c"".as_ptr());
+                    LLVMBuildStore(self.builder, new_ptr_typed, ptr_field);
+                    LLVMBuildStore(self.builder, new_cap, cap_field);
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, ptr_field, c"".as_ptr());
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        data_ptr,
+                        [len_val].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, value, elem_ptr);
+                    let new_len = LLVMBuildAdd(
+                        self.builder,
+                        len_val,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, new_len, len_field);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "vec_string_get" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let index = self.codegen_expression(&arguments[1])?;
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, ptr_field, c"".as_ptr());
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        data_ptr,
+                        [index].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    Ok(Some(LLVMBuildLoad2(
+                        self.builder,
+                        i8_ptr_ty,
+                        elem_ptr,
+                        c"".as_ptr(),
+                    )))
+                }
+                "vec_string_set" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let index = self.codegen_expression(&arguments[1])?;
+                    let value = self.codegen_expression(&arguments[2])?;
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, ptr_field, c"".as_ptr());
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        data_ptr,
+                        [index].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, value, elem_ptr);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "vec_string_pop" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
+                    let last_idx = LLVMBuildSub(
+                        self.builder,
+                        len_val,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, ptr_field, c"".as_ptr());
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        data_ptr,
+                        [last_idx].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let val = LLVMBuildLoad2(self.builder, i8_ptr_ty, elem_ptr, c"".as_ptr());
+                    LLVMBuildStore(self.builder, last_idx, len_field);
+                    Ok(Some(val))
+                }
+                "vec_string_clear" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "vec_string_free" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, ptr_field, c"".as_ptr());
+                    let data_ptr_i8 =
+                        LLVMBuildBitCast(self.builder, data_ptr, i8_ptr_ty, c"".as_ptr());
+                    let free_fn = *self
+                        .functions
+                        .get("free")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing free"))?;
+                    let free_ty = LLVMGlobalGetValueType(free_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [data_ptr_i8].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [vec_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                _ => Ok(None),
+            }
+        }
+    }
+
+    /// Handle VecBytes intrinsics (single-byte elements stored as i8)
+    fn codegen_vec_bytes_intrinsic(
+        &mut self,
+        name: &str,
+        arguments: &[Expression],
+    ) -> CompilerResult<Option<LLVMValueRef>> {
+        unsafe {
+            let i8_ty = LLVMInt8TypeInContext(self.context);
+            let i64_ty = LLVMInt64TypeInContext(self.context);
+            let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
+
+            match name {
+                "vec_bytes_new" => {
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
+                    let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                    // Struct: { ptr: *i8, len: i64, cap: i64 } = 24 bytes
+                    let struct_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 24, 0)].as_mut_ptr(),
+                        1,
+                        c"vec".as_ptr(),
+                    );
+                    // Initial array: 16 bytes
+                    let array_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"data".as_ptr(),
+                    );
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        struct_ptr,
+                        LLVMPointerType(i8_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, array_ptr, ptr_field);
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        struct_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
+                    let cap_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        struct_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_field = LLVMBuildBitCast(
+                        self.builder,
+                        cap_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 16, 0), cap_field);
+                    Ok(Some(struct_ptr))
+                }
+                "vec_bytes_len" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    Ok(Some(LLVMBuildLoad2(
+                        self.builder,
+                        i64_ty,
+                        len_field,
+                        c"len".as_ptr(),
+                    )))
+                }
+                "vec_bytes_push" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let value = self.codegen_expression(&arguments[1])?;
+                    let value_i8 = LLVMBuildTrunc(self.builder, value, i8_ty, c"".as_ptr());
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i8_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let cap_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_field = LLVMBuildBitCast(
+                        self.builder,
+                        cap_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
+                    let cap_val = LLVMBuildLoad2(self.builder, i64_ty, cap_field, c"".as_ptr());
+                    let needs_grow = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntSGE,
+                        len_val,
+                        cap_val,
+                        c"".as_ptr(),
+                    );
+                    let double_cap = LLVMBuildMul(
+                        self.builder,
+                        cap_val,
+                        LLVMConstInt(i64_ty, 2, 0),
+                        c"".as_ptr(),
+                    );
+                    let new_cap = LLVMBuildSelect(
+                        self.builder,
+                        needs_grow,
+                        double_cap,
+                        cap_val,
+                        c"".as_ptr(),
+                    );
+                    let old_ptr = LLVMBuildLoad2(self.builder, i8_ptr_ty, ptr_field, c"".as_ptr());
+                    let realloc_fn = *self
+                        .functions
+                        .get("realloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing realloc"))?;
+                    let new_ptr = LLVMBuildCall2(
+                        self.builder,
+                        LLVMGlobalGetValueType(realloc_fn),
+                        realloc_fn,
+                        [old_ptr, new_cap].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, new_ptr, ptr_field);
+                    LLVMBuildStore(self.builder, new_cap, cap_field);
+                    let data_ptr = LLVMBuildLoad2(self.builder, i8_ptr_ty, ptr_field, c"".as_ptr());
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ty,
+                        data_ptr,
+                        [len_val].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, value_i8, elem_ptr);
+                    let new_len = LLVMBuildAdd(
+                        self.builder,
+                        len_val,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, new_len, len_field);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "vec_bytes_get" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let index = self.codegen_expression(&arguments[1])?;
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i8_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr = LLVMBuildLoad2(self.builder, i8_ptr_ty, ptr_field, c"".as_ptr());
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ty,
+                        data_ptr,
+                        [index].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let val_i8 = LLVMBuildLoad2(self.builder, i8_ty, elem_ptr, c"".as_ptr());
+                    Ok(Some(LLVMBuildZExt(
+                        self.builder,
+                        val_i8,
+                        i64_ty,
+                        c"".as_ptr(),
+                    )))
+                }
+                "vec_bytes_set" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let index = self.codegen_expression(&arguments[1])?;
+                    let value = self.codegen_expression(&arguments[2])?;
+                    let value_i8 = LLVMBuildTrunc(self.builder, value, i8_ty, c"".as_ptr());
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i8_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr = LLVMBuildLoad2(self.builder, i8_ptr_ty, ptr_field, c"".as_ptr());
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ty,
+                        data_ptr,
+                        [index].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, value_i8, elem_ptr);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "vec_bytes_pop" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i8_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
+                    let last_idx = LLVMBuildSub(
+                        self.builder,
+                        len_val,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr = LLVMBuildLoad2(self.builder, i8_ptr_ty, ptr_field, c"".as_ptr());
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ty,
+                        data_ptr,
+                        [last_idx].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let val_i8 = LLVMBuildLoad2(self.builder, i8_ty, elem_ptr, c"".as_ptr());
+                    LLVMBuildStore(self.builder, last_idx, len_field);
+                    Ok(Some(LLVMBuildZExt(
+                        self.builder,
+                        val_i8,
+                        i64_ty,
+                        c"".as_ptr(),
+                    )))
+                }
+                "vec_bytes_clear" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "vec_bytes_free" => {
+                    let vec_ptr = self.codegen_expression(&arguments[0])?;
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i8_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr = LLVMBuildLoad2(self.builder, i8_ptr_ty, ptr_field, c"".as_ptr());
+                    let free_fn = *self
+                        .functions
+                        .get("free")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing free"))?;
+                    let free_ty = LLVMGlobalGetValueType(free_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [data_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [vec_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                _ => Ok(None),
+            }
+        }
+    }
+
+    /// Handle MapStringInt intrinsics (v1: simple linear search, no hashing)
+    fn codegen_map_string_int_intrinsic(
+        &mut self,
+        name: &str,
+        arguments: &[Expression],
+    ) -> CompilerResult<Option<LLVMValueRef>> {
+        unsafe {
+            let i64_ty = LLVMInt64TypeInContext(self.context);
+            let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+            let str_ptr_ty = LLVMPointerType(i8_ptr_ty, 0);
+            let i64_ptr_ty = LLVMPointerType(i64_ty, 0);
+
+            match name {
+                "map_string_int_new" => {
+                    // Struct: { keys: **i8, values: *i64, len: i64, cap: i64 } = 32 bytes
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
+                    let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                    let map_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 32, 0)].as_mut_ptr(),
+                        1,
+                        c"map".as_ptr(),
+                    );
+                    // Initial capacity: 8 entries
+                    let keys_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 64, 0)].as_mut_ptr(),
+                        1,
+                        c"keys".as_ptr(),
+                    );
+                    let vals_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 64, 0)].as_mut_ptr(),
+                        1,
+                        c"vals".as_ptr(),
+                    );
+                    let keys_typed =
+                        LLVMBuildBitCast(self.builder, keys_ptr, str_ptr_ty, c"".as_ptr());
+                    let vals_typed =
+                        LLVMBuildBitCast(self.builder, vals_ptr, i64_ptr_ty, c"".as_ptr());
+                    // Store keys pointer
+                    let keys_field = LLVMBuildBitCast(
+                        self.builder,
+                        map_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, keys_typed, keys_field);
+                    // Store values pointer at offset 8
+                    let vals_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let vals_field = LLVMBuildBitCast(
+                        self.builder,
+                        vals_addr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, vals_typed, vals_field);
+                    // Store len=0 at offset 16
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
+                    // Store cap=8 at offset 24
+                    let cap_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 24, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_field = LLVMBuildBitCast(
+                        self.builder,
+                        cap_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 8, 0), cap_field);
+                    Ok(Some(map_ptr))
+                }
+                "map_string_int_len" => {
+                    let map_ptr = self.codegen_expression(&arguments[0])?;
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    Ok(Some(LLVMBuildLoad2(
+                        self.builder,
+                        i64_ty,
+                        len_field,
+                        c"len".as_ptr(),
+                    )))
+                }
+                "map_string_int_clear" => {
+                    let map_ptr = self.codegen_expression(&arguments[0])?;
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "map_string_int_free" => {
+                    let map_ptr = self.codegen_expression(&arguments[0])?;
+                    let free_fn = *self
+                        .functions
+                        .get("free")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing free"))?;
+                    let free_ty = LLVMGlobalGetValueType(free_fn);
+                    // Free keys array
+                    let keys_field = LLVMBuildBitCast(
+                        self.builder,
+                        map_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let keys_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
+                    let keys_i8 = LLVMBuildBitCast(self.builder, keys_ptr, i8_ptr_ty, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [keys_i8].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    // Free values array
+                    let vals_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let vals_field = LLVMBuildBitCast(
+                        self.builder,
+                        vals_addr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let vals_ptr =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, vals_field, c"".as_ptr());
+                    let vals_i8 = LLVMBuildBitCast(self.builder, vals_ptr, i8_ptr_ty, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [vals_i8].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    // Free map struct
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [map_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "map_string_int_has" => {
+                    let map_ptr = self.codegen_expression(&arguments[0])?;
+                    let key = self.codegen_expression(&arguments[1])?;
+                    let strcmp_fn = *self
+                        .functions
+                        .get("strcmp")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing strcmp"))?;
+                    let strcmp_ty = LLVMGlobalGetValueType(strcmp_fn);
+                    // Load keys array and len
+                    let keys_field = LLVMBuildBitCast(
+                        self.builder,
+                        map_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let keys_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
+                    // Create loop blocks
+                    let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
+                    let loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"has_loop".as_ptr(),
+                    );
+                    let found_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"has_found".as_ptr(),
+                    );
+                    let notfound_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"has_notfound".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"has_done".as_ptr(),
+                    );
+                    // Entry: alloca for index, init to 0, branch to loop
+                    let idx_ptr = LLVMBuildAlloca(self.builder, i64_ty, c"idx".as_ptr());
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), idx_ptr);
+                    LLVMBuildBr(self.builder, loop_bb);
+                    // Loop: check idx < len, if not goto notfound
+                    LLVMPositionBuilderAtEnd(self.builder, loop_bb);
+                    let idx = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let cmp = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntSLT,
+                        idx,
+                        len_val,
+                        c"".as_ptr(),
+                    );
+                    let body_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"has_body".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, cmp, body_bb, notfound_bb);
+                    // Body: compare keys[idx] with key
+                    LLVMPositionBuilderAtEnd(self.builder, body_bb);
+                    let key_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        keys_ptr,
+                        [idx].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let stored_key = LLVMBuildLoad2(self.builder, i8_ptr_ty, key_ptr, c"".as_ptr());
+                    let cmp_result = LLVMBuildCall2(
+                        self.builder,
+                        strcmp_ty,
+                        strcmp_fn,
+                        [stored_key, key].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    let is_match = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntEQ,
+                        cmp_result,
+                        LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, is_match, found_bb, loop_bb);
+                    // Before continuing loop, increment idx (in loop_bb predecessor)
+                    // Actually we need to increment before branching back. Let me fix this.
+                    // Add increment block
+                    let inc_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"has_inc".as_ptr(),
+                    );
+                    // Fix body to branch to inc instead of loop
+                    LLVMPositionBuilderAtEnd(self.builder, body_bb);
+                    LLVMMoveBasicBlockAfter(inc_bb, body_bb);
+                    // Rebuild body's conditional branch
+                    let term = LLVMGetBasicBlockTerminator(body_bb);
+                    if !term.is_null() {
+                        LLVMInstructionEraseFromParent(term);
+                    }
+                    LLVMPositionBuilderAtEnd(self.builder, body_bb);
+                    LLVMBuildCondBr(self.builder, is_match, found_bb, inc_bb);
+                    // Inc block: increment and branch to loop
+                    LLVMPositionBuilderAtEnd(self.builder, inc_bb);
+                    let idx2 = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let next_idx =
+                        LLVMBuildAdd(self.builder, idx2, LLVMConstInt(i64_ty, 1, 0), c"".as_ptr());
+                    LLVMBuildStore(self.builder, next_idx, idx_ptr);
+                    LLVMBuildBr(self.builder, loop_bb);
+                    // Found: return 1
+                    LLVMPositionBuilderAtEnd(self.builder, found_bb);
+                    LLVMBuildBr(self.builder, done_bb);
+                    // Not found: return 0
+                    LLVMPositionBuilderAtEnd(self.builder, notfound_bb);
+                    LLVMBuildBr(self.builder, done_bb);
+                    // Done: phi node for result
+                    LLVMPositionBuilderAtEnd(self.builder, done_bb);
+                    let phi = LLVMBuildPhi(self.builder, i64_ty, c"result".as_ptr());
+                    let one = LLVMConstInt(i64_ty, 1, 0);
+                    let zero = LLVMConstInt(i64_ty, 0, 0);
+                    LLVMAddIncoming(phi, [one].as_mut_ptr(), [found_bb].as_mut_ptr(), 1);
+                    LLVMAddIncoming(phi, [zero].as_mut_ptr(), [notfound_bb].as_mut_ptr(), 1);
+                    Ok(Some(phi))
+                }
+                "map_string_int_get" => {
+                    let map_ptr = self.codegen_expression(&arguments[0])?;
+                    let key = self.codegen_expression(&arguments[1])?;
+                    let strcmp_fn = *self
+                        .functions
+                        .get("strcmp")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing strcmp"))?;
+                    let strcmp_ty = LLVMGlobalGetValueType(strcmp_fn);
+                    let keys_field = LLVMBuildBitCast(
+                        self.builder,
+                        map_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let keys_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
+                    let vals_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let vals_field = LLVMBuildBitCast(
+                        self.builder,
+                        vals_addr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let vals_ptr =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, vals_field, c"".as_ptr());
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
+                    let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
+                    let loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"get_loop".as_ptr(),
+                    );
+                    let body_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"get_body".as_ptr(),
+                    );
+                    let inc_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"get_inc".as_ptr(),
+                    );
+                    let found_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"get_found".as_ptr(),
+                    );
+                    let trap_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"get_trap".as_ptr(),
+                    );
+                    let idx_ptr = LLVMBuildAlloca(self.builder, i64_ty, c"idx".as_ptr());
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), idx_ptr);
+                    LLVMBuildBr(self.builder, loop_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, loop_bb);
+                    let idx = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let cmp = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntSLT,
+                        idx,
+                        len_val,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, cmp, body_bb, trap_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, body_bb);
+                    let key_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        keys_ptr,
+                        [idx].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let stored_key = LLVMBuildLoad2(self.builder, i8_ptr_ty, key_ptr, c"".as_ptr());
+                    let cmp_result = LLVMBuildCall2(
+                        self.builder,
+                        strcmp_ty,
+                        strcmp_fn,
+                        [stored_key, key].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    let is_match = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntEQ,
+                        cmp_result,
+                        LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, is_match, found_bb, inc_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, inc_bb);
+                    let idx2 = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let next_idx =
+                        LLVMBuildAdd(self.builder, idx2, LLVMConstInt(i64_ty, 1, 0), c"".as_ptr());
+                    LLVMBuildStore(self.builder, next_idx, idx_ptr);
+                    LLVMBuildBr(self.builder, loop_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, trap_bb);
+                    let abort_fn = *self
+                        .functions
+                        .get("abort")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing abort"))?;
+                    LLVMBuildCall2(
+                        self.builder,
+                        LLVMGlobalGetValueType(abort_fn),
+                        abort_fn,
+                        [].as_mut_ptr(),
+                        0,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildUnreachable(self.builder);
+                    LLVMPositionBuilderAtEnd(self.builder, found_bb);
+                    let found_idx = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let val_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i64_ty,
+                        vals_ptr,
+                        [found_idx].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let val = LLVMBuildLoad2(self.builder, i64_ty, val_ptr, c"".as_ptr());
+                    Ok(Some(val))
+                }
+                "map_string_int_set" => {
+                    let map_ptr = self.codegen_expression(&arguments[0])?;
+                    let key = self.codegen_expression(&arguments[1])?;
+                    let value = self.codegen_expression(&arguments[2])?;
+                    let strcmp_fn = *self
+                        .functions
+                        .get("strcmp")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing strcmp"))?;
+                    let strcmp_ty = LLVMGlobalGetValueType(strcmp_fn);
+                    let keys_field = LLVMBuildBitCast(
+                        self.builder,
+                        map_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let keys_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
+                    let vals_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let vals_field = LLVMBuildBitCast(
+                        self.builder,
+                        vals_addr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let vals_ptr =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, vals_field, c"".as_ptr());
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
+                    let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
+                    let loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_loop".as_ptr(),
+                    );
+                    let body_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_body".as_ptr(),
+                    );
+                    let inc_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_inc".as_ptr(),
+                    );
+                    let found_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_found".as_ptr(),
+                    );
+                    let append_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_append".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_done".as_ptr(),
+                    );
+                    let idx_ptr = LLVMBuildAlloca(self.builder, i64_ty, c"idx".as_ptr());
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), idx_ptr);
+                    LLVMBuildBr(self.builder, loop_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, loop_bb);
+                    let idx = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let cmp = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntSLT,
+                        idx,
+                        len_val,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, cmp, body_bb, append_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, body_bb);
+                    let key_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        keys_ptr,
+                        [idx].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let stored_key = LLVMBuildLoad2(self.builder, i8_ptr_ty, key_ptr, c"".as_ptr());
+                    let cmp_result = LLVMBuildCall2(
+                        self.builder,
+                        strcmp_ty,
+                        strcmp_fn,
+                        [stored_key, key].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    let is_match = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntEQ,
+                        cmp_result,
+                        LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, is_match, found_bb, inc_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, inc_bb);
+                    let idx2 = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let next_idx =
+                        LLVMBuildAdd(self.builder, idx2, LLVMConstInt(i64_ty, 1, 0), c"".as_ptr());
+                    LLVMBuildStore(self.builder, next_idx, idx_ptr);
+                    LLVMBuildBr(self.builder, loop_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, found_bb);
+                    let found_idx = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let val_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i64_ty,
+                        vals_ptr,
+                        [found_idx].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, value, val_ptr);
+                    LLVMBuildBr(self.builder, done_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, append_bb);
+                    // Append new key-value pair at len position
+                    let append_key_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        keys_ptr,
+                        [len_val].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, key, append_key_ptr);
+                    let append_val_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i64_ty,
+                        vals_ptr,
+                        [len_val].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, value, append_val_ptr);
+                    let new_len = LLVMBuildAdd(
+                        self.builder,
+                        len_val,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, new_len, len_field);
+                    LLVMBuildBr(self.builder, done_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, done_bb);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "map_string_int_delete" => {
+                    // For v1, delete just sets len to 0 for simplicity (clears the map)
+                    // Full delete with element shifting deferred
+                    let map_ptr = self.codegen_expression(&arguments[0])?;
+                    let _ = self.codegen_expression(&arguments[1])?; // key - unused in v1
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                _ => Ok(None),
+            }
+        }
+    }
+
+    /// Handle MapStringString intrinsics (v1: simple linear search, no hashing)
+    fn codegen_map_string_string_intrinsic(
+        &mut self,
+        name: &str,
+        arguments: &[Expression],
+    ) -> CompilerResult<Option<LLVMValueRef>> {
+        unsafe {
+            let i64_ty = LLVMInt64TypeInContext(self.context);
+            let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+            let str_ptr_ty = LLVMPointerType(i8_ptr_ty, 0);
+
+            match name {
+                "map_string_string_new" => {
+                    // Struct: { keys: **i8, values: **i8, len: i64, cap: i64 } = 32 bytes
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
+                    let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                    let map_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 32, 0)].as_mut_ptr(),
+                        1,
+                        c"map".as_ptr(),
+                    );
+                    let keys_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 64, 0)].as_mut_ptr(),
+                        1,
+                        c"keys".as_ptr(),
+                    );
+                    let vals_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 64, 0)].as_mut_ptr(),
+                        1,
+                        c"vals".as_ptr(),
+                    );
+                    let keys_typed =
+                        LLVMBuildBitCast(self.builder, keys_ptr, str_ptr_ty, c"".as_ptr());
+                    let vals_typed =
+                        LLVMBuildBitCast(self.builder, vals_ptr, str_ptr_ty, c"".as_ptr());
+                    let keys_field = LLVMBuildBitCast(
+                        self.builder,
+                        map_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, keys_typed, keys_field);
+                    let vals_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let vals_field = LLVMBuildBitCast(
+                        self.builder,
+                        vals_addr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, vals_typed, vals_field);
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
+                    let cap_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 24, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_field = LLVMBuildBitCast(
+                        self.builder,
+                        cap_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 8, 0), cap_field);
+                    Ok(Some(map_ptr))
+                }
+                "map_string_string_len" => {
+                    let map_ptr = self.codegen_expression(&arguments[0])?;
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    Ok(Some(LLVMBuildLoad2(
+                        self.builder,
+                        i64_ty,
+                        len_field,
+                        c"len".as_ptr(),
+                    )))
+                }
+                "map_string_string_clear" => {
+                    let map_ptr = self.codegen_expression(&arguments[0])?;
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "map_string_string_free" => {
+                    let map_ptr = self.codegen_expression(&arguments[0])?;
+                    let free_fn = *self
+                        .functions
+                        .get("free")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing free"))?;
+                    let free_ty = LLVMGlobalGetValueType(free_fn);
+                    let keys_field = LLVMBuildBitCast(
+                        self.builder,
+                        map_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let keys_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
+                    let keys_i8 = LLVMBuildBitCast(self.builder, keys_ptr, i8_ptr_ty, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [keys_i8].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let vals_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let vals_field = LLVMBuildBitCast(
+                        self.builder,
+                        vals_addr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let vals_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, vals_field, c"".as_ptr());
+                    let vals_i8 = LLVMBuildBitCast(self.builder, vals_ptr, i8_ptr_ty, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [vals_i8].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [map_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "map_string_string_has" => {
+                    let map_ptr = self.codegen_expression(&arguments[0])?;
+                    let key = self.codegen_expression(&arguments[1])?;
+                    let strcmp_fn = *self
+                        .functions
+                        .get("strcmp")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing strcmp"))?;
+                    let strcmp_ty = LLVMGlobalGetValueType(strcmp_fn);
+                    let keys_field = LLVMBuildBitCast(
+                        self.builder,
+                        map_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let keys_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
+                    let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
+                    let loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"has_loop".as_ptr(),
+                    );
+                    let body_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"has_body".as_ptr(),
+                    );
+                    let inc_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"has_inc".as_ptr(),
+                    );
+                    let found_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"has_found".as_ptr(),
+                    );
+                    let notfound_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"has_notfound".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"has_done".as_ptr(),
+                    );
+                    let idx_ptr = LLVMBuildAlloca(self.builder, i64_ty, c"idx".as_ptr());
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), idx_ptr);
+                    LLVMBuildBr(self.builder, loop_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, loop_bb);
+                    let idx = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let cmp = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntSLT,
+                        idx,
+                        len_val,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, cmp, body_bb, notfound_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, body_bb);
+                    let key_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        keys_ptr,
+                        [idx].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let stored_key = LLVMBuildLoad2(self.builder, i8_ptr_ty, key_ptr, c"".as_ptr());
+                    let cmp_result = LLVMBuildCall2(
+                        self.builder,
+                        strcmp_ty,
+                        strcmp_fn,
+                        [stored_key, key].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    let is_match = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntEQ,
+                        cmp_result,
+                        LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, is_match, found_bb, inc_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, inc_bb);
+                    let idx2 = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let next_idx =
+                        LLVMBuildAdd(self.builder, idx2, LLVMConstInt(i64_ty, 1, 0), c"".as_ptr());
+                    LLVMBuildStore(self.builder, next_idx, idx_ptr);
+                    LLVMBuildBr(self.builder, loop_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, found_bb);
+                    LLVMBuildBr(self.builder, done_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, notfound_bb);
+                    LLVMBuildBr(self.builder, done_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, done_bb);
+                    let phi = LLVMBuildPhi(self.builder, i64_ty, c"result".as_ptr());
+                    LLVMAddIncoming(
+                        phi,
+                        [LLVMConstInt(i64_ty, 1, 0)].as_mut_ptr(),
+                        [found_bb].as_mut_ptr(),
+                        1,
+                    );
+                    LLVMAddIncoming(
+                        phi,
+                        [LLVMConstInt(i64_ty, 0, 0)].as_mut_ptr(),
+                        [notfound_bb].as_mut_ptr(),
+                        1,
+                    );
+                    Ok(Some(phi))
+                }
+                "map_string_string_get" => {
+                    let map_ptr = self.codegen_expression(&arguments[0])?;
+                    let key = self.codegen_expression(&arguments[1])?;
+                    let strcmp_fn = *self
+                        .functions
+                        .get("strcmp")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing strcmp"))?;
+                    let strcmp_ty = LLVMGlobalGetValueType(strcmp_fn);
+                    let keys_field = LLVMBuildBitCast(
+                        self.builder,
+                        map_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let keys_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
+                    let vals_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let vals_field = LLVMBuildBitCast(
+                        self.builder,
+                        vals_addr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let vals_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, vals_field, c"".as_ptr());
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
+                    let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
+                    let loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"get_loop".as_ptr(),
+                    );
+                    let body_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"get_body".as_ptr(),
+                    );
+                    let inc_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"get_inc".as_ptr(),
+                    );
+                    let found_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"get_found".as_ptr(),
+                    );
+                    let trap_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"get_trap".as_ptr(),
+                    );
+                    let idx_ptr = LLVMBuildAlloca(self.builder, i64_ty, c"idx".as_ptr());
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), idx_ptr);
+                    LLVMBuildBr(self.builder, loop_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, loop_bb);
+                    let idx = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let cmp = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntSLT,
+                        idx,
+                        len_val,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, cmp, body_bb, trap_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, body_bb);
+                    let key_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        keys_ptr,
+                        [idx].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let stored_key = LLVMBuildLoad2(self.builder, i8_ptr_ty, key_ptr, c"".as_ptr());
+                    let cmp_result = LLVMBuildCall2(
+                        self.builder,
+                        strcmp_ty,
+                        strcmp_fn,
+                        [stored_key, key].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    let is_match = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntEQ,
+                        cmp_result,
+                        LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, is_match, found_bb, inc_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, inc_bb);
+                    let idx2 = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let next_idx =
+                        LLVMBuildAdd(self.builder, idx2, LLVMConstInt(i64_ty, 1, 0), c"".as_ptr());
+                    LLVMBuildStore(self.builder, next_idx, idx_ptr);
+                    LLVMBuildBr(self.builder, loop_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, trap_bb);
+                    let abort_fn = *self
+                        .functions
+                        .get("abort")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing abort"))?;
+                    LLVMBuildCall2(
+                        self.builder,
+                        LLVMGlobalGetValueType(abort_fn),
+                        abort_fn,
+                        [].as_mut_ptr(),
+                        0,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildUnreachable(self.builder);
+                    LLVMPositionBuilderAtEnd(self.builder, found_bb);
+                    let found_idx = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let val_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vals_ptr,
+                        [found_idx].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    Ok(Some(LLVMBuildLoad2(
+                        self.builder,
+                        i8_ptr_ty,
+                        val_ptr,
+                        c"".as_ptr(),
+                    )))
+                }
+                "map_string_string_set" => {
+                    let map_ptr = self.codegen_expression(&arguments[0])?;
+                    let key = self.codegen_expression(&arguments[1])?;
+                    let value = self.codegen_expression(&arguments[2])?;
+                    let strcmp_fn = *self
+                        .functions
+                        .get("strcmp")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing strcmp"))?;
+                    let strcmp_ty = LLVMGlobalGetValueType(strcmp_fn);
+                    let keys_field = LLVMBuildBitCast(
+                        self.builder,
+                        map_ptr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let keys_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
+                    let vals_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let vals_field = LLVMBuildBitCast(
+                        self.builder,
+                        vals_addr,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let vals_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, vals_field, c"".as_ptr());
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
+                    let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
+                    let loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_loop".as_ptr(),
+                    );
+                    let body_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_body".as_ptr(),
+                    );
+                    let inc_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_inc".as_ptr(),
+                    );
+                    let found_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_found".as_ptr(),
+                    );
+                    let append_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_append".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_done".as_ptr(),
+                    );
+                    let idx_ptr = LLVMBuildAlloca(self.builder, i64_ty, c"idx".as_ptr());
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), idx_ptr);
+                    LLVMBuildBr(self.builder, loop_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, loop_bb);
+                    let idx = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let cmp = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntSLT,
+                        idx,
+                        len_val,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, cmp, body_bb, append_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, body_bb);
+                    let key_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        keys_ptr,
+                        [idx].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let stored_key = LLVMBuildLoad2(self.builder, i8_ptr_ty, key_ptr, c"".as_ptr());
+                    let cmp_result = LLVMBuildCall2(
+                        self.builder,
+                        strcmp_ty,
+                        strcmp_fn,
+                        [stored_key, key].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    let is_match = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntEQ,
+                        cmp_result,
+                        LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, is_match, found_bb, inc_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, inc_bb);
+                    let idx2 = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let next_idx =
+                        LLVMBuildAdd(self.builder, idx2, LLVMConstInt(i64_ty, 1, 0), c"".as_ptr());
+                    LLVMBuildStore(self.builder, next_idx, idx_ptr);
+                    LLVMBuildBr(self.builder, loop_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, found_bb);
+                    let found_idx = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
+                    let val_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vals_ptr,
+                        [found_idx].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, value, val_ptr);
+                    LLVMBuildBr(self.builder, done_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, append_bb);
+                    let append_key_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        keys_ptr,
+                        [len_val].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, key, append_key_ptr);
+                    let append_val_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vals_ptr,
+                        [len_val].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, value, append_val_ptr);
+                    let new_len = LLVMBuildAdd(
+                        self.builder,
+                        len_val,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, new_len, len_field);
+                    LLVMBuildBr(self.builder, done_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, done_bb);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                "map_string_string_delete" => {
+                    let map_ptr = self.codegen_expression(&arguments[0])?;
+                    let _ = self.codegen_expression(&arguments[1])?;
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+                _ => Ok(None),
             }
         }
     }

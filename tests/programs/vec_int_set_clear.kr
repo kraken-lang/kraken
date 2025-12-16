@@ -1,0 +1,32 @@
+// Test VecInt set and clear operations
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    
+    vec_int_push(v, 1);
+    vec_int_push(v, 2);
+    vec_int_push(v, 3);
+    
+    // Test set
+    vec_int_set(v, 1, 99);
+    if (vec_int_get(v, 1) != 99) {
+        return 1;
+    }
+    
+    // Test clear
+    vec_int_clear(v);
+    if (vec_int_len(v) != 0) {
+        return 2;
+    }
+    
+    // Push after clear should work
+    vec_int_push(v, 42);
+    if (vec_int_len(v) != 1) {
+        return 3;
+    }
+    if (vec_int_get(v, 0) != 42) {
+        return 4;
+    }
+    
+    vec_int_free(v);
+    return 0;
+}

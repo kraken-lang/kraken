@@ -1,0 +1,19 @@
+// Test MapStringInt set/get/has operations
+fn main() -> int {
+    let m: MapStringInt = map_string_int_new();
+    
+    map_string_int_set(m, "one", 1);
+    map_string_int_set(m, "two", 2);
+    map_string_int_set(m, "three", 3);
+    
+    let len = map_string_int_len(m);
+    let val = map_string_int_get(m, "two");
+    let has_two = map_string_int_has(m, "two");
+    let has_four = map_string_int_has(m, "four");
+    
+    map_string_int_free(m);
+    
+    // len=3, val=2, has_two=1, has_four=0
+    // return 3 + 2 + 1 + 0 = 6
+    return len + val + has_two + has_four;
+}

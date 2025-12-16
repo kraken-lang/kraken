@@ -258,6 +258,13 @@ pub enum Type {
     Bytes,
     Void,
 
+    /// Container types
+    VecInt,
+    VecString,
+    VecBytes,
+    MapStringInt,
+    MapStringString,
+
     /// Array type
     Array {
         element_type: Box<Type>,
@@ -296,6 +303,11 @@ impl Type {
             Keyword::String => Some(Type::String),
             Keyword::Bytes => Some(Type::Bytes),
             Keyword::Void => Some(Type::Void),
+            Keyword::VecInt => Some(Type::VecInt),
+            Keyword::VecString => Some(Type::VecString),
+            Keyword::VecBytes => Some(Type::VecBytes),
+            Keyword::MapStringInt => Some(Type::MapStringInt),
+            Keyword::MapStringString => Some(Type::MapStringString),
             _ => None,
         }
     }
@@ -310,6 +322,11 @@ impl std::fmt::Display for Type {
             Type::String => write!(f, "string"),
             Type::Bytes => write!(f, "bytes"),
             Type::Void => write!(f, "void"),
+            Type::VecInt => write!(f, "VecInt"),
+            Type::VecString => write!(f, "VecString"),
+            Type::VecBytes => write!(f, "VecBytes"),
+            Type::MapStringInt => write!(f, "MapStringInt"),
+            Type::MapStringString => write!(f, "MapStringString"),
             Type::Array { element_type, size } => {
                 if let Some(s) = size {
                     write!(f, "[{element_type}; {s}]")

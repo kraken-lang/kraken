@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language.
 
-Current version: `v0.8.4`
+Current version: `v0.8.5`
 
 ## Workspace Layout
 
@@ -57,6 +57,20 @@ cargo run -p kraken -- build examples/hello.kr
 ./build/hello
 ```
 
+## Containers v1 (0.8.5)
+
+Kraken now includes built-in container types with heap-allocated storage:
+
+| Type | Description |
+|------|-------------|
+| `VecInt` | Dynamic array of `int` |
+| `VecString` | Dynamic array of `string` |
+| `VecBytes` | Dynamic array of `bytes` |
+| `MapStringInt` | String-keyed map with `int` values |
+| `MapStringString` | String-keyed map with `string` values |
+
+See `docs/CONTAINERS.md` for full API reference and `examples/vec_demo.kr`, `examples/map_demo.kr` for usage examples.
+
 ## Standard Types v1 (0.8.4)
 
 - **`string`**: currently lowered to an `i8*` and primarily used for **C-string** text at the libc/FFI boundary.
@@ -67,10 +81,6 @@ cargo run -p kraken -- build examples/hello.kr
 - **C-string helpers**:
   - `cstr(string) -> bytes`: explicit boundary helper for passing text to APIs expecting an `i8*`.
   - `from_cstr(bytes) -> string`: explicit boundary helper for treating an `i8*` as a C-string (**traps on null**).
-
-### Migration note
-
-Many libc/stdlib signatures that previously accepted `string` for raw pointers/buffers were tightened to use `bytes` (e.g. `malloc/free/realloc`, `mem*`, and `FILE*`-style handles).
 
 
 

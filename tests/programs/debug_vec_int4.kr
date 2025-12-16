@@ -1,0 +1,15 @@
+// Debug: manually do what pop does
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    vec_int_push(v, 10);
+    vec_int_push(v, 20);
+    vec_int_push(v, 30);
+    
+    // Manually compute what pop should read
+    let len = vec_int_len(v);
+    let idx = len - 1;
+    let val = vec_int_get(v, idx);
+    
+    vec_int_free(v);
+    return val;
+}

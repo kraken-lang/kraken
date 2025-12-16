@@ -1,0 +1,7 @@
+// Test MapStringInt basic operations (new/len/clear/free)
+fn main() -> int {
+    let m: MapStringInt = map_string_int_new();
+    let len1 = map_string_int_len(m);
+    map_string_int_free(m);
+    return len1;
+}
