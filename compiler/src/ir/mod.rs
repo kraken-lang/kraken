@@ -6,7 +6,11 @@
 //! - Future transformation passes (async state machines, optimizations)
 //! - Backend-agnostic code representation
 
+pub mod desugar;
 pub mod lower;
+pub mod state_machine;
 pub mod types;
 
+pub use desugar::Desugar;
 pub use lower::IrLowering;
+pub use state_machine::{AsyncAnalyzer, StateMachineLowering};

@@ -17,6 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.8.7] - 2025-12-17
+
+### Added
+
+- Added IR snapshot test infrastructure with golden files (`tests/ir_snapshots/`).
+- Added 3 IR snapshot tests: `hello`, `arithmetic`, `if_else`.
+- Added process control functions: `exit`.
+- Added time functions: `sleep`, `usleep`, `time`.
+- Added `IrCodegen` module (`codegen/ir_codegen.rs`) - LLVM backend that consumes Kraken IR instead of AST.
+- Added `StateMachineLowering` module (`ir/state_machine.rs`) - transforms async functions into state machines at IR level.
+- Added `Desugar` module (`ir/desugar.rs`) - IR transformation passes for `for`→`while` and `defer` lowering.
+
+### Fixed
+
+- Fixed `vec_int_pop` returning wrong element (was reading at index after decrementing length instead of before).
+
 ## [0.8.6] - 2025-12-17
 
 ### Added

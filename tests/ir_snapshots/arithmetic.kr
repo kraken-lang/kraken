@@ -1,0 +1,7 @@
+fn main() -> int {
+    let a: int = 10;
+    let b: int = 20;
+    let sum: int = a + b;
+    let diff: int = b - a;
+    return sum + diff;
+}

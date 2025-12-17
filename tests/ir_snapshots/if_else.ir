@@ -1,0 +1,11 @@
+; Kraken IR
+
+fn @main() -> i64 {
+entry:
+    %0 = alloca i64 ; x
+    store 5, %0
+    %1 = load i64 from %0
+    %2 = Greater i64 %1, 0
+    ret 1
+    ret 0
+}

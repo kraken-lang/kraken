@@ -1,0 +1,23 @@
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    vec_int_push(v, 10);
+    vec_int_push(v, 20);
+    vec_int_push(v, 30);
+    
+    // len should be 3
+    let len_before: int = vec_int_len(v);
+    
+    // Get element at index 2 (should be 30)
+    let elem2: int = vec_int_get(v, 2);
+    
+    // Pop should return 30
+    let popped: int = vec_int_pop(v);
+    
+    // len should now be 2
+    let len_after: int = vec_int_len(v);
+    
+    vec_int_free(v);
+    
+    // Return popped value - should be 30
+    return popped;
+}

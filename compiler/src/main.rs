@@ -672,4 +672,55 @@ mod tests {
 
         Ok(())
     }
+
+    /// Assert that the generated IR matches the golden file.
+    async fn assert_ir_snapshot(source: PathBuf, golden: PathBuf) -> Result<()> {
+        let program = modules::loader::load_program(&source).await?;
+        let mut lowering = ir::IrLowering::new();
+        let ir_program = lowering
+            .lower_program(&program)
+            .map_err(|e| anyhow::anyhow!("IR lowering failed: {}", e))?;
+        let generated = format!("{}", ir_program);
+        let expected = tokio::fs::read_to_string(&golden)
+            .await
+            .with_context(|| format!("Failed to read golden file: {}", golden.display()))?;
+
+        if generated.trim() != expected.trim() {
+            anyhow::bail!(
+                "IR mismatch for {}\n--- expected ---\n{}\n--- generated ---\n{}",
+                source.display(),
+                expected.trim(),
+                generated.trim()
+            );
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn ir_snapshot_hello() -> Result<()> {
+        assert_ir_snapshot(
+            PathBuf::from("../tests/ir_snapshots/hello.kr"),
+            PathBuf::from("../tests/ir_snapshots/hello.ir"),
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn ir_snapshot_arithmetic() -> Result<()> {
+        assert_ir_snapshot(
+            PathBuf::from("../tests/ir_snapshots/arithmetic.kr"),
+            PathBuf::from("../tests/ir_snapshots/arithmetic.ir"),
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn ir_snapshot_if_else() -> Result<()> {
+        assert_ir_snapshot(
+            PathBuf::from("../tests/ir_snapshots/if_else.kr"),
+            PathBuf::from("../tests/ir_snapshots/if_else.ir"),
+        )
+        .await
+    }
 }

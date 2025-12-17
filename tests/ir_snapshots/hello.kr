@@ -1,0 +1,4 @@
+fn main() -> int {
+    let message: string = "Hello, Kraken!";
+    return 0;
+}

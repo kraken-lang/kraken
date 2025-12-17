@@ -469,11 +469,12 @@ impl LLVMCodegen {
                     };
 
                     // Allocate stack space for the variable
-                    let var_type = if let Some(ty) = type_annotation {
-                        self.get_llvm_type(ty)
+                    // Cache codegen result to avoid double evaluation of expressions with side effects
+                    let (var_type, cached_init_val) = if let Some(ty) = type_annotation {
+                        (self.get_llvm_type(ty), None)
                     } else if let Some(pregen) = pregenerated_value {
                         // Use the type from the pregenerated value
-                        LLVMGetAllocatedType(pregen)
+                        (LLVMGetAllocatedType(pregen), Some(pregen))
                     } else if let Some(init_expr) = initializer {
                         // Infer type from initializer (for non-array/struct)
                         if let Expression::StructLiteral { name: sname, .. } = init_expr {
@@ -485,10 +486,11 @@ impl LLVMCodegen {
                                         "Undefined struct: {sname}"
                                     ))
                                 })?;
-                            st
+                            (st, None)
                         } else {
+                            // Evaluate once and cache the result
                             let init_val = self.codegen_expression(init_expr)?;
-                            LLVMTypeOf(init_val)
+                            (LLVMTypeOf(init_val), Some(init_val))
                         }
                     } else {
                         return Err(CompilerError::codegen_error(
@@ -503,6 +505,8 @@ impl LLVMCodegen {
                     if let Some(init_expr) = initializer {
                         let init_val = if let Some(pregen) = pregenerated_value {
                             pregen
+                        } else if let Some(cached) = cached_init_val {
+                            cached
                         } else {
                             self.codegen_expression(init_expr)?
                         };
@@ -1283,6 +1287,33 @@ impl LLVMCodegen {
             let sscanf_name = CString::new("sscanf").expect("CString failed");
             let sscanf_func = LLVMAddFunction(self.module, sscanf_name.as_ptr(), sscanf_type);
             self.functions.insert("sscanf".to_string(), sscanf_func);
+
+            // Process control
+            // exit: void exit(int status)
+            let i32_type = LLVMInt32TypeInContext(self.context);
+            let exit_type = LLVMFunctionType(void_type, [i32_type].as_mut_ptr(), 1, 0);
+            let exit_name = CString::new("exit").expect("CString failed");
+            let exit_func = LLVMAddFunction(self.module, exit_name.as_ptr(), exit_type);
+            self.functions.insert("exit".to_string(), exit_func);
+
+            // Time functions
+            // sleep: unsigned int sleep(unsigned int seconds)
+            let sleep_type = LLVMFunctionType(i32_type, [i32_type].as_mut_ptr(), 1, 0);
+            let sleep_name = CString::new("sleep").expect("CString failed");
+            let sleep_func = LLVMAddFunction(self.module, sleep_name.as_ptr(), sleep_type);
+            self.functions.insert("sleep".to_string(), sleep_func);
+
+            // usleep: int usleep(useconds_t usec)
+            let usleep_type = LLVMFunctionType(i32_type, [i32_type].as_mut_ptr(), 1, 0);
+            let usleep_name = CString::new("usleep").expect("CString failed");
+            let usleep_func = LLVMAddFunction(self.module, usleep_name.as_ptr(), usleep_type);
+            self.functions.insert("usleep".to_string(), usleep_func);
+
+            // time: time_t time(time_t *tloc)
+            let time_type = LLVMFunctionType(int_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let time_name = CString::new("time").expect("CString failed");
+            let time_func = LLVMAddFunction(self.module, time_name.as_ptr(), time_type);
+            self.functions.insert("time".to_string(), time_func);
 
             Ok(())
         }
@@ -2380,14 +2411,10 @@ impl LLVMCodegen {
                     Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
                 }
                 "vec_int_pop" => {
-                    // v1: no empty check (undefined behavior if empty, like C)
+                    // Pop: read last element, decrement len, return element
                     let vec_ptr = self.codegen_expression(&arguments[0])?;
-                    let ptr_field = LLVMBuildBitCast(
-                        self.builder,
-                        vec_ptr,
-                        LLVMPointerType(i64_ptr_ty, 0),
-                        c"".as_ptr(),
-                    );
+                    
+                    // Get length field (offset 8 bytes from struct start)
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
                         i8_ptr_ty,
@@ -2403,10 +2430,20 @@ impl LLVMCodegen {
                         c"".as_ptr(),
                     );
                     let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
+                    
+                    // Compute last index (len - 1)
                     let last_idx = LLVMBuildSub(
                         self.builder,
                         len_val,
                         LLVMConstInt(i64_ty, 1, 0),
+                        c"".as_ptr(),
+                    );
+                    
+                    // Get data pointer and read element at last_idx FIRST
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i64_ptr_ty, 0),
                         c"".as_ptr(),
                     );
                     let data_ptr =
@@ -2420,7 +2457,10 @@ impl LLVMCodegen {
                         c"".as_ptr(),
                     );
                     let val = LLVMBuildLoad2(self.builder, i64_ty, elem_ptr, c"".as_ptr());
+                    
+                    // Now store decremented length
                     LLVMBuildStore(self.builder, last_idx, len_field);
+                    
                     Ok(Some(val))
                 }
                 "vec_int_clear" => {

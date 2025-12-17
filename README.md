@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language.
 
-Current version: `v0.8.6`
+Current version: `v0.8.7`
 
 ## Workspace Layout
 
@@ -35,6 +35,26 @@ export PATH="${LLVM_SYS_180_PREFIX}/bin:${PATH}"
 # Sanity check
 llvm-config --version
 ```
+
+### Using direnv (Recommended)
+
+The project includes a `.envrc` file that automatically sets up LLVM environment variables. Install [direnv](https://direnv.net/) and allow the config:
+
+```bash
+# Install direnv
+brew install direnv
+
+# Add to your shell (e.g., ~/.zshrc)
+eval "$(direnv hook zsh)"
+
+# Allow the project's .envrc
+cd /path/to/kraken
+direnv allow
+```
+
+After setup, LLVM paths are loaded automatically when you enter the project directory.
+
+**IDE Note**: Most IDEs don't load direnv automatically. If you see LLVM-related errors in your IDE, they can be ignored - building from terminal with `source .envrc && cargo build` works correctly.
 
 ## Build
 
