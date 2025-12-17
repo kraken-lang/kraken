@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.8.6] - 2025-12-17
+
+### Added
+
+- Added `compiler/src/ir/` module - Kraken Intermediate Representation (IR) layer.
+- Added IR data structures: `IrProgram`, `IrFunction`, `IrBlock`, `IrInstruction`, `IrValue`, `IrType`.
+- Added AST → IR lowering pass (`ir/lower.rs`).
+- Added IR `Display` implementations for debugging/dumping.
+- Added `--emit-ir` flag to `kraken build` command for IR inspection.
+
 ## [0.8.5] - 2025-12-15
 
 ### Added
@@ -640,7 +650,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
-[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.5...HEAD
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.6...HEAD
+[0.8.6]: https://github.com/kraken-lang/kraken/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/kraken-lang/kraken/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/kraken-lang/kraken/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/kraken-lang/kraken/compare/v0.8.2...v0.8.3

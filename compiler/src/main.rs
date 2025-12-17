@@ -11,12 +11,14 @@ mod analyzer;
 mod codegen;
 mod error;
 mod ffi;
+mod ir;
 mod lexer;
 mod modules;
 mod parser;
 
 use analyzer::TypeChecker;
 use codegen::LLVMCodegen;
+use ir::IrLowering;
 use lexer::tokenizer::is_kraken_source_file;
 use modules::loader;
 use parser::ast::Statement;
@@ -46,6 +48,10 @@ enum Commands {
         /// Enable verbose output
         #[arg(short, long)]
         verbose: bool,
+
+        /// Emit IR instead of compiling (for debugging)
+        #[arg(long)]
+        emit_ir: bool,
     },
 
     /// Run a Kraken program
@@ -91,8 +97,9 @@ async fn main() -> Result<()> {
             path,
             output,
             verbose,
+            emit_ir,
         } => {
-            build_command(path, output, verbose).await?;
+            build_command(path, output, verbose, emit_ir).await?;
         }
         Commands::Run { file, args } => {
             run_command(file, args).await?;
@@ -109,7 +116,12 @@ async fn main() -> Result<()> {
 }
 
 /// Build command implementation.
-async fn build_command(path: PathBuf, output: Option<PathBuf>, verbose: bool) -> Result<()> {
+async fn build_command(
+    path: PathBuf,
+    output: Option<PathBuf>,
+    verbose: bool,
+    emit_ir: bool,
+) -> Result<()> {
     if verbose {
         println!("Building Kraken project at: {}", path.display());
     }
@@ -138,6 +150,19 @@ async fn build_command(path: PathBuf, output: Option<PathBuf>, verbose: bool) ->
             continue;
         }
 
+        // If --emit-ir flag is set, dump IR and exit
+        if emit_ir {
+            if verbose {
+                println!("Lowering to IR: {}", file.display());
+            }
+            let mut lowering = IrLowering::new();
+            let ir_program = lowering
+                .lower_program(&program)
+                .map_err(|e| anyhow::anyhow!("IR lowering failed: {}", e))?;
+            println!("{}", ir_program);
+            continue;
+        }
+
         if verbose {
             println!("Compiling: {}", file.display());
         }
@@ -149,7 +174,9 @@ async fn build_command(path: PathBuf, output: Option<PathBuf>, verbose: bool) ->
 
     let output_path = output.unwrap_or_else(|| PathBuf::from("output"));
 
-    if verbose {
+    if emit_ir {
+        println!("IR dump complete.");
+    } else if verbose {
         println!("Build successful! Output: {}", output_path.display());
     } else {
         println!("Build complete.");
