@@ -1,0 +1,34 @@
+// Test: String indexing with x[i] syntax
+// Expected: Compiles and runs, returns 0
+
+fn main() -> int {
+    let s: string = "hello";
+    
+    // Test basic indexing
+    let h: int = s[0];  // 'h' = 104
+    let e: int = s[1];  // 'e' = 101
+    let l: int = s[2];  // 'l' = 108
+    let o: int = s[4];  // 'o' = 111
+    
+    if (h != 104) {
+        return 1;
+    }
+    if (e != 101) {
+        return 2;
+    }
+    if (l != 108) {
+        return 3;
+    }
+    if (o != 111) {
+        return 4;
+    }
+    
+    // Test with variable index
+    let idx: int = 3;
+    let l2: int = s[idx];  // 'l' = 108
+    if (l2 != 108) {
+        return 5;
+    }
+    
+    return 0;
+}

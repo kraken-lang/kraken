@@ -1,0 +1,41 @@
+// Test: String intrinsics (str_len, str_slice, str_concat, str_char_at)
+// Expected: Compiles and runs, returns 0
+
+fn main() -> int {
+    let s: string = "hello world";
+    
+    // Test str_len
+    let len: int = str_len(s);
+    if (len != 11) {
+        return 1;
+    }
+    
+    // Test str_slice
+    let hello: string = str_slice(s, 0, 5);
+    let hello_len: int = str_len(hello);
+    if (hello_len != 5) {
+        return 2;
+    }
+    
+    // Test str_concat
+    let a: string = "foo";
+    let b: string = "bar";
+    let ab: string = str_concat(a, b);
+    let ab_len: int = str_len(ab);
+    if (ab_len != 6) {
+        return 3;
+    }
+    
+    // Test str_char_at
+    let h_code: int = str_char_at(s, 0);  // 'h' = 104
+    if (h_code != 104) {
+        return 4;
+    }
+    
+    let w_code: int = str_char_at(s, 6);  // 'w' = 119
+    if (w_code != 119) {
+        return 5;
+    }
+    
+    return 0;
+}

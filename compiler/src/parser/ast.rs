@@ -69,6 +69,13 @@ pub enum Statement {
         methods: Vec<FunctionSignature>,
     },
 
+    /// Enum declaration
+    EnumDeclaration {
+        name: String,
+        variants: Vec<(String, Option<Vec<Type>>)>, // (variant_name, optional_payload_types)
+        is_public: bool,
+    },
+
     /// Return statement
     Return {
         value: Option<Expression>,
@@ -165,6 +172,13 @@ pub enum Expression {
         index: Box<Expression>,
     },
 
+    /// Slice expression: x[start:end]
+    Slice {
+        array: Box<Expression>,
+        start: Box<Expression>,
+        end: Box<Expression>,
+    },
+
     /// Member access (struct.field)
     MemberAccess {
         object: Box<Expression>,
@@ -194,6 +208,13 @@ pub enum Expression {
 
     /// Spawn expression (spawn { block })
     Spawn { body: Block },
+
+    /// Enum variant expression (EnumName::VariantName or EnumName::VariantName(payload))
+    EnumVariant {
+        enum_name: String,
+        variant_name: String,
+        payload: Option<Vec<Expression>>,
+    },
 }
 
 /// Code block containing statements.
@@ -250,6 +271,13 @@ pub enum Pattern {
 
     /// Wildcard pattern (_)
     Wildcard,
+
+    /// Enum variant pattern: EnumName::Variant or EnumName::Variant(a, b)
+    EnumVariant {
+        enum_name: String,
+        variant_name: String,
+        bindings: Vec<String>,
+    },
 }
 
 /// Type representation.
@@ -261,6 +289,7 @@ pub enum Type {
     Float,
     Bool,
     String,
+    Str,
     Bytes,
     Void,
 
@@ -270,6 +299,11 @@ pub enum Type {
     VecBytes,
     MapStringInt,
     MapStringString,
+
+    /// Slice types (borrowed views)
+    SliceInt,
+    SliceString,
+    SliceBytes,
 
     /// Array type
     Array {
@@ -307,6 +341,7 @@ impl Type {
             Keyword::Float => Some(Type::Float),
             Keyword::Bool => Some(Type::Bool),
             Keyword::String => Some(Type::String),
+            Keyword::Str => Some(Type::Str),
             Keyword::Bytes => Some(Type::Bytes),
             Keyword::Void => Some(Type::Void),
             Keyword::VecInt => Some(Type::VecInt),
@@ -314,6 +349,9 @@ impl Type {
             Keyword::VecBytes => Some(Type::VecBytes),
             Keyword::MapStringInt => Some(Type::MapStringInt),
             Keyword::MapStringString => Some(Type::MapStringString),
+            Keyword::SliceInt => Some(Type::SliceInt),
+            Keyword::SliceString => Some(Type::SliceString),
+            Keyword::SliceBytes => Some(Type::SliceBytes),
             _ => None,
         }
     }
@@ -326,6 +364,7 @@ impl std::fmt::Display for Type {
             Type::Float => write!(f, "float"),
             Type::Bool => write!(f, "bool"),
             Type::String => write!(f, "string"),
+            Type::Str => write!(f, "str"),
             Type::Bytes => write!(f, "bytes"),
             Type::Void => write!(f, "void"),
             Type::VecInt => write!(f, "VecInt"),
@@ -333,6 +372,9 @@ impl std::fmt::Display for Type {
             Type::VecBytes => write!(f, "VecBytes"),
             Type::MapStringInt => write!(f, "MapStringInt"),
             Type::MapStringString => write!(f, "MapStringString"),
+            Type::SliceInt => write!(f, "SliceInt"),
+            Type::SliceString => write!(f, "SliceString"),
+            Type::SliceBytes => write!(f, "SliceBytes"),
             Type::Array { element_type, size } => {
                 if let Some(s) = size {
                     write!(f, "[{element_type}; {s}]")

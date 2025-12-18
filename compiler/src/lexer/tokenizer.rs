@@ -82,7 +82,13 @@ impl Tokenizer {
             ';' => TokenKind::Semicolon,
             ',' => TokenKind::Comma,
             '.' => TokenKind::Dot,
-            ':' => TokenKind::Colon,
+            ':' => {
+                if self.match_char(':') {
+                    TokenKind::ColonColon
+                } else {
+                    TokenKind::Colon
+                }
+            }
             '~' => TokenKind::Operator(Operator::BitNot),
             '?' => TokenKind::Operator(Operator::Question),
 

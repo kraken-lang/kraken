@@ -25,11 +25,13 @@ pub struct LLVMCodegen {
     array_variables: HashMap<String, bool>, // Track which variables are arrays
     struct_variables: HashMap<String, String>, // Track which variables are structs (var name -> struct name)
     struct_types: HashMap<String, (LLVMTypeRef, Vec<String>, Vec<LLVMTypeRef>)>, // struct name -> (LLVM type, field names, field types)
+    enum_types: HashMap<String, Vec<(String, u32)>>, // enum name -> [(variant_name, tag)]
     functions: HashMap<String, LLVMValueRef>,
     current_function: Option<LLVMValueRef>,
     loop_exit_blocks: Vec<LLVMBasicBlockRef>,
     loop_continue_blocks: Vec<LLVMBasicBlockRef>,
     file_path: PathBuf,
+    debug_bounds_checks: bool, // Enable bounds checking when KRAKEN_DEBUG_BOUNDS=1
 }
 
 impl LLVMCodegen {
@@ -46,6 +48,10 @@ impl LLVMCodegen {
             let module = LLVMModuleCreateWithNameInContext(module_name_cstr.as_ptr(), context);
             let builder = LLVMCreateBuilderInContext(context);
 
+            let debug_bounds_checks = std::env::var("KRAKEN_DEBUG_BOUNDS")
+                .map(|v| v == "1")
+                .unwrap_or(false);
+
             Self {
                 context,
                 module,
@@ -54,11 +60,13 @@ impl LLVMCodegen {
                 array_variables: HashMap::new(),
                 struct_variables: HashMap::new(),
                 struct_types: HashMap::new(),
+                enum_types: HashMap::new(),
                 functions: HashMap::new(),
                 current_function: None,
                 loop_exit_blocks: Vec::new(),
                 loop_continue_blocks: Vec::new(),
                 file_path,
+                debug_bounds_checks,
             }
         }
     }
@@ -416,6 +424,26 @@ impl LLVMCodegen {
                     self.struct_types
                         .insert(name.clone(), (struct_type, field_names, field_types));
                 }
+                Ok(())
+            }
+
+            Statement::EnumDeclaration {
+                name,
+                variants,
+                is_public: _,
+            } => {
+                // Register enum variants with their tag values
+                let variants_with_tags: Vec<(String, u32)> = variants
+                    .iter()
+                    .enumerate()
+                    .map(|(i, (variant_name, _payload))| (variant_name.clone(), i as u32))
+                    .collect();
+                self.enum_types.insert(name.clone(), variants_with_tags);
+                Ok(())
+            }
+
+            Statement::InterfaceDeclaration { .. } => {
+                // Interface declarations don't generate code
                 Ok(())
             }
 
@@ -862,6 +890,31 @@ impl LLVMCodegen {
                             Pattern::Wildcard => {
                                 // Always matches
                                 LLVMBuildBr(self.builder, arm_blocks[i]);
+                            }
+                            Pattern::EnumVariant { enum_name, variant_name, .. } => {
+                                // Look up the tag value for this variant
+                                if let Some(variants) = self.enum_types.get(enum_name) {
+                                    if let Some((_, tag)) = variants.iter().find(|(name, _)| name == variant_name) {
+                                        // Compare match value (assumed to be tag) against expected tag
+                                        let i64_ty = LLVMInt64TypeInContext(self.context);
+                                        let expected_tag = LLVMConstInt(i64_ty, *tag as u64, 0);
+                                        let cmp_name = CString::new(format!("enum.cmp.{}", variant_name)).expect("CString failed");
+                                        let cond = LLVMBuildICmp(
+                                            self.builder,
+                                            LLVMIntPredicate::LLVMIntEQ,
+                                            match_val,
+                                            expected_tag,
+                                            cmp_name.as_ptr(),
+                                        );
+                                        LLVMBuildCondBr(self.builder, cond, arm_blocks[i], next_check_blocks[i]);
+                                    } else {
+                                        // Variant not found, just branch (will error at runtime)
+                                        LLVMBuildBr(self.builder, arm_blocks[i]);
+                                    }
+                                } else {
+                                    // Enum not found, just branch
+                                    LLVMBuildBr(self.builder, arm_blocks[i]);
+                                }
                             }
                         }
 
@@ -1738,9 +1791,9 @@ impl LLVMCodegen {
                             return Ok(LLVMConstInt(i64_ty, 0, 0));
                         }
 
-                        // Mutex intrinsics (placeholder - no actual locking yet)
+                        // Mutex intrinsics - spinlock implementation using LLVM atomics
                         if name == "mutex_new" {
-                            // Allocate a dummy mutex (just a pointer for now)
+                            // Allocate 8 bytes for atomic lock state (0 = unlocked, 1 = locked)
                             let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
                                 CompilerError::codegen_error("Missing malloc")
                             })?;
@@ -1754,23 +1807,94 @@ impl LLVMCodegen {
                                 1,
                                 c"mutex".as_ptr(),
                             );
+                            // Initialize to 0 (unlocked)
+                            let zero = LLVMConstInt(i64_ty, 0, 0);
+                            LLVMBuildStore(self.builder, zero, mutex_ptr);
                             return Ok(mutex_ptr);
                         }
 
-                        if name == "mutex_lock" || name == "mutex_unlock" || name == "mutex_free" {
-                            // For now, these are no-ops
-                            // Full implementation will use pthread_mutex or similar
+                        if name == "mutex_lock" {
                             if arguments.len() != 1 {
-                                return Err(CompilerError::codegen_error(format!(
-                                    "{} expects exactly 1 argument (mutex handle)",
-                                    name
-                                )));
+                                return Err(CompilerError::codegen_error(
+                                    "mutex_lock expects 1 argument (mutex handle)",
+                                ));
                             }
-                            let _mutex = self.codegen_expression(&arguments[0])?;
+                            let mutex = self.codegen_expression(&arguments[0])?;
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let zero = LLVMConstInt(i64_ty, 0, 0);
+                            let one = LLVMConstInt(i64_ty, 1, 0);
                             
-                            if name == "mutex_free" {
-                                // Could call free here, but skip for now
+                            // Spinlock: atomically try to set 0 -> 1, loop until success
+                            let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
+                            let spin_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"mutex.spin".as_ptr());
+                            let acquired_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"mutex.acquired".as_ptr());
+                            
+                            LLVMBuildBr(self.builder, spin_bb);
+                            LLVMPositionBuilderAtEnd(self.builder, spin_bb);
+                            
+                            // Atomic compare-and-swap: if *mutex == 0, set to 1
+                            let result = LLVMBuildAtomicCmpXchg(
+                                self.builder,
+                                mutex,
+                                zero,
+                                one,
+                                llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingAcquire,
+                                llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingMonotonic,
+                                0, // single-threaded = false
+                            );
+                            let success = LLVMBuildExtractValue(self.builder, result, 1, c"cas.success".as_ptr());
+                            LLVMBuildCondBr(self.builder, success, acquired_bb, spin_bb);
+                            
+                            LLVMPositionBuilderAtEnd(self.builder, acquired_bb);
+                            let void_ty = LLVMVoidTypeInContext(self.context);
+                            return Ok(LLVMGetUndef(void_ty));
+                        }
+
+                        if name == "mutex_unlock" {
+                            if arguments.len() != 1 {
+                                return Err(CompilerError::codegen_error(
+                                    "mutex_unlock expects 1 argument (mutex handle)",
+                                ));
                             }
+                            let mutex = self.codegen_expression(&arguments[0])?;
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let zero = LLVMConstInt(i64_ty, 0, 0);
+                            
+                            // Atomic store: set lock to 0 (release)
+                            LLVMBuildStore(self.builder, zero, mutex);
+                            // Add memory fence for release semantics
+                            LLVMBuildFence(
+                                self.builder,
+                                llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingRelease,
+                                0,
+                                c"".as_ptr(),
+                            );
+                            
+                            let void_ty = LLVMVoidTypeInContext(self.context);
+                            return Ok(LLVMGetUndef(void_ty));
+                        }
+
+                        if name == "mutex_free" {
+                            if arguments.len() != 1 {
+                                return Err(CompilerError::codegen_error(
+                                    "mutex_free expects 1 argument (mutex handle)",
+                                ));
+                            }
+                            let mutex = self.codegen_expression(&arguments[0])?;
+                            
+                            // Free the allocated memory
+                            let free_fn = *self.functions.get("free").ok_or_else(|| {
+                                CompilerError::codegen_error("Missing free")
+                            })?;
+                            let free_ty = LLVMGlobalGetValueType(free_fn);
+                            LLVMBuildCall2(
+                                self.builder,
+                                free_ty,
+                                free_fn,
+                                [mutex].as_mut_ptr(),
+                                1,
+                                c"".as_ptr(),
+                            );
                             
                             let void_ty = LLVMVoidTypeInContext(self.context);
                             return Ok(LLVMGetUndef(void_ty));
@@ -1877,8 +2001,11 @@ impl LLVMCodegen {
                                 LLVMPointerType(i64_ty, 0),
                                 c"".as_ptr(),
                             );
-                            let val = LLVMBuildLoad2(self.builder, i64_ty, ptr_typed, c"atomic.load".as_ptr());
-                            return Ok(val);
+                            // Use atomic load with acquire ordering
+                            let load = LLVMBuildLoad2(self.builder, i64_ty, ptr_typed, c"atomic.load".as_ptr());
+                            LLVMSetOrdering(load, llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingAcquire);
+                            LLVMSetAlignment(load, 8);
+                            return Ok(load);
                         }
 
                         if name == "atomic_store" {
@@ -1896,7 +2023,10 @@ impl LLVMCodegen {
                                 LLVMPointerType(i64_ty, 0),
                                 c"".as_ptr(),
                             );
-                            LLVMBuildStore(self.builder, value, ptr_typed);
+                            // Use atomic store with release ordering
+                            let store = LLVMBuildStore(self.builder, value, ptr_typed);
+                            LLVMSetOrdering(store, llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingRelease);
+                            LLVMSetAlignment(store, 8);
                             let void_ty = LLVMVoidTypeInContext(self.context);
                             return Ok(LLVMGetUndef(void_ty));
                         }
@@ -1990,14 +2120,37 @@ impl LLVMCodegen {
 
                         // Timing intrinsics
                         if name == "sleep_ms" {
-                            // Placeholder: evaluates argument but doesn't actually sleep
-                            // Full implementation will use platform-specific timing
                             if arguments.len() != 1 {
                                 return Err(CompilerError::codegen_error(
                                     "sleep_ms expects 1 argument (milliseconds)",
                                 ));
                             }
-                            let _ms = self.codegen_expression(&arguments[0])?;
+                            let ms = self.codegen_expression(&arguments[0])?;
+                            
+                            // Convert milliseconds to microseconds (usleep takes microseconds)
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let thousand = LLVMConstInt(i64_ty, 1000, 0);
+                            let us = LLVMBuildMul(self.builder, ms, thousand, c"us".as_ptr());
+                            
+                            // Call usleep(microseconds)
+                            let usleep_fn = *self.functions.get("usleep").ok_or_else(|| {
+                                CompilerError::codegen_error("Missing usleep")
+                            })?;
+                            let usleep_ty = LLVMGlobalGetValueType(usleep_fn);
+                            
+                            // usleep takes u32 on some platforms, truncate if needed
+                            let i32_ty = LLVMInt32TypeInContext(self.context);
+                            let us_32 = LLVMBuildTrunc(self.builder, us, i32_ty, c"us32".as_ptr());
+                            
+                            LLVMBuildCall2(
+                                self.builder,
+                                usleep_ty,
+                                usleep_fn,
+                                [us_32].as_mut_ptr(),
+                                1,
+                                c"".as_ptr(),
+                            );
+                            
                             let void_ty = LLVMVoidTypeInContext(self.context);
                             return Ok(LLVMGetUndef(void_ty));
                         }
@@ -2187,6 +2340,11 @@ impl LLVMCodegen {
                             return Ok(result);
                         }
 
+                        // String manipulation intrinsics
+                        if let Some(result) = self.codegen_string_intrinsic(name, arguments)? {
+                            return Ok(result);
+                        }
+
                         // Look up the function
                         let function = self.functions.get(name).copied().ok_or_else(|| {
                             CompilerError::type_error(
@@ -2369,6 +2527,66 @@ impl LLVMCodegen {
 
                     // Byte indexing on bytes/string: *(i8* + idx) -> zext to i64
                     let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+
+                    // Debug bounds checking for string indexing
+                    if self.debug_bounds_checks {
+                        let strlen_fn = *self.functions.get("strlen").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing strlen for bounds check")
+                        })?;
+                        let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
+                        let len = LLVMBuildCall2(
+                            self.builder,
+                            strlen_ty,
+                            strlen_fn,
+                            [array_val].as_mut_ptr(),
+                            1,
+                            c"str.len".as_ptr(),
+                        );
+
+                        // Check: index < len
+                        let in_bounds = LLVMBuildICmp(
+                            self.builder,
+                            llvm_sys::LLVMIntPredicate::LLVMIntULT,
+                            index_val,
+                            len,
+                            c"bounds.ok".as_ptr(),
+                        );
+
+                        let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
+                        let ok_bb = LLVMAppendBasicBlockInContext(
+                            self.context,
+                            current_fn,
+                            c"str.idx.ok".as_ptr(),
+                        );
+                        let trap_bb = LLVMAppendBasicBlockInContext(
+                            self.context,
+                            current_fn,
+                            c"str.idx.trap".as_ptr(),
+                        );
+
+                        LLVMBuildCondBr(self.builder, in_bounds, ok_bb, trap_bb);
+
+                        // Trap block
+                        LLVMPositionBuilderAtEnd(self.builder, trap_bb);
+                        let trap_fn = *self.functions.get("abort").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing abort")
+                        })?;
+                        let trap_ty = LLVMGlobalGetValueType(trap_fn);
+                        LLVMBuildCall2(
+                            self.builder,
+                            trap_ty,
+                            trap_fn,
+                            std::ptr::null_mut(),
+                            0,
+                            c"".as_ptr(),
+                        );
+                        LLVMBuildUnreachable(self.builder);
+
+                        // Continue in ok block
+                        LLVMPositionBuilderAtEnd(self.builder, ok_bb);
+                    }
+
                     let byte_ptr_name = CString::new("byteptr").expect("CString failed");
                     let mut indices = [index_val];
                     let byte_ptr = LLVMBuildInBoundsGEP2(
@@ -2388,9 +2606,78 @@ impl LLVMCodegen {
                     Ok(LLVMBuildZExt(
                         self.builder,
                         byte_val,
-                        LLVMInt64TypeInContext(self.context),
+                        i64_ty,
                         zext_name.as_ptr(),
                     ))
+                }
+
+                Expression::Slice { array, start, end } => {
+                    // String slicing: use str_slice intrinsic
+                    let array_val = self.codegen_expression(array)?;
+                    let start_val = self.codegen_expression(start)?;
+                    let end_val = self.codegen_expression(end)?;
+
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let _i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+
+                    // Get malloc, memcpy functions
+                    let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
+                        CompilerError::codegen_error("Missing malloc")
+                    })?;
+                    let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                    let memcpy_fn = *self.functions.get("memcpy").ok_or_else(|| {
+                        CompilerError::codegen_error("Missing memcpy")
+                    })?;
+                    let memcpy_ty = LLVMGlobalGetValueType(memcpy_fn);
+
+                    // Calculate length: end - start
+                    let len = LLVMBuildSub(self.builder, end_val, start_val, c"slice.len".as_ptr());
+
+                    // Allocate: malloc(len + 1) for null terminator
+                    let one = LLVMConstInt(i64_ty, 1, 0);
+                    let alloc_size = LLVMBuildAdd(self.builder, len, one, c"alloc.size".as_ptr());
+                    let new_str = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [alloc_size].as_mut_ptr(),
+                        1,
+                        c"slice.ptr".as_ptr(),
+                    );
+
+                    // Get source pointer: array + start
+                    let src_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        LLVMInt8TypeInContext(self.context),
+                        array_val,
+                        [start_val].as_mut_ptr(),
+                        1,
+                        c"src.ptr".as_ptr(),
+                    );
+
+                    // memcpy(new_str, src_ptr, len)
+                    LLVMBuildCall2(
+                        self.builder,
+                        memcpy_ty,
+                        memcpy_fn,
+                        [new_str, src_ptr, len].as_mut_ptr(),
+                        3,
+                        c"".as_ptr(),
+                    );
+
+                    // Null terminate: new_str[len] = 0
+                    let null_pos = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        LLVMInt8TypeInContext(self.context),
+                        new_str,
+                        [len].as_mut_ptr(),
+                        1,
+                        c"null.pos".as_ptr(),
+                    );
+                    let zero_byte = LLVMConstInt(LLVMInt8TypeInContext(self.context), 0, 0);
+                    LLVMBuildStore(self.builder, zero_byte, null_pos);
+
+                    Ok(new_str)
                 }
 
                 Expression::StructLiteral { name, fields } => {
@@ -2583,6 +2870,25 @@ impl LLVMCodegen {
                     Ok(LLVMConstNull(i8_ptr_ty))
                 }
 
+                Expression::EnumVariant { enum_name, variant_name, payload: _ } => {
+                    // Get the tag value for this variant
+                    if let Some(variants) = self.enum_types.get(enum_name) {
+                        if let Some((_, tag)) = variants.iter().find(|(name, _)| name == variant_name) {
+                            // Return the tag value as an i64
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            Ok(LLVMConstInt(i64_ty, *tag as u64, 0))
+                        } else {
+                            Err(CompilerError::codegen_error(format!(
+                                "Unknown variant '{}' for enum '{}'", variant_name, enum_name
+                            )))
+                        }
+                    } else {
+                        Err(CompilerError::codegen_error(format!(
+                            "Unknown enum '{}'", enum_name
+                        )))
+                    }
+                }
+
                 _ => Err(CompilerError::codegen_error("Unsupported expression type")),
             }
         }
@@ -2596,6 +2902,13 @@ impl LLVMCodegen {
                 Type::Float => LLVMDoubleTypeInContext(self.context),
                 Type::Bool => LLVMInt1TypeInContext(self.context),
                 Type::String => LLVMPointerType(LLVMInt8TypeInContext(self.context), 0),
+                Type::Str => {
+                    // str is a fat pointer: { ptr: *i8, len: i64 }
+                    let i8_ptr = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let mut fields = [i8_ptr, i64_ty];
+                    LLVMStructTypeInContext(self.context, fields.as_mut_ptr(), 2, 0)
+                }
                 Type::Bytes => LLVMPointerType(LLVMInt8TypeInContext(self.context), 0),
                 Type::Void => LLVMVoidTypeInContext(self.context),
                 Type::Array { element_type, size } => {
@@ -2629,6 +2942,13 @@ impl LLVMCodegen {
                 | Type::VecBytes
                 | Type::MapStringInt
                 | Type::MapStringString => LLVMPointerType(LLVMInt8TypeInContext(self.context), 0),
+                Type::SliceInt | Type::SliceString | Type::SliceBytes => {
+                    // Slice is { ptr: *i8, len: i64 }
+                    let i8_ptr = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let mut fields = [i8_ptr, i64_ty];
+                    LLVMStructTypeInContext(self.context, fields.as_mut_ptr(), 2, 0)
+                }
             }
         }
     }
@@ -5110,6 +5430,262 @@ impl Drop for LLVMCodegen {
             LLVMDisposeBuilder(self.builder);
             LLVMDisposeModule(self.module);
             LLVMContextDispose(self.context);
+        }
+    }
+}
+
+impl LLVMCodegen {
+    /// Emit a null pointer check that traps if the pointer is null
+    fn emit_null_check(&mut self, ptr: LLVMValueRef, _msg: &str) -> CompilerResult<()> {
+        unsafe {
+            let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
+            let trap_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"null.trap".as_ptr());
+            let ok_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"null.ok".as_ptr());
+
+            let is_null = LLVMBuildICmp(
+                self.builder,
+                llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                ptr,
+                LLVMConstNull(LLVMTypeOf(ptr)),
+                c"is.null".as_ptr(),
+            );
+
+            LLVMBuildCondBr(self.builder, is_null, trap_bb, ok_bb);
+
+            // Trap block - call abort
+            LLVMPositionBuilderAtEnd(self.builder, trap_bb);
+            let abort_fn = *self.functions.get("abort").ok_or_else(|| {
+                CompilerError::codegen_error("Missing abort")
+            })?;
+            let abort_ty = LLVMGlobalGetValueType(abort_fn);
+            LLVMBuildCall2(self.builder, abort_ty, abort_fn, std::ptr::null_mut(), 0, c"".as_ptr());
+            LLVMBuildUnreachable(self.builder);
+
+            // Continue in ok block
+            LLVMPositionBuilderAtEnd(self.builder, ok_bb);
+            Ok(())
+        }
+    }
+
+    /// Handle string manipulation intrinsics
+    fn codegen_string_intrinsic(
+        &mut self,
+        name: &str,
+        arguments: &[Expression],
+    ) -> CompilerResult<Option<LLVMValueRef>> {
+        unsafe {
+            match name {
+                "str_len" => {
+                    let s = self.codegen_expression(&arguments[0])?;
+                    
+                    // Trap on null pointer
+                    self.emit_null_check(s, "str_len: null string")?;
+                    
+                    let strlen_fn = *self.functions.get("strlen").ok_or_else(|| {
+                        CompilerError::codegen_error("Missing strlen")
+                    })?;
+                    let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
+                    let result = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [s].as_mut_ptr(),
+                        1,
+                        c"str.len".as_ptr(),
+                    );
+                    Ok(Some(result))
+                }
+
+                "str_char_at" => {
+                    let s = self.codegen_expression(&arguments[0])?;
+                    let idx = self.codegen_expression(&arguments[1])?;
+                    
+                    // Trap on null pointer
+                    self.emit_null_check(s, "str_char_at: null string")?;
+                    
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+
+                    let byte_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        s,
+                        [idx].as_mut_ptr(),
+                        1,
+                        c"char.ptr".as_ptr(),
+                    );
+                    let byte_val = LLVMBuildLoad2(self.builder, i8_ty, byte_ptr, c"char".as_ptr());
+                    let result = LLVMBuildZExt(self.builder, byte_val, i64_ty, c"char.int".as_ptr());
+                    Ok(Some(result))
+                }
+
+                "str_slice" => {
+                    let s = self.codegen_expression(&arguments[0])?;
+                    let start = self.codegen_expression(&arguments[1])?;
+                    let end = self.codegen_expression(&arguments[2])?;
+
+                    // Trap on null pointer
+                    self.emit_null_check(s, "str_slice: null string")?;
+
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+
+                    let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
+                        CompilerError::codegen_error("Missing malloc")
+                    })?;
+                    let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                    let memcpy_fn = *self.functions.get("memcpy").ok_or_else(|| {
+                        CompilerError::codegen_error("Missing memcpy")
+                    })?;
+                    let memcpy_ty = LLVMGlobalGetValueType(memcpy_fn);
+
+                    let len = LLVMBuildSub(self.builder, end, start, c"slice.len".as_ptr());
+                    let one = LLVMConstInt(i64_ty, 1, 0);
+                    let alloc_size = LLVMBuildAdd(self.builder, len, one, c"alloc.size".as_ptr());
+                    let new_str = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [alloc_size].as_mut_ptr(),
+                        1,
+                        c"slice.ptr".as_ptr(),
+                    );
+
+                    let src_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        s,
+                        [start].as_mut_ptr(),
+                        1,
+                        c"src.ptr".as_ptr(),
+                    );
+
+                    LLVMBuildCall2(
+                        self.builder,
+                        memcpy_ty,
+                        memcpy_fn,
+                        [new_str, src_ptr, len].as_mut_ptr(),
+                        3,
+                        c"".as_ptr(),
+                    );
+
+                    let null_pos = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        new_str,
+                        [len].as_mut_ptr(),
+                        1,
+                        c"null.pos".as_ptr(),
+                    );
+                    let zero_byte = LLVMConstInt(i8_ty, 0, 0);
+                    LLVMBuildStore(self.builder, zero_byte, null_pos);
+
+                    Ok(Some(new_str))
+                }
+
+                "str_concat" => {
+                    let a = self.codegen_expression(&arguments[0])?;
+                    let b = self.codegen_expression(&arguments[1])?;
+
+                    // Trap on null pointers
+                    self.emit_null_check(a, "str_concat: null first string")?;
+                    self.emit_null_check(b, "str_concat: null second string")?;
+
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+
+                    let strlen_fn = *self.functions.get("strlen").ok_or_else(|| {
+                        CompilerError::codegen_error("Missing strlen")
+                    })?;
+                    let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
+                    let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
+                        CompilerError::codegen_error("Missing malloc")
+                    })?;
+                    let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                    let strcpy_fn = *self.functions.get("strcpy").ok_or_else(|| {
+                        CompilerError::codegen_error("Missing strcpy")
+                    })?;
+                    let strcpy_ty = LLVMGlobalGetValueType(strcpy_fn);
+                    let strcat_fn = *self.functions.get("strcat").ok_or_else(|| {
+                        CompilerError::codegen_error("Missing strcat")
+                    })?;
+                    let strcat_ty = LLVMGlobalGetValueType(strcat_fn);
+
+                    let len_a = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn, [a].as_mut_ptr(), 1, c"len.a".as_ptr());
+                    let len_b = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn, [b].as_mut_ptr(), 1, c"len.b".as_ptr());
+
+                    let total = LLVMBuildAdd(self.builder, len_a, len_b, c"total.len".as_ptr());
+                    let one = LLVMConstInt(i64_ty, 1, 0);
+                    let alloc_size = LLVMBuildAdd(self.builder, total, one, c"alloc.size".as_ptr());
+
+                    let new_str = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn, [alloc_size].as_mut_ptr(), 1, c"concat.ptr".as_ptr());
+                    LLVMBuildCall2(self.builder, strcpy_ty, strcpy_fn, [new_str, a].as_mut_ptr(), 2, c"".as_ptr());
+                    LLVMBuildCall2(self.builder, strcat_ty, strcat_fn, [new_str, b].as_mut_ptr(), 2, c"".as_ptr());
+
+                    Ok(Some(new_str))
+                }
+
+                "str_eq" => {
+                    let a = self.codegen_expression(&arguments[0])?;
+                    let b = self.codegen_expression(&arguments[1])?;
+
+                    // Trap on null pointers
+                    self.emit_null_check(a, "str_eq: null first string")?;
+                    self.emit_null_check(b, "str_eq: null second string")?;
+
+                    let strcmp_fn = *self.functions.get("strcmp").ok_or_else(|| {
+                        CompilerError::codegen_error("Missing strcmp")
+                    })?;
+                    let strcmp_ty = LLVMGlobalGetValueType(strcmp_fn);
+                    let i32_ty = LLVMInt32TypeInContext(self.context);
+
+                    let cmp_result = LLVMBuildCall2(self.builder, strcmp_ty, strcmp_fn, [a, b].as_mut_ptr(), 2, c"strcmp".as_ptr());
+                    let zero = LLVMConstInt(i32_ty, 0, 0);
+                    let result = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ, cmp_result, zero, c"str.eq".as_ptr());
+                    Ok(Some(result))
+                }
+
+                "str_ne" => {
+                    let a = self.codegen_expression(&arguments[0])?;
+                    let b = self.codegen_expression(&arguments[1])?;
+
+                    // Trap on null pointers
+                    self.emit_null_check(a, "str_ne: null first string")?;
+                    self.emit_null_check(b, "str_ne: null second string")?;
+
+                    let strcmp_fn = *self.functions.get("strcmp").ok_or_else(|| {
+                        CompilerError::codegen_error("Missing strcmp")
+                    })?;
+                    let strcmp_ty = LLVMGlobalGetValueType(strcmp_fn);
+                    let i32_ty = LLVMInt32TypeInContext(self.context);
+
+                    let cmp_result = LLVMBuildCall2(self.builder, strcmp_ty, strcmp_fn, [a, b].as_mut_ptr(), 2, c"strcmp".as_ptr());
+                    let zero = LLVMConstInt(i32_ty, 0, 0);
+                    let result = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntNE, cmp_result, zero, c"str.ne".as_ptr());
+                    Ok(Some(result))
+                }
+
+                "bytes_eq" => {
+                    let a = self.codegen_expression(&arguments[0])?;
+                    let b = self.codegen_expression(&arguments[1])?;
+
+                    // Trap on null pointers
+                    self.emit_null_check(a, "bytes_eq: null first bytes")?;
+                    self.emit_null_check(b, "bytes_eq: null second bytes")?;
+
+                    let strcmp_fn = *self.functions.get("strcmp").ok_or_else(|| {
+                        CompilerError::codegen_error("Missing strcmp")
+                    })?;
+                    let strcmp_ty = LLVMGlobalGetValueType(strcmp_fn);
+                    let i32_ty = LLVMInt32TypeInContext(self.context);
+
+                    let cmp_result = LLVMBuildCall2(self.builder, strcmp_ty, strcmp_fn, [a, b].as_mut_ptr(), 2, c"strcmp".as_ptr());
+                    let zero = LLVMConstInt(i32_ty, 0, 0);
+                    let result = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ, cmp_result, zero, c"bytes.eq".as_ptr());
+                    Ok(Some(result))
+                }
+
+                _ => Ok(None),
+            }
         }
     }
 }

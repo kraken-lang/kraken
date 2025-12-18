@@ -3,6 +3,9 @@
 //! Transforms complex syntactic constructs into simpler canonical forms:
 //! - `for` loops → `while` loops
 //! - `defer` statements → explicit cleanup at exit points
+//!
+//! NOTE: This module is reserved for future IR optimization passes.
+#![allow(dead_code)]
 
 use crate::ir::types::*;
 

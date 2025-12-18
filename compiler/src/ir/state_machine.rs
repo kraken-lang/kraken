@@ -3,6 +3,9 @@
 //! Transforms async functions into state machines at the IR level.
 //! Each await point becomes a state transition.
 //!
+//! NOTE: This module is reserved for future async implementation.
+#![allow(dead_code)]
+//!
 //! ## Transformation
 //!
 //! ```text

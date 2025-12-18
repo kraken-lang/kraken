@@ -7,15 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.9] - 2025-12-18
+
 ### Added
 
-### Changed
+- Added `map_string_int_keys`, `map_string_int_values` for map iteration.
+- Added `map_string_string_keys`, `map_string_string_values` for map iteration.
+- Added `str_eq`, `str_ne` for string equality comparison.
+- Added `bytes_eq` for byte array comparison.
+- Added debug bounds checking via `KRAKEN_DEBUG_BOUNDS=1` environment variable.
+- Added `str_len` for string length.
+- Added `str_slice` for substring extraction.
+- Added `str_concat` for string concatenation.
+- Added `str_char_at` for character access by index.
+- Added `str` type (borrowed UTF-8 view with ptr + len representation).
+- Added `SliceInt`, `SliceString`, `SliceBytes` types (borrowed views with ptr + len).
+- Added `enum` keyword and declaration parsing (`enum Name { Variant1, Variant2 }`).
+- Added `EnumVariant` pattern for match expressions.
+- Added `::` (ColonColon) token for enum variant access.
+- Added enum variant construction syntax (`EnumName::VariantName`).
+- Added string indexing syntax `s[i]` with debug bounds checking.
+- Added string slicing syntax `s[start:end]` for substring extraction.
+- Added null pointer trap behavior for string intrinsics (abort on null).
+- Added runtime representation specification document.
+- Added enum integration test (`enum_basic.kr`).
 
 ### Fixed
 
-### Removed
-
-### Security
+- Fixed `sleep_ms` — now calls `usleep()` instead of being a no-op.
+- Fixed `mutex_new/lock/unlock/free` — real spinlock using LLVM atomic compare-and-swap.
+- Fixed `atomic_load` — proper acquire memory ordering.
+- Fixed `atomic_store` — proper release memory ordering.
+- Fixed `atomic_add/sub/cas` — verified using `LLVMBuildAtomicRMW`.
+- Fixed enum type tracking — proper `EnumType` with variant tags in type checker.
+- Fixed enum pattern matching — tag-based discrimination in match expressions.
+- Fixed enum payload extraction in match arms (proper type bindings).
+- Fixed IR return type placeholder (now tracks function return types).
+- Fixed IR struct field access (proper field index lookup).
 
 ## [0.8.8] - 2025-12-17
 

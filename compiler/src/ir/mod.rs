@@ -11,6 +11,8 @@ pub mod lower;
 pub mod state_machine;
 pub mod types;
 
+#[allow(unused_imports)]
 pub use desugar::Desugar;
 pub use lower::IrLowering;
+#[allow(unused_imports)]
 pub use state_machine::{AsyncAnalyzer, StateMachineLowering};

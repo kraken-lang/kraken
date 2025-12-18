@@ -1,0 +1,21 @@
+// Test: String indexing bounds check (run with KRAKEN_DEBUG_BOUNDS=1 to test trap)
+// Expected: With bounds checking disabled, returns 0
+// Expected: With bounds checking enabled and out-of-bounds access, should abort
+
+fn main() -> int {
+    let s: string = "hello";
+    
+    // Valid access - should work
+    let h: int = s[0];
+    if (h != 104) {
+        return 1;
+    }
+    
+    // Last valid index
+    let o: int = s[4];
+    if (o != 111) {
+        return 2;
+    }
+    
+    return 0;
+}

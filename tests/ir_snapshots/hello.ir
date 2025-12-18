@@ -2,7 +2,7 @@
 
 fn @main() -> i64 {
 entry:
-    %0 = alloca str ; message
+    %0 = alloca string ; message
     store "Hello, Kraken!", %0
     ret 0
 }

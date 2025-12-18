@@ -1,0 +1,38 @@
+// Test: String slicing with x[a:b] syntax
+// Expected: Compiles and runs, returns 0
+
+fn main() -> int {
+    let s: string = "hello world";
+    
+    // Test basic slicing
+    let hello: string = s[0:5];
+    let hello_len: int = strlen(hello);
+    if (hello_len != 5) {
+        return 1;
+    }
+    
+    // Test slicing from middle
+    let world: string = s[6:11];
+    let world_len: int = strlen(world);
+    if (world_len != 5) {
+        return 2;
+    }
+    
+    // Test single character slice
+    let h: string = s[0:1];
+    let h_len: int = strlen(h);
+    if (h_len != 1) {
+        return 3;
+    }
+    
+    // Test with variable indices
+    let start: int = 2;
+    let end: int = 7;
+    let sub: string = s[start:end];
+    let sub_len: int = strlen(sub);
+    if (sub_len != 5) {
+        return 4;
+    }
+    
+    return 0;
+}

@@ -499,7 +499,7 @@ fn rewrite_statement(
             statement: Box::new(rewrite_statement(file, *statement, private_mangle)?),
         }),
 
-        Statement::Break | Statement::Continue | Statement::InterfaceDeclaration { .. } => {
+        Statement::Break | Statement::Continue | Statement::InterfaceDeclaration { .. } | Statement::EnumDeclaration { .. } => {
             Ok(statement)
         }
     }
@@ -528,7 +528,7 @@ fn rewrite_match_arm(arm: MatchArm, private_mangle: &HashMap<String, String>) ->
 fn rewrite_pattern(pattern: Pattern, private_mangle: &HashMap<String, String>) -> Pattern {
     match pattern {
         Pattern::Literal(e) => Pattern::Literal(rewrite_expression(e, private_mangle)),
-        Pattern::Identifier(_) | Pattern::Wildcard => pattern,
+        Pattern::Identifier(_) | Pattern::Wildcard | Pattern::EnumVariant { .. } => pattern,
     }
 }
 
@@ -581,6 +581,12 @@ fn rewrite_expression(expr: Expression, private_mangle: &HashMap<String, String>
             index: Box::new(rewrite_expression(*index, private_mangle)),
         },
 
+        Expression::Slice { array, start, end } => Expression::Slice {
+            array: Box::new(rewrite_expression(*array, private_mangle)),
+            start: Box::new(rewrite_expression(*start, private_mangle)),
+            end: Box::new(rewrite_expression(*end, private_mangle)),
+        },
+
         Expression::MemberAccess { object, member } => Expression::MemberAccess {
             object: Box::new(rewrite_expression(*object, private_mangle)),
             member,
@@ -628,7 +634,8 @@ fn rewrite_expression(expr: Expression, private_mangle: &HashMap<String, String>
         | Expression::StringLiteral(_)
         | Expression::BoolLiteral(_)
         | Expression::NullLiteral
-        | Expression::Identifier(_) => expr,
+        | Expression::Identifier(_)
+        | Expression::EnumVariant { .. } => expr,
     }
 }
 

@@ -48,6 +48,7 @@ pub enum TokenKind {
     Comma,        // ,
     Dot,          // .
     Colon,        // :
+    ColonColon,   // ::
     Arrow,        // ->
 
     // Special
@@ -75,6 +76,7 @@ pub enum Keyword {
     Float,
     Bool,
     String,
+    Str,
     Bytes,
     Void,
 
@@ -85,6 +87,7 @@ pub enum Keyword {
     Module,
     Import,
     Struct,
+    Enum,
     Class,
     Interface,
     Trait,
@@ -120,6 +123,9 @@ pub enum Keyword {
     VecBytes,
     MapStringInt,
     MapStringString,
+    SliceInt,
+    SliceString,
+    SliceBytes,
 }
 
 impl Keyword {
@@ -140,6 +146,7 @@ impl Keyword {
             "float" => Some(Self::Float),
             "bool" => Some(Self::Bool),
             "string" => Some(Self::String),
+            "str" => Some(Self::Str),
             "bytes" => Some(Self::Bytes),
             "void" => Some(Self::Void),
             "fn" => Some(Self::Fn),
@@ -148,6 +155,7 @@ impl Keyword {
             "module" => Some(Self::Module),
             "import" => Some(Self::Import),
             "struct" => Some(Self::Struct),
+            "enum" => Some(Self::Enum),
             "class" => Some(Self::Class),
             "interface" => Some(Self::Interface),
             "trait" => Some(Self::Trait),
@@ -175,6 +183,9 @@ impl Keyword {
             "VecBytes" => Some(Self::VecBytes),
             "MapStringInt" => Some(Self::MapStringInt),
             "MapStringString" => Some(Self::MapStringString),
+            "SliceInt" => Some(Self::SliceInt),
+            "SliceString" => Some(Self::SliceString),
+            "SliceBytes" => Some(Self::SliceBytes),
             _ => None,
         }
     }
@@ -195,6 +206,7 @@ impl Keyword {
             Self::Float => "float",
             Self::Bool => "bool",
             Self::String => "string",
+            Self::Str => "str",
             Self::Bytes => "bytes",
             Self::Void => "void",
             Self::Fn => "fn",
@@ -203,6 +215,7 @@ impl Keyword {
             Self::Module => "module",
             Self::Import => "import",
             Self::Struct => "struct",
+            Self::Enum => "enum",
             Self::Class => "class",
             Self::Interface => "interface",
             Self::Trait => "trait",
@@ -230,6 +243,9 @@ impl Keyword {
             Self::VecBytes => "VecBytes",
             Self::MapStringInt => "MapStringInt",
             Self::MapStringString => "MapStringString",
+            Self::SliceInt => "SliceInt",
+            Self::SliceString => "SliceString",
+            Self::SliceBytes => "SliceBytes",
         }
     }
 }

@@ -1,0 +1,38 @@
+// Test: String manipulation functions
+// Expected: Compiles and runs, returns 0
+
+fn main() -> int {
+    let s: string = "hello world";
+    
+    // Test str_len
+    let len: int = str_len(s);
+    if (len != 11) {
+        return 1;
+    }
+    
+    // Test str_char_at
+    let h: int = str_char_at(s, 0);  // 'h' = 104
+    let e: int = str_char_at(s, 1);  // 'e' = 101
+    if (h != 104) {
+        return 2;
+    }
+    if (e != 101) {
+        return 3;
+    }
+    
+    // Test str_slice
+    let world: string = str_slice(s, 6, 11);
+    let world_len: int = str_len(world);
+    if (world_len != 5) {
+        return 4;
+    }
+    
+    // Test str_concat
+    let greeting: string = str_concat("Hello, ", "Kraken!");
+    let greeting_len: int = str_len(greeting);
+    if (greeting_len != 14) {
+        return 5;
+    }
+    
+    return 0;
+}

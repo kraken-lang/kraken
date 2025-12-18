@@ -1,0 +1,61 @@
+// Basic enum test - tests enum declaration, variant construction, and pattern matching
+
+enum Color {
+    Red,
+    Green,
+    Blue
+}
+
+enum Status {
+    Ok,
+    Error,
+    Pending
+}
+
+fn main() {
+    // Create enum variants - stored as their tag values
+    let c = Color::Red;
+    let s = Status::Error;
+    
+    // Test pattern matching with enum variants
+    match (c) {
+        Color::Red -> {
+            puts("Matched Red!");
+        }
+        Color::Green -> {
+            puts("Matched Green!");
+        }
+        Color::Blue -> {
+            puts("Matched Blue!");
+        }
+    }
+    
+    // Test second enum
+    match (s) {
+        Status::Ok -> {
+            puts("Status is Ok");
+        }
+        Status::Error -> {
+            puts("Status is Error");
+        }
+        Status::Pending -> {
+            puts("Status is Pending");
+        }
+    }
+    
+    // Test with different variant
+    let green = Color::Green;
+    match (green) {
+        Color::Red -> {
+            puts("Should not match Red");
+        }
+        Color::Green -> {
+            puts("Correctly matched Green!");
+        }
+        Color::Blue -> {
+            puts("Should not match Blue");
+        }
+    }
+    
+    puts("Enum test passed!");
+}

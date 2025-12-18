@@ -1,0 +1,41 @@
+// Test: String equality functions
+// Expected: Compiles and runs, returns 0
+
+fn main() -> int {
+    let s1: string = "hello";
+    let s2: string = "hello";
+    let s3: string = "world";
+    
+    // Test str_eq
+    let eq1: bool = str_eq(s1, s2);  // true
+    let eq2: bool = str_eq(s1, s3);  // false
+    
+    // Test str_ne
+    let ne1: bool = str_ne(s1, s2);  // false
+    let ne2: bool = str_ne(s1, s3);  // true
+    
+    // Verify results
+    let result: int = 0;
+    
+    if (eq1) {
+        // ok
+    } else {
+        return 1;
+    }
+    
+    if (eq2) {
+        return 2;
+    }
+    
+    if (ne1) {
+        return 3;
+    }
+    
+    if (ne2) {
+        // ok
+    } else {
+        return 4;
+    }
+    
+    return 0;
+}

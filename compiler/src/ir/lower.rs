@@ -15,6 +15,12 @@ pub struct IrLowering {
     next_block_id: u32,
     /// Variable name to value ID mapping.
     variables: std::collections::HashMap<String, ValueId>,
+    /// Variable name to struct type name mapping.
+    var_struct_types: std::collections::HashMap<String, String>,
+    /// Struct name to field names mapping.
+    struct_fields: std::collections::HashMap<String, Vec<String>>,
+    /// Function name to return type mapping.
+    function_return_types: std::collections::HashMap<String, IrType>,
     /// Current function being lowered.
     current_function: Option<String>,
 }
@@ -25,6 +31,9 @@ impl IrLowering {
             next_value_id: 0,
             next_block_id: 0,
             variables: std::collections::HashMap::new(),
+            var_struct_types: std::collections::HashMap::new(),
+            struct_fields: std::collections::HashMap::new(),
+            function_return_types: std::collections::HashMap::new(),
             current_function: None,
         }
     }
@@ -91,7 +100,7 @@ impl IrLowering {
 
     /// Lower a struct declaration.
     fn lower_struct(
-        &self,
+        &mut self,
         name: &str,
         fields: &[ast::StructField],
         is_public: bool,
@@ -100,6 +109,10 @@ impl IrLowering {
             .iter()
             .map(|f| (f.name.clone(), self.lower_type(&f.field_type)))
             .collect();
+
+        // Register struct field names for MemberAccess lowering
+        let field_names: Vec<String> = fields.iter().map(|f| f.name.clone()).collect();
+        self.struct_fields.insert(name.to_string(), field_names);
 
         Ok(IrStruct {
             name: name.to_string(),
@@ -136,6 +149,9 @@ impl IrLowering {
         let ret_ty = return_type
             .map(|t| self.lower_type(t))
             .unwrap_or(IrType::Void);
+
+        // Register function return type for call lowering
+        self.function_return_types.insert(name.to_string(), ret_ty.clone());
 
         let mut ir_func = IrFunction::new(name.to_string(), ir_params, ret_ty, is_public);
 
@@ -199,6 +215,11 @@ impl IrLowering {
                     .as_ref()
                     .map(|t| self.lower_type(t))
                     .unwrap_or(IrType::Int);
+
+                // Track struct type for MemberAccess lowering
+                if let Some(Type::Custom(struct_name)) = type_annotation {
+                    self.var_struct_types.insert(name.clone(), struct_name.clone());
+                }
 
                 let value_id = self.alloc_value();
                 self.variables.insert(name.clone(), value_id);
@@ -374,11 +395,16 @@ impl IrLowering {
                 };
 
                 let dest = self.alloc_value();
+                // Look up the function's return type, default to Int for stdlib functions
+                let ret_ty = self.function_return_types
+                    .get(&func_name)
+                    .cloned()
+                    .unwrap_or(IrType::Int);
                 ir_block.instructions.push(IrInstruction::Call {
                     dest: Some(dest),
                     func: func_name,
                     args,
-                    ret_ty: IrType::Int, // Simplified
+                    ret_ty,
                 });
 
                 Ok(IrValue::Register(dest))
@@ -428,15 +454,39 @@ impl IrLowering {
                 Ok(IrValue::Register(load_dest))
             }
 
-            Expression::MemberAccess { object, member: _ } => {
+            Expression::Slice { array, start, end } => {
+                // For IR lowering, we'll emit a call to str_slice intrinsic
+                let _array_val = self.lower_expression(array, ir_block)?;
+                let _start_val = self.lower_expression(start, ir_block)?;
+                let _end_val = self.lower_expression(end, ir_block)?;
+                // TODO: Emit proper slice IR - for now just return the array
+                // The LLVM backend handles this directly
+                Ok(IrValue::ConstInt(0))
+            }
+
+            Expression::MemberAccess { object, member } => {
                 let obj_val = self.lower_expression(object, ir_block)?;
                 let dest = self.alloc_value();
 
-                // Simplified - assume field index 0
+                // Try to find the struct type and field index
+                let field_idx = if let Expression::Identifier(var_name) = object.as_ref() {
+                    if let Some(struct_name) = self.var_struct_types.get(var_name) {
+                        if let Some(fields) = self.struct_fields.get(struct_name) {
+                            fields.iter().position(|f| f == member).unwrap_or(0) as u32
+                        } else {
+                            0
+                        }
+                    } else {
+                        0
+                    }
+                } else {
+                    0
+                };
+
                 ir_block.instructions.push(IrInstruction::ExtractValue {
                     dest,
                     ptr: obj_val,
-                    field_idx: 0, // Would need struct info to get actual index
+                    field_idx,
                     ty: IrType::Int,
                 });
 
@@ -509,6 +559,12 @@ impl IrLowering {
                 });
                 Ok(IrValue::Register(dest))
             }
+
+            Expression::EnumVariant { .. } => {
+                // Enum variants are represented as integer tags
+                // For IR purposes, just return a constant 0 (tag value computed at codegen)
+                Ok(IrValue::ConstInt(0))
+            }
         }
     }
 
@@ -519,6 +575,7 @@ impl IrLowering {
             Type::Float => IrType::Float,
             Type::Bool => IrType::Bool,
             Type::String => IrType::String,
+            Type::Str => IrType::Str,
             Type::Bytes => IrType::Bytes,
             Type::Void => IrType::Void,
             Type::VecInt => IrType::VecInt,
@@ -526,6 +583,9 @@ impl IrLowering {
             Type::VecBytes => IrType::VecBytes,
             Type::MapStringInt => IrType::MapStringInt,
             Type::MapStringString => IrType::MapStringString,
+            Type::SliceInt => IrType::SliceInt,
+            Type::SliceString => IrType::SliceString,
+            Type::SliceBytes => IrType::SliceBytes,
             Type::Array { element_type, size } => IrType::Array {
                 element: Box::new(self.lower_type(element_type)),
                 size: *size,

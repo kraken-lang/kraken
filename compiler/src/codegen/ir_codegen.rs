@@ -1,6 +1,9 @@
 //! IR to LLVM Code Generation
 //!
 //! Translates Kraken IR to LLVM IR for native code generation.
+//!
+//! NOTE: This module is reserved for future IR-based codegen pipeline.
+#![allow(dead_code)]
 
 use crate::error::{CompilerError, CompilerResult};
 use crate::ir::types::*;
@@ -86,15 +89,29 @@ impl IrCodegen {
                 IrType::String | IrType::Bytes => {
                     LLVMPointerType(LLVMInt8TypeInContext(self.context), 0)
                 }
+                IrType::Str => {
+                    // str is a fat pointer: { ptr: *i8, len: i64 }
+                    let i8_ptr = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let mut fields = [i8_ptr, i64_ty];
+                    LLVMStructTypeInContext(self.context, fields.as_mut_ptr(), 2, 0)
+                }
                 IrType::VecInt | IrType::VecString | IrType::VecBytes => {
                     LLVMPointerType(LLVMInt8TypeInContext(self.context), 0)
                 }
                 IrType::MapStringInt | IrType::MapStringString => {
                     LLVMPointerType(LLVMInt8TypeInContext(self.context), 0)
                 }
+                IrType::SliceInt | IrType::SliceString | IrType::SliceBytes => {
+                    // Slice is { ptr: *i8, len: i64 }
+                    let i8_ptr = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let mut fields = [i8_ptr, i64_ty];
+                    LLVMStructTypeInContext(self.context, fields.as_mut_ptr(), 2, 0)
+                }
                 IrType::Array { element, size } => {
                     let elem_ty = self.ir_type_to_llvm(element);
-                    LLVMArrayType(elem_ty, size.unwrap_or(0) as u32)
+                    LLVMArrayType2(elem_ty, size.unwrap_or(0) as u64)
                 }
                 IrType::Pointer(inner) => {
                     let inner_ty = self.ir_type_to_llvm(inner);

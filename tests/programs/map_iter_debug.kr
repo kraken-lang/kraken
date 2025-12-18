@@ -1,0 +1,18 @@
+// Debug: Map iteration
+fn main() -> int {
+    let m: MapStringInt = map_string_int_new();
+    map_string_int_set(m, "a", 1);
+    map_string_int_set(m, "b", 2);
+    
+    let map_len: int = map_string_int_len(m);
+    printf("Map length: ");
+    
+    let keys: VecString = map_string_int_keys(m);
+    let keys_len: int = vec_string_len(keys);
+    printf("Keys length: ");
+    
+    map_string_int_free(m);
+    vec_string_free(keys);
+    
+    return keys_len - 2;
+}

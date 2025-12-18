@@ -58,6 +58,8 @@ impl Parser {
             self.parse_public_declaration()
         } else if self.match_keyword(Keyword::Struct) {
             self.parse_struct_declaration(false)
+        } else if self.match_keyword(Keyword::Enum) {
+            self.parse_enum_declaration(false)
         } else if self.match_keyword(Keyword::Class) {
             self.parse_class_declaration(false)
         } else if self.match_keyword(Keyword::Interface) {
@@ -190,10 +192,12 @@ impl Parser {
             self.parse_function_declaration(false, true)
         } else if self.match_keyword(Keyword::Struct) {
             self.parse_struct_declaration(true)
+        } else if self.match_keyword(Keyword::Enum) {
+            self.parse_enum_declaration(true)
         } else if self.match_keyword(Keyword::Class) {
             self.parse_class_declaration(true)
         } else {
-            Err(self.error("Expected fn, struct, or class after pub"))
+            Err(self.error("Expected fn, struct, enum, or class after pub"))
         }
     }
 
@@ -210,6 +214,54 @@ impl Parser {
             fields,
             is_public,
         })
+    }
+
+    /// Parse an enum declaration.
+    fn parse_enum_declaration(&mut self, is_public: bool) -> CompilerResult<Statement> {
+        let name = self.consume_identifier()?;
+
+        self.expect_token(TokenKind::LeftBrace)?;
+        let variants = self.parse_enum_variants()?;
+        self.expect_token(TokenKind::RightBrace)?;
+
+        Ok(Statement::EnumDeclaration {
+            name,
+            variants,
+            is_public,
+        })
+    }
+
+    /// Parse enum variants.
+    fn parse_enum_variants(&mut self) -> CompilerResult<Vec<(String, Option<Vec<Type>>)>> {
+        let mut variants = Vec::new();
+
+        while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
+            let variant_name = self.consume_identifier()?;
+            
+            // Check for payload types: VariantName(Type1, Type2, ...)
+            let payload = if self.match_token(TokenKind::LeftParen) {
+                let mut types = Vec::new();
+                if !self.check_token(TokenKind::RightParen) {
+                    types.push(self.parse_type()?);
+                    while self.match_token(TokenKind::Comma) {
+                        types.push(self.parse_type()?);
+                    }
+                }
+                self.expect_token(TokenKind::RightParen)?;
+                Some(types)
+            } else {
+                None
+            };
+
+            variants.push((variant_name, payload));
+
+            // Variants separated by commas (optional trailing comma)
+            if !self.match_token(TokenKind::Comma) {
+                break;
+            }
+        }
+
+        Ok(variants)
     }
 
     /// Parse struct fields.
@@ -513,6 +565,27 @@ impl Parser {
             let name = self.consume_identifier()?;
             if name == "_" {
                 Ok(Pattern::Wildcard)
+            } else if self.match_token(TokenKind::ColonColon) {
+                // Enum variant pattern: EnumName::VariantName or EnumName::VariantName(bindings)
+                let variant_name = self.consume_identifier()?;
+                let bindings = if self.match_token(TokenKind::LeftParen) {
+                    let mut bindings = Vec::new();
+                    if !self.check_token(TokenKind::RightParen) {
+                        bindings.push(self.consume_identifier()?);
+                        while self.match_token(TokenKind::Comma) {
+                            bindings.push(self.consume_identifier()?);
+                        }
+                    }
+                    self.expect_token(TokenKind::RightParen)?;
+                    bindings
+                } else {
+                    Vec::new()
+                };
+                Ok(Pattern::EnumVariant {
+                    enum_name: name,
+                    variant_name,
+                    bindings,
+                })
             } else {
                 Ok(Pattern::Identifier(name))
             }
@@ -768,18 +841,52 @@ impl Parser {
                     arguments,
                 };
             } else if self.match_token(TokenKind::LeftBracket) {
-                let index = self.parse_expression()?;
-                self.expect_token(TokenKind::RightBracket)?;
-                expr = Expression::Index {
-                    array: Box::new(expr),
-                    index: Box::new(index),
-                };
+                let start_or_index = self.parse_expression()?;
+                
+                // Check for slice syntax: x[start:end]
+                if self.match_token(TokenKind::Colon) {
+                    let end = self.parse_expression()?;
+                    self.expect_token(TokenKind::RightBracket)?;
+                    expr = Expression::Slice {
+                        array: Box::new(expr),
+                        start: Box::new(start_or_index),
+                        end: Box::new(end),
+                    };
+                } else {
+                    self.expect_token(TokenKind::RightBracket)?;
+                    expr = Expression::Index {
+                        array: Box::new(expr),
+                        index: Box::new(start_or_index),
+                    };
+                }
             } else if self.match_token(TokenKind::Dot) {
                 let member = self.consume_identifier()?;
                 expr = Expression::MemberAccess {
                     object: Box::new(expr),
                     member,
                 };
+            } else if self.match_token(TokenKind::ColonColon) {
+                // Enum variant: EnumName::VariantName or EnumName::VariantName(payload)
+                if let Expression::Identifier(enum_name) = expr {
+                    let variant_name = self.consume_identifier()?;
+                    let payload = if self.match_token(TokenKind::LeftParen) {
+                        let args = self.parse_argument_list()?;
+                        self.expect_token(TokenKind::RightParen)?;
+                        Some(args)
+                    } else {
+                        None
+                    };
+                    expr = Expression::EnumVariant {
+                        enum_name,
+                        variant_name,
+                        payload,
+                    };
+                } else {
+                    return Err(CompilerError::parser_error(
+                        SourceLocation::new(self.file_path.clone(), self.peek().line, 0),
+                        "Expected identifier before '::'".to_string(),
+                    ));
+                }
             } else if self.check_token(TokenKind::LeftBrace) {
                 // Struct literal: Identifier { field: value, ... }
                 if let Expression::Identifier(struct_name) = expr {

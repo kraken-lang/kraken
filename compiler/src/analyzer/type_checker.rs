@@ -1,4 +1,4 @@
-use super::types::{FunctionType, StructType, TypeEnvironment};
+use super::types::{EnumType, FunctionType, StructType, TypeEnvironment};
 use crate::error::{CompilerError, CompilerResult, SourceLocation};
 use crate::ffi::stdlib::stdlib_functions;
 use crate::lexer::token::Operator;
@@ -629,6 +629,100 @@ impl TypeChecker {
             },
         );
 
+        // Map iteration intrinsics
+        env.define_function(
+            "map_string_int_keys".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringInt],
+                return_type: Type::VecString,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_int_values".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringInt],
+                return_type: Type::VecInt,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_string_keys".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringString],
+                return_type: Type::VecString,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "map_string_string_values".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::MapStringString],
+                return_type: Type::VecString,
+                is_async: false,
+            },
+        );
+
+        // String equality intrinsics
+        env.define_function(
+            "str_eq".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::String],
+                return_type: Type::Bool,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_ne".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::String],
+                return_type: Type::Bool,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "bytes_eq".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes, Type::Bytes],
+                return_type: Type::Bool,
+                is_async: false,
+            },
+        );
+
+        // String manipulation intrinsics
+        env.define_function(
+            "str_len".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_slice".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::Int, Type::Int],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_concat".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::String],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_char_at".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::Int],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+
         // String functions
         env.define_function(
             "strcpy".to_string(),
@@ -1203,11 +1297,17 @@ impl TypeChecker {
                 Ok(())
             }
 
-            Statement::InterfaceDeclaration {
-                name: _,
-                methods: _,
-            } => {
-                // Interface checking would be implemented here
+            Statement::InterfaceDeclaration { .. } => {
+                // TODO: Implement interface checking
+                Ok(())
+            }
+
+            Statement::EnumDeclaration { name, variants, .. } => {
+                // Register enum with proper variant tracking
+                let enum_type = EnumType::new(name.clone(), variants.clone());
+                self.env.define_enum(name.clone(), enum_type);
+                // Also register as custom type for type checking
+                self.env.define_struct(name.clone(), StructType::new(HashMap::new()));
                 Ok(())
             }
 
@@ -1326,6 +1426,33 @@ impl TypeChecker {
                             continue;
                         }
                         Pattern::Wildcard => {}
+                        Pattern::EnumVariant { enum_name, variant_name, bindings } => {
+                            // Create child env with bindings using actual payload types
+                            let mut arm_env = self.env.child();
+                            
+                            // Look up the enum and variant to get payload types
+                            if let Some(enum_type) = self.env.lookup_enum(enum_name) {
+                                // get_variant_payload returns Option<Option<Vec<Type>>>
+                                // Outer Option: variant exists? Inner Option: has payload?
+                                if let Some(Some(payload_types)) = enum_type.get_variant_payload(variant_name) {
+                                    // Bind each variable to its corresponding payload type
+                                    for (i, binding) in bindings.iter().enumerate() {
+                                        let binding_type = payload_types
+                                            .get(i)
+                                            .cloned()
+                                            .unwrap_or(Type::Int);
+                                        arm_env.define_variable(binding.clone(), binding_type);
+                                    }
+                                }
+                                // else: variant has no payload, no bindings to define
+                            }
+                            // else: enum not found, type checker already reported error
+                            
+                            let saved_env = std::mem::replace(&mut self.env, arm_env);
+                            self.check_block(&arm.body)?;
+                            self.env = saved_env;
+                            continue;
+                        }
                     }
 
                     self.check_block(&arm.body)?;
@@ -1484,6 +1611,36 @@ impl TypeChecker {
                 }
             }
 
+            Expression::Slice { array, start, end } => {
+                let array_type = self.check_expression(array)?;
+                let start_type = self.check_expression(start)?;
+                let end_type = self.check_expression(end)?;
+
+                if start_type != Type::Int {
+                    return Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Slice start must be int, found {start_type}"),
+                    ));
+                }
+                if end_type != Type::Int {
+                    return Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Slice end must be int, found {end_type}"),
+                    ));
+                }
+
+                // Slicing returns the same type (string -> string, bytes -> bytes)
+                match array_type {
+                    Type::String => Ok(Type::String),
+                    Type::Bytes => Ok(Type::Bytes),
+                    Type::Str => Ok(Type::Str),
+                    _ => Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Cannot slice type {array_type}"),
+                    )),
+                }
+            }
+
             Expression::MemberAccess { object, member } => {
                 let object_type = self.check_expression(object)?;
 
@@ -1592,6 +1749,31 @@ impl TypeChecker {
                     self.check_statement(stmt)?;
                 }
                 Ok(Type::Bytes) // Handle type placeholder
+            }
+
+            Expression::EnumVariant { enum_name, variant_name, payload } => {
+                // Verify enum exists and variant is valid
+                if let Some(enum_type) = self.env.lookup_enum(enum_name) {
+                    if !enum_type.has_variant(variant_name) {
+                        return Err(CompilerError::type_error(
+                            SourceLocation::new(self.file_path.clone(), 0, 0),
+                            format!("Unknown variant '{}' for enum '{}'", variant_name, enum_name),
+                        ));
+                    }
+                    // Type check payload if present
+                    if let Some(args) = payload {
+                        for arg in args {
+                            self.check_expression(arg)?;
+                        }
+                    }
+                    // Return the enum type
+                    Ok(Type::Custom(enum_name.clone()))
+                } else {
+                    Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Unknown enum '{}'", enum_name),
+                    ))
+                }
             }
         }
     }

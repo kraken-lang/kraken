@@ -1,0 +1,37 @@
+// Test: Map iteration (keys and values)
+// Expected: Compiles and runs, returns 0
+
+fn main() -> int {
+    // Test MapStringInt keys
+    let m1: MapStringInt = map_string_int_new();
+    map_string_int_set(m1, "a", 1);
+    map_string_int_set(m1, "b", 2);
+    
+    let keys1: VecString = map_string_int_keys(m1);
+    let keys_len: int = vec_string_len(keys1);
+    
+    let vals1: VecInt = map_string_int_values(m1);
+    let vals_len: int = vec_int_len(vals1);
+    
+    // Test MapStringString
+    let m2: MapStringString = map_string_string_new();
+    map_string_string_set(m2, "x", "hello");
+    map_string_string_set(m2, "y", "world");
+    
+    let keys2: VecString = map_string_string_keys(m2);
+    let keys2_len: int = vec_string_len(keys2);
+    
+    let vals2: VecString = map_string_string_values(m2);
+    let vals2_len: int = vec_string_len(vals2);
+    
+    // Cleanup
+    vec_string_free(keys1);
+    vec_int_free(vals1);
+    vec_string_free(keys2);
+    vec_string_free(vals2);
+    map_string_int_free(m1);
+    map_string_string_free(m2);
+    
+    // All should be 2
+    return (keys_len - 2) + (vals_len - 2) + (keys2_len - 2) + (vals2_len - 2);
+}

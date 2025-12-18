@@ -11,6 +11,8 @@ pub struct TypeEnvironment {
     functions: HashMap<String, FunctionType>,
     /// Struct definitions
     structs: HashMap<String, StructType>,
+    /// Enum definitions
+    enums: HashMap<String, EnumType>,
     /// Parent scope for nested environments
     parent: Option<Box<TypeEnvironment>>,
 }
@@ -22,6 +24,7 @@ impl TypeEnvironment {
             variables: HashMap::new(),
             functions: HashMap::new(),
             structs: HashMap::new(),
+            enums: HashMap::new(),
             parent: None,
         }
     }
@@ -32,6 +35,7 @@ impl TypeEnvironment {
             variables: HashMap::new(),
             functions: self.functions.clone(),
             structs: self.structs.clone(),
+            enums: self.enums.clone(),
             parent: Some(Box::new(self.clone())),
         }
     }
@@ -129,6 +133,22 @@ impl TypeEnvironment {
     pub fn has_variable_in_scope(&self, name: &str) -> bool {
         self.variables.contains_key(name)
     }
+
+    /// Define an enum in the current scope.
+    pub fn define_enum(&mut self, name: String, enum_type: EnumType) {
+        self.enums.insert(name, enum_type);
+    }
+
+    /// Look up an enum definition.
+    pub fn lookup_enum(&self, name: &str) -> Option<EnumType> {
+        if let Some(enum_type) = self.enums.get(name) {
+            Some(enum_type.clone())
+        } else if let Some(parent) = &self.parent {
+            parent.lookup_enum(name)
+        } else {
+            None
+        }
+    }
 }
 
 impl Default for TypeEnvironment {
@@ -143,6 +163,7 @@ impl Clone for TypeEnvironment {
             variables: self.variables.clone(),
             functions: self.functions.clone(),
             structs: self.structs.clone(),
+            enums: self.enums.clone(),
             parent: self.parent.clone(),
         }
     }
@@ -188,6 +209,52 @@ impl StructType {
     #[allow(dead_code)]
     pub fn has_field(&self, name: &str) -> bool {
         self.fields.contains_key(name)
+    }
+}
+
+/// Enum type definition.
+#[derive(Debug, Clone, PartialEq)]
+pub struct EnumType {
+    /// Enum name
+    pub name: String,
+    /// Variants: (variant_name, tag_value, optional_payload_types)
+    pub variants: Vec<(String, u32, Option<Vec<Type>>)>,
+}
+
+impl EnumType {
+    /// Create a new enum type.
+    pub fn new(name: String, variants: Vec<(String, Option<Vec<Type>>)>) -> Self {
+        let variants_with_tags: Vec<_> = variants
+            .into_iter()
+            .enumerate()
+            .map(|(i, (name, payload))| (name, i as u32, payload))
+            .collect();
+        Self {
+            name,
+            variants: variants_with_tags,
+        }
+    }
+
+    /// Get the tag value for a variant.
+    #[allow(dead_code)]
+    pub fn get_variant_tag(&self, variant_name: &str) -> Option<u32> {
+        self.variants
+            .iter()
+            .find(|(name, _, _)| name == variant_name)
+            .map(|(_, tag, _)| *tag)
+    }
+
+    /// Get the payload types for a variant.
+    pub fn get_variant_payload(&self, variant_name: &str) -> Option<Option<Vec<Type>>> {
+        self.variants
+            .iter()
+            .find(|(name, _, _)| name == variant_name)
+            .map(|(_, _, payload)| payload.clone())
+    }
+
+    /// Check if a variant exists.
+    pub fn has_variant(&self, variant_name: &str) -> bool {
+        self.variants.iter().any(|(name, _, _)| name == variant_name)
     }
 }
 
