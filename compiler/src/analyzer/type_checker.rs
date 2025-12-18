@@ -49,6 +49,256 @@ impl TypeChecker {
             },
         );
 
+        // Concurrency intrinsics
+        env.define_function(
+            "join".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes], // Handle type
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "join_all".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecBytes], // Array of handles
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "block_on".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes], // Future/handle
+                return_type: Type::Int, // Returns the result
+                is_async: false,
+            },
+        );
+
+        // Mutex intrinsics
+        env.define_function(
+            "mutex_new".to_string(),
+            FunctionType {
+                parameter_types: vec![],
+                return_type: Type::Bytes, // Mutex handle
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "mutex_lock".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes], // Mutex handle
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "mutex_unlock".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes], // Mutex handle
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "mutex_free".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes], // Mutex handle
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // Channel intrinsics
+        env.define_function(
+            "channel_new".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int], // Capacity
+                return_type: Type::Bytes, // Channel handle
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "channel_send".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes, Type::Int], // Channel, value
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "channel_recv".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes], // Channel
+                return_type: Type::Int, // Received value
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "channel_close".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes], // Channel
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // AtomicInt intrinsics
+        env.define_function(
+            "atomic_new".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int], // Initial value
+                return_type: Type::Bytes, // Atomic handle
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "atomic_load".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes], // Atomic handle
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "atomic_store".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes, Type::Int], // Atomic, value
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "atomic_add".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes, Type::Int], // Atomic, delta
+                return_type: Type::Int, // Previous value
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "atomic_sub".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes, Type::Int], // Atomic, delta
+                return_type: Type::Int, // Previous value
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "atomic_cas".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes, Type::Int, Type::Int], // Atomic, expected, new
+                return_type: Type::Int, // 1 if swapped, 0 otherwise
+                is_async: false,
+            },
+        );
+
+        // Timing intrinsics
+        env.define_function(
+            "sleep_ms".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int], // Milliseconds
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // Thread pool intrinsics
+        env.define_function(
+            "pool_new".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int], // Number of workers
+                return_type: Type::Bytes, // Pool handle
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "pool_spawn".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes, Type::Bytes], // Pool, task function ptr
+                return_type: Type::Bytes, // Task handle
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "pool_shutdown".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes], // Pool
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // Executor intrinsics
+        env.define_function(
+            "executor_new".to_string(),
+            FunctionType {
+                parameter_types: vec![],
+                return_type: Type::Bytes, // Executor handle
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "executor_spawn".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes, Type::Bytes], // Executor, future
+                return_type: Type::Bytes, // Task handle
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "executor_run".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes], // Executor
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "executor_shutdown".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes], // Executor
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // Cancellation intrinsics
+        env.define_function(
+            "cancel_token_new".to_string(),
+            FunctionType {
+                parameter_types: vec![],
+                return_type: Type::Bytes, // Token handle
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "cancel_token_cancel".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes], // Token
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "cancel_token_is_cancelled".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes], // Token
+                return_type: Type::Int, // 1 if cancelled, 0 otherwise
+                is_async: false,
+            },
+        );
+
+        // Timeout intrinsics
+        env.define_function(
+            "timeout".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes, Type::Int], // Future, milliseconds
+                return_type: Type::Int, // 0 = completed, 1 = timed out
+                is_async: false,
+            },
+        );
+
         // VecInt intrinsics
         env.define_function(
             "vec_int_new".to_string(),
@@ -1327,6 +1577,21 @@ impl TypeChecker {
                         "Cannot dereference non-reference/pointer type",
                     )),
                 }
+            }
+
+            Expression::Await { expression } => {
+                // For now, await returns the inner type (Future<T> -> T)
+                // Full implementation will check for Future type
+                self.check_expression(expression)
+            }
+
+            Expression::Spawn { body } => {
+                // Spawn returns a handle type (for now, use Bytes as opaque handle)
+                // Check the body for type errors
+                for stmt in &body.statements {
+                    self.check_statement(stmt)?;
+                }
+                Ok(Type::Bytes) // Handle type placeholder
             }
         }
     }

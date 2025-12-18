@@ -1,0 +1,14 @@
+// Test: Basic spawn syntax
+// Expected: Compiles and runs, prints messages
+
+fn work() -> void {
+    printf("Working in spawned task!\n");
+}
+
+fn main() -> int {
+    let handle: bytes = spawn {
+        work();
+    };
+    printf("Main continues...\n");
+    return 0;
+}

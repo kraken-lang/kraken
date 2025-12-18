@@ -1,0 +1,9 @@
+// Test: sleep_ms timing
+// Expected: Compiles and runs, returns 0
+
+fn main() -> int {
+    printf("Sleeping for 100ms...\n");
+    sleep_ms(100);
+    printf("Done!\n");
+    return 0;
+}

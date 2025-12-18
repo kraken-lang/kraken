@@ -1,0 +1,50 @@
+// Example: Complete async workflow demonstrating Kraken concurrency features
+// This showcases async/await, spawn, join, mutex, channel, and atomics
+
+fn worker(counter: bytes, ch: bytes) -> void {
+    // Atomically increment shared counter
+    let prev: int = atomic_add(counter, 1);
+    
+    // Send result to channel
+    channel_send(ch, prev);
+    
+    printf("Worker done\n");
+}
+
+fn main() -> int {
+    printf("=== Kraken Async Workflow Demo ===\n");
+    
+    // Create shared atomic counter
+    let counter: bytes = atomic_new(0);
+    
+    // Create channel for results
+    let results: bytes = channel_new(10);
+    
+    // Create mutex for synchronized printing
+    let print_lock: bytes = mutex_new();
+    
+    // Spawn multiple concurrent tasks
+    printf("Spawning 3 worker tasks...\n");
+    
+    let h1: bytes = spawn { worker(counter, results); };
+    let h2: bytes = spawn { worker(counter, results); };
+    let h3: bytes = spawn { worker(counter, results); };
+    
+    // Wait for all tasks
+    join(h1);
+    join(h2);
+    join(h3);
+    
+    // Read final counter value (should be 3)
+    let final_count: int = atomic_load(counter);
+    printf("All workers completed!\n");
+    
+    // Cleanup
+    channel_close(results);
+    mutex_free(print_lock);
+    
+    printf("=== Demo Complete ===\n");
+    
+    // Return 0 if counter is 3 (success)
+    return final_count - 3;
+}

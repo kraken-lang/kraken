@@ -44,6 +44,10 @@ impl Parser {
             self.parse_variable_declaration(false)
         } else if self.match_keyword(Keyword::Const) {
             self.parse_constant_declaration()
+        } else if self.match_keyword(Keyword::Async) {
+            // async fn declaration
+            self.expect_keyword(Keyword::Fn)?;
+            self.parse_function_declaration(true, false)
         } else if self.match_keyword(Keyword::Fn) {
             self.parse_function_declaration(false, false)
         } else if self.match_keyword(Keyword::Module) {
@@ -712,6 +716,19 @@ impl Parser {
 
     /// Parse unary expression.
     fn parse_unary(&mut self) -> CompilerResult<Expression> {
+        // Handle await expression
+        if self.match_keyword(Keyword::Await) {
+            let expression = Box::new(self.parse_unary()?);
+            return Ok(Expression::Await { expression });
+        }
+
+        // Handle spawn expression
+        if self.match_keyword(Keyword::Spawn) {
+            // parse_block expects to consume the opening brace itself
+            let body = self.parse_block()?;
+            return Ok(Expression::Spawn { body });
+        }
+
         if let Some(op) = self.match_operators(&[
             Operator::Not,
             Operator::Minus,

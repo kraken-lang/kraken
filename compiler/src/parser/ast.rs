@@ -188,6 +188,12 @@ pub enum Expression {
 
     /// Dereference (*expr)
     Dereference { expression: Box<Expression> },
+
+    /// Await expression (await expr)
+    Await { expression: Box<Expression> },
+
+    /// Spawn expression (spawn { block })
+    Spawn { body: Block },
 }
 
 /// Code block containing statements.

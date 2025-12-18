@@ -474,6 +474,41 @@ impl IrLowering {
                 });
                 Ok(IrValue::Register(dest))
             }
+
+            Expression::Await { expression } => {
+                // Lower the awaited expression
+                // This will be transformed by state machine lowering later
+                let future_val = self.lower_expression(expression, ir_block)?;
+                let dest = self.alloc_value();
+                // Emit a special await call that state machine lowering will process
+                ir_block.instructions.push(IrInstruction::Call {
+                    dest: Some(dest),
+                    func: "__await".to_string(),
+                    args: vec![future_val],
+                    ret_ty: IrType::Int, // Placeholder, actual type from future
+                });
+                Ok(IrValue::Register(dest))
+            }
+
+            Expression::Spawn { body } => {
+                // Lower the spawn body into a separate function-like structure
+                // For now, emit a spawn call with the body as a closure
+                let dest = self.alloc_value();
+                
+                // Lower body statements
+                for stmt in &body.statements {
+                    self.lower_statement(stmt, ir_block)?;
+                }
+                
+                // Emit spawn call (returns handle)
+                ir_block.instructions.push(IrInstruction::Call {
+                    dest: Some(dest),
+                    func: "__spawn".to_string(),
+                    args: vec![],
+                    ret_ty: IrType::Bytes, // Handle type
+                });
+                Ok(IrValue::Register(dest))
+            }
         }
     }
 

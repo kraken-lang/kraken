@@ -1,0 +1,15 @@
+// Test: spawn with join
+// Expected: Compiles and runs, prints messages in order
+
+fn work() -> void {
+    printf("Task completed!\n");
+}
+
+fn main() -> int {
+    let handle: bytes = spawn {
+        work();
+    };
+    join(handle);
+    printf("After join\n");
+    return 0;
+}

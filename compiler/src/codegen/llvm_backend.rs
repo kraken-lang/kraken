@@ -1692,6 +1692,472 @@ impl LLVMCodegen {
                             return Ok(val);
                         }
 
+                        // Concurrency intrinsics
+                        if name == "join" {
+                            // For now, join is a no-op since spawn executes inline
+                            // Full implementation will wait for the spawned task
+                            if arguments.len() != 1 {
+                                return Err(CompilerError::codegen_error(
+                                    "join expects exactly 1 argument (handle)",
+                                ));
+                            }
+                            // Evaluate the handle argument (for side effects)
+                            let _handle = self.codegen_expression(&arguments[0])?;
+                            // Return void (represented as undef)
+                            let void_ty = LLVMVoidTypeInContext(self.context);
+                            return Ok(LLVMGetUndef(void_ty));
+                        }
+
+                        if name == "join_all" {
+                            // For now, join_all is a no-op since spawn executes inline
+                            // Full implementation will wait for all spawned tasks
+                            if arguments.len() != 1 {
+                                return Err(CompilerError::codegen_error(
+                                    "join_all expects exactly 1 argument (VecBytes of handles)",
+                                ));
+                            }
+                            // Evaluate the handles argument (for side effects)
+                            let _handles = self.codegen_expression(&arguments[0])?;
+                            // Return void (represented as undef)
+                            let void_ty = LLVMVoidTypeInContext(self.context);
+                            return Ok(LLVMGetUndef(void_ty));
+                        }
+
+                        if name == "block_on" {
+                            // For now, block_on just returns 0 since async executes inline
+                            // Full implementation will run the executor until completion
+                            if arguments.len() != 1 {
+                                return Err(CompilerError::codegen_error(
+                                    "block_on expects exactly 1 argument (future/handle)",
+                                ));
+                            }
+                            // Evaluate the future argument (for side effects)
+                            let _future = self.codegen_expression(&arguments[0])?;
+                            // Return 0 as placeholder result
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            return Ok(LLVMConstInt(i64_ty, 0, 0));
+                        }
+
+                        // Mutex intrinsics (placeholder - no actual locking yet)
+                        if name == "mutex_new" {
+                            // Allocate a dummy mutex (just a pointer for now)
+                            let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
+                                CompilerError::codegen_error("Missing malloc")
+                            })?;
+                            let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let mutex_ptr = LLVMBuildCall2(
+                                self.builder,
+                                malloc_ty,
+                                malloc_fn,
+                                [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                                1,
+                                c"mutex".as_ptr(),
+                            );
+                            return Ok(mutex_ptr);
+                        }
+
+                        if name == "mutex_lock" || name == "mutex_unlock" || name == "mutex_free" {
+                            // For now, these are no-ops
+                            // Full implementation will use pthread_mutex or similar
+                            if arguments.len() != 1 {
+                                return Err(CompilerError::codegen_error(format!(
+                                    "{} expects exactly 1 argument (mutex handle)",
+                                    name
+                                )));
+                            }
+                            let _mutex = self.codegen_expression(&arguments[0])?;
+                            
+                            if name == "mutex_free" {
+                                // Could call free here, but skip for now
+                            }
+                            
+                            let void_ty = LLVMVoidTypeInContext(self.context);
+                            return Ok(LLVMGetUndef(void_ty));
+                        }
+
+                        // Channel intrinsics (placeholder - simple queue for now)
+                        if name == "channel_new" {
+                            // Allocate a channel struct: { data_ptr, capacity, head, tail, count }
+                            let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
+                                CompilerError::codegen_error("Missing malloc")
+                            })?;
+                            let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            // 40 bytes: ptr(8) + cap(8) + head(8) + tail(8) + count(8)
+                            let channel_ptr = LLVMBuildCall2(
+                                self.builder,
+                                malloc_ty,
+                                malloc_fn,
+                                [LLVMConstInt(i64_ty, 40, 0)].as_mut_ptr(),
+                                1,
+                                c"channel".as_ptr(),
+                            );
+                            return Ok(channel_ptr);
+                        }
+
+                        if name == "channel_send" {
+                            // Placeholder: just evaluates args
+                            if arguments.len() != 2 {
+                                return Err(CompilerError::codegen_error(
+                                    "channel_send expects 2 arguments (channel, value)",
+                                ));
+                            }
+                            let _channel = self.codegen_expression(&arguments[0])?;
+                            let _value = self.codegen_expression(&arguments[1])?;
+                            let void_ty = LLVMVoidTypeInContext(self.context);
+                            return Ok(LLVMGetUndef(void_ty));
+                        }
+
+                        if name == "channel_recv" {
+                            // Placeholder: returns 0
+                            if arguments.len() != 1 {
+                                return Err(CompilerError::codegen_error(
+                                    "channel_recv expects 1 argument (channel)",
+                                ));
+                            }
+                            let _channel = self.codegen_expression(&arguments[0])?;
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            return Ok(LLVMConstInt(i64_ty, 0, 0));
+                        }
+
+                        if name == "channel_close" {
+                            // Placeholder: no-op
+                            if arguments.len() != 1 {
+                                return Err(CompilerError::codegen_error(
+                                    "channel_close expects 1 argument (channel)",
+                                ));
+                            }
+                            let _channel = self.codegen_expression(&arguments[0])?;
+                            let void_ty = LLVMVoidTypeInContext(self.context);
+                            return Ok(LLVMGetUndef(void_ty));
+                        }
+
+                        // AtomicInt intrinsics
+                        if name == "atomic_new" {
+                            // Allocate 8 bytes for an i64 atomic value
+                            let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
+                                CompilerError::codegen_error("Missing malloc")
+                            })?;
+                            let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let atomic_ptr = LLVMBuildCall2(
+                                self.builder,
+                                malloc_ty,
+                                malloc_fn,
+                                [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                                1,
+                                c"atomic".as_ptr(),
+                            );
+                            // Store initial value
+                            if arguments.len() == 1 {
+                                let init_val = self.codegen_expression(&arguments[0])?;
+                                let ptr_typed = LLVMBuildBitCast(
+                                    self.builder,
+                                    atomic_ptr,
+                                    LLVMPointerType(i64_ty, 0),
+                                    c"".as_ptr(),
+                                );
+                                LLVMBuildStore(self.builder, init_val, ptr_typed);
+                            }
+                            return Ok(atomic_ptr);
+                        }
+
+                        if name == "atomic_load" {
+                            if arguments.len() != 1 {
+                                return Err(CompilerError::codegen_error(
+                                    "atomic_load expects 1 argument",
+                                ));
+                            }
+                            let atomic_ptr = self.codegen_expression(&arguments[0])?;
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let ptr_typed = LLVMBuildBitCast(
+                                self.builder,
+                                atomic_ptr,
+                                LLVMPointerType(i64_ty, 0),
+                                c"".as_ptr(),
+                            );
+                            let val = LLVMBuildLoad2(self.builder, i64_ty, ptr_typed, c"atomic.load".as_ptr());
+                            return Ok(val);
+                        }
+
+                        if name == "atomic_store" {
+                            if arguments.len() != 2 {
+                                return Err(CompilerError::codegen_error(
+                                    "atomic_store expects 2 arguments",
+                                ));
+                            }
+                            let atomic_ptr = self.codegen_expression(&arguments[0])?;
+                            let value = self.codegen_expression(&arguments[1])?;
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let ptr_typed = LLVMBuildBitCast(
+                                self.builder,
+                                atomic_ptr,
+                                LLVMPointerType(i64_ty, 0),
+                                c"".as_ptr(),
+                            );
+                            LLVMBuildStore(self.builder, value, ptr_typed);
+                            let void_ty = LLVMVoidTypeInContext(self.context);
+                            return Ok(LLVMGetUndef(void_ty));
+                        }
+
+                        if name == "atomic_add" {
+                            if arguments.len() != 2 {
+                                return Err(CompilerError::codegen_error(
+                                    "atomic_add expects 2 arguments",
+                                ));
+                            }
+                            let atomic_ptr = self.codegen_expression(&arguments[0])?;
+                            let delta = self.codegen_expression(&arguments[1])?;
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let ptr_typed = LLVMBuildBitCast(
+                                self.builder,
+                                atomic_ptr,
+                                LLVMPointerType(i64_ty, 0),
+                                c"".as_ptr(),
+                            );
+                            // AtomicRMW Add
+                            let prev = LLVMBuildAtomicRMW(
+                                self.builder,
+                                llvm_sys::LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpAdd,
+                                ptr_typed,
+                                delta,
+                                llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingSequentiallyConsistent,
+                                0, // not single-threaded
+                            );
+                            return Ok(prev);
+                        }
+
+                        if name == "atomic_sub" {
+                            if arguments.len() != 2 {
+                                return Err(CompilerError::codegen_error(
+                                    "atomic_sub expects 2 arguments",
+                                ));
+                            }
+                            let atomic_ptr = self.codegen_expression(&arguments[0])?;
+                            let delta = self.codegen_expression(&arguments[1])?;
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let ptr_typed = LLVMBuildBitCast(
+                                self.builder,
+                                atomic_ptr,
+                                LLVMPointerType(i64_ty, 0),
+                                c"".as_ptr(),
+                            );
+                            // AtomicRMW Sub
+                            let prev = LLVMBuildAtomicRMW(
+                                self.builder,
+                                llvm_sys::LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpSub,
+                                ptr_typed,
+                                delta,
+                                llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingSequentiallyConsistent,
+                                0,
+                            );
+                            return Ok(prev);
+                        }
+
+                        if name == "atomic_cas" {
+                            if arguments.len() != 3 {
+                                return Err(CompilerError::codegen_error(
+                                    "atomic_cas expects 3 arguments (atomic, expected, new)",
+                                ));
+                            }
+                            let atomic_ptr = self.codegen_expression(&arguments[0])?;
+                            let expected = self.codegen_expression(&arguments[1])?;
+                            let new_val = self.codegen_expression(&arguments[2])?;
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let ptr_typed = LLVMBuildBitCast(
+                                self.builder,
+                                atomic_ptr,
+                                LLVMPointerType(i64_ty, 0),
+                                c"".as_ptr(),
+                            );
+                            // AtomicCmpXchg
+                            let result = LLVMBuildAtomicCmpXchg(
+                                self.builder,
+                                ptr_typed,
+                                expected,
+                                new_val,
+                                llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingSequentiallyConsistent,
+                                llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingSequentiallyConsistent,
+                                0,
+                            );
+                            // Extract success flag (second element of { i64, i1 })
+                            let success = LLVMBuildExtractValue(self.builder, result, 1, c"cas.success".as_ptr());
+                            // Zero-extend i1 to i64
+                            let success_i64 = LLVMBuildZExt(self.builder, success, i64_ty, c"".as_ptr());
+                            return Ok(success_i64);
+                        }
+
+                        // Timing intrinsics
+                        if name == "sleep_ms" {
+                            // Placeholder: evaluates argument but doesn't actually sleep
+                            // Full implementation will use platform-specific timing
+                            if arguments.len() != 1 {
+                                return Err(CompilerError::codegen_error(
+                                    "sleep_ms expects 1 argument (milliseconds)",
+                                ));
+                            }
+                            let _ms = self.codegen_expression(&arguments[0])?;
+                            let void_ty = LLVMVoidTypeInContext(self.context);
+                            return Ok(LLVMGetUndef(void_ty));
+                        }
+
+                        // Thread pool intrinsics
+                        if name == "pool_new" {
+                            // Allocate pool struct: { num_workers, queue_ptr, running }
+                            let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
+                                CompilerError::codegen_error("Missing malloc")
+                            })?;
+                            let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let pool_ptr = LLVMBuildCall2(
+                                self.builder,
+                                malloc_ty,
+                                malloc_fn,
+                                [LLVMConstInt(i64_ty, 24, 0)].as_mut_ptr(),
+                                1,
+                                c"pool".as_ptr(),
+                            );
+                            // Store num_workers if provided
+                            if arguments.len() == 1 {
+                                let num_workers = self.codegen_expression(&arguments[0])?;
+                                let ptr_typed = LLVMBuildBitCast(
+                                    self.builder,
+                                    pool_ptr,
+                                    LLVMPointerType(i64_ty, 0),
+                                    c"".as_ptr(),
+                                );
+                                LLVMBuildStore(self.builder, num_workers, ptr_typed);
+                            }
+                            return Ok(pool_ptr);
+                        }
+
+                        if name == "pool_spawn" || name == "pool_shutdown" {
+                            // Placeholder implementations
+                            for arg in arguments {
+                                let _ = self.codegen_expression(arg)?;
+                            }
+                            if name == "pool_spawn" {
+                                // Return dummy handle
+                                let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                                return Ok(LLVMConstNull(i8_ptr_ty));
+                            }
+                            let void_ty = LLVMVoidTypeInContext(self.context);
+                            return Ok(LLVMGetUndef(void_ty));
+                        }
+
+                        // Executor intrinsics
+                        if name == "executor_new" {
+                            // Allocate executor struct
+                            let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
+                                CompilerError::codegen_error("Missing malloc")
+                            })?;
+                            let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let exec_ptr = LLVMBuildCall2(
+                                self.builder,
+                                malloc_ty,
+                                malloc_fn,
+                                [LLVMConstInt(i64_ty, 32, 0)].as_mut_ptr(),
+                                1,
+                                c"executor".as_ptr(),
+                            );
+                            return Ok(exec_ptr);
+                        }
+
+                        if name == "executor_spawn" || name == "executor_run" || name == "executor_shutdown" {
+                            // Placeholder implementations
+                            for arg in arguments {
+                                let _ = self.codegen_expression(arg)?;
+                            }
+                            if name == "executor_spawn" {
+                                let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                                return Ok(LLVMConstNull(i8_ptr_ty));
+                            }
+                            let void_ty = LLVMVoidTypeInContext(self.context);
+                            return Ok(LLVMGetUndef(void_ty));
+                        }
+
+                        // Cancellation intrinsics
+                        if name == "cancel_token_new" {
+                            // Allocate token: single i64 flag (0 = not cancelled, 1 = cancelled)
+                            let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
+                                CompilerError::codegen_error("Missing malloc")
+                            })?;
+                            let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let token_ptr = LLVMBuildCall2(
+                                self.builder,
+                                malloc_ty,
+                                malloc_fn,
+                                [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                                1,
+                                c"cancel_token".as_ptr(),
+                            );
+                            // Initialize to 0 (not cancelled)
+                            let ptr_typed = LLVMBuildBitCast(
+                                self.builder,
+                                token_ptr,
+                                LLVMPointerType(i64_ty, 0),
+                                c"".as_ptr(),
+                            );
+                            LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), ptr_typed);
+                            return Ok(token_ptr);
+                        }
+
+                        if name == "cancel_token_cancel" {
+                            if arguments.len() != 1 {
+                                return Err(CompilerError::codegen_error(
+                                    "cancel_token_cancel expects 1 argument",
+                                ));
+                            }
+                            let token_ptr = self.codegen_expression(&arguments[0])?;
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let ptr_typed = LLVMBuildBitCast(
+                                self.builder,
+                                token_ptr,
+                                LLVMPointerType(i64_ty, 0),
+                                c"".as_ptr(),
+                            );
+                            // Atomic store 1 to mark as cancelled
+                            LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 1, 0), ptr_typed);
+                            let void_ty = LLVMVoidTypeInContext(self.context);
+                            return Ok(LLVMGetUndef(void_ty));
+                        }
+
+                        if name == "cancel_token_is_cancelled" {
+                            if arguments.len() != 1 {
+                                return Err(CompilerError::codegen_error(
+                                    "cancel_token_is_cancelled expects 1 argument",
+                                ));
+                            }
+                            let token_ptr = self.codegen_expression(&arguments[0])?;
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let ptr_typed = LLVMBuildBitCast(
+                                self.builder,
+                                token_ptr,
+                                LLVMPointerType(i64_ty, 0),
+                                c"".as_ptr(),
+                            );
+                            let val = LLVMBuildLoad2(self.builder, i64_ty, ptr_typed, c"cancelled".as_ptr());
+                            return Ok(val);
+                        }
+
+                        // Timeout intrinsic
+                        if name == "timeout" {
+                            // Placeholder: always returns 0 (completed, not timed out)
+                            // Full implementation would check elapsed time
+                            if arguments.len() != 2 {
+                                return Err(CompilerError::codegen_error(
+                                    "timeout expects 2 arguments (future, milliseconds)",
+                                ));
+                            }
+                            let _future = self.codegen_expression(&arguments[0])?;
+                            let _ms = self.codegen_expression(&arguments[1])?;
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            return Ok(LLVMConstInt(i64_ty, 0, 0)); // 0 = completed
+                        }
+
                         // VecInt intrinsics
                         if let Some(result) = self.codegen_vec_int_intrinsic(name, arguments)? {
                             return Ok(result);
@@ -2098,6 +2564,23 @@ impl LLVMCodegen {
                         ptr_val,
                         load_name.as_ptr(),
                     ))
+                }
+
+                Expression::Await { expression } => {
+                    // For now, await just evaluates the expression
+                    // Full implementation will integrate with runtime executor
+                    self.codegen_expression(expression)
+                }
+
+                Expression::Spawn { body } => {
+                    // For now, spawn executes the body inline and returns a dummy handle
+                    // Full implementation will spawn a task on the runtime
+                    for stmt in &body.statements {
+                        self.codegen_statement(stmt)?;
+                    }
+                    // Return a null handle for now
+                    let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    Ok(LLVMConstNull(i8_ptr_ty))
                 }
 
                 _ => Err(CompilerError::codegen_error("Unsupported expression type")),

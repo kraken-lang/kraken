@@ -1,0 +1,12 @@
+// Test: Basic Channel usage
+// Expected: Compiles and runs, returns 0
+
+fn main() -> int {
+    let ch: bytes = channel_new(10);
+    
+    channel_send(ch, 42);
+    let val: int = channel_recv(ch);
+    
+    channel_close(ch);
+    return 0;
+}

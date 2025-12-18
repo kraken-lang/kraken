@@ -1,0 +1,19 @@
+// Test: Cancellation token usage
+// Expected: Compiles and runs, returns 0
+
+fn main() -> int {
+    let token: bytes = cancel_token_new();
+    
+    // Check initial state (not cancelled)
+    let is_cancelled: int = cancel_token_is_cancelled(token);
+    
+    // Cancel the token
+    cancel_token_cancel(token);
+    
+    // Check cancelled state
+    let after_cancel: int = cancel_token_is_cancelled(token);
+    
+    // is_cancelled should be 0, after_cancel should be 1
+    // Return 0 if after_cancel == 1 and is_cancelled == 0
+    return after_cancel - 1 + is_cancelled;
+}

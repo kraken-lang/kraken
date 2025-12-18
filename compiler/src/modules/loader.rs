@@ -608,6 +608,21 @@ fn rewrite_expression(expr: Expression, private_mangle: &HashMap<String, String>
             expression: Box::new(rewrite_expression(*expression, private_mangle)),
         },
 
+        Expression::Await { expression } => Expression::Await {
+            expression: Box::new(rewrite_expression(*expression, private_mangle)),
+        },
+
+        Expression::Spawn { body } => {
+            let statements: Vec<_> = body
+                .statements
+                .into_iter()
+                .filter_map(|s| rewrite_statement(Path::new("<spawn>"), s, private_mangle).ok())
+                .collect();
+            Expression::Spawn {
+                body: Block::new(statements),
+            }
+        },
+
         Expression::IntLiteral(_)
         | Expression::FloatLiteral(_)
         | Expression::StringLiteral(_)

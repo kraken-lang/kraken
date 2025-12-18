@@ -421,6 +421,21 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
             errno: ErrnoConvention::None,
             c_int_widening: None,
         },
+        // Timing
+        StdlibFnSig {
+            name: "sleep",
+            kraken_params: &[Type::Int],
+            kraken_return: Type::Int,
+            is_vararg: false,
+            c_abi_params: &[AbiType::I32],
+            c_abi_param_nullability: &[Nullability::NonNull],
+            c_abi_param_ownership: &[Ownership::Borrowed],
+            c_abi_return: AbiType::I32,
+            c_abi_return_nullability: Nullability::NonNull,
+            c_abi_return_ownership: Ownership::Borrowed,
+            errno: ErrnoConvention::None,
+            c_int_widening: Some(CIntWidening::Signed),
+        },
         StdlibFnSig {
             name: "strlen",
             kraken_params: &[Type::String],

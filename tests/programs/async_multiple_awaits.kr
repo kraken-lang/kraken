@@ -1,0 +1,24 @@
+// Test: Multiple await expressions in sequence
+// Expected: Compiles and runs, returns 0
+
+async fn get_a() -> int {
+    return 10;
+}
+
+async fn get_b() -> int {
+    return 20;
+}
+
+async fn get_c() -> int {
+    return 30;
+}
+
+fn main() -> int {
+    let a: int = await get_a();
+    let b: int = await get_b();
+    let c: int = await get_c();
+    let sum: int = a + b + c;
+    
+    // sum should be 60, return 0 on success
+    return sum - 60;
+}

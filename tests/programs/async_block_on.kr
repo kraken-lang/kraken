@@ -1,0 +1,12 @@
+// Test: block_on to run async from sync context
+// Expected: Compiles and runs, returns 0
+
+async fn compute() -> int {
+    return 42;
+}
+
+fn main() -> int {
+    let future: bytes = spawn { compute(); };
+    let result: int = block_on(future);
+    return result;
+}

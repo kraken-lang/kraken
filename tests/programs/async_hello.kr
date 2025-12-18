@@ -1,0 +1,12 @@
+// Test: Basic async function syntax
+// Expected: Compiles and runs, prints "Hello from async!"
+
+async fn greet() -> int {
+    printf("Hello from async!\n");
+    return 42;
+}
+
+fn main() -> int {
+    let result: int = await greet();
+    return result - 42;
+}

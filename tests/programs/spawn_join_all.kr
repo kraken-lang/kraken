@@ -1,0 +1,28 @@
+// Test: spawn multiple tasks and join each
+// Expected: Compiles and runs, prints messages
+
+fn task1() -> void {
+    printf("Task 1 done\n");
+}
+
+fn task2() -> void {
+    printf("Task 2 done\n");
+}
+
+fn task3() -> void {
+    printf("Task 3 done\n");
+}
+
+fn main() -> int {
+    let h1: bytes = spawn { task1(); };
+    let h2: bytes = spawn { task2(); };
+    let h3: bytes = spawn { task3(); };
+    
+    // Join each individually (until VecBytes can store bytes properly)
+    join(h1);
+    join(h2);
+    join(h3);
+    
+    printf("All tasks completed\n");
+    return 0;
+}

@@ -1,0 +1,25 @@
+// Test: AtomicInt operations
+// Expected: Compiles and runs, returns 0
+
+fn main() -> int {
+    let counter: bytes = atomic_new(0);
+    
+    // Test store/load
+    atomic_store(counter, 100);
+    let val: int = atomic_load(counter);
+    
+    // Test atomic add
+    let prev: int = atomic_add(counter, 10);
+    let after_add: int = atomic_load(counter);
+    
+    // Test atomic sub
+    let prev2: int = atomic_sub(counter, 5);
+    let after_sub: int = atomic_load(counter);
+    
+    // Test CAS
+    let swapped: int = atomic_cas(counter, 105, 200);
+    let final_val: int = atomic_load(counter);
+    
+    // Verify: val=100, prev=100, after_add=110, prev2=110, after_sub=105, swapped=1, final=200
+    return final_val - 200;
+}

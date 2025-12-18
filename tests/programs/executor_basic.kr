@@ -1,0 +1,14 @@
+// Test: Basic executor usage
+// Expected: Compiles and runs, returns 0
+
+fn main() -> int {
+    let exec: bytes = executor_new();
+    
+    printf("Executor created\n");
+    
+    executor_run(exec);
+    executor_shutdown(exec);
+    
+    printf("Executor shutdown complete\n");
+    return 0;
+}

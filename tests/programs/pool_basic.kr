@@ -1,0 +1,13 @@
+// Test: Basic thread pool usage
+// Expected: Compiles and runs, returns 0
+
+fn main() -> int {
+    let pool: bytes = pool_new(4);
+    
+    printf("Thread pool created with 4 workers\n");
+    
+    pool_shutdown(pool);
+    printf("Pool shutdown complete\n");
+    
+    return 0;
+}

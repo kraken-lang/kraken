@@ -17,6 +17,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.8.8] - 2025-12-17
+
+### Added
+
+- Added `async fn` function declaration syntax.
+- Added `await` expression for suspending async functions.
+- Added `spawn { }` expression for concurrent task execution.
+- Added `join(handle)` function to wait for spawned tasks.
+- Added `join_all(handles)` function to wait for multiple spawned tasks.
+- Added `block_on(future)` function for running async from sync context.
+- Added `mutex_new`, `mutex_lock`, `mutex_unlock`, `mutex_free` for thread synchronization.
+- Added `channel_new`, `channel_send`, `channel_recv`, `channel_close` for inter-task communication.
+- Added `atomic_new`, `atomic_load`, `atomic_store`, `atomic_add`, `atomic_sub`, `atomic_cas` for lock-free programming.
+- Added `sleep_ms` timing function.
+- Added `pool_new`, `pool_spawn`, `pool_shutdown` for thread pool management.
+- Added `executor_new`, `executor_spawn`, `executor_run`, `executor_shutdown` for async task execution.
+- Added `cancel_token_new`, `cancel_token_cancel`, `cancel_token_is_cancelled` for cooperative cancellation.
+- Added `timeout` function for time-bounded operations.
+- Added `await` and `spawn` keywords to lexer.
+- Added `Await` and `Spawn` AST expression nodes.
+
 ## [0.8.7] - 2025-12-17
 
 ### Added

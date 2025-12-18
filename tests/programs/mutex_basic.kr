@@ -1,0 +1,13 @@
+// Test: Basic Mutex usage
+// Expected: Compiles and runs, returns 0
+
+fn main() -> int {
+    let m: bytes = mutex_new();
+    
+    mutex_lock(m);
+    printf("Inside critical section\n");
+    mutex_unlock(m);
+    
+    mutex_free(m);
+    return 0;
+}

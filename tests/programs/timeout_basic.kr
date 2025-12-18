@@ -1,0 +1,14 @@
+// Test: Timeout function usage
+// Expected: Compiles and runs, returns 0
+
+fn main() -> int {
+    let handle: bytes = spawn { printf("Task running\n"); };
+    
+    // timeout returns 0 if completed, 1 if timed out
+    let result: int = timeout(handle, 1000);
+    
+    printf("Timeout check complete\n");
+    
+    // Should return 0 (completed)
+    return result;
+}
