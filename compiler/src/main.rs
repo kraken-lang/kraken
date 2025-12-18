@@ -281,16 +281,25 @@ version = "0.1.0"
 
 /// Compile a single source file to executable.
 async fn compile_file(file: &Path) -> Result<PathBuf> {
+    let profile = std::env::var("KRAKEN_PROFILE").is_ok();
+    let total_start = std::time::Instant::now();
+
     crate::ffi::stdlib::validate_stdlib_table()
         .map_err(|e| anyhow::anyhow!(e))
         .context("Invalid stdlib/FFI signature table")?;
 
+    // Phase 1: Parsing
+    let parse_start = std::time::Instant::now();
     let program = loader::load_program(file).await?;
+    let parse_time = parse_start.elapsed();
 
+    // Phase 2: Type checking
+    let typecheck_start = std::time::Instant::now();
     let mut type_checker = TypeChecker::new(file.to_path_buf());
     type_checker
         .check_program(&program)
         .context("Type checking error")?;
+    let typecheck_time = typecheck_start.elapsed();
 
     let module_name = file
         .file_stem()
@@ -303,19 +312,35 @@ async fn compile_file(file: &Path) -> Result<PathBuf> {
         .join("build");
     std::fs::create_dir_all(&build_dir).context("Failed to create build directory")?;
 
-    // Generate object file
+    // Phase 3: Code generation
+    let codegen_start = std::time::Instant::now();
     let mut codegen = LLVMCodegen::new(module_name.clone(), file.to_path_buf());
     let object_file = build_dir.join(format!("{module_name}.o"));
     codegen
         .compile(&program, &object_file)
         .context("Code generation error")?;
+    let codegen_time = codegen_start.elapsed();
 
-    // Link to executable
+    // Phase 4: Linking
+    let link_start = std::time::Instant::now();
     let executable = build_dir.join(&module_name);
     link_executable(&object_file, &executable)?;
+    let link_time = link_start.elapsed();
 
     // Clean up object file
     std::fs::remove_file(&object_file).ok();
+
+    let total_time = total_start.elapsed();
+
+    // Print profiling info if KRAKEN_PROFILE is set
+    if profile {
+        eprintln!("\n\x1b[1m=== Compile Profile ===\x1b[0m");
+        eprintln!("  Parse:     {:>8.2}ms", parse_time.as_secs_f64() * 1000.0);
+        eprintln!("  Typecheck: {:>8.2}ms", typecheck_time.as_secs_f64() * 1000.0);
+        eprintln!("  Codegen:   {:>8.2}ms", codegen_time.as_secs_f64() * 1000.0);
+        eprintln!("  Link:      {:>8.2}ms", link_time.as_secs_f64() * 1000.0);
+        eprintln!("  \x1b[1mTotal:     {:>8.2}ms\x1b[0m", total_time.as_secs_f64() * 1000.0);
+    }
 
     Ok(executable)
 }

@@ -1,0 +1,10 @@
+// Test: Log Stdlib functions
+
+fn main() {
+    log_debug("This is a debug message");
+    log_info("This is an info message");
+    log_warn("This is a warning message");
+    log_error("This is an error message");
+    
+    puts("All log stdlib tests passed!");
+}

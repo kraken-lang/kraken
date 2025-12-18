@@ -85,6 +85,173 @@ impl std::fmt::Display for SourceLocation {
     }
 }
 
+/// Source span representing a range in the source code.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceSpan {
+    pub file: PathBuf,
+    pub start_line: usize,
+    pub start_col: usize,
+    pub end_line: usize,
+    pub end_col: usize,
+}
+
+impl SourceSpan {
+    /// Create a new source span.
+    pub fn new(file: PathBuf, start_line: usize, start_col: usize, end_line: usize, end_col: usize) -> Self {
+        Self { file, start_line, start_col, end_line, end_col }
+    }
+
+    /// Create a span from a single location (zero-width).
+    pub fn from_location(loc: &SourceLocation) -> Self {
+        Self {
+            file: loc.file.clone(),
+            start_line: loc.line,
+            start_col: loc.column,
+            end_line: loc.line,
+            end_col: loc.column,
+        }
+    }
+
+    /// Convert to a SourceLocation (uses start position).
+    pub fn to_location(&self) -> SourceLocation {
+        SourceLocation::new(self.file.clone(), self.start_line, self.start_col)
+    }
+}
+
+impl std::fmt::Display for SourceSpan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.start_line == self.end_line {
+            write!(f, "{}:{}:{}-{}", self.file.display(), self.start_line, self.start_col, self.end_col)
+        } else {
+            write!(f, "{}:{}:{}-{}:{}", self.file.display(), self.start_line, self.start_col, self.end_line, self.end_col)
+        }
+    }
+}
+
+/// Diagnostic hint for helping users fix errors.
+#[derive(Debug, Clone)]
+pub struct DiagnosticHint {
+    pub message: String,
+    pub suggestion: Option<String>,
+}
+
+impl DiagnosticHint {
+    /// Create a new hint with just a message.
+    pub fn new(message: impl Into<String>) -> Self {
+        Self { message: message.into(), suggestion: None }
+    }
+
+    /// Create a hint with a suggestion.
+    pub fn with_suggestion(message: impl Into<String>, suggestion: impl Into<String>) -> Self {
+        Self { message: message.into(), suggestion: Some(suggestion.into()) }
+    }
+}
+
+impl std::fmt::Display for DiagnosticHint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "\x1b[36mhint:\x1b[0m {}", self.message)?;
+        if let Some(ref suggestion) = self.suggestion {
+            write!(f, "\n      \x1b[32msuggestion:\x1b[0m {}", suggestion)?;
+        }
+        Ok(())
+    }
+}
+
+/// Enhanced diagnostic with span and hints.
+#[derive(Debug, Clone)]
+pub struct Diagnostic {
+    pub span: SourceSpan,
+    pub message: String,
+    pub hints: Vec<DiagnosticHint>,
+    pub severity: DiagnosticSeverity,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiagnosticSeverity {
+    Error,
+    Warning,
+    #[allow(dead_code)]
+    Info,
+}
+
+impl Diagnostic {
+    /// Create a new error diagnostic.
+    pub fn error(span: SourceSpan, message: impl Into<String>) -> Self {
+        Self {
+            span,
+            message: message.into(),
+            hints: Vec::new(),
+            severity: DiagnosticSeverity::Error,
+        }
+    }
+
+    /// Create a new warning diagnostic.
+    #[allow(dead_code)]
+    pub fn warning(span: SourceSpan, message: impl Into<String>) -> Self {
+        Self {
+            span,
+            message: message.into(),
+            hints: Vec::new(),
+            severity: DiagnosticSeverity::Warning,
+        }
+    }
+
+    /// Add a hint to the diagnostic.
+    pub fn with_hint(mut self, hint: DiagnosticHint) -> Self {
+        self.hints.push(hint);
+        self
+    }
+
+    /// Format the diagnostic with source context.
+    pub fn format_with_source(&self, source: &str) -> String {
+        let severity_str = match self.severity {
+            DiagnosticSeverity::Error => "\x1b[31merror\x1b[0m",
+            DiagnosticSeverity::Warning => "\x1b[33mwarning\x1b[0m",
+            DiagnosticSeverity::Info => "\x1b[36minfo\x1b[0m",
+        };
+
+        let mut output = format!(
+            "{}: {}\n  \x1b[34m-->\x1b[0m {}\n",
+            severity_str,
+            self.message,
+            self.span
+        );
+
+        // Show source context
+        let lines: Vec<&str> = source.lines().collect();
+        if self.span.start_line > 0 && self.span.start_line <= lines.len() {
+            let line_num = self.span.start_line;
+            let line = lines[line_num - 1];
+            let line_num_width = format!("{}", line_num).len();
+
+            output.push_str(&format!("   \x1b[34m|\x1b[0m\n"));
+            output.push_str(&format!("\x1b[34m{:>width$} |\x1b[0m {}\n", line_num, line, width = line_num_width));
+
+            // Underline the error span
+            let start = self.span.start_col.saturating_sub(1);
+            let end = if self.span.start_line == self.span.end_line {
+                self.span.end_col.saturating_sub(1).max(start + 1)
+            } else {
+                line.len()
+            };
+            let underline_len = end.saturating_sub(start).max(1);
+
+            output.push_str(&format!(
+                "   \x1b[34m|\x1b[0m {}\x1b[31m{}\x1b[0m\n",
+                " ".repeat(start),
+                "^".repeat(underline_len)
+            ));
+        }
+
+        // Add hints
+        for hint in &self.hints {
+            output.push_str(&format!("   {}\n", hint));
+        }
+
+        output
+    }
+}
+
 impl CompilerError {
     /// Create a lexer error.
     pub fn lexer_error(location: SourceLocation, message: impl Into<String>) -> Self {
@@ -146,5 +313,47 @@ mod tests {
         let msg = err.to_string();
         assert!(msg.contains("test.kr:5:10"));
         assert!(msg.contains("expected semicolon"));
+    }
+
+    #[test]
+    fn test_source_span_display() {
+        let span = SourceSpan::new(PathBuf::from("test.kr"), 5, 10, 5, 20);
+        assert_eq!(span.to_string(), "test.kr:5:10-20");
+
+        let multiline = SourceSpan::new(PathBuf::from("test.kr"), 5, 10, 7, 5);
+        assert_eq!(multiline.to_string(), "test.kr:5:10-7:5");
+    }
+
+    #[test]
+    fn test_diagnostic_hint_display() {
+        let hint = DiagnosticHint::new("variable not in scope");
+        assert!(hint.to_string().contains("variable not in scope"));
+
+        let hint_with_suggestion = DiagnosticHint::with_suggestion(
+            "did you mean",
+            "use `let` to declare a variable"
+        );
+        let s = hint_with_suggestion.to_string();
+        assert!(s.contains("did you mean"));
+        assert!(s.contains("use `let`"));
+    }
+
+    #[test]
+    fn test_diagnostic_format_with_source() {
+        let span = SourceSpan::new(PathBuf::from("test.kr"), 2, 5, 2, 10);
+        let diag = Diagnostic::error(span, "undefined variable `foo`")
+            .with_hint(DiagnosticHint::with_suggestion(
+                "did you mean `bar`?",
+                "bar"
+            ));
+
+        let source = "fn main() {\n    foo + 1\n}";
+        let output = diag.format_with_source(source);
+
+        assert!(output.contains("error"));
+        assert!(output.contains("undefined variable"));
+        assert!(output.contains("foo + 1"));
+        assert!(output.contains("^^^"));
+        assert!(output.contains("did you mean"));
     }
 }

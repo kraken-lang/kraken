@@ -1,0 +1,20 @@
+// Test: vec_int_swap_remove
+
+fn main() {
+    let v = vec_int_new();
+    vec_int_push(v, 10);
+    vec_int_push(v, 20);
+    vec_int_push(v, 30);
+    vec_int_push(v, 40);
+    
+    // [10, 20, 30, 40] -> swap_remove(1) -> removed=20, [10, 40, 30]
+    let removed = vec_int_swap_remove(v, 1);
+    assert_eq(removed, 20);
+    assert_eq(vec_int_len(v), 3);
+    assert_eq(vec_int_get(v, 0), 10);
+    assert_eq(vec_int_get(v, 1), 40);
+    assert_eq(vec_int_get(v, 2), 30);
+    
+    vec_int_free(v);
+    puts("vec_int_swap_remove tests passed!");
+}

@@ -1,0 +1,27 @@
+// Test: Format Stdlib functions
+
+fn main() {
+    // Test fmt_int
+    let int_str = fmt_int(42);
+    puts(int_str);
+    
+    let neg_str = fmt_int(-123);
+    puts(neg_str);
+    
+    // Test fmt_hex
+    let hex_str = fmt_hex(255);
+    puts(hex_str);
+    
+    // Test fmt_bool
+    let true_str = fmt_bool(true);
+    puts(true_str);
+    
+    let false_str = fmt_bool(false);
+    puts(false_str);
+    
+    // Test fmt_float
+    let float_str = fmt_float(3.14159, 2);
+    puts(float_str);
+    
+    puts("All format stdlib tests passed!");
+}

@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+
+
+## [0.8.10] - 2025-12-18
+- Added `assert(cond)` — abort with message if condition is false.
+- Added `assert_eq(a, b)` — abort if values are not equal.
+- Added `assert_ne(a, b)` — abort if values are equal.
+- Added `math_sqrt(x)` — square root.
+- Added `math_pow(x, y)` — power function.
+- Added `math_abs(x)` — absolute value for integers.
+- Added `math_floor(x)` — floor function.
+- Added `math_ceil(x)` — ceiling function.
+- Added `math_round(x)` — round to nearest integer.
+- Added `math_sin(x)`, `math_cos(x)`, `math_tan(x)` — trigonometric functions.
+- Added `math_min(a, b)`, `math_max(a, b)` — min/max for integers.
+- Added `rand_seed(s)` — seed the random number generator.
+- Added `rand_int(min, max)` — random integer in range [min, max].
+- Added `rand_float()` — random float in range [0.0, 1.0).
+- Added `log_debug(msg)`, `log_info(msg)`, `log_warn(msg)`, `log_error(msg)` — structured logging.
+- Added `fmt_int(n)`, `fmt_hex(n)`, `fmt_bool(b)`, `fmt_float(f, precision)` — value formatting.
+- Added `vec_int_capacity(v)`, `vec_int_with_capacity(n)` — vector capacity management.
+- Added `vec_string_capacity(v)`, `vec_string_with_capacity(n)` — vector capacity management.
+- Added `vec_bytes_capacity(v)`, `vec_bytes_with_capacity(n)` — vector capacity management.
+- Added `vec_int_insert(v, i, val)` — O(n) insert at index with memmove.
+- Added `vec_int_remove(v, i)` — O(n) remove at index with memmove.
+- Added `vec_int_swap_remove(v, i)` — O(1) remove by swapping with last element.
+- Added `vec_string_swap_remove(v, i)`, `vec_bytes_swap_remove(v, i)` — O(1) remove variants.
+- Added `vec_int_reserve(v, n)`, `vec_int_shrink_to_fit(v)` — capacity management.
+- Added `vec_string_reserve`, `vec_string_shrink_to_fit`, `vec_bytes_reserve`, `vec_bytes_shrink_to_fit`.
+- Added `rand_bytes(n)` — generate n random bytes.
+- Added `log_set_level(level)` — set log verbosity level.
+- Added `test_pass(msg)`, `test_fail(msg)`, `test_skip(msg)`, `test_section(msg)` — test harness helpers with colored output.
+- Added `bench_start()`, `bench_end(start, name, iters)` — runtime benchmark helpers.
+- Added compile-time profiling via `KRAKEN_PROFILE=1` environment variable.
+- Added `SourceSpan`, `Diagnostic`, `DiagnosticHint` — enhanced error reporting with source context and suggestions.
+- Added GitHub Actions CI workflow with test, lint, and no-regressions gate.
+- Added `memmove` stdlib function for memory operations.
+
+
+
+
 ## [0.8.9] - 2025-12-18
 
 ### Added
@@ -715,10 +757,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
-[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.6...HEAD
-[0.8.6]: https://github.com/kraken-lang/kraken/compare/v0.8.5...v0.8.6
-[0.8.5]: https://github.com/kraken-lang/kraken/compare/v0.8.4...v0.8.5
-[0.8.4]: https://github.com/kraken-lang/kraken/compare/v0.8.3...v0.8.4
-[0.8.3]: https://github.com/kraken-lang/kraken/compare/v0.8.2...v0.8.3
-[0.8.2]: https://github.com/kraken-lang/kraken/compare/v0.8.1...v0.8.2
-[0.8.1]: https://github.com/kraken-lang/kraken/tree/v0.8.1
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.10...HEAD
+[0.8.11]: https://github.com/kraken-lang/kraken/compare/v0.8.10...v0.8.11
+[0.8.10]: https://github.com/kraken-lang/kraken/compare/v0.8.9...v0.8.10
+[0.8.9]:  https://github.com/kraken-lang/kraken/compare/v0.8.8...v0.8.9
+[0.8.8]:  https://github.com/kraken-lang/kraken/compare/v0.8.7...v0.8.8
+[0.8.7]:  https://github.com/kraken-lang/kraken/compare/v0.8.6...v0.8.7
+[0.8.6]:  https://github.com/kraken-lang/kraken/compare/v0.8.5...v0.8.6
+[0.8.5]:  https://github.com/kraken-lang/kraken/compare/v0.8.4...v0.8.5
+[0.8.4]:  https://github.com/kraken-lang/kraken/compare/v0.8.3...v0.8.4
+[0.8.3]:  https://github.com/kraken-lang/kraken/compare/v0.8.2...v0.8.3
+[0.8.2]:  https://github.com/kraken-lang/kraken/compare/v0.8.1...v0.8.2
+[0.8.1]:  https://github.com/kraken-lang/kraken/tree/v0.8.1

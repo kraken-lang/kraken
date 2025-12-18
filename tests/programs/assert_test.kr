@@ -1,0 +1,28 @@
+// Test: assert, assert_eq, assert_ne functions
+// Expected output: All assertions pass
+
+fn main() {
+    // Test assert with true condition
+    assert(true);
+    assert(1 == 1);
+    assert(5 > 3);
+    
+    // Test assert_eq
+    assert_eq(42, 42);
+    assert_eq(0, 0);
+    assert_eq(-1, -1);
+    
+    // Test assert_ne
+    assert_ne(1, 2);
+    assert_ne(0, 1);
+    assert_ne(-1, 1);
+    
+    // Test with expressions
+    let x = 10;
+    let y = 20;
+    assert(x < y);
+    assert_eq(x + 10, y);
+    assert_ne(x, y);
+    
+    puts("All assertions passed!");
+}

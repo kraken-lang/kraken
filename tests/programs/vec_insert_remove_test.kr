@@ -1,0 +1,37 @@
+// Test: vec_int_insert and vec_int_remove
+
+fn main() {
+    let v = vec_int_with_capacity(10);
+    vec_int_push(v, 10);
+    vec_int_push(v, 20);
+    vec_int_push(v, 30);
+    
+    // [10, 20, 30] -> insert(1, 15) -> [10, 15, 20, 30]
+    vec_int_insert(v, 1, 15);
+    assert_eq(vec_int_len(v), 4);
+    assert_eq(vec_int_get(v, 0), 10);
+    assert_eq(vec_int_get(v, 1), 15);
+    assert_eq(vec_int_get(v, 2), 20);
+    assert_eq(vec_int_get(v, 3), 30);
+    
+    // [10, 15, 20, 30] -> remove(2) -> removed=20, [10, 15, 30]
+    let removed = vec_int_remove(v, 2);
+    assert_eq(removed, 20);
+    assert_eq(vec_int_len(v), 3);
+    assert_eq(vec_int_get(v, 0), 10);
+    assert_eq(vec_int_get(v, 1), 15);
+    assert_eq(vec_int_get(v, 2), 30);
+    
+    // Insert at beginning
+    vec_int_insert(v, 0, 5);
+    assert_eq(vec_int_get(v, 0), 5);
+    assert_eq(vec_int_get(v, 1), 10);
+    
+    // Remove from beginning
+    let first = vec_int_remove(v, 0);
+    assert_eq(first, 5);
+    assert_eq(vec_int_get(v, 0), 10);
+    
+    vec_int_free(v);
+    puts("vec_int_insert/remove tests passed!");
+}

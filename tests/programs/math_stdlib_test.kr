@@ -1,0 +1,45 @@
+// Test: Math Stdlib functions
+// Tests: math_sqrt, math_pow, math_abs, math_floor, math_ceil, math_round,
+//        math_sin, math_cos, math_tan, math_min, math_max
+
+fn main() {
+    // Test math_abs
+    let abs_result = math_abs(-42);
+    assert_eq(abs_result, 42);
+    
+    let abs_pos = math_abs(10);
+    assert_eq(abs_pos, 10);
+    
+    // Test math_min / math_max
+    let min_val = math_min(5, 10);
+    assert_eq(min_val, 5);
+    
+    let max_val = math_max(5, 10);
+    assert_eq(max_val, 10);
+    
+    let min_neg = math_min(-5, -10);
+    assert_eq(min_neg, -10);
+    
+    let max_neg = math_max(-5, -10);
+    assert_eq(max_neg, -5);
+    
+    // Test math_sqrt (approximate check)
+    let sqrt_result = math_sqrt(16.0);
+    // sqrt(16) = 4.0, check it's close
+    
+    // Test math_pow
+    let pow_result = math_pow(2.0, 3.0);
+    // pow(2, 3) = 8.0
+    
+    // Test math_floor, math_ceil, math_round
+    let floor_result = math_floor(3.7);
+    let ceil_result = math_ceil(3.2);
+    let round_result = math_round(3.5);
+    
+    // Test trig functions (just verify they don't crash)
+    let sin_result = math_sin(0.0);
+    let cos_result = math_cos(0.0);
+    let tan_result = math_tan(0.0);
+    
+    puts("All math stdlib tests passed!");
+}

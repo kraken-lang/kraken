@@ -1,0 +1,13 @@
+// Test: rand_bytes
+
+fn main() {
+    rand_seed(42);
+    
+    // Generate 10 random bytes
+    let buf = rand_bytes(10);
+    
+    // Just verify it doesn't crash and returns something
+    // We can't easily test the actual values without byte indexing
+    
+    puts("rand_bytes test passed!");
+}

@@ -663,6 +663,424 @@ impl TypeChecker {
             },
         );
 
+        // Math stdlib: math_sqrt, math_pow, math_abs, etc.
+        env.define_function(
+            "math_sqrt".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Float],
+                return_type: Type::Float,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "math_pow".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Float, Type::Float],
+                return_type: Type::Float,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "math_abs".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "math_floor".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Float],
+                return_type: Type::Float,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "math_ceil".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Float],
+                return_type: Type::Float,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "math_round".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Float],
+                return_type: Type::Float,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "math_sin".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Float],
+                return_type: Type::Float,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "math_cos".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Float],
+                return_type: Type::Float,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "math_tan".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Float],
+                return_type: Type::Float,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "math_min".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int, Type::Int],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "math_max".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int, Type::Int],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+
+        // Random stdlib: rand_int, rand_float, rand_seed
+        env.define_function(
+            "rand_seed".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "rand_int".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int, Type::Int],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "rand_float".to_string(),
+            FunctionType {
+                parameter_types: vec![],
+                return_type: Type::Float,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "rand_bytes".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::Bytes,
+                is_async: false,
+            },
+        );
+
+        // Log stdlib: log_debug, log_info, log_warn, log_error
+        env.define_function(
+            "log_debug".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "log_info".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "log_warn".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "log_error".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "log_set_level".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // Container capacity APIs
+        env.define_function(
+            "vec_int_capacity".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecInt],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_int_with_capacity".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::VecInt,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_int_reserve".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecInt, Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_int_shrink_to_fit".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecInt],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_string_reserve".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecString, Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_string_shrink_to_fit".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecString],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_bytes_reserve".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecBytes, Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_bytes_shrink_to_fit".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecBytes],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_string_capacity".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecString],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_string_with_capacity".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::VecString,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_bytes_capacity".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecBytes],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_bytes_with_capacity".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::VecBytes,
+                is_async: false,
+            },
+        );
+
+        // Advanced vec mutation
+        env.define_function(
+            "vec_int_insert".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecInt, Type::Int, Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_int_remove".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecInt, Type::Int],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_int_swap_remove".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecInt, Type::Int],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_string_swap_remove".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecString, Type::Int],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "vec_bytes_swap_remove".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecBytes, Type::Int],
+                return_type: Type::Bytes,
+                is_async: false,
+            },
+        );
+
+        // Format stdlib: fmt_int, fmt_float, fmt_bool, fmt_hex
+        env.define_function(
+            "fmt_int".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "fmt_hex".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "fmt_bool".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bool],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "fmt_float".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Float, Type::Int],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+
+        // Test framework: assert, assert_eq, assert_ne
+        env.define_function(
+            "assert".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bool],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "assert_eq".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int, Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "assert_ne".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int, Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // Test harness helpers
+        env.define_function(
+            "test_pass".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "test_fail".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "test_skip".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "test_section".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // Runtime benchmark helpers
+        env.define_function(
+            "bench_start".to_string(),
+            FunctionType {
+                parameter_types: vec![],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "bench_end".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int, Type::String, Type::Int],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+
         // String equality intrinsics
         env.define_function(
             "str_eq".to_string(),

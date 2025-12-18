@@ -1,0 +1,27 @@
+// Test: Vector Capacity APIs
+
+fn main() {
+    // Test vec_int_with_capacity
+    let v = vec_int_with_capacity(100);
+    
+    // Capacity should be 100
+    let cap = vec_int_capacity(v);
+    assert_eq(cap, 100);
+    
+    // Length should be 0
+    let len = vec_int_len(v);
+    assert_eq(len, 0);
+    
+    // Push some elements
+    vec_int_push(v, 1);
+    vec_int_push(v, 2);
+    vec_int_push(v, 3);
+    
+    // Length should be 3, capacity still 100
+    assert_eq(vec_int_len(v), 3);
+    assert_eq(vec_int_capacity(v), 100);
+    
+    vec_int_free(v);
+    
+    puts("All vector capacity tests passed!");
+}

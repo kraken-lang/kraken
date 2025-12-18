@@ -1,0 +1,23 @@
+// Test: Runtime benchmark helpers
+
+fn main() {
+    test_section("Benchmark Demo");
+    
+    // Simple benchmark test
+    let start = bench_start();
+    let v = vec_int_new();
+    vec_int_push(v, 1);
+    vec_int_push(v, 2);
+    vec_int_push(v, 3);
+    vec_int_free(v);
+    bench_end(start, "vec operations", 3);
+    
+    // Math benchmark
+    let start2 = bench_start();
+    let x1 = math_abs(-42);
+    let x2 = math_abs(-100);
+    let x3 = math_sqrt(16.0);
+    bench_end(start2, "math operations", 3);
+    
+    puts("Benchmark demo complete!");
+}

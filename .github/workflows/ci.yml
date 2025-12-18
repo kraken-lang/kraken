@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  CARGO_TERM_COLOR: always
+  LLVM_SYS_181_PREFIX: /opt/homebrew/opt/llvm@18
+
+jobs:
+  test:
+    name: Test Suite
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM 18
+        run: brew install llvm@18
+
+      - name: Set up Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        run: cargo build --workspace --all-targets
+
+      - name: Run tests
+        run: cargo test --workspace
+
+  lint:
+    name: Lint
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM 18
+        run: brew install llvm@18
+
+      - name: Set up Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  build-release:
+    name: Release Build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM 18
+        run: brew install llvm@18
+
+      - name: Set up Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Build release
+        run: cargo build --workspace --release
+
+  no-regressions:
+    name: No Regressions Gate
+    runs-on: macos-latest
+    needs: [test, lint]
+    steps:
+      - name: All checks passed
+        run: echo "✅ No regressions detected. All tests and lints passed."

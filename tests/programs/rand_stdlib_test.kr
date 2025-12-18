@@ -1,0 +1,42 @@
+// Test: Random Stdlib functions
+// Tests: rand_seed, rand_int, rand_float
+
+fn main() {
+    // Seed the RNG for reproducibility
+    rand_seed(12345);
+    
+    // Test rand_int - generate numbers in range
+    let r1 = rand_int(1, 10);
+    assert(r1 >= 1);
+    assert(r1 <= 10);
+    
+    let r2 = rand_int(0, 100);
+    assert(r2 >= 0);
+    assert(r2 <= 100);
+    
+    let r3 = rand_int(-50, 50);
+    assert(r3 >= -50);
+    assert(r3 <= 50);
+    
+    // Test rand_float - should be between 0.0 and 1.0
+    let f1 = rand_float();
+    // Can't easily assert float ranges without float comparison
+    // Just verify it doesn't crash
+    
+    let f2 = rand_float();
+    let f3 = rand_float();
+    
+    // Test determinism - same seed should give same sequence
+    rand_seed(99999);
+    let a1 = rand_int(0, 1000);
+    let a2 = rand_int(0, 1000);
+    
+    rand_seed(99999);
+    let b1 = rand_int(0, 1000);
+    let b2 = rand_int(0, 1000);
+    
+    assert_eq(a1, b1);
+    assert_eq(a2, b2);
+    
+    puts("All random stdlib tests passed!");
+}

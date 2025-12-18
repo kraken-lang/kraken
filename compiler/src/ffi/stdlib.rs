@@ -487,6 +487,28 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
             c_int_widening: None,
         },
         StdlibFnSig {
+            name: "memmove",
+            kraken_params: &[Type::Bytes, Type::Bytes, Type::Int],
+            kraken_return: Type::Bytes,
+            is_vararg: false,
+            c_abi_params: &[AbiType::I8Ptr, AbiType::I8Ptr, AbiType::I64],
+            c_abi_param_nullability: &[
+                Nullability::NonNull,
+                Nullability::NonNull,
+                Nullability::NonNull,
+            ],
+            c_abi_param_ownership: &[
+                Ownership::Borrowed,
+                Ownership::Borrowed,
+                Ownership::Borrowed,
+            ],
+            c_abi_return: AbiType::I8Ptr,
+            c_abi_return_nullability: Nullability::NonNull,
+            c_abi_return_ownership: Ownership::Borrowed,
+            errno: ErrnoConvention::None,
+            c_int_widening: None,
+        },
+        StdlibFnSig {
             name: "memset",
             kraken_params: &[Type::Bytes, Type::Int, Type::Int],
             kraken_return: Type::Bytes,

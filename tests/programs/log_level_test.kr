@@ -1,0 +1,13 @@
+// Test: log_set_level
+
+fn main() {
+    // Set log level (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR)
+    log_set_level(1);  // INFO level
+    
+    log_debug("This is debug");
+    log_info("This is info");
+    log_warn("This is warning");
+    log_error("This is error");
+    
+    puts("log_set_level test passed!");
+}

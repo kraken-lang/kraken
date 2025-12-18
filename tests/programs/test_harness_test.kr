@@ -1,0 +1,15 @@
+// Test: Test harness helpers
+
+fn main() {
+    test_section("Test Harness Demo");
+    
+    test_pass("Basic assertion works");
+    test_pass("Math functions work");
+    test_skip("Feature not implemented yet");
+    
+    test_section("Vector Tests");
+    test_pass("vec_int_push works");
+    test_pass("vec_int_pop works");
+    
+    puts("Test harness demo complete!");
+}
