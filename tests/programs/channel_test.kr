@@ -1,0 +1,63 @@
+// Test: Channel primitives
+
+fn main() {
+    puts("=== Channel Tests ===");
+    
+    // Test 1: try_send/try_recv
+    let ch1 = channel_create();
+    channel_try_send(ch1, 42);
+    let v1 = channel_try_recv(ch1);
+    if (v1 == 42) {
+        puts("try_send/try_recv: PASS");
+    } else {
+        puts("try_send/try_recv: FAIL");
+    }
+    channel_close(ch1);
+    
+    // Test 2: blocking send with try_recv
+    let ch2 = channel_create();
+    channel_send(ch2, 100);
+    let v2 = channel_try_recv(ch2);
+    if (v2 == 100) {
+        puts("send/try_recv: PASS");
+    } else {
+        puts("send/try_recv: FAIL");
+    }
+    channel_close(ch2);
+    
+    // Test 3: try_send with blocking recv
+    let ch3 = channel_create();
+    channel_try_send(ch3, 200);
+    let v3 = channel_recv(ch3);
+    if (v3 == 200) {
+        puts("try_send/recv: PASS");
+    } else {
+        puts("try_send/recv: FAIL");
+    }
+    channel_close(ch3);
+    
+    // Test 4: FIFO ordering
+    let ch4 = channel_create();
+    channel_send(ch4, 1);
+    channel_send(ch4, 2);
+    channel_send(ch4, 3);
+    let a = channel_recv(ch4);
+    let b = channel_recv(ch4);
+    let c = channel_recv(ch4);
+    if (a == 1) {
+        if (b == 2) {
+            if (c == 3) {
+                puts("FIFO ordering: PASS");
+            } else {
+                puts("FIFO ordering: FAIL");
+            }
+        } else {
+            puts("FIFO ordering: FAIL");
+        }
+    } else {
+        puts("FIFO ordering: FAIL");
+    }
+    channel_close(ch4);
+    
+    puts("All channel tests complete!");
+}

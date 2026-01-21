@@ -71,13 +71,13 @@ impl fmt::Display for IrType {
             IrType::SliceBytes => write!(f, "SliceBytes"),
             IrType::Array { element, size } => {
                 if let Some(s) = size {
-                    write!(f, "[{}; {}]", element, s)
+                    write!(f, "[{element}; {s}]")
                 } else {
-                    write!(f, "[{}]", element)
+                    write!(f, "[{element}]")
                 }
             }
-            IrType::Pointer(inner) => write!(f, "*{}", inner),
-            IrType::Struct(name) => write!(f, "%{}", name),
+            IrType::Pointer(inner) => write!(f, "*{inner}"),
+            IrType::Struct(name) => write!(f, "%{name}"),
         }
     }
 }
@@ -107,14 +107,17 @@ pub enum IrValue {
 impl fmt::Display for IrValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            IrValue::Register(id) => write!(f, "{}", id),
-            IrValue::ConstInt(v) => write!(f, "{}", v),
-            IrValue::ConstFloat(v) => write!(f, "{:.6}", v),
-            IrValue::ConstBool(v) => write!(f, "{}", v),
-            IrValue::ConstString(s) => write!(f, "\"{}\"", s.escape_default()),
+            IrValue::Register(id) => write!(f, "{id}"),
+            IrValue::ConstInt(v) => write!(f, "{v}"),
+            IrValue::ConstFloat(v) => write!(f, "{v:.6}"),
+            IrValue::ConstBool(v) => write!(f, "{v}"),
+            IrValue::ConstString(s) => {
+                let escaped = s.escape_default();
+                write!(f, "\"{escaped}\"")
+            }
             IrValue::Null => write!(f, "null"),
-            IrValue::Variable(name) => write!(f, "${}", name),
-            IrValue::Function(name) => write!(f, "@{}", name),
+            IrValue::Variable(name) => write!(f, "${name}"),
+            IrValue::Function(name) => write!(f, "@{name}"),
         }
     }
 }
@@ -214,13 +217,13 @@ impl fmt::Display for IrInstruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             IrInstruction::Alloca { dest, ty, name } => {
-                write!(f, "    {} = alloca {} ; {}", dest, ty, name)
+                write!(f, "    {dest} = alloca {ty} ; {name}")
             }
             IrInstruction::Store { value, ptr } => {
-                write!(f, "    store {}, {}", value, ptr)
+                write!(f, "    store {value}, {ptr}")
             }
             IrInstruction::Load { dest, ptr, ty } => {
-                write!(f, "    {} = load {} from {}", dest, ty, ptr)
+                write!(f, "    {dest} = load {ty} from {ptr}")
             }
             IrInstruction::BinaryOp {
                 dest,
@@ -229,7 +232,7 @@ impl fmt::Display for IrInstruction {
                 right,
                 ty,
             } => {
-                write!(f, "    {} = {:?} {} {}, {}", dest, op, ty, left, right)
+                write!(f, "    {dest} = {op:?} {ty} {left}, {right}")
             }
             IrInstruction::UnaryOp {
                 dest,
@@ -237,7 +240,7 @@ impl fmt::Display for IrInstruction {
                 operand,
                 ty,
             } => {
-                write!(f, "    {} = {:?} {} {}", dest, op, ty, operand)
+                write!(f, "    {dest} = {op:?} {ty} {operand}")
             }
             IrInstruction::Call {
                 dest,
@@ -247,41 +250,37 @@ impl fmt::Display for IrInstruction {
             } => {
                 let args_str: Vec<String> = args.iter().map(|a| a.to_string()).collect();
                 if let Some(d) = dest {
-                    write!(
-                        f,
-                        "    {} = call {} @{}({})",
-                        d,
-                        ret_ty,
-                        func,
-                        args_str.join(", ")
-                    )
+                    let args_joined = args_str.join(", ");
+                    write!(f, "    {d} = call {ret_ty} @{func}({args_joined})")
                 } else {
-                    write!(f, "    call void @{}({})", func, args_str.join(", "))
+                    let args_joined = args_str.join(", ");
+                    write!(f, "    call void @{func}({args_joined})")
                 }
             }
             IrInstruction::Return { value } => {
                 if let Some(v) = value {
-                    write!(f, "    ret {}", v)
+                    write!(f, "    ret {v}")
                 } else {
                     write!(f, "    ret void")
                 }
             }
             IrInstruction::Branch { target } => {
-                write!(f, "    br {}", target)
+                write!(f, "    br {target}")
             }
             IrInstruction::CondBranch {
                 cond,
                 then_block,
                 else_block,
             } => {
-                write!(f, "    br {}, {}, {}", cond, then_block, else_block)
+                write!(f, "    br {cond}, {then_block}, {else_block}")
             }
             IrInstruction::Phi { dest, ty, incoming } => {
                 let pairs: Vec<String> = incoming
                     .iter()
-                    .map(|(v, b)| format!("[{}, {}]", v, b))
+                    .map(|(v, b)| format!("[{v}, {b}]"))
                     .collect();
-                write!(f, "    {} = phi {} {}", dest, ty, pairs.join(", "))
+                let pairs_joined = pairs.join(", ");
+                write!(f, "    {dest} = phi {ty} {pairs_joined}")
             }
             IrInstruction::GetElementPtr {
                 dest,
@@ -290,14 +289,8 @@ impl fmt::Display for IrInstruction {
                 ty,
             } => {
                 let idx_str: Vec<String> = indices.iter().map(|i| i.to_string()).collect();
-                write!(
-                    f,
-                    "    {} = gep {} {}, {}",
-                    dest,
-                    ty,
-                    ptr,
-                    idx_str.join(", ")
-                )
+                let idx_joined = idx_str.join(", ");
+                write!(f, "    {dest} = gep {ty} {ptr}, {idx_joined}")
             }
             IrInstruction::ExtractValue {
                 dest,
@@ -305,11 +298,7 @@ impl fmt::Display for IrInstruction {
                 field_idx,
                 ty,
             } => {
-                write!(
-                    f,
-                    "    {} = extractvalue {} {}, {}",
-                    dest, ty, ptr, field_idx
-                )
+                write!(f, "    {dest} = extractvalue {ty} {ptr}, {field_idx}")
             }
             IrInstruction::InsertValue {
                 dest,
@@ -319,8 +308,7 @@ impl fmt::Display for IrInstruction {
             } => {
                 write!(
                     f,
-                    "    {} = insertvalue {}, {}, {}",
-                    dest, struct_val, value, field_idx
+                    "    {dest} = insertvalue {struct_val}, {value}, {field_idx}"
                 )
             }
         }
@@ -348,9 +336,10 @@ impl IrBlock {
 
 impl fmt::Display for IrBlock {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{}:", self.name)?;
+        let name = &self.name;
+        writeln!(f, "{name}:")?;
         for instr in &self.instructions {
-            writeln!(f, "{}", instr)?;
+            writeln!(f, "{instr}")?;
         }
         Ok(())
     }
@@ -391,18 +380,18 @@ impl fmt::Display for IrFunction {
         let params: Vec<String> = self
             .params
             .iter()
-            .map(|p| format!("{}: {}", p.name, p.ty))
+            .map(|p| {
+                let name = &p.name;
+                let ty = &p.ty;
+                format!("{name}: {ty}")
+            })
             .collect();
-        writeln!(
-            f,
-            "{}fn @{}({}) -> {} {{",
-            vis,
-            self.name,
-            params.join(", "),
-            self.return_type
-        )?;
+        let name = &self.name;
+        let params_joined = params.join(", ");
+        let return_type = &self.return_type;
+        writeln!(f, "{vis}fn @{name}({params_joined}) -> {return_type} {{")?;
         for block in &self.blocks {
-            write!(f, "{}", block)?;
+            write!(f, "{block}")?;
         }
         writeln!(f, "}}")
     }
@@ -419,9 +408,10 @@ pub struct IrStruct {
 impl fmt::Display for IrStruct {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let vis = if self.is_public { "pub " } else { "" };
-        writeln!(f, "{}struct %{} {{", vis, self.name)?;
+        let name = &self.name;
+        writeln!(f, "{vis}struct %{name} {{")?;
         for (name, ty) in &self.fields {
-            writeln!(f, "    {}: {},", name, ty)?;
+            writeln!(f, "    {name}: {ty},")?;
         }
         writeln!(f, "}}")
     }
@@ -454,11 +444,11 @@ impl fmt::Display for IrProgram {
         writeln!(f, "; Kraken IR")?;
         writeln!(f)?;
         for s in &self.structs {
-            write!(f, "{}", s)?;
+            write!(f, "{s}")?;
             writeln!(f)?;
         }
         for func in &self.functions {
-            write!(f, "{}", func)?;
+            write!(f, "{func}")?;
             writeln!(f)?;
         }
         Ok(())

@@ -158,8 +158,8 @@ async fn build_command(
             let mut lowering = IrLowering::new();
             let ir_program = lowering
                 .lower_program(&program)
-                .map_err(|e| anyhow::anyhow!("IR lowering failed: {}", e))?;
-            println!("{}", ir_program);
+                .map_err(|e| anyhow::anyhow!("IR lowering failed: {e}"))?;
+            println!("{ir_program}");
             continue;
         }
 
@@ -336,10 +336,19 @@ async fn compile_file(file: &Path) -> Result<PathBuf> {
     if profile {
         eprintln!("\n\x1b[1m=== Compile Profile ===\x1b[0m");
         eprintln!("  Parse:     {:>8.2}ms", parse_time.as_secs_f64() * 1000.0);
-        eprintln!("  Typecheck: {:>8.2}ms", typecheck_time.as_secs_f64() * 1000.0);
-        eprintln!("  Codegen:   {:>8.2}ms", codegen_time.as_secs_f64() * 1000.0);
+        eprintln!(
+            "  Typecheck: {:>8.2}ms",
+            typecheck_time.as_secs_f64() * 1000.0
+        );
+        eprintln!(
+            "  Codegen:   {:>8.2}ms",
+            codegen_time.as_secs_f64() * 1000.0
+        );
         eprintln!("  Link:      {:>8.2}ms", link_time.as_secs_f64() * 1000.0);
-        eprintln!("  \x1b[1mTotal:     {:>8.2}ms\x1b[0m", total_time.as_secs_f64() * 1000.0);
+        eprintln!(
+            "  \x1b[1mTotal:     {:>8.2}ms\x1b[0m",
+            total_time.as_secs_f64() * 1000.0
+        );
     }
 
     Ok(executable)
@@ -704,8 +713,8 @@ mod tests {
         let mut lowering = ir::IrLowering::new();
         let ir_program = lowering
             .lower_program(&program)
-            .map_err(|e| anyhow::anyhow!("IR lowering failed: {}", e))?;
-        let generated = format!("{}", ir_program);
+            .map_err(|e| anyhow::anyhow!("IR lowering failed: {e}"))?;
+        let generated = format!("{ir_program}");
         let expected = tokio::fs::read_to_string(&golden)
             .await
             .with_context(|| format!("Failed to read golden file: {}", golden.display()))?;

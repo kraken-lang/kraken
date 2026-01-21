@@ -144,7 +144,13 @@ impl AsyncAnalyzer {
     fn analyze_instruction(&mut self, instr: &IrInstruction) {
         // Look for calls that represent await points
         // In the IR, an await would be represented as a special call or marker
-        if let IrInstruction::Call { dest, func, args, ret_ty } = instr {
+        if let IrInstruction::Call {
+            dest,
+            func,
+            args,
+            ret_ty,
+        } = instr
+        {
             // Check if this is an await marker (convention: functions ending in "_await")
             if func.ends_with("_await") || func == "await" {
                 let await_point = AwaitPoint {
@@ -216,7 +222,7 @@ impl StateMachineLowering {
 
         // Add fields for nested futures (simplified: store as opaque pointers)
         for (i, _await_point) in sm.await_points.iter().enumerate() {
-            fields.push((format!("future_{}", i), IrType::Bytes));
+            fields.push((format!("future_{i}"), IrType::Bytes));
         }
 
         IrStruct {
@@ -227,7 +233,11 @@ impl StateMachineLowering {
     }
 
     /// Generate the poll function for the state machine.
-    fn generate_poll_function(&mut self, sm: &AsyncStateMachine, _original: &IrFunction) -> IrFunction {
+    fn generate_poll_function(
+        &mut self,
+        sm: &AsyncStateMachine,
+        _original: &IrFunction,
+    ) -> IrFunction {
         let sm_ptr_param = IrParam {
             name: "sm".to_string(),
             ty: IrType::Pointer(Box::new(IrType::Struct(sm.struct_name.clone()))),
@@ -290,7 +300,7 @@ impl StateMachineLowering {
     /// Create a block for handling a specific state.
     fn create_state_block(&mut self, _sm: &AsyncStateMachine, state_num: u32) -> IrBlock {
         let block_id = BlockId(self.alloc_block_id());
-        let mut block = IrBlock::new(block_id, format!("state_{}", state_num));
+        let mut block = IrBlock::new(block_id, format!("state_{state_num}"));
 
         // Placeholder: each state block would:
         // 1. Poll the corresponding future
@@ -353,7 +363,7 @@ mod tests {
         let func = IrFunction::new("test".to_string(), vec![], IrType::Void, false);
         let mut analyzer = AsyncAnalyzer::new();
         let sm = analyzer.analyze(&func);
-        
+
         assert_eq!(sm.name, "test");
         assert_eq!(sm.struct_name, "TestStateMachine");
         assert_eq!(sm.poll_fn_name, "test_poll");

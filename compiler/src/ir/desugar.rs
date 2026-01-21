@@ -51,11 +51,9 @@ impl Desugar {
         let mut new_instructions = Vec::new();
 
         for instr in block.instructions.drain(..) {
-            match &instr {
-                // For now, pass through all instructions
-                // Full for→while would require AST-level transformation
-                _ => new_instructions.push(instr),
-            }
+            // For now, pass through all instructions
+            // Full for→while would require AST-level transformation
+            new_instructions.push(instr);
         }
 
         block.instructions = new_instructions;
@@ -68,7 +66,12 @@ impl Desugar {
         for block in &func.blocks {
             for instr in &block.instructions {
                 // Look for defer markers (convention: special call)
-                if let IrInstruction::Call { func: fn_name, args, .. } = instr {
+                if let IrInstruction::Call {
+                    func: fn_name,
+                    args,
+                    ..
+                } = instr
+                {
                     if fn_name == "__defer_marker" {
                         // The deferred code would be encoded in args
                         // For now, just track that a defer exists
@@ -166,7 +169,12 @@ pub struct ForToWhile {
 
 impl ForToWhile {
     /// Transform to while loop blocks.
-    pub fn to_while_blocks(&self, entry_id: BlockId, body_id: BlockId, exit_id: BlockId) -> Vec<IrBlock> {
+    pub fn to_while_blocks(
+        &self,
+        entry_id: BlockId,
+        body_id: BlockId,
+        exit_id: BlockId,
+    ) -> Vec<IrBlock> {
         let mut blocks = Vec::new();
 
         // Entry block: init + branch to condition check
@@ -215,7 +223,9 @@ mod tests {
         let mut program = IrProgram::new();
         let mut func = IrFunction::new("test".to_string(), vec![], IrType::Void, false);
         let mut block = IrBlock::new(BlockId(0), "entry".to_string());
-        block.instructions.push(IrInstruction::Return { value: None });
+        block
+            .instructions
+            .push(IrInstruction::Return { value: None });
         func.blocks.push(block);
         program.functions.push(func);
 

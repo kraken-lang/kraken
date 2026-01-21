@@ -1,0 +1,21 @@
+// Test: Thread Pool primitives
+
+fn main() {
+    puts("=== Thread Pool Tests ===");
+    
+    // Test pool creation
+    let pool = pool_new(4);
+    puts("pool_new(4): PASS");
+    
+    // Test pool shutdown
+    pool_shutdown(pool);
+    puts("pool_shutdown: PASS");
+    
+    // Test another pool lifecycle
+    let pool2 = pool_new(2);
+    puts("pool_new(2): PASS");
+    pool_shutdown(pool2);
+    puts("pool_shutdown: PASS");
+    
+    puts("All thread pool tests complete!");
+}

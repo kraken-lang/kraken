@@ -1,0 +1,29 @@
+// Test: Threading and mutex primitives
+
+fn main() {
+    puts("=== Threading Tests ===");
+    
+    // Test sleep_ms
+    puts("Testing sleep_ms...");
+    sleep_ms(10);
+    puts("sleep_ms: PASS");
+    
+    // Test mutex lifecycle
+    puts("Testing mutex_create...");
+    let m = mutex_create();
+    puts("mutex_create: PASS");
+    
+    puts("Testing mutex_lock...");
+    mutex_lock(m);
+    puts("mutex_lock: PASS");
+    
+    puts("Testing mutex_unlock...");
+    mutex_unlock(m);
+    puts("mutex_unlock: PASS");
+    
+    puts("Testing mutex_destroy...");
+    mutex_destroy(m);
+    puts("mutex_destroy: PASS");
+    
+    puts("All threading tests complete!");
+}

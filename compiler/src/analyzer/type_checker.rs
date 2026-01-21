@@ -70,7 +70,7 @@ impl TypeChecker {
             "block_on".to_string(),
             FunctionType {
                 parameter_types: vec![Type::Bytes], // Future/handle
-                return_type: Type::Int, // Returns the result
+                return_type: Type::Int,             // Returns the result
                 is_async: false,
             },
         );
@@ -114,7 +114,7 @@ impl TypeChecker {
             "channel_new".to_string(),
             FunctionType {
                 parameter_types: vec![Type::Int], // Capacity
-                return_type: Type::Bytes, // Channel handle
+                return_type: Type::Bytes,         // Channel handle
                 is_async: false,
             },
         );
@@ -130,7 +130,7 @@ impl TypeChecker {
             "channel_recv".to_string(),
             FunctionType {
                 parameter_types: vec![Type::Bytes], // Channel
-                return_type: Type::Int, // Received value
+                return_type: Type::Int,             // Received value
                 is_async: false,
             },
         );
@@ -148,7 +148,7 @@ impl TypeChecker {
             "atomic_new".to_string(),
             FunctionType {
                 parameter_types: vec![Type::Int], // Initial value
-                return_type: Type::Bytes, // Atomic handle
+                return_type: Type::Bytes,         // Atomic handle
                 is_async: false,
             },
         );
@@ -172,7 +172,7 @@ impl TypeChecker {
             "atomic_add".to_string(),
             FunctionType {
                 parameter_types: vec![Type::Bytes, Type::Int], // Atomic, delta
-                return_type: Type::Int, // Previous value
+                return_type: Type::Int,                        // Previous value
                 is_async: false,
             },
         );
@@ -180,7 +180,7 @@ impl TypeChecker {
             "atomic_sub".to_string(),
             FunctionType {
                 parameter_types: vec![Type::Bytes, Type::Int], // Atomic, delta
-                return_type: Type::Int, // Previous value
+                return_type: Type::Int,                        // Previous value
                 is_async: false,
             },
         );
@@ -208,7 +208,7 @@ impl TypeChecker {
             "pool_new".to_string(),
             FunctionType {
                 parameter_types: vec![Type::Int], // Number of workers
-                return_type: Type::Bytes, // Pool handle
+                return_type: Type::Bytes,         // Pool handle
                 is_async: false,
             },
         );
@@ -216,7 +216,7 @@ impl TypeChecker {
             "pool_spawn".to_string(),
             FunctionType {
                 parameter_types: vec![Type::Bytes, Type::Bytes], // Pool, task function ptr
-                return_type: Type::Bytes, // Task handle
+                return_type: Type::Bytes,                        // Task handle
                 is_async: false,
             },
         );
@@ -242,7 +242,7 @@ impl TypeChecker {
             "executor_spawn".to_string(),
             FunctionType {
                 parameter_types: vec![Type::Bytes, Type::Bytes], // Executor, future
-                return_type: Type::Bytes, // Task handle
+                return_type: Type::Bytes,                        // Task handle
                 is_async: false,
             },
         );
@@ -284,7 +284,7 @@ impl TypeChecker {
             "cancel_token_is_cancelled".to_string(),
             FunctionType {
                 parameter_types: vec![Type::Bytes], // Token
-                return_type: Type::Int, // 1 if cancelled, 0 otherwise
+                return_type: Type::Int,             // 1 if cancelled, 0 otherwise
                 is_async: false,
             },
         );
@@ -294,7 +294,7 @@ impl TypeChecker {
             "timeout".to_string(),
             FunctionType {
                 parameter_types: vec![Type::Bytes, Type::Int], // Future, milliseconds
-                return_type: Type::Int, // 0 = completed, 1 = timed out
+                return_type: Type::Int,                        // 0 = completed, 1 = timed out
                 is_async: false,
             },
         );
@@ -1081,6 +1081,192 @@ impl TypeChecker {
             },
         );
 
+        // Threading primitives
+        env.define_function(
+            "thread_sleep_ms".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "mutex_create".to_string(),
+            FunctionType {
+                parameter_types: vec![],
+                return_type: Type::Int, // Returns mutex handle (pointer as int)
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "mutex_lock".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "mutex_unlock".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "mutex_destroy".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // Channel primitives
+        env.define_function(
+            "channel_create".to_string(),
+            FunctionType {
+                parameter_types: vec![],
+                return_type: Type::Int, // Channel handle
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "channel_send".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int, Type::Int], // channel, value
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "channel_recv".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int], // channel
+                return_type: Type::Int,           // value
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "channel_try_send".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int, Type::Int], // channel, value
+                return_type: Type::Bool,                     // success
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "channel_try_recv".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int], // channel
+                return_type: Type::Int,           // value or 0 if empty
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "channel_close".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // Thread primitives
+        env.define_function(
+            "thread_spawn".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int], // Function pointer as int
+                return_type: Type::Int,           // Thread handle
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "thread_join".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int], // Thread handle
+                return_type: Type::Int,           // Return value
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "thread_detach".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int], // Thread handle
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // Condition variable primitives
+        env.define_function(
+            "condvar_create".to_string(),
+            FunctionType {
+                parameter_types: vec![],
+                return_type: Type::Int, // Returns condvar handle
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "condvar_wait".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int, Type::Int], // condvar, mutex
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "condvar_signal".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "condvar_broadcast".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "condvar_destroy".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
+        // Thread pool primitives
+        env.define_function(
+            "pool_new".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int], // num_threads
+                return_type: Type::Int,           // pool handle
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "pool_spawn".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int, Type::Int], // pool, function pointer
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "pool_shutdown".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int], // pool handle
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
         // String equality intrinsics
         env.define_function(
             "str_eq".to_string(),
@@ -1725,7 +1911,8 @@ impl TypeChecker {
                 let enum_type = EnumType::new(name.clone(), variants.clone());
                 self.env.define_enum(name.clone(), enum_type);
                 // Also register as custom type for type checking
-                self.env.define_struct(name.clone(), StructType::new(HashMap::new()));
+                self.env
+                    .define_struct(name.clone(), StructType::new(HashMap::new()));
                 Ok(())
             }
 
@@ -1844,28 +2031,32 @@ impl TypeChecker {
                             continue;
                         }
                         Pattern::Wildcard => {}
-                        Pattern::EnumVariant { enum_name, variant_name, bindings } => {
+                        Pattern::EnumVariant {
+                            enum_name,
+                            variant_name,
+                            bindings,
+                        } => {
                             // Create child env with bindings using actual payload types
                             let mut arm_env = self.env.child();
-                            
+
                             // Look up the enum and variant to get payload types
                             if let Some(enum_type) = self.env.lookup_enum(enum_name) {
                                 // get_variant_payload returns Option<Option<Vec<Type>>>
                                 // Outer Option: variant exists? Inner Option: has payload?
-                                if let Some(Some(payload_types)) = enum_type.get_variant_payload(variant_name) {
+                                if let Some(Some(payload_types)) =
+                                    enum_type.get_variant_payload(variant_name)
+                                {
                                     // Bind each variable to its corresponding payload type
                                     for (i, binding) in bindings.iter().enumerate() {
-                                        let binding_type = payload_types
-                                            .get(i)
-                                            .cloned()
-                                            .unwrap_or(Type::Int);
+                                        let binding_type =
+                                            payload_types.get(i).cloned().unwrap_or(Type::Int);
                                         arm_env.define_variable(binding.clone(), binding_type);
                                     }
                                 }
                                 // else: variant has no payload, no bindings to define
                             }
                             // else: enum not found, type checker already reported error
-                            
+
                             let saved_env = std::mem::replace(&mut self.env, arm_env);
                             self.check_block(&arm.body)?;
                             self.env = saved_env;
@@ -2134,6 +2325,20 @@ impl TypeChecker {
             }
 
             Expression::Reference { expression } => {
+                // Special case: &function_name returns function pointer as Int
+                if let Expression::Identifier(name) = &**expression {
+                    // Check for function - either direct match or with module prefix (mangled names)
+                    let is_function = self.env.lookup_function(name).is_some()
+                        || self
+                            .env
+                            .function_names()
+                            .iter()
+                            .any(|n| n.ends_with(&format!("_{name}")));
+                    if is_function {
+                        return Ok(Type::Int);
+                    }
+                }
+                // Otherwise, regular variable reference
                 let inner_type = self.check_expression(expression)?;
                 Ok(Type::Reference {
                     inner_type: Box::new(inner_type),
@@ -2169,13 +2374,17 @@ impl TypeChecker {
                 Ok(Type::Bytes) // Handle type placeholder
             }
 
-            Expression::EnumVariant { enum_name, variant_name, payload } => {
+            Expression::EnumVariant {
+                enum_name,
+                variant_name,
+                payload,
+            } => {
                 // Verify enum exists and variant is valid
                 if let Some(enum_type) = self.env.lookup_enum(enum_name) {
                     if !enum_type.has_variant(variant_name) {
                         return Err(CompilerError::type_error(
                             SourceLocation::new(self.file_path.clone(), 0, 0),
-                            format!("Unknown variant '{}' for enum '{}'", variant_name, enum_name),
+                            format!("Unknown variant '{variant_name}' for enum '{enum_name}'"),
                         ));
                     }
                     // Type check payload if present
@@ -2189,7 +2398,7 @@ impl TypeChecker {
                 } else {
                     Err(CompilerError::type_error(
                         SourceLocation::new(self.file_path.clone(), 0, 0),
-                        format!("Unknown enum '{}'", enum_name),
+                        format!("Unknown enum '{enum_name}'"),
                     ))
                 }
             }

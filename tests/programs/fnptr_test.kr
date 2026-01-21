@@ -1,0 +1,16 @@
+// Test: Function pointer syntax
+
+fn greet() {
+    puts("Hello!");
+}
+
+fn main() {
+    // Test both main and greet
+    let ptr1 = &main;
+    puts("Got main pointer!");
+    puts(fmt_int(ptr1));
+    
+    let ptr2 = &greet;
+    puts("Got greet pointer!");
+    puts(fmt_int(ptr2));
+}

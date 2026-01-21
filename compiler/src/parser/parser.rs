@@ -237,7 +237,7 @@ impl Parser {
 
         while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
             let variant_name = self.consume_identifier()?;
-            
+
             // Check for payload types: VariantName(Type1, Type2, ...)
             let payload = if self.match_token(TokenKind::LeftParen) {
                 let mut types = Vec::new();
@@ -842,7 +842,7 @@ impl Parser {
                 };
             } else if self.match_token(TokenKind::LeftBracket) {
                 let start_or_index = self.parse_expression()?;
-                
+
                 // Check for slice syntax: x[start:end]
                 if self.match_token(TokenKind::Colon) {
                     let end = self.parse_expression()?;

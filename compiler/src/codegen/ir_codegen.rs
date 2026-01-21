@@ -135,7 +135,12 @@ impl IrCodegen {
                 .map(|p| self.ir_type_to_llvm(&p.ty))
                 .collect();
 
-            let fn_ty = LLVMFunctionType(ret_ty, param_types.as_mut_ptr(), param_types.len() as u32, 0);
+            let fn_ty = LLVMFunctionType(
+                ret_ty,
+                param_types.as_mut_ptr(),
+                param_types.len() as u32,
+                0,
+            );
             let fn_name = CString::new(func.name.as_str()).expect("CString failed");
             let llvm_fn = LLVMAddFunction(self.module, fn_name.as_ptr(), fn_ty);
 
@@ -159,11 +164,8 @@ impl IrCodegen {
             // Create basic blocks
             for block in &func.blocks {
                 let block_name = CString::new(block.name.as_str()).expect("CString failed");
-                let llvm_block = LLVMAppendBasicBlockInContext(
-                    self.context,
-                    llvm_fn,
-                    block_name.as_ptr(),
-                );
+                let llvm_block =
+                    LLVMAppendBasicBlockInContext(self.context, llvm_fn, block_name.as_ptr());
                 self.blocks.insert(block.id.0, llvm_block);
             }
 
@@ -171,11 +173,12 @@ impl IrCodegen {
             for (i, param) in func.params.iter().enumerate() {
                 let llvm_param = LLVMGetParam(llvm_fn, i as u32);
                 // Create alloca for parameter
-                let first_block = *self.blocks.get(&0).ok_or_else(|| {
-                    CompilerError::codegen_error("Function has no entry block")
-                })?;
+                let first_block = *self
+                    .blocks
+                    .get(&0)
+                    .ok_or_else(|| CompilerError::codegen_error("Function has no entry block"))?;
                 LLVMPositionBuilderAtEnd(self.builder, first_block);
-                
+
                 let param_ty = self.ir_type_to_llvm(&param.ty);
                 let param_name = CString::new(param.name.as_str()).expect("CString failed");
                 let alloca = LLVMBuildAlloca(self.builder, param_ty, param_name.as_ptr());
@@ -235,28 +238,44 @@ impl IrCodegen {
                     self.values.insert(dest.0, load);
                 }
 
-                IrInstruction::BinaryOp { dest, op, left, right, ty } => {
+                IrInstruction::BinaryOp {
+                    dest,
+                    op,
+                    left,
+                    right,
+                    ty,
+                } => {
                     let llvm_left = self.ir_value_to_llvm(left)?;
                     let llvm_right = self.ir_value_to_llvm(right)?;
                     let result = self.generate_binary_op(*op, llvm_left, llvm_right, ty)?;
                     self.values.insert(dest.0, result);
                 }
 
-                IrInstruction::UnaryOp { dest, op, operand, ty } => {
+                IrInstruction::UnaryOp {
+                    dest,
+                    op,
+                    operand,
+                    ty,
+                } => {
                     let llvm_operand = self.ir_value_to_llvm(operand)?;
                     let result = self.generate_unary_op(*op, llvm_operand, ty)?;
                     self.values.insert(dest.0, result);
                 }
 
-                IrInstruction::Call { dest, func, args, ret_ty: _ } => {
+                IrInstruction::Call {
+                    dest,
+                    func,
+                    args,
+                    ret_ty: _,
+                } => {
                     let llvm_fn = *self.functions.get(func).ok_or_else(|| {
-                        CompilerError::codegen_error(format!("Unknown function: {}", func))
+                        CompilerError::codegen_error(format!("Unknown function: {func}"))
                     })?;
                     let mut llvm_args: Vec<LLVMValueRef> = args
                         .iter()
                         .map(|a| self.ir_value_to_llvm(a))
                         .collect::<CompilerResult<Vec<_>>>()?;
-                    
+
                     let fn_ty = LLVMGlobalGetValueType(llvm_fn);
                     let call = LLVMBuildCall2(
                         self.builder,
@@ -283,18 +302,22 @@ impl IrCodegen {
 
                 IrInstruction::Branch { target } => {
                     let llvm_block = *self.blocks.get(&target.0).ok_or_else(|| {
-                        CompilerError::codegen_error(format!("Unknown block: {}", target))
+                        CompilerError::codegen_error(format!("Unknown block: {target}"))
                     })?;
                     LLVMBuildBr(self.builder, llvm_block);
                 }
 
-                IrInstruction::CondBranch { cond, then_block, else_block } => {
+                IrInstruction::CondBranch {
+                    cond,
+                    then_block,
+                    else_block,
+                } => {
                     let llvm_cond = self.ir_value_to_llvm(cond)?;
                     let llvm_then = *self.blocks.get(&then_block.0).ok_or_else(|| {
-                        CompilerError::codegen_error(format!("Unknown block: {}", then_block))
+                        CompilerError::codegen_error(format!("Unknown block: {then_block}"))
                     })?;
                     let llvm_else = *self.blocks.get(&else_block.0).ok_or_else(|| {
-                        CompilerError::codegen_error(format!("Unknown block: {}", else_block))
+                        CompilerError::codegen_error(format!("Unknown block: {else_block}"))
                     })?;
                     LLVMBuildCondBr(self.builder, llvm_cond, llvm_then, llvm_else);
                 }
@@ -302,26 +325,31 @@ impl IrCodegen {
                 IrInstruction::Phi { dest, ty, incoming } => {
                     let llvm_ty = self.ir_type_to_llvm(ty);
                     let phi = LLVMBuildPhi(self.builder, llvm_ty, c"".as_ptr());
-                    
+
                     for (val, block_id) in incoming {
                         let llvm_val = self.ir_value_to_llvm(val)?;
                         let llvm_block = *self.blocks.get(&block_id.0).ok_or_else(|| {
-                            CompilerError::codegen_error(format!("Unknown block: {}", block_id))
+                            CompilerError::codegen_error(format!("Unknown block: {block_id}"))
                         })?;
                         LLVMAddIncoming(phi, [llvm_val].as_mut_ptr(), [llvm_block].as_mut_ptr(), 1);
                     }
-                    
+
                     self.values.insert(dest.0, phi);
                 }
 
-                IrInstruction::GetElementPtr { dest, ptr, indices, ty } => {
+                IrInstruction::GetElementPtr {
+                    dest,
+                    ptr,
+                    indices,
+                    ty,
+                } => {
                     let llvm_ptr = self.ir_value_to_llvm(ptr)?;
                     let llvm_ty = self.ir_type_to_llvm(ty);
                     let mut llvm_indices: Vec<LLVMValueRef> = indices
                         .iter()
                         .map(|i| self.ir_value_to_llvm(i))
                         .collect::<CompilerResult<Vec<_>>>()?;
-                    
+
                     let gep = LLVMBuildGEP2(
                         self.builder,
                         llvm_ty,
@@ -333,16 +361,33 @@ impl IrCodegen {
                     self.values.insert(dest.0, gep);
                 }
 
-                IrInstruction::ExtractValue { dest, ptr, field_idx, ty: _ } => {
+                IrInstruction::ExtractValue {
+                    dest,
+                    ptr,
+                    field_idx,
+                    ty: _,
+                } => {
                     let llvm_ptr = self.ir_value_to_llvm(ptr)?;
-                    let extract = LLVMBuildExtractValue(self.builder, llvm_ptr, *field_idx, c"".as_ptr());
+                    let extract =
+                        LLVMBuildExtractValue(self.builder, llvm_ptr, *field_idx, c"".as_ptr());
                     self.values.insert(dest.0, extract);
                 }
 
-                IrInstruction::InsertValue { dest, struct_val, value, field_idx } => {
+                IrInstruction::InsertValue {
+                    dest,
+                    struct_val,
+                    value,
+                    field_idx,
+                } => {
                     let llvm_struct = self.ir_value_to_llvm(struct_val)?;
                     let llvm_value = self.ir_value_to_llvm(value)?;
-                    let insert = LLVMBuildInsertValue(self.builder, llvm_struct, llvm_value, *field_idx, c"".as_ptr());
+                    let insert = LLVMBuildInsertValue(
+                        self.builder,
+                        llvm_struct,
+                        llvm_value,
+                        *field_idx,
+                        c"".as_ptr(),
+                    );
                     self.values.insert(dest.0, insert);
                 }
             }
@@ -355,38 +400,42 @@ impl IrCodegen {
     fn ir_value_to_llvm(&self, value: &IrValue) -> CompilerResult<LLVMValueRef> {
         unsafe {
             match value {
-                IrValue::Register(id) => {
-                    self.values.get(&id.0).copied().ok_or_else(|| {
-                        CompilerError::codegen_error(format!("Unknown value: {}", id))
-                    })
-                }
-                IrValue::ConstInt(v) => {
-                    Ok(LLVMConstInt(LLVMInt64TypeInContext(self.context), *v as u64, 1))
-                }
+                IrValue::Register(id) => self
+                    .values
+                    .get(&id.0)
+                    .copied()
+                    .ok_or_else(|| CompilerError::codegen_error(format!("Unknown value: {id}"))),
+                IrValue::ConstInt(v) => Ok(LLVMConstInt(
+                    LLVMInt64TypeInContext(self.context),
+                    *v as u64,
+                    1,
+                )),
                 IrValue::ConstFloat(v) => {
                     Ok(LLVMConstReal(LLVMDoubleTypeInContext(self.context), *v))
                 }
-                IrValue::ConstBool(v) => {
-                    Ok(LLVMConstInt(LLVMInt1TypeInContext(self.context), *v as u64, 0))
-                }
+                IrValue::ConstBool(v) => Ok(LLVMConstInt(
+                    LLVMInt1TypeInContext(self.context),
+                    *v as u64,
+                    0,
+                )),
                 IrValue::ConstString(s) => {
                     let cstr = CString::new(s.as_str()).expect("CString failed");
-                    Ok(LLVMBuildGlobalStringPtr(self.builder, cstr.as_ptr(), c"str".as_ptr()))
+                    Ok(LLVMBuildGlobalStringPtr(
+                        self.builder,
+                        cstr.as_ptr(),
+                        c"str".as_ptr(),
+                    ))
                 }
                 IrValue::Null => {
                     let ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
                     Ok(LLVMConstNull(ptr_ty))
                 }
-                IrValue::Variable(name) => {
-                    self.variables.get(name).copied().ok_or_else(|| {
-                        CompilerError::codegen_error(format!("Unknown variable: {}", name))
-                    })
-                }
-                IrValue::Function(name) => {
-                    self.functions.get(name).copied().ok_or_else(|| {
-                        CompilerError::codegen_error(format!("Unknown function: {}", name))
-                    })
-                }
+                IrValue::Variable(name) => self.variables.get(name).copied().ok_or_else(|| {
+                    CompilerError::codegen_error(format!("Unknown variable: {name}"))
+                }),
+                IrValue::Function(name) => self.functions.get(name).copied().ok_or_else(|| {
+                    CompilerError::codegen_error(format!("Unknown function: {name}"))
+                }),
             }
         }
     }
@@ -401,7 +450,7 @@ impl IrCodegen {
     ) -> CompilerResult<LLVMValueRef> {
         unsafe {
             let is_float = matches!(ty, IrType::Float);
-            
+
             let result = match op {
                 Operator::Plus => {
                     if is_float {
@@ -431,61 +480,126 @@ impl IrCodegen {
                         LLVMBuildSDiv(self.builder, left, right, c"".as_ptr())
                     }
                 }
-                Operator::Percent => {
-                    LLVMBuildSRem(self.builder, left, right, c"".as_ptr())
-                }
+                Operator::Percent => LLVMBuildSRem(self.builder, left, right, c"".as_ptr()),
                 Operator::Equal => {
                     if is_float {
-                        LLVMBuildFCmp(self.builder, llvm_sys::LLVMRealPredicate::LLVMRealOEQ, left, right, c"".as_ptr())
+                        LLVMBuildFCmp(
+                            self.builder,
+                            llvm_sys::LLVMRealPredicate::LLVMRealOEQ,
+                            left,
+                            right,
+                            c"".as_ptr(),
+                        )
                     } else {
-                        LLVMBuildICmp(self.builder, LLVMIntPredicate::LLVMIntEQ, left, right, c"".as_ptr())
+                        LLVMBuildICmp(
+                            self.builder,
+                            LLVMIntPredicate::LLVMIntEQ,
+                            left,
+                            right,
+                            c"".as_ptr(),
+                        )
                     }
                 }
                 Operator::NotEqual => {
                     if is_float {
-                        LLVMBuildFCmp(self.builder, llvm_sys::LLVMRealPredicate::LLVMRealONE, left, right, c"".as_ptr())
+                        LLVMBuildFCmp(
+                            self.builder,
+                            llvm_sys::LLVMRealPredicate::LLVMRealONE,
+                            left,
+                            right,
+                            c"".as_ptr(),
+                        )
                     } else {
-                        LLVMBuildICmp(self.builder, LLVMIntPredicate::LLVMIntNE, left, right, c"".as_ptr())
+                        LLVMBuildICmp(
+                            self.builder,
+                            LLVMIntPredicate::LLVMIntNE,
+                            left,
+                            right,
+                            c"".as_ptr(),
+                        )
                     }
                 }
                 Operator::Less => {
                     if is_float {
-                        LLVMBuildFCmp(self.builder, llvm_sys::LLVMRealPredicate::LLVMRealOLT, left, right, c"".as_ptr())
+                        LLVMBuildFCmp(
+                            self.builder,
+                            llvm_sys::LLVMRealPredicate::LLVMRealOLT,
+                            left,
+                            right,
+                            c"".as_ptr(),
+                        )
                     } else {
-                        LLVMBuildICmp(self.builder, LLVMIntPredicate::LLVMIntSLT, left, right, c"".as_ptr())
+                        LLVMBuildICmp(
+                            self.builder,
+                            LLVMIntPredicate::LLVMIntSLT,
+                            left,
+                            right,
+                            c"".as_ptr(),
+                        )
                     }
                 }
                 Operator::LessEqual => {
                     if is_float {
-                        LLVMBuildFCmp(self.builder, llvm_sys::LLVMRealPredicate::LLVMRealOLE, left, right, c"".as_ptr())
+                        LLVMBuildFCmp(
+                            self.builder,
+                            llvm_sys::LLVMRealPredicate::LLVMRealOLE,
+                            left,
+                            right,
+                            c"".as_ptr(),
+                        )
                     } else {
-                        LLVMBuildICmp(self.builder, LLVMIntPredicate::LLVMIntSLE, left, right, c"".as_ptr())
+                        LLVMBuildICmp(
+                            self.builder,
+                            LLVMIntPredicate::LLVMIntSLE,
+                            left,
+                            right,
+                            c"".as_ptr(),
+                        )
                     }
                 }
                 Operator::Greater => {
                     if is_float {
-                        LLVMBuildFCmp(self.builder, llvm_sys::LLVMRealPredicate::LLVMRealOGT, left, right, c"".as_ptr())
+                        LLVMBuildFCmp(
+                            self.builder,
+                            llvm_sys::LLVMRealPredicate::LLVMRealOGT,
+                            left,
+                            right,
+                            c"".as_ptr(),
+                        )
                     } else {
-                        LLVMBuildICmp(self.builder, LLVMIntPredicate::LLVMIntSGT, left, right, c"".as_ptr())
+                        LLVMBuildICmp(
+                            self.builder,
+                            LLVMIntPredicate::LLVMIntSGT,
+                            left,
+                            right,
+                            c"".as_ptr(),
+                        )
                     }
                 }
                 Operator::GreaterEqual => {
                     if is_float {
-                        LLVMBuildFCmp(self.builder, llvm_sys::LLVMRealPredicate::LLVMRealOGE, left, right, c"".as_ptr())
+                        LLVMBuildFCmp(
+                            self.builder,
+                            llvm_sys::LLVMRealPredicate::LLVMRealOGE,
+                            left,
+                            right,
+                            c"".as_ptr(),
+                        )
                     } else {
-                        LLVMBuildICmp(self.builder, LLVMIntPredicate::LLVMIntSGE, left, right, c"".as_ptr())
+                        LLVMBuildICmp(
+                            self.builder,
+                            LLVMIntPredicate::LLVMIntSGE,
+                            left,
+                            right,
+                            c"".as_ptr(),
+                        )
                     }
                 }
-                Operator::And => {
-                    LLVMBuildAnd(self.builder, left, right, c"".as_ptr())
-                }
-                Operator::Or => {
-                    LLVMBuildOr(self.builder, left, right, c"".as_ptr())
-                }
+                Operator::And => LLVMBuildAnd(self.builder, left, right, c"".as_ptr()),
+                Operator::Or => LLVMBuildOr(self.builder, left, right, c"".as_ptr()),
                 _ => {
                     return Err(CompilerError::codegen_error(format!(
-                        "Unsupported binary operator: {:?}",
-                        op
+                        "Unsupported binary operator: {op:?}"
                     )));
                 }
             };
@@ -503,7 +617,7 @@ impl IrCodegen {
     ) -> CompilerResult<LLVMValueRef> {
         unsafe {
             let is_float = matches!(ty, IrType::Float);
-            
+
             let result = match op {
                 Operator::Minus => {
                     if is_float {
@@ -512,13 +626,10 @@ impl IrCodegen {
                         LLVMBuildNeg(self.builder, operand, c"".as_ptr())
                     }
                 }
-                Operator::Not => {
-                    LLVMBuildNot(self.builder, operand, c"".as_ptr())
-                }
+                Operator::Not => LLVMBuildNot(self.builder, operand, c"".as_ptr()),
                 _ => {
                     return Err(CompilerError::codegen_error(format!(
-                        "Unsupported unary operator: {:?}",
-                        op
+                        "Unsupported unary operator: {op:?}"
                     )));
                 }
             };
@@ -552,10 +663,10 @@ mod tests {
     #[test]
     fn test_ir_codegen_simple_function() {
         let mut codegen = IrCodegen::new("test", PathBuf::from("test.kr"));
-        
+
         let mut program = IrProgram::new();
         let mut func = IrFunction::new("main".to_string(), vec![], IrType::Int, true);
-        
+
         let mut block = IrBlock::new(BlockId(0), "entry".to_string());
         block.instructions.push(IrInstruction::Return {
             value: Some(IrValue::ConstInt(0)),

@@ -1,0 +1,32 @@
+// Test: Condition variable primitives
+
+fn main() {
+    puts("=== CondVar Tests ===");
+    
+    // Test condvar lifecycle
+    puts("Testing condvar_create...");
+    let cv = condvar_create();
+    puts("condvar_create: PASS");
+    
+    // Need a mutex for condvar_wait
+    let m = mutex_create();
+    
+    // Test signal (without waiting - just API test)
+    puts("Testing condvar_signal...");
+    condvar_signal(cv);
+    puts("condvar_signal: PASS");
+    
+    // Test broadcast
+    puts("Testing condvar_broadcast...");
+    condvar_broadcast(cv);
+    puts("condvar_broadcast: PASS");
+    
+    // Cleanup
+    puts("Testing condvar_destroy...");
+    condvar_destroy(cv);
+    puts("condvar_destroy: PASS");
+    
+    mutex_destroy(m);
+    
+    puts("All condvar tests complete!");
+}

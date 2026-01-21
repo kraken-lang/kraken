@@ -1,0 +1,29 @@
+// Test: Thread primitives with actual thread spawn
+
+// Worker function for thread spawn
+fn worker() {
+    puts("Worker thread running!");
+}
+
+fn main() {
+    puts("=== Thread Tests ===");
+    
+    // Test mutex
+    let m = mutex_create();
+    mutex_lock(m);
+    mutex_unlock(m);
+    mutex_destroy(m);
+    puts("Mutex: PASS");
+    
+    // Test condvar
+    let cv = condvar_create();
+    condvar_destroy(cv);
+    puts("Condvar: PASS");
+    
+    // Test thread spawn with function pointer
+    let t = thread_spawn(&worker);
+    thread_join(t);
+    puts("Thread spawn/join: PASS");
+    
+    puts("All thread tests complete!");
+}

@@ -254,7 +254,9 @@ impl EnumType {
 
     /// Check if a variant exists.
     pub fn has_variant(&self, variant_name: &str) -> bool {
-        self.variants.iter().any(|(name, _, _)| name == variant_name)
+        self.variants
+            .iter()
+            .any(|(name, _, _)| name == variant_name)
     }
 }
 

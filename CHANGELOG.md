@@ -9,7 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
 
+### Changed
+
+## [0.8.11] - 2026-01-21
+
+### Added
+- Added `thread_spawn(fn)` — spawn OS thread with function pointer.
+- Added `thread_join(handle)` — wait for thread completion.
+- Added `thread_detach(handle)` — detach thread (no join needed).
+- Added `mutex_create()` — create pthread mutex.
+- Added `mutex_lock(m)` — blocking mutex lock.
+- Added `mutex_unlock(m)` — unlock mutex.
+- Added `mutex_destroy(m)` — cleanup mutex.
+- Added `condvar_create()` — create pthread condition variable.
+- Added `condvar_wait(cv, m)` — wait on condition with mutex.
+- Added `condvar_signal(cv)` — wake one waiting thread.
+- Added `condvar_broadcast(cv)` — wake all waiting threads.
+- Added `condvar_destroy(cv)` — cleanup condition variable.
+- Added `channel_create()` — create bounded channel (ring buffer with mutex/condvar).
+- Added `channel_send(ch, val)` — blocking send with mutex synchronization.
+- Added `channel_recv(ch)` — blocking receive with condvar wait loop.
+- Added `channel_try_send(ch, val)` — non-blocking send (returns bool).
+- Added `channel_try_recv(ch)` — non-blocking receive (returns 0 if empty).
+- Added `channel_close(ch)` — close channel and cleanup.
+- Added `pool_new(n)` — create thread pool struct with n worker slots.
+- Added `pool_spawn(p, fn)` — submit work to pool (placeholder).
+- Added `pool_shutdown(p)` — graceful pool shutdown and cleanup.
+- Added function pointer syntax `&fn_name` for passing functions to thread_spawn.
+- Added pthread function declarations for threading foundation.
+
+### Fixed
+- Fixed `usleep` type mismatch (i64 -> i32).
+- Fixed duplicate `usleep` declaration causing linker errors.
+- Removed conflicting spinlock mutex implementation.
+
+### Changed
+- Internal cleanup: resolved clippy warnings and formatting issues (no functional changes).
 
 ## [0.8.10] - 2025-12-18
 - Added `assert(cond)` — abort with message if condition is false.

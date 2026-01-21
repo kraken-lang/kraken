@@ -14,6 +14,9 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::ptr;
 
+type EnumVariantInfo = (String, u32, Option<Vec<crate::parser::ast::Type>>);
+type EnumTypesMap = HashMap<String, Vec<EnumVariantInfo>>;
+
 /// LLVM code generator for Kraken.
 ///
 /// Generates executable binaries from type-checked AST using LLVM.
@@ -25,7 +28,7 @@ pub struct LLVMCodegen {
     array_variables: HashMap<String, bool>, // Track which variables are arrays
     struct_variables: HashMap<String, String>, // Track which variables are structs (var name -> struct name)
     struct_types: HashMap<String, (LLVMTypeRef, Vec<String>, Vec<LLVMTypeRef>)>, // struct name -> (LLVM type, field names, field types)
-    enum_types: HashMap<String, Vec<(String, u32)>>, // enum name -> [(variant_name, tag)]
+    enum_types: EnumTypesMap, // enum name -> [(variant_name, tag, payload_types)]
     functions: HashMap<String, LLVMValueRef>,
     current_function: Option<LLVMValueRef>,
     loop_exit_blocks: Vec<LLVMBasicBlockRef>,
@@ -432,12 +435,15 @@ impl LLVMCodegen {
                 variants,
                 is_public: _,
             } => {
-                // Register enum variants with their tag values
-                let variants_with_tags: Vec<(String, u32)> = variants
-                    .iter()
-                    .enumerate()
-                    .map(|(i, (variant_name, _payload))| (variant_name.clone(), i as u32))
-                    .collect();
+                // Register enum variants with their tag values and payload types
+                let variants_with_tags: Vec<(String, u32, Option<Vec<crate::parser::ast::Type>>)> =
+                    variants
+                        .iter()
+                        .enumerate()
+                        .map(|(i, (variant_name, payload))| {
+                            (variant_name.clone(), i as u32, payload.clone())
+                        })
+                        .collect();
                 self.enum_types.insert(name.clone(), variants_with_tags);
                 Ok(())
             }
@@ -891,14 +897,22 @@ impl LLVMCodegen {
                                 // Always matches
                                 LLVMBuildBr(self.builder, arm_blocks[i]);
                             }
-                            Pattern::EnumVariant { enum_name, variant_name, .. } => {
+                            Pattern::EnumVariant {
+                                enum_name,
+                                variant_name,
+                                bindings,
+                            } => {
                                 // Look up the tag value for this variant
-                                if let Some(variants) = self.enum_types.get(enum_name) {
-                                    if let Some((_, tag)) = variants.iter().find(|(name, _)| name == variant_name) {
+                                if let Some(variants) = self.enum_types.get(enum_name).cloned() {
+                                    if let Some((_, tag, _payload_types)) =
+                                        variants.iter().find(|(name, _, _)| name == variant_name)
+                                    {
                                         // Compare match value (assumed to be tag) against expected tag
                                         let i64_ty = LLVMInt64TypeInContext(self.context);
                                         let expected_tag = LLVMConstInt(i64_ty, *tag as u64, 0);
-                                        let cmp_name = CString::new(format!("enum.cmp.{}", variant_name)).expect("CString failed");
+                                        let cmp_name =
+                                            CString::new(format!("enum.cmp.{variant_name}"))
+                                                .expect("CString failed");
                                         let cond = LLVMBuildICmp(
                                             self.builder,
                                             LLVMIntPredicate::LLVMIntEQ,
@@ -906,7 +920,18 @@ impl LLVMCodegen {
                                             expected_tag,
                                             cmp_name.as_ptr(),
                                         );
-                                        LLVMBuildCondBr(self.builder, cond, arm_blocks[i], next_check_blocks[i]);
+                                        LLVMBuildCondBr(
+                                            self.builder,
+                                            cond,
+                                            arm_blocks[i],
+                                            next_check_blocks[i],
+                                        );
+
+                                        // TODO: For payload extraction, we need to:
+                                        // 1. Load payload data from the enum struct
+                                        // 2. Bind each payload element to the corresponding binding name
+                                        // For now, bindings are placeholders (payload support is in progress)
+                                        let _ = bindings; // Suppress unused warning
                                     } else {
                                         // Variant not found, just branch (will error at runtime)
                                         LLVMBuildBr(self.builder, arm_blocks[i]);
@@ -1238,8 +1263,9 @@ impl LLVMCodegen {
             self.functions.insert("fmod".to_string(), fmod_func);
 
             // Sleep function (platform-specific, using usleep for microseconds)
-            // usleep: int usleep(int usec)
-            let usleep_type = LLVMFunctionType(int_type, [int_type].as_mut_ptr(), 1, 0);
+            // usleep: int usleep(useconds_t usec) - uses i32 on most platforms
+            let i32_type = LLVMInt32TypeInContext(self.context);
+            let usleep_type = LLVMFunctionType(i32_type, [i32_type].as_mut_ptr(), 1, 0);
             let usleep_name = CString::new("usleep").expect("CString failed");
             let usleep_func = LLVMAddFunction(self.module, usleep_name.as_ptr(), usleep_type);
             self.functions.insert("usleep".to_string(), usleep_func);
@@ -1356,17 +1382,191 @@ impl LLVMCodegen {
             let sleep_func = LLVMAddFunction(self.module, sleep_name.as_ptr(), sleep_type);
             self.functions.insert("sleep".to_string(), sleep_func);
 
-            // usleep: int usleep(useconds_t usec)
-            let usleep_type = LLVMFunctionType(i32_type, [i32_type].as_mut_ptr(), 1, 0);
-            let usleep_name = CString::new("usleep").expect("CString failed");
-            let usleep_func = LLVMAddFunction(self.module, usleep_name.as_ptr(), usleep_type);
-            self.functions.insert("usleep".to_string(), usleep_func);
-
             // time: time_t time(time_t *tloc)
             let time_type = LLVMFunctionType(int_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
             let time_name = CString::new("time").expect("CString failed");
             let time_func = LLVMAddFunction(self.module, time_name.as_ptr(), time_type);
             self.functions.insert("time".to_string(), time_func);
+
+            // =============================================================
+            // POSIX Threading (pthreads)
+            // =============================================================
+
+            // pthread_create: int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+            //                                    void *(*start_routine)(void*), void *arg)
+            let pthread_create_type = LLVMFunctionType(
+                i32_type,
+                [i8_ptr_type, i8_ptr_type, i8_ptr_type, i8_ptr_type].as_mut_ptr(),
+                4,
+                0,
+            );
+            let pthread_create_name = CString::new("pthread_create").expect("CString failed");
+            let pthread_create_func = LLVMAddFunction(
+                self.module,
+                pthread_create_name.as_ptr(),
+                pthread_create_type,
+            );
+            self.functions
+                .insert("pthread_create".to_string(), pthread_create_func);
+
+            // pthread_join: int pthread_join(pthread_t thread, void **retval)
+            let pthread_join_type =
+                LLVMFunctionType(i32_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
+            let pthread_join_name = CString::new("pthread_join").expect("CString failed");
+            let pthread_join_func =
+                LLVMAddFunction(self.module, pthread_join_name.as_ptr(), pthread_join_type);
+            self.functions
+                .insert("pthread_join".to_string(), pthread_join_func);
+
+            // pthread_detach: int pthread_detach(pthread_t thread)
+            let pthread_detach_type = LLVMFunctionType(i32_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let pthread_detach_name = CString::new("pthread_detach").expect("CString failed");
+            let pthread_detach_func = LLVMAddFunction(
+                self.module,
+                pthread_detach_name.as_ptr(),
+                pthread_detach_type,
+            );
+            self.functions
+                .insert("pthread_detach".to_string(), pthread_detach_func);
+
+            // pthread_self: pthread_t pthread_self(void)
+            let pthread_self_type = LLVMFunctionType(i8_ptr_type, [].as_mut_ptr(), 0, 0);
+            let pthread_self_name = CString::new("pthread_self").expect("CString failed");
+            let pthread_self_func =
+                LLVMAddFunction(self.module, pthread_self_name.as_ptr(), pthread_self_type);
+            self.functions
+                .insert("pthread_self".to_string(), pthread_self_func);
+
+            // =============================================================
+            // POSIX Mutex
+            // =============================================================
+
+            // pthread_mutex_init: int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
+            let pthread_mutex_init_type =
+                LLVMFunctionType(i32_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
+            let pthread_mutex_init_name =
+                CString::new("pthread_mutex_init").expect("CString failed");
+            let pthread_mutex_init_func = LLVMAddFunction(
+                self.module,
+                pthread_mutex_init_name.as_ptr(),
+                pthread_mutex_init_type,
+            );
+            self.functions
+                .insert("pthread_mutex_init".to_string(), pthread_mutex_init_func);
+
+            // pthread_mutex_lock: int pthread_mutex_lock(pthread_mutex_t *mutex)
+            let pthread_mutex_lock_type =
+                LLVMFunctionType(i32_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let pthread_mutex_lock_name =
+                CString::new("pthread_mutex_lock").expect("CString failed");
+            let pthread_mutex_lock_func = LLVMAddFunction(
+                self.module,
+                pthread_mutex_lock_name.as_ptr(),
+                pthread_mutex_lock_type,
+            );
+            self.functions
+                .insert("pthread_mutex_lock".to_string(), pthread_mutex_lock_func);
+
+            // pthread_mutex_unlock: int pthread_mutex_unlock(pthread_mutex_t *mutex)
+            let pthread_mutex_unlock_type =
+                LLVMFunctionType(i32_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let pthread_mutex_unlock_name =
+                CString::new("pthread_mutex_unlock").expect("CString failed");
+            let pthread_mutex_unlock_func = LLVMAddFunction(
+                self.module,
+                pthread_mutex_unlock_name.as_ptr(),
+                pthread_mutex_unlock_type,
+            );
+            self.functions.insert(
+                "pthread_mutex_unlock".to_string(),
+                pthread_mutex_unlock_func,
+            );
+
+            // pthread_mutex_destroy: int pthread_mutex_destroy(pthread_mutex_t *mutex)
+            let pthread_mutex_destroy_type =
+                LLVMFunctionType(i32_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let pthread_mutex_destroy_name =
+                CString::new("pthread_mutex_destroy").expect("CString failed");
+            let pthread_mutex_destroy_func = LLVMAddFunction(
+                self.module,
+                pthread_mutex_destroy_name.as_ptr(),
+                pthread_mutex_destroy_type,
+            );
+            self.functions.insert(
+                "pthread_mutex_destroy".to_string(),
+                pthread_mutex_destroy_func,
+            );
+
+            // =============================================================
+            // POSIX Condition Variables
+            // =============================================================
+
+            // pthread_cond_init: int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
+            let pthread_cond_init_type =
+                LLVMFunctionType(i32_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
+            let pthread_cond_init_name = CString::new("pthread_cond_init").expect("CString failed");
+            let pthread_cond_init_func = LLVMAddFunction(
+                self.module,
+                pthread_cond_init_name.as_ptr(),
+                pthread_cond_init_type,
+            );
+            self.functions
+                .insert("pthread_cond_init".to_string(), pthread_cond_init_func);
+
+            // pthread_cond_wait: int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
+            let pthread_cond_wait_type =
+                LLVMFunctionType(i32_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
+            let pthread_cond_wait_name = CString::new("pthread_cond_wait").expect("CString failed");
+            let pthread_cond_wait_func = LLVMAddFunction(
+                self.module,
+                pthread_cond_wait_name.as_ptr(),
+                pthread_cond_wait_type,
+            );
+            self.functions
+                .insert("pthread_cond_wait".to_string(), pthread_cond_wait_func);
+
+            // pthread_cond_signal: int pthread_cond_signal(pthread_cond_t *cond)
+            let pthread_cond_signal_type =
+                LLVMFunctionType(i32_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let pthread_cond_signal_name =
+                CString::new("pthread_cond_signal").expect("CString failed");
+            let pthread_cond_signal_func = LLVMAddFunction(
+                self.module,
+                pthread_cond_signal_name.as_ptr(),
+                pthread_cond_signal_type,
+            );
+            self.functions
+                .insert("pthread_cond_signal".to_string(), pthread_cond_signal_func);
+
+            // pthread_cond_broadcast: int pthread_cond_broadcast(pthread_cond_t *cond)
+            let pthread_cond_broadcast_type =
+                LLVMFunctionType(i32_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let pthread_cond_broadcast_name =
+                CString::new("pthread_cond_broadcast").expect("CString failed");
+            let pthread_cond_broadcast_func = LLVMAddFunction(
+                self.module,
+                pthread_cond_broadcast_name.as_ptr(),
+                pthread_cond_broadcast_type,
+            );
+            self.functions.insert(
+                "pthread_cond_broadcast".to_string(),
+                pthread_cond_broadcast_func,
+            );
+
+            // pthread_cond_destroy: int pthread_cond_destroy(pthread_cond_t *cond)
+            let pthread_cond_destroy_type =
+                LLVMFunctionType(i32_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let pthread_cond_destroy_name =
+                CString::new("pthread_cond_destroy").expect("CString failed");
+            let pthread_cond_destroy_func = LLVMAddFunction(
+                self.module,
+                pthread_cond_destroy_name.as_ptr(),
+                pthread_cond_destroy_type,
+            );
+            self.functions.insert(
+                "pthread_cond_destroy".to_string(),
+                pthread_cond_destroy_func,
+            );
 
             Ok(())
         }
@@ -1794,9 +1994,10 @@ impl LLVMCodegen {
                         // Mutex intrinsics - spinlock implementation using LLVM atomics
                         if name == "mutex_new" {
                             // Allocate 8 bytes for atomic lock state (0 = unlocked, 1 = locked)
-                            let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
-                                CompilerError::codegen_error("Missing malloc")
-                            })?;
+                            let malloc_fn = *self
+                                .functions
+                                .get("malloc")
+                                .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                             let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
                             let i64_ty = LLVMInt64TypeInContext(self.context);
                             let mutex_ptr = LLVMBuildCall2(
@@ -1813,66 +2014,7 @@ impl LLVMCodegen {
                             return Ok(mutex_ptr);
                         }
 
-                        if name == "mutex_lock" {
-                            if arguments.len() != 1 {
-                                return Err(CompilerError::codegen_error(
-                                    "mutex_lock expects 1 argument (mutex handle)",
-                                ));
-                            }
-                            let mutex = self.codegen_expression(&arguments[0])?;
-                            let i64_ty = LLVMInt64TypeInContext(self.context);
-                            let zero = LLVMConstInt(i64_ty, 0, 0);
-                            let one = LLVMConstInt(i64_ty, 1, 0);
-                            
-                            // Spinlock: atomically try to set 0 -> 1, loop until success
-                            let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
-                            let spin_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"mutex.spin".as_ptr());
-                            let acquired_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"mutex.acquired".as_ptr());
-                            
-                            LLVMBuildBr(self.builder, spin_bb);
-                            LLVMPositionBuilderAtEnd(self.builder, spin_bb);
-                            
-                            // Atomic compare-and-swap: if *mutex == 0, set to 1
-                            let result = LLVMBuildAtomicCmpXchg(
-                                self.builder,
-                                mutex,
-                                zero,
-                                one,
-                                llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingAcquire,
-                                llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingMonotonic,
-                                0, // single-threaded = false
-                            );
-                            let success = LLVMBuildExtractValue(self.builder, result, 1, c"cas.success".as_ptr());
-                            LLVMBuildCondBr(self.builder, success, acquired_bb, spin_bb);
-                            
-                            LLVMPositionBuilderAtEnd(self.builder, acquired_bb);
-                            let void_ty = LLVMVoidTypeInContext(self.context);
-                            return Ok(LLVMGetUndef(void_ty));
-                        }
-
-                        if name == "mutex_unlock" {
-                            if arguments.len() != 1 {
-                                return Err(CompilerError::codegen_error(
-                                    "mutex_unlock expects 1 argument (mutex handle)",
-                                ));
-                            }
-                            let mutex = self.codegen_expression(&arguments[0])?;
-                            let i64_ty = LLVMInt64TypeInContext(self.context);
-                            let zero = LLVMConstInt(i64_ty, 0, 0);
-                            
-                            // Atomic store: set lock to 0 (release)
-                            LLVMBuildStore(self.builder, zero, mutex);
-                            // Add memory fence for release semantics
-                            LLVMBuildFence(
-                                self.builder,
-                                llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingRelease,
-                                0,
-                                c"".as_ptr(),
-                            );
-                            
-                            let void_ty = LLVMVoidTypeInContext(self.context);
-                            return Ok(LLVMGetUndef(void_ty));
-                        }
+                        // NOTE: mutex_lock/mutex_unlock now handled by pthread-based stdlib handler
 
                         if name == "mutex_free" {
                             if arguments.len() != 1 {
@@ -1881,11 +2023,12 @@ impl LLVMCodegen {
                                 ));
                             }
                             let mutex = self.codegen_expression(&arguments[0])?;
-                            
+
                             // Free the allocated memory
-                            let free_fn = *self.functions.get("free").ok_or_else(|| {
-                                CompilerError::codegen_error("Missing free")
-                            })?;
+                            let free_fn = *self
+                                .functions
+                                .get("free")
+                                .ok_or_else(|| CompilerError::codegen_error("Missing free"))?;
                             let free_ty = LLVMGlobalGetValueType(free_fn);
                             LLVMBuildCall2(
                                 self.builder,
@@ -1895,7 +2038,7 @@ impl LLVMCodegen {
                                 1,
                                 c"".as_ptr(),
                             );
-                            
+
                             let void_ty = LLVMVoidTypeInContext(self.context);
                             return Ok(LLVMGetUndef(void_ty));
                         }
@@ -1903,9 +2046,10 @@ impl LLVMCodegen {
                         // Channel intrinsics (placeholder - simple queue for now)
                         if name == "channel_new" {
                             // Allocate a channel struct: { data_ptr, capacity, head, tail, count }
-                            let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
-                                CompilerError::codegen_error("Missing malloc")
-                            })?;
+                            let malloc_fn = *self
+                                .functions
+                                .get("malloc")
+                                .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                             let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
                             let i64_ty = LLVMInt64TypeInContext(self.context);
                             // 40 bytes: ptr(8) + cap(8) + head(8) + tail(8) + count(8)
@@ -1920,49 +2064,15 @@ impl LLVMCodegen {
                             return Ok(channel_ptr);
                         }
 
-                        if name == "channel_send" {
-                            // Placeholder: just evaluates args
-                            if arguments.len() != 2 {
-                                return Err(CompilerError::codegen_error(
-                                    "channel_send expects 2 arguments (channel, value)",
-                                ));
-                            }
-                            let _channel = self.codegen_expression(&arguments[0])?;
-                            let _value = self.codegen_expression(&arguments[1])?;
-                            let void_ty = LLVMVoidTypeInContext(self.context);
-                            return Ok(LLVMGetUndef(void_ty));
-                        }
-
-                        if name == "channel_recv" {
-                            // Placeholder: returns 0
-                            if arguments.len() != 1 {
-                                return Err(CompilerError::codegen_error(
-                                    "channel_recv expects 1 argument (channel)",
-                                ));
-                            }
-                            let _channel = self.codegen_expression(&arguments[0])?;
-                            let i64_ty = LLVMInt64TypeInContext(self.context);
-                            return Ok(LLVMConstInt(i64_ty, 0, 0));
-                        }
-
-                        if name == "channel_close" {
-                            // Placeholder: no-op
-                            if arguments.len() != 1 {
-                                return Err(CompilerError::codegen_error(
-                                    "channel_close expects 1 argument (channel)",
-                                ));
-                            }
-                            let _channel = self.codegen_expression(&arguments[0])?;
-                            let void_ty = LLVMVoidTypeInContext(self.context);
-                            return Ok(LLVMGetUndef(void_ty));
-                        }
+                        // channel_send, channel_recv, channel_close are handled in codegen_stdlib_call
 
                         // AtomicInt intrinsics
                         if name == "atomic_new" {
                             // Allocate 8 bytes for an i64 atomic value
-                            let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
-                                CompilerError::codegen_error("Missing malloc")
-                            })?;
+                            let malloc_fn = *self
+                                .functions
+                                .get("malloc")
+                                .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                             let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
                             let i64_ty = LLVMInt64TypeInContext(self.context);
                             let atomic_ptr = LLVMBuildCall2(
@@ -2002,8 +2112,16 @@ impl LLVMCodegen {
                                 c"".as_ptr(),
                             );
                             // Use atomic load with acquire ordering
-                            let load = LLVMBuildLoad2(self.builder, i64_ty, ptr_typed, c"atomic.load".as_ptr());
-                            LLVMSetOrdering(load, llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingAcquire);
+                            let load = LLVMBuildLoad2(
+                                self.builder,
+                                i64_ty,
+                                ptr_typed,
+                                c"atomic.load".as_ptr(),
+                            );
+                            LLVMSetOrdering(
+                                load,
+                                llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingAcquire,
+                            );
                             LLVMSetAlignment(load, 8);
                             return Ok(load);
                         }
@@ -2025,7 +2143,10 @@ impl LLVMCodegen {
                             );
                             // Use atomic store with release ordering
                             let store = LLVMBuildStore(self.builder, value, ptr_typed);
-                            LLVMSetOrdering(store, llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingRelease);
+                            LLVMSetOrdering(
+                                store,
+                                llvm_sys::LLVMAtomicOrdering::LLVMAtomicOrderingRelease,
+                            );
                             LLVMSetAlignment(store, 8);
                             let void_ty = LLVMVoidTypeInContext(self.context);
                             return Ok(LLVMGetUndef(void_ty));
@@ -2112,9 +2233,15 @@ impl LLVMCodegen {
                                 0,
                             );
                             // Extract success flag (second element of { i64, i1 })
-                            let success = LLVMBuildExtractValue(self.builder, result, 1, c"cas.success".as_ptr());
+                            let success = LLVMBuildExtractValue(
+                                self.builder,
+                                result,
+                                1,
+                                c"cas.success".as_ptr(),
+                            );
                             // Zero-extend i1 to i64
-                            let success_i64 = LLVMBuildZExt(self.builder, success, i64_ty, c"".as_ptr());
+                            let success_i64 =
+                                LLVMBuildZExt(self.builder, success, i64_ty, c"".as_ptr());
                             return Ok(success_i64);
                         }
 
@@ -2126,22 +2253,23 @@ impl LLVMCodegen {
                                 ));
                             }
                             let ms = self.codegen_expression(&arguments[0])?;
-                            
+
                             // Convert milliseconds to microseconds (usleep takes microseconds)
                             let i64_ty = LLVMInt64TypeInContext(self.context);
                             let thousand = LLVMConstInt(i64_ty, 1000, 0);
                             let us = LLVMBuildMul(self.builder, ms, thousand, c"us".as_ptr());
-                            
+
                             // Call usleep(microseconds)
-                            let usleep_fn = *self.functions.get("usleep").ok_or_else(|| {
-                                CompilerError::codegen_error("Missing usleep")
-                            })?;
+                            let usleep_fn = *self
+                                .functions
+                                .get("usleep")
+                                .ok_or_else(|| CompilerError::codegen_error("Missing usleep"))?;
                             let usleep_ty = LLVMGlobalGetValueType(usleep_fn);
-                            
+
                             // usleep takes u32 on some platforms, truncate if needed
                             let i32_ty = LLVMInt32TypeInContext(self.context);
                             let us_32 = LLVMBuildTrunc(self.builder, us, i32_ty, c"us32".as_ptr());
-                            
+
                             LLVMBuildCall2(
                                 self.builder,
                                 usleep_ty,
@@ -2150,7 +2278,7 @@ impl LLVMCodegen {
                                 1,
                                 c"".as_ptr(),
                             );
-                            
+
                             let void_ty = LLVMVoidTypeInContext(self.context);
                             return Ok(LLVMGetUndef(void_ty));
                         }
@@ -2158,9 +2286,10 @@ impl LLVMCodegen {
                         // Thread pool intrinsics
                         if name == "pool_new" {
                             // Allocate pool struct: { num_workers, queue_ptr, running }
-                            let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
-                                CompilerError::codegen_error("Missing malloc")
-                            })?;
+                            let malloc_fn = *self
+                                .functions
+                                .get("malloc")
+                                .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                             let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
                             let i64_ty = LLVMInt64TypeInContext(self.context);
                             let pool_ptr = LLVMBuildCall2(
@@ -2192,7 +2321,8 @@ impl LLVMCodegen {
                             }
                             if name == "pool_spawn" {
                                 // Return dummy handle
-                                let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                                let i8_ptr_ty =
+                                    LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
                                 return Ok(LLVMConstNull(i8_ptr_ty));
                             }
                             let void_ty = LLVMVoidTypeInContext(self.context);
@@ -2202,9 +2332,10 @@ impl LLVMCodegen {
                         // Executor intrinsics
                         if name == "executor_new" {
                             // Allocate executor struct
-                            let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
-                                CompilerError::codegen_error("Missing malloc")
-                            })?;
+                            let malloc_fn = *self
+                                .functions
+                                .get("malloc")
+                                .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                             let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
                             let i64_ty = LLVMInt64TypeInContext(self.context);
                             let exec_ptr = LLVMBuildCall2(
@@ -2218,13 +2349,17 @@ impl LLVMCodegen {
                             return Ok(exec_ptr);
                         }
 
-                        if name == "executor_spawn" || name == "executor_run" || name == "executor_shutdown" {
+                        if name == "executor_spawn"
+                            || name == "executor_run"
+                            || name == "executor_shutdown"
+                        {
                             // Placeholder implementations
                             for arg in arguments {
                                 let _ = self.codegen_expression(arg)?;
                             }
                             if name == "executor_spawn" {
-                                let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                                let i8_ptr_ty =
+                                    LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
                                 return Ok(LLVMConstNull(i8_ptr_ty));
                             }
                             let void_ty = LLVMVoidTypeInContext(self.context);
@@ -2234,9 +2369,10 @@ impl LLVMCodegen {
                         // Cancellation intrinsics
                         if name == "cancel_token_new" {
                             // Allocate token: single i64 flag (0 = not cancelled, 1 = cancelled)
-                            let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
-                                CompilerError::codegen_error("Missing malloc")
-                            })?;
+                            let malloc_fn = *self
+                                .functions
+                                .get("malloc")
+                                .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                             let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
                             let i64_ty = LLVMInt64TypeInContext(self.context);
                             let token_ptr = LLVMBuildCall2(
@@ -2292,7 +2428,12 @@ impl LLVMCodegen {
                                 LLVMPointerType(i64_ty, 0),
                                 c"".as_ptr(),
                             );
-                            let val = LLVMBuildLoad2(self.builder, i64_ty, ptr_typed, c"cancelled".as_ptr());
+                            let val = LLVMBuildLoad2(
+                                self.builder,
+                                i64_ty,
+                                ptr_typed,
+                                c"cancelled".as_ptr(),
+                            );
                             return Ok(val);
                         }
 
@@ -2569,9 +2710,10 @@ impl LLVMCodegen {
 
                         // Trap block
                         LLVMPositionBuilderAtEnd(self.builder, trap_bb);
-                        let trap_fn = *self.functions.get("abort").ok_or_else(|| {
-                            CompilerError::codegen_error("Missing abort")
-                        })?;
+                        let trap_fn = *self
+                            .functions
+                            .get("abort")
+                            .ok_or_else(|| CompilerError::codegen_error("Missing abort"))?;
                         let trap_ty = LLVMGlobalGetValueType(trap_fn);
                         LLVMBuildCall2(
                             self.builder,
@@ -2621,13 +2763,15 @@ impl LLVMCodegen {
                     let _i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
 
                     // Get malloc, memcpy functions
-                    let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing malloc")
-                    })?;
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                     let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
-                    let memcpy_fn = *self.functions.get("memcpy").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing memcpy")
-                    })?;
+                    let memcpy_fn = *self
+                        .functions
+                        .get("memcpy")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing memcpy"))?;
                     let memcpy_ty = LLVMGlobalGetValueType(memcpy_fn);
 
                     // Calculate length: end - start
@@ -2824,11 +2968,31 @@ impl LLVMCodegen {
 
                 Expression::Reference { expression } => {
                     // For references, we want to return the address, not the value
-                    // If it's an identifier, return its alloca pointer
-                    if let Expression::Identifier(var_name) = &**expression {
-                        self.named_values.get(var_name).copied().ok_or_else(|| {
-                            CompilerError::codegen_error(format!("Undefined variable: {var_name}"))
-                        })
+                    // If it's an identifier, check if it's a function or variable
+                    if let Expression::Identifier(name) = &**expression {
+                        // First check if it's a function - try direct name and mangled names
+                        let func_ref = self.functions.get(name).copied().or_else(|| {
+                            // Try to find function with module prefix (e.g., __m..._name)
+                            self.functions
+                                .iter()
+                                .find(|(k, _)| k.ends_with(&format!("_{name}")))
+                                .map(|(_, &v)| v)
+                        });
+
+                        if let Some(func) = func_ref {
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            Ok(LLVMBuildPtrToInt(
+                                self.builder,
+                                func,
+                                i64_ty,
+                                c"fn.ptr".as_ptr(),
+                            ))
+                        } else if let Some(&alloca) = self.named_values.get(name) {
+                            // It's a variable - return its alloca pointer
+                            Ok(alloca)
+                        } else {
+                            Err(CompilerError::codegen_error(format!("Undefined: {name}")))
+                        }
                     } else {
                         // For other expressions, we need to evaluate them first
                         // This is a simplified implementation
@@ -2870,21 +3034,90 @@ impl LLVMCodegen {
                     Ok(LLVMConstNull(i8_ptr_ty))
                 }
 
-                Expression::EnumVariant { enum_name, variant_name, payload: _ } => {
+                Expression::EnumVariant {
+                    enum_name,
+                    variant_name,
+                    payload,
+                } => {
                     // Get the tag value for this variant
-                    if let Some(variants) = self.enum_types.get(enum_name) {
-                        if let Some((_, tag)) = variants.iter().find(|(name, _)| name == variant_name) {
-                            // Return the tag value as an i64
+                    if let Some(variants) = self.enum_types.get(enum_name).cloned() {
+                        if let Some((_, tag, payload_types)) =
+                            variants.iter().find(|(name, _, _)| name == variant_name)
+                        {
                             let i64_ty = LLVMInt64TypeInContext(self.context);
+
+                            // Check if this variant has a payload
+                            if let (Some(payload_exprs), Some(ptypes)) = (payload, payload_types) {
+                                if !payload_exprs.is_empty() && !ptypes.is_empty() {
+                                    // Create a tagged union: { tag: i64, payload_0: T0, payload_1: T1, ... }
+                                    let mut field_types = vec![i64_ty];
+                                    for ptype in ptypes {
+                                        field_types.push(self.get_llvm_type(ptype));
+                                    }
+
+                                    let struct_ty = LLVMStructTypeInContext(
+                                        self.context,
+                                        field_types.as_mut_ptr(),
+                                        field_types.len() as u32,
+                                        0, // not packed
+                                    );
+
+                                    // Allocate the struct
+                                    let alloc_name =
+                                        CString::new(format!("{enum_name}.{variant_name}"))
+                                            .expect("CString failed");
+                                    let struct_ptr = LLVMBuildAlloca(
+                                        self.builder,
+                                        struct_ty,
+                                        alloc_name.as_ptr(),
+                                    );
+
+                                    // Store the tag
+                                    let tag_val = LLVMConstInt(i64_ty, *tag as u64, 0);
+                                    let tag_ptr = LLVMBuildStructGEP2(
+                                        self.builder,
+                                        struct_ty,
+                                        struct_ptr,
+                                        0,
+                                        c"tag.ptr".as_ptr(),
+                                    );
+                                    LLVMBuildStore(self.builder, tag_val, tag_ptr);
+
+                                    // Store each payload value
+                                    for (idx, payload_expr) in payload_exprs.iter().enumerate() {
+                                        let payload_val = self.codegen_expression(payload_expr)?;
+                                        let payload_ptr = LLVMBuildStructGEP2(
+                                            self.builder,
+                                            struct_ty,
+                                            struct_ptr,
+                                            (idx + 1) as u32,
+                                            c"payload.ptr".as_ptr(),
+                                        );
+                                        LLVMBuildStore(self.builder, payload_val, payload_ptr);
+                                    }
+
+                                    // Load the tag for pattern matching (simple enums just return tag)
+                                    // For full support, we'd return the struct pointer
+                                    let loaded_tag = LLVMBuildLoad2(
+                                        self.builder,
+                                        i64_ty,
+                                        tag_ptr,
+                                        c"tag".as_ptr(),
+                                    );
+                                    return Ok(loaded_tag);
+                                }
+                            }
+
+                            // Simple enum without payload - just return the tag
                             Ok(LLVMConstInt(i64_ty, *tag as u64, 0))
                         } else {
                             Err(CompilerError::codegen_error(format!(
-                                "Unknown variant '{}' for enum '{}'", variant_name, enum_name
+                                "Unknown variant '{variant_name}' for enum '{enum_name}'"
                             )))
                         }
                     } else {
                         Err(CompilerError::codegen_error(format!(
-                            "Unknown enum '{}'", enum_name
+                            "Unknown enum '{enum_name}'"
                         )))
                     }
                 }
@@ -3216,7 +3449,7 @@ impl LLVMCodegen {
                 "vec_int_pop" => {
                     // Pop: read last element, decrement len, return element
                     let vec_ptr = self.codegen_expression(&arguments[0])?;
-                    
+
                     // Get length field (offset 8 bytes from struct start)
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
@@ -3233,7 +3466,7 @@ impl LLVMCodegen {
                         c"".as_ptr(),
                     );
                     let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
-                    
+
                     // Compute last index (len - 1)
                     let last_idx = LLVMBuildSub(
                         self.builder,
@@ -3241,7 +3474,7 @@ impl LLVMCodegen {
                         LLVMConstInt(i64_ty, 1, 0),
                         c"".as_ptr(),
                     );
-                    
+
                     // Get data pointer and read element at last_idx FIRST
                     let ptr_field = LLVMBuildBitCast(
                         self.builder,
@@ -3260,10 +3493,10 @@ impl LLVMCodegen {
                         c"".as_ptr(),
                     );
                     let val = LLVMBuildLoad2(self.builder, i64_ty, elem_ptr, c"".as_ptr());
-                    
+
                     // Now store decremented length
                     LLVMBuildStore(self.builder, last_idx, len_field);
-                    
+
                     Ok(Some(val))
                 }
                 "vec_int_clear" => {
@@ -3308,178 +3541,379 @@ impl LLVMCodegen {
                     // Ensure capacity >= new_cap, reallocate if needed
                     let vec_ptr = self.codegen_expression(&arguments[0])?;
                     let new_cap = self.codegen_expression(&arguments[1])?;
-                    
+
                     // Get current capacity
-                    let cap_addr = LLVMBuildGEP2(self.builder, i8_ptr_ty, vec_ptr, [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(), 1, c"".as_ptr());
-                    let cap_field = LLVMBuildBitCast(self.builder, cap_addr, LLVMPointerType(i64_ty, 0), c"".as_ptr());
-                    let old_cap = LLVMBuildLoad2(self.builder, i64_ty, cap_field, c"old_cap".as_ptr());
-                    
+                    let cap_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_field = LLVMBuildBitCast(
+                        self.builder,
+                        cap_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let old_cap =
+                        LLVMBuildLoad2(self.builder, i64_ty, cap_field, c"old_cap".as_ptr());
+
                     // Check if reallocation needed: new_cap > old_cap
-                    let needs_realloc = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntSGT, new_cap, old_cap, c"needs_realloc".as_ptr());
-                    
+                    let needs_realloc = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntSGT,
+                        new_cap,
+                        old_cap,
+                        c"needs_realloc".as_ptr(),
+                    );
+
                     // Get current function for block creation
                     let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
-                    let realloc_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"reserve.realloc".as_ptr());
-                    let done_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"reserve.done".as_ptr());
-                    
+                    let realloc_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"reserve.realloc".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"reserve.done".as_ptr(),
+                    );
+
                     LLVMBuildCondBr(self.builder, needs_realloc, realloc_bb, done_bb);
-                    
+
                     // Realloc block
                     LLVMPositionBuilderAtEnd(self.builder, realloc_bb);
-                    
-                    let realloc_fn = *self.functions.get("realloc").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing realloc")
-                    })?;
+
+                    let realloc_fn = *self
+                        .functions
+                        .get("realloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing realloc"))?;
                     let realloc_ty = LLVMGlobalGetValueType(realloc_fn);
-                    
+
                     // Get data ptr
-                    let ptr_field = LLVMBuildBitCast(self.builder, vec_ptr, LLVMPointerType(i64_ptr_ty, 0), c"".as_ptr());
-                    let old_data = LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"old_data".as_ptr());
-                    let old_data_i8 = LLVMBuildBitCast(self.builder, old_data, i8_ptr_ty, c"".as_ptr());
-                    
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let old_data =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"old_data".as_ptr());
+                    let old_data_i8 =
+                        LLVMBuildBitCast(self.builder, old_data, i8_ptr_ty, c"".as_ptr());
+
                     // New size = new_cap * 8
-                    let new_size = LLVMBuildMul(self.builder, new_cap, LLVMConstInt(i64_ty, 8, 0), c"new_size".as_ptr());
-                    
+                    let new_size = LLVMBuildMul(
+                        self.builder,
+                        new_cap,
+                        LLVMConstInt(i64_ty, 8, 0),
+                        c"new_size".as_ptr(),
+                    );
+
                     // Realloc
-                    let new_data = LLVMBuildCall2(self.builder, realloc_ty, realloc_fn, [old_data_i8, new_size].as_mut_ptr(), 2, c"new_data".as_ptr());
-                    let new_data_typed = LLVMBuildBitCast(self.builder, new_data, i64_ptr_ty, c"".as_ptr());
-                    
+                    let new_data = LLVMBuildCall2(
+                        self.builder,
+                        realloc_ty,
+                        realloc_fn,
+                        [old_data_i8, new_size].as_mut_ptr(),
+                        2,
+                        c"new_data".as_ptr(),
+                    );
+                    let new_data_typed =
+                        LLVMBuildBitCast(self.builder, new_data, i64_ptr_ty, c"".as_ptr());
+
                     // Store new data ptr and capacity
                     LLVMBuildStore(self.builder, new_data_typed, ptr_field);
                     LLVMBuildStore(self.builder, new_cap, cap_field);
-                    
+
                     LLVMBuildBr(self.builder, done_bb);
-                    
+
                     // Done block
                     LLVMPositionBuilderAtEnd(self.builder, done_bb);
-                    
+
                     Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
                 }
                 "vec_int_shrink_to_fit" => {
                     // Shrink capacity to match length
                     let vec_ptr = self.codegen_expression(&arguments[0])?;
-                    
+
                     // Get len
-                    let len_addr = LLVMBuildGEP2(self.builder, i8_ptr_ty, vec_ptr, [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(), 1, c"".as_ptr());
-                    let len_field = LLVMBuildBitCast(self.builder, len_addr, LLVMPointerType(i64_ty, 0), c"".as_ptr());
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
                     let len = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"len".as_ptr());
-                    
+
                     // Get capacity
-                    let cap_addr = LLVMBuildGEP2(self.builder, i8_ptr_ty, vec_ptr, [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(), 1, c"".as_ptr());
-                    let cap_field = LLVMBuildBitCast(self.builder, cap_addr, LLVMPointerType(i64_ty, 0), c"".as_ptr());
+                    let cap_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_field = LLVMBuildBitCast(
+                        self.builder,
+                        cap_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
                     let cap = LLVMBuildLoad2(self.builder, i64_ty, cap_field, c"cap".as_ptr());
-                    
+
                     // Check if shrink needed: cap > len
-                    let needs_shrink = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntSGT, cap, len, c"needs_shrink".as_ptr());
-                    
+                    let needs_shrink = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntSGT,
+                        cap,
+                        len,
+                        c"needs_shrink".as_ptr(),
+                    );
+
                     let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
-                    let shrink_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"shrink.do".as_ptr());
-                    let done_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"shrink.done".as_ptr());
-                    
+                    let shrink_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"shrink.do".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"shrink.done".as_ptr(),
+                    );
+
                     LLVMBuildCondBr(self.builder, needs_shrink, shrink_bb, done_bb);
-                    
+
                     // Shrink block
                     LLVMPositionBuilderAtEnd(self.builder, shrink_bb);
-                    
-                    let realloc_fn = *self.functions.get("realloc").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing realloc")
-                    })?;
+
+                    let realloc_fn = *self
+                        .functions
+                        .get("realloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing realloc"))?;
                     let realloc_ty = LLVMGlobalGetValueType(realloc_fn);
-                    
+
                     // Get data ptr
-                    let ptr_field = LLVMBuildBitCast(self.builder, vec_ptr, LLVMPointerType(i64_ptr_ty, 0), c"".as_ptr());
-                    let old_data = LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"old_data".as_ptr());
-                    let old_data_i8 = LLVMBuildBitCast(self.builder, old_data, i8_ptr_ty, c"".as_ptr());
-                    
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let old_data =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"old_data".as_ptr());
+                    let old_data_i8 =
+                        LLVMBuildBitCast(self.builder, old_data, i8_ptr_ty, c"".as_ptr());
+
                     // New size = len * 8 (minimum 8 bytes to avoid zero alloc)
                     let one = LLVMConstInt(i64_ty, 1, 0);
-                    let min_len = LLVMBuildSelect(self.builder, 
-                        LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntSLT, len, one, c"".as_ptr()),
-                        one, len, c"min_len".as_ptr());
-                    let new_size = LLVMBuildMul(self.builder, min_len, LLVMConstInt(i64_ty, 8, 0), c"new_size".as_ptr());
-                    
+                    let min_len = LLVMBuildSelect(
+                        self.builder,
+                        LLVMBuildICmp(
+                            self.builder,
+                            llvm_sys::LLVMIntPredicate::LLVMIntSLT,
+                            len,
+                            one,
+                            c"".as_ptr(),
+                        ),
+                        one,
+                        len,
+                        c"min_len".as_ptr(),
+                    );
+                    let new_size = LLVMBuildMul(
+                        self.builder,
+                        min_len,
+                        LLVMConstInt(i64_ty, 8, 0),
+                        c"new_size".as_ptr(),
+                    );
+
                     // Realloc
-                    let new_data = LLVMBuildCall2(self.builder, realloc_ty, realloc_fn, [old_data_i8, new_size].as_mut_ptr(), 2, c"new_data".as_ptr());
-                    let new_data_typed = LLVMBuildBitCast(self.builder, new_data, i64_ptr_ty, c"".as_ptr());
-                    
+                    let new_data = LLVMBuildCall2(
+                        self.builder,
+                        realloc_ty,
+                        realloc_fn,
+                        [old_data_i8, new_size].as_mut_ptr(),
+                        2,
+                        c"new_data".as_ptr(),
+                    );
+                    let new_data_typed =
+                        LLVMBuildBitCast(self.builder, new_data, i64_ptr_ty, c"".as_ptr());
+
                     // Store new data ptr and capacity
                     LLVMBuildStore(self.builder, new_data_typed, ptr_field);
                     LLVMBuildStore(self.builder, min_len, cap_field);
-                    
+
                     LLVMBuildBr(self.builder, done_bb);
-                    
+
                     // Done block
                     LLVMPositionBuilderAtEnd(self.builder, done_bb);
-                    
+
                     Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
                 }
                 "vec_int_with_capacity" => {
                     let capacity = self.codegen_expression(&arguments[0])?;
-                    let malloc_fn = *self.functions.get("malloc")
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
                         .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                     let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
-                    
+
                     // Allocate struct (24 bytes: ptr + len + cap)
                     let struct_ptr = LLVMBuildCall2(
-                        self.builder, malloc_ty, malloc_fn,
-                        [LLVMConstInt(i64_ty, 24, 0)].as_mut_ptr(), 1, c"vec".as_ptr(),
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 24, 0)].as_mut_ptr(),
+                        1,
+                        c"vec".as_ptr(),
                     );
-                    
+
                     // Allocate data array (capacity * 8 bytes for i64)
-                    let data_size = LLVMBuildMul(self.builder, capacity, LLVMConstInt(i64_ty, 8, 0), c"size".as_ptr());
-                    let array_ptr = LLVMBuildCall2(
-                        self.builder, malloc_ty, malloc_fn,
-                        [data_size].as_mut_ptr(), 1, c"data".as_ptr(),
+                    let data_size = LLVMBuildMul(
+                        self.builder,
+                        capacity,
+                        LLVMConstInt(i64_ty, 8, 0),
+                        c"size".as_ptr(),
                     );
-                    let array_typed = LLVMBuildBitCast(self.builder, array_ptr, i64_ptr_ty, c"".as_ptr());
-                    
+                    let array_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [data_size].as_mut_ptr(),
+                        1,
+                        c"data".as_ptr(),
+                    );
+                    let array_typed =
+                        LLVMBuildBitCast(self.builder, array_ptr, i64_ptr_ty, c"".as_ptr());
+
                     // Store ptr
-                    let ptr_field = LLVMBuildBitCast(self.builder, struct_ptr, LLVMPointerType(i64_ptr_ty, 0), c"".as_ptr());
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        struct_ptr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, array_typed, ptr_field);
-                    
+
                     // Store len = 0
-                    let len_addr = LLVMBuildGEP2(self.builder, i8_ptr_ty, struct_ptr, [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(), 1, c"".as_ptr());
-                    let len_field = LLVMBuildBitCast(self.builder, len_addr, LLVMPointerType(i64_ty, 0), c"".as_ptr());
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        struct_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
-                    
+
                     // Store cap = capacity
-                    let cap_addr = LLVMBuildGEP2(self.builder, i8_ptr_ty, struct_ptr, [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(), 1, c"".as_ptr());
-                    let cap_field = LLVMBuildBitCast(self.builder, cap_addr, LLVMPointerType(i64_ty, 0), c"".as_ptr());
+                    let cap_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        struct_ptr,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_field = LLVMBuildBitCast(
+                        self.builder,
+                        cap_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, capacity, cap_field);
-                    
+
                     Ok(Some(struct_ptr))
                 }
                 "vec_int_swap_remove" => {
                     // O(1) remove: swap element at index with last element, then pop
                     let vec_ptr = self.codegen_expression(&arguments[0])?;
                     let index = self.codegen_expression(&arguments[1])?;
-                    
+
                     // Get data ptr
-                    let ptr_field = LLVMBuildBitCast(self.builder, vec_ptr, LLVMPointerType(i64_ptr_ty, 0), c"".as_ptr());
-                    let data_ptr = LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"data".as_ptr());
-                    
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"data".as_ptr());
+
                     // Get len
-                    let len_addr = LLVMBuildGEP2(self.builder, i8_ptr_ty, vec_ptr, [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(), 1, c"".as_ptr());
-                    let len_field = LLVMBuildBitCast(self.builder, len_addr, LLVMPointerType(i64_ty, 0), c"".as_ptr());
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
                     let len = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"len".as_ptr());
-                    
+
                     // Get element at index (to return)
-                    let elem_ptr = LLVMBuildGEP2(self.builder, i64_ty, data_ptr, [index].as_mut_ptr(), 1, c"elem".as_ptr());
-                    let removed_val = LLVMBuildLoad2(self.builder, i64_ty, elem_ptr, c"removed".as_ptr());
-                    
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i64_ty,
+                        data_ptr,
+                        [index].as_mut_ptr(),
+                        1,
+                        c"elem".as_ptr(),
+                    );
+                    let removed_val =
+                        LLVMBuildLoad2(self.builder, i64_ty, elem_ptr, c"removed".as_ptr());
+
                     // Get last index
-                    let last_idx = LLVMBuildSub(self.builder, len, LLVMConstInt(i64_ty, 1, 0), c"last".as_ptr());
-                    
+                    let last_idx = LLVMBuildSub(
+                        self.builder,
+                        len,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"last".as_ptr(),
+                    );
+
                     // Get last element
-                    let last_ptr = LLVMBuildGEP2(self.builder, i64_ty, data_ptr, [last_idx].as_mut_ptr(), 1, c"last_elem".as_ptr());
-                    let last_val = LLVMBuildLoad2(self.builder, i64_ty, last_ptr, c"last_val".as_ptr());
-                    
+                    let last_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i64_ty,
+                        data_ptr,
+                        [last_idx].as_mut_ptr(),
+                        1,
+                        c"last_elem".as_ptr(),
+                    );
+                    let last_val =
+                        LLVMBuildLoad2(self.builder, i64_ty, last_ptr, c"last_val".as_ptr());
+
                     // Store last element at index position
                     LLVMBuildStore(self.builder, last_val, elem_ptr);
-                    
+
                     // Decrement len
                     LLVMBuildStore(self.builder, last_idx, len_field);
-                    
+
                     Ok(Some(removed_val))
                 }
                 "vec_int_insert" => {
@@ -3487,82 +3921,195 @@ impl LLVMCodegen {
                     let vec_ptr = self.codegen_expression(&arguments[0])?;
                     let index = self.codegen_expression(&arguments[1])?;
                     let value = self.codegen_expression(&arguments[2])?;
-                    
+
                     // Get data ptr
-                    let ptr_field = LLVMBuildBitCast(self.builder, vec_ptr, LLVMPointerType(i64_ptr_ty, 0), c"".as_ptr());
-                    let data_ptr = LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"data".as_ptr());
-                    
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"data".as_ptr());
+
                     // Get len
-                    let len_addr = LLVMBuildGEP2(self.builder, i8_ptr_ty, vec_ptr, [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(), 1, c"".as_ptr());
-                    let len_field = LLVMBuildBitCast(self.builder, len_addr, LLVMPointerType(i64_ty, 0), c"".as_ptr());
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
                     let len = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"len".as_ptr());
-                    
+
                     // Calculate bytes to move: (len - index) * 8
-                    let elements_to_move = LLVMBuildSub(self.builder, len, index, c"tomove".as_ptr());
-                    let bytes_to_move = LLVMBuildMul(self.builder, elements_to_move, LLVMConstInt(i64_ty, 8, 0), c"bytes".as_ptr());
-                    
+                    let elements_to_move =
+                        LLVMBuildSub(self.builder, len, index, c"tomove".as_ptr());
+                    let bytes_to_move = LLVMBuildMul(
+                        self.builder,
+                        elements_to_move,
+                        LLVMConstInt(i64_ty, 8, 0),
+                        c"bytes".as_ptr(),
+                    );
+
                     // Source: data[index], Dest: data[index+1]
-                    let src_ptr = LLVMBuildGEP2(self.builder, i64_ty, data_ptr, [index].as_mut_ptr(), 1, c"src".as_ptr());
-                    let index_plus_one = LLVMBuildAdd(self.builder, index, LLVMConstInt(i64_ty, 1, 0), c"idx1".as_ptr());
-                    let dst_ptr = LLVMBuildGEP2(self.builder, i64_ty, data_ptr, [index_plus_one].as_mut_ptr(), 1, c"dst".as_ptr());
-                    
+                    let src_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i64_ty,
+                        data_ptr,
+                        [index].as_mut_ptr(),
+                        1,
+                        c"src".as_ptr(),
+                    );
+                    let index_plus_one = LLVMBuildAdd(
+                        self.builder,
+                        index,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"idx1".as_ptr(),
+                    );
+                    let dst_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i64_ty,
+                        data_ptr,
+                        [index_plus_one].as_mut_ptr(),
+                        1,
+                        c"dst".as_ptr(),
+                    );
+
                     // memmove(dst, src, bytes)
-                    let memmove_fn = *self.functions.get("memmove").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing memmove")
-                    })?;
+                    let memmove_fn = *self
+                        .functions
+                        .get("memmove")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing memmove"))?;
                     let memmove_ty = LLVMGlobalGetValueType(memmove_fn);
                     let src_i8 = LLVMBuildBitCast(self.builder, src_ptr, i8_ptr_ty, c"".as_ptr());
                     let dst_i8 = LLVMBuildBitCast(self.builder, dst_ptr, i8_ptr_ty, c"".as_ptr());
-                    LLVMBuildCall2(self.builder, memmove_ty, memmove_fn, [dst_i8, src_i8, bytes_to_move].as_mut_ptr(), 3, c"".as_ptr());
-                    
+                    LLVMBuildCall2(
+                        self.builder,
+                        memmove_ty,
+                        memmove_fn,
+                        [dst_i8, src_i8, bytes_to_move].as_mut_ptr(),
+                        3,
+                        c"".as_ptr(),
+                    );
+
                     // Store value at index
                     LLVMBuildStore(self.builder, value, src_ptr);
-                    
+
                     // Increment len
-                    let new_len = LLVMBuildAdd(self.builder, len, LLVMConstInt(i64_ty, 1, 0), c"newlen".as_ptr());
+                    let new_len = LLVMBuildAdd(
+                        self.builder,
+                        len,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"newlen".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, new_len, len_field);
-                    
+
                     Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
                 }
                 "vec_int_remove" => {
                     // O(n) remove: shift elements left after removing
                     let vec_ptr = self.codegen_expression(&arguments[0])?;
                     let index = self.codegen_expression(&arguments[1])?;
-                    
+
                     // Get data ptr
-                    let ptr_field = LLVMBuildBitCast(self.builder, vec_ptr, LLVMPointerType(i64_ptr_ty, 0), c"".as_ptr());
-                    let data_ptr = LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"data".as_ptr());
-                    
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_ptr,
+                        LLVMPointerType(i64_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, ptr_field, c"data".as_ptr());
+
                     // Get len
-                    let len_addr = LLVMBuildGEP2(self.builder, i8_ptr_ty, vec_ptr, [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(), 1, c"".as_ptr());
-                    let len_field = LLVMBuildBitCast(self.builder, len_addr, LLVMPointerType(i64_ty, 0), c"".as_ptr());
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_ptr,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
                     let len = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"len".as_ptr());
-                    
+
                     // Get element at index (to return)
-                    let elem_ptr = LLVMBuildGEP2(self.builder, i64_ty, data_ptr, [index].as_mut_ptr(), 1, c"elem".as_ptr());
-                    let removed_val = LLVMBuildLoad2(self.builder, i64_ty, elem_ptr, c"removed".as_ptr());
-                    
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i64_ty,
+                        data_ptr,
+                        [index].as_mut_ptr(),
+                        1,
+                        c"elem".as_ptr(),
+                    );
+                    let removed_val =
+                        LLVMBuildLoad2(self.builder, i64_ty, elem_ptr, c"removed".as_ptr());
+
                     // Calculate bytes to move: (len - index - 1) * 8
-                    let index_plus_one = LLVMBuildAdd(self.builder, index, LLVMConstInt(i64_ty, 1, 0), c"idx1".as_ptr());
-                    let elements_to_move = LLVMBuildSub(self.builder, len, index_plus_one, c"tomove".as_ptr());
-                    let bytes_to_move = LLVMBuildMul(self.builder, elements_to_move, LLVMConstInt(i64_ty, 8, 0), c"bytes".as_ptr());
-                    
+                    let index_plus_one = LLVMBuildAdd(
+                        self.builder,
+                        index,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"idx1".as_ptr(),
+                    );
+                    let elements_to_move =
+                        LLVMBuildSub(self.builder, len, index_plus_one, c"tomove".as_ptr());
+                    let bytes_to_move = LLVMBuildMul(
+                        self.builder,
+                        elements_to_move,
+                        LLVMConstInt(i64_ty, 8, 0),
+                        c"bytes".as_ptr(),
+                    );
+
                     // Source: data[index+1], Dest: data[index]
-                    let src_ptr = LLVMBuildGEP2(self.builder, i64_ty, data_ptr, [index_plus_one].as_mut_ptr(), 1, c"src".as_ptr());
-                    
+                    let src_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i64_ty,
+                        data_ptr,
+                        [index_plus_one].as_mut_ptr(),
+                        1,
+                        c"src".as_ptr(),
+                    );
+
                     // memmove(dst, src, bytes)
-                    let memmove_fn = *self.functions.get("memmove").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing memmove")
-                    })?;
+                    let memmove_fn = *self
+                        .functions
+                        .get("memmove")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing memmove"))?;
                     let memmove_ty = LLVMGlobalGetValueType(memmove_fn);
                     let src_i8 = LLVMBuildBitCast(self.builder, src_ptr, i8_ptr_ty, c"".as_ptr());
                     let dst_i8 = LLVMBuildBitCast(self.builder, elem_ptr, i8_ptr_ty, c"".as_ptr());
-                    LLVMBuildCall2(self.builder, memmove_ty, memmove_fn, [dst_i8, src_i8, bytes_to_move].as_mut_ptr(), 3, c"".as_ptr());
-                    
+                    LLVMBuildCall2(
+                        self.builder,
+                        memmove_ty,
+                        memmove_fn,
+                        [dst_i8, src_i8, bytes_to_move].as_mut_ptr(),
+                        3,
+                        c"".as_ptr(),
+                    );
+
                     // Decrement len
-                    let new_len = LLVMBuildSub(self.builder, len, LLVMConstInt(i64_ty, 1, 0), c"newlen".as_ptr());
+                    let new_len = LLVMBuildSub(
+                        self.builder,
+                        len,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"newlen".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, new_len, len_field);
-                    
+
                     Ok(Some(removed_val))
                 }
                 "vec_int_free" => {
@@ -5719,8 +6266,10 @@ impl LLVMCodegen {
     fn emit_null_check(&mut self, ptr: LLVMValueRef, _msg: &str) -> CompilerResult<()> {
         unsafe {
             let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
-            let trap_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"null.trap".as_ptr());
-            let ok_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"null.ok".as_ptr());
+            let trap_bb =
+                LLVMAppendBasicBlockInContext(self.context, current_fn, c"null.trap".as_ptr());
+            let ok_bb =
+                LLVMAppendBasicBlockInContext(self.context, current_fn, c"null.ok".as_ptr());
 
             let is_null = LLVMBuildICmp(
                 self.builder,
@@ -5734,11 +6283,19 @@ impl LLVMCodegen {
 
             // Trap block - call abort
             LLVMPositionBuilderAtEnd(self.builder, trap_bb);
-            let abort_fn = *self.functions.get("abort").ok_or_else(|| {
-                CompilerError::codegen_error("Missing abort")
-            })?;
+            let abort_fn = *self
+                .functions
+                .get("abort")
+                .ok_or_else(|| CompilerError::codegen_error("Missing abort"))?;
             let abort_ty = LLVMGlobalGetValueType(abort_fn);
-            LLVMBuildCall2(self.builder, abort_ty, abort_fn, std::ptr::null_mut(), 0, c"".as_ptr());
+            LLVMBuildCall2(
+                self.builder,
+                abort_ty,
+                abort_fn,
+                std::ptr::null_mut(),
+                0,
+                c"".as_ptr(),
+            );
             LLVMBuildUnreachable(self.builder);
 
             // Continue in ok block
@@ -5757,13 +6314,14 @@ impl LLVMCodegen {
             match name {
                 "str_len" => {
                     let s = self.codegen_expression(&arguments[0])?;
-                    
+
                     // Trap on null pointer
                     self.emit_null_check(s, "str_len: null string")?;
-                    
-                    let strlen_fn = *self.functions.get("strlen").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing strlen")
-                    })?;
+
+                    let strlen_fn = *self
+                        .functions
+                        .get("strlen")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing strlen"))?;
                     let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
                     let result = LLVMBuildCall2(
                         self.builder,
@@ -5779,10 +6337,10 @@ impl LLVMCodegen {
                 "str_char_at" => {
                     let s = self.codegen_expression(&arguments[0])?;
                     let idx = self.codegen_expression(&arguments[1])?;
-                    
+
                     // Trap on null pointer
                     self.emit_null_check(s, "str_char_at: null string")?;
-                    
+
                     let i8_ty = LLVMInt8TypeInContext(self.context);
                     let i64_ty = LLVMInt64TypeInContext(self.context);
 
@@ -5795,7 +6353,8 @@ impl LLVMCodegen {
                         c"char.ptr".as_ptr(),
                     );
                     let byte_val = LLVMBuildLoad2(self.builder, i8_ty, byte_ptr, c"char".as_ptr());
-                    let result = LLVMBuildZExt(self.builder, byte_val, i64_ty, c"char.int".as_ptr());
+                    let result =
+                        LLVMBuildZExt(self.builder, byte_val, i64_ty, c"char.int".as_ptr());
                     Ok(Some(result))
                 }
 
@@ -5810,13 +6369,15 @@ impl LLVMCodegen {
                     let i8_ty = LLVMInt8TypeInContext(self.context);
                     let i64_ty = LLVMInt64TypeInContext(self.context);
 
-                    let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing malloc")
-                    })?;
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                     let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
-                    let memcpy_fn = *self.functions.get("memcpy").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing memcpy")
-                    })?;
+                    let memcpy_fn = *self
+                        .functions
+                        .get("memcpy")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing memcpy"))?;
                     let memcpy_ty = LLVMGlobalGetValueType(memcpy_fn);
 
                     let len = LLVMBuildSub(self.builder, end, start, c"slice.len".as_ptr());
@@ -5873,33 +6434,72 @@ impl LLVMCodegen {
 
                     let i64_ty = LLVMInt64TypeInContext(self.context);
 
-                    let strlen_fn = *self.functions.get("strlen").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing strlen")
-                    })?;
+                    let strlen_fn = *self
+                        .functions
+                        .get("strlen")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing strlen"))?;
                     let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
-                    let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing malloc")
-                    })?;
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                     let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
-                    let strcpy_fn = *self.functions.get("strcpy").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing strcpy")
-                    })?;
+                    let strcpy_fn = *self
+                        .functions
+                        .get("strcpy")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing strcpy"))?;
                     let strcpy_ty = LLVMGlobalGetValueType(strcpy_fn);
-                    let strcat_fn = *self.functions.get("strcat").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing strcat")
-                    })?;
+                    let strcat_fn = *self
+                        .functions
+                        .get("strcat")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing strcat"))?;
                     let strcat_ty = LLVMGlobalGetValueType(strcat_fn);
 
-                    let len_a = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn, [a].as_mut_ptr(), 1, c"len.a".as_ptr());
-                    let len_b = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn, [b].as_mut_ptr(), 1, c"len.b".as_ptr());
+                    let len_a = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [a].as_mut_ptr(),
+                        1,
+                        c"len.a".as_ptr(),
+                    );
+                    let len_b = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [b].as_mut_ptr(),
+                        1,
+                        c"len.b".as_ptr(),
+                    );
 
                     let total = LLVMBuildAdd(self.builder, len_a, len_b, c"total.len".as_ptr());
                     let one = LLVMConstInt(i64_ty, 1, 0);
                     let alloc_size = LLVMBuildAdd(self.builder, total, one, c"alloc.size".as_ptr());
 
-                    let new_str = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn, [alloc_size].as_mut_ptr(), 1, c"concat.ptr".as_ptr());
-                    LLVMBuildCall2(self.builder, strcpy_ty, strcpy_fn, [new_str, a].as_mut_ptr(), 2, c"".as_ptr());
-                    LLVMBuildCall2(self.builder, strcat_ty, strcat_fn, [new_str, b].as_mut_ptr(), 2, c"".as_ptr());
+                    let new_str = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [alloc_size].as_mut_ptr(),
+                        1,
+                        c"concat.ptr".as_ptr(),
+                    );
+                    LLVMBuildCall2(
+                        self.builder,
+                        strcpy_ty,
+                        strcpy_fn,
+                        [new_str, a].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildCall2(
+                        self.builder,
+                        strcat_ty,
+                        strcat_fn,
+                        [new_str, b].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
 
                     Ok(Some(new_str))
                 }
@@ -5912,15 +6512,29 @@ impl LLVMCodegen {
                     self.emit_null_check(a, "str_eq: null first string")?;
                     self.emit_null_check(b, "str_eq: null second string")?;
 
-                    let strcmp_fn = *self.functions.get("strcmp").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing strcmp")
-                    })?;
+                    let strcmp_fn = *self
+                        .functions
+                        .get("strcmp")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing strcmp"))?;
                     let strcmp_ty = LLVMGlobalGetValueType(strcmp_fn);
                     let i32_ty = LLVMInt32TypeInContext(self.context);
 
-                    let cmp_result = LLVMBuildCall2(self.builder, strcmp_ty, strcmp_fn, [a, b].as_mut_ptr(), 2, c"strcmp".as_ptr());
+                    let cmp_result = LLVMBuildCall2(
+                        self.builder,
+                        strcmp_ty,
+                        strcmp_fn,
+                        [a, b].as_mut_ptr(),
+                        2,
+                        c"strcmp".as_ptr(),
+                    );
                     let zero = LLVMConstInt(i32_ty, 0, 0);
-                    let result = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ, cmp_result, zero, c"str.eq".as_ptr());
+                    let result = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        cmp_result,
+                        zero,
+                        c"str.eq".as_ptr(),
+                    );
                     Ok(Some(result))
                 }
 
@@ -5932,15 +6546,29 @@ impl LLVMCodegen {
                     self.emit_null_check(a, "str_ne: null first string")?;
                     self.emit_null_check(b, "str_ne: null second string")?;
 
-                    let strcmp_fn = *self.functions.get("strcmp").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing strcmp")
-                    })?;
+                    let strcmp_fn = *self
+                        .functions
+                        .get("strcmp")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing strcmp"))?;
                     let strcmp_ty = LLVMGlobalGetValueType(strcmp_fn);
                     let i32_ty = LLVMInt32TypeInContext(self.context);
 
-                    let cmp_result = LLVMBuildCall2(self.builder, strcmp_ty, strcmp_fn, [a, b].as_mut_ptr(), 2, c"strcmp".as_ptr());
+                    let cmp_result = LLVMBuildCall2(
+                        self.builder,
+                        strcmp_ty,
+                        strcmp_fn,
+                        [a, b].as_mut_ptr(),
+                        2,
+                        c"strcmp".as_ptr(),
+                    );
                     let zero = LLVMConstInt(i32_ty, 0, 0);
-                    let result = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntNE, cmp_result, zero, c"str.ne".as_ptr());
+                    let result = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntNE,
+                        cmp_result,
+                        zero,
+                        c"str.ne".as_ptr(),
+                    );
                     Ok(Some(result))
                 }
 
@@ -5952,110 +6580,195 @@ impl LLVMCodegen {
                     self.emit_null_check(a, "bytes_eq: null first bytes")?;
                     self.emit_null_check(b, "bytes_eq: null second bytes")?;
 
-                    let strcmp_fn = *self.functions.get("strcmp").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing strcmp")
-                    })?;
+                    let strcmp_fn = *self
+                        .functions
+                        .get("strcmp")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing strcmp"))?;
                     let strcmp_ty = LLVMGlobalGetValueType(strcmp_fn);
                     let i32_ty = LLVMInt32TypeInContext(self.context);
 
-                    let cmp_result = LLVMBuildCall2(self.builder, strcmp_ty, strcmp_fn, [a, b].as_mut_ptr(), 2, c"strcmp".as_ptr());
+                    let cmp_result = LLVMBuildCall2(
+                        self.builder,
+                        strcmp_ty,
+                        strcmp_fn,
+                        [a, b].as_mut_ptr(),
+                        2,
+                        c"strcmp".as_ptr(),
+                    );
                     let zero = LLVMConstInt(i32_ty, 0, 0);
-                    let result = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ, cmp_result, zero, c"bytes.eq".as_ptr());
+                    let result = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        cmp_result,
+                        zero,
+                        c"bytes.eq".as_ptr(),
+                    );
                     Ok(Some(result))
                 }
 
                 // ============================================================
                 // Math Stdlib: math_sqrt, math_pow, math_abs, etc.
                 // ============================================================
-
                 "math_sqrt" => {
                     let x = self.codegen_expression(&arguments[0])?;
-                    let sqrt_fn = *self.functions.get("sqrt").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing sqrt")
-                    })?;
+                    let sqrt_fn = *self
+                        .functions
+                        .get("sqrt")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing sqrt"))?;
                     let sqrt_ty = LLVMGlobalGetValueType(sqrt_fn);
-                    let result = LLVMBuildCall2(self.builder, sqrt_ty, sqrt_fn, [x].as_mut_ptr(), 1, c"math_sqrt".as_ptr());
+                    let result = LLVMBuildCall2(
+                        self.builder,
+                        sqrt_ty,
+                        sqrt_fn,
+                        [x].as_mut_ptr(),
+                        1,
+                        c"math_sqrt".as_ptr(),
+                    );
                     Ok(Some(result))
                 }
 
                 "math_pow" => {
                     let x = self.codegen_expression(&arguments[0])?;
                     let y = self.codegen_expression(&arguments[1])?;
-                    let pow_fn = *self.functions.get("pow").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing pow")
-                    })?;
+                    let pow_fn = *self
+                        .functions
+                        .get("pow")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing pow"))?;
                     let pow_ty = LLVMGlobalGetValueType(pow_fn);
-                    let result = LLVMBuildCall2(self.builder, pow_ty, pow_fn, [x, y].as_mut_ptr(), 2, c"math_pow".as_ptr());
+                    let result = LLVMBuildCall2(
+                        self.builder,
+                        pow_ty,
+                        pow_fn,
+                        [x, y].as_mut_ptr(),
+                        2,
+                        c"math_pow".as_ptr(),
+                    );
                     Ok(Some(result))
                 }
 
                 "math_abs" => {
                     let x = self.codegen_expression(&arguments[0])?;
-                    let abs_fn = *self.functions.get("abs").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing abs")
-                    })?;
+                    let abs_fn = *self
+                        .functions
+                        .get("abs")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing abs"))?;
                     let abs_ty = LLVMGlobalGetValueType(abs_fn);
-                    let result = LLVMBuildCall2(self.builder, abs_ty, abs_fn, [x].as_mut_ptr(), 1, c"math_abs".as_ptr());
+                    let result = LLVMBuildCall2(
+                        self.builder,
+                        abs_ty,
+                        abs_fn,
+                        [x].as_mut_ptr(),
+                        1,
+                        c"math_abs".as_ptr(),
+                    );
                     Ok(Some(result))
                 }
 
                 "math_floor" => {
                     let x = self.codegen_expression(&arguments[0])?;
-                    let floor_fn = *self.functions.get("floor").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing floor")
-                    })?;
+                    let floor_fn = *self
+                        .functions
+                        .get("floor")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing floor"))?;
                     let floor_ty = LLVMGlobalGetValueType(floor_fn);
-                    let result = LLVMBuildCall2(self.builder, floor_ty, floor_fn, [x].as_mut_ptr(), 1, c"math_floor".as_ptr());
+                    let result = LLVMBuildCall2(
+                        self.builder,
+                        floor_ty,
+                        floor_fn,
+                        [x].as_mut_ptr(),
+                        1,
+                        c"math_floor".as_ptr(),
+                    );
                     Ok(Some(result))
                 }
 
                 "math_ceil" => {
                     let x = self.codegen_expression(&arguments[0])?;
-                    let ceil_fn = *self.functions.get("ceil").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing ceil")
-                    })?;
+                    let ceil_fn = *self
+                        .functions
+                        .get("ceil")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing ceil"))?;
                     let ceil_ty = LLVMGlobalGetValueType(ceil_fn);
-                    let result = LLVMBuildCall2(self.builder, ceil_ty, ceil_fn, [x].as_mut_ptr(), 1, c"math_ceil".as_ptr());
+                    let result = LLVMBuildCall2(
+                        self.builder,
+                        ceil_ty,
+                        ceil_fn,
+                        [x].as_mut_ptr(),
+                        1,
+                        c"math_ceil".as_ptr(),
+                    );
                     Ok(Some(result))
                 }
 
                 "math_round" => {
                     let x = self.codegen_expression(&arguments[0])?;
-                    let round_fn = *self.functions.get("round").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing round")
-                    })?;
+                    let round_fn = *self
+                        .functions
+                        .get("round")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing round"))?;
                     let round_ty = LLVMGlobalGetValueType(round_fn);
-                    let result = LLVMBuildCall2(self.builder, round_ty, round_fn, [x].as_mut_ptr(), 1, c"math_round".as_ptr());
+                    let result = LLVMBuildCall2(
+                        self.builder,
+                        round_ty,
+                        round_fn,
+                        [x].as_mut_ptr(),
+                        1,
+                        c"math_round".as_ptr(),
+                    );
                     Ok(Some(result))
                 }
 
                 "math_sin" => {
                     let x = self.codegen_expression(&arguments[0])?;
-                    let sin_fn = *self.functions.get("sin").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing sin")
-                    })?;
+                    let sin_fn = *self
+                        .functions
+                        .get("sin")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing sin"))?;
                     let sin_ty = LLVMGlobalGetValueType(sin_fn);
-                    let result = LLVMBuildCall2(self.builder, sin_ty, sin_fn, [x].as_mut_ptr(), 1, c"math_sin".as_ptr());
+                    let result = LLVMBuildCall2(
+                        self.builder,
+                        sin_ty,
+                        sin_fn,
+                        [x].as_mut_ptr(),
+                        1,
+                        c"math_sin".as_ptr(),
+                    );
                     Ok(Some(result))
                 }
 
                 "math_cos" => {
                     let x = self.codegen_expression(&arguments[0])?;
-                    let cos_fn = *self.functions.get("cos").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing cos")
-                    })?;
+                    let cos_fn = *self
+                        .functions
+                        .get("cos")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing cos"))?;
                     let cos_ty = LLVMGlobalGetValueType(cos_fn);
-                    let result = LLVMBuildCall2(self.builder, cos_ty, cos_fn, [x].as_mut_ptr(), 1, c"math_cos".as_ptr());
+                    let result = LLVMBuildCall2(
+                        self.builder,
+                        cos_ty,
+                        cos_fn,
+                        [x].as_mut_ptr(),
+                        1,
+                        c"math_cos".as_ptr(),
+                    );
                     Ok(Some(result))
                 }
 
                 "math_tan" => {
                     let x = self.codegen_expression(&arguments[0])?;
-                    let tan_fn = *self.functions.get("tan").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing tan")
-                    })?;
+                    let tan_fn = *self
+                        .functions
+                        .get("tan")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing tan"))?;
                     let tan_ty = LLVMGlobalGetValueType(tan_fn);
-                    let result = LLVMBuildCall2(self.builder, tan_ty, tan_fn, [x].as_mut_ptr(), 1, c"math_tan".as_ptr());
+                    let result = LLVMBuildCall2(
+                        self.builder,
+                        tan_ty,
+                        tan_fn,
+                        [x].as_mut_ptr(),
+                        1,
+                        c"math_tan".as_ptr(),
+                    );
                     Ok(Some(result))
                 }
 
@@ -6063,7 +6776,13 @@ impl LLVMCodegen {
                     let a = self.codegen_expression(&arguments[0])?;
                     let b = self.codegen_expression(&arguments[1])?;
                     // min(a, b) = a < b ? a : b
-                    let cond = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntSLT, a, b, c"min.cmp".as_ptr());
+                    let cond = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntSLT,
+                        a,
+                        b,
+                        c"min.cmp".as_ptr(),
+                    );
                     let result = LLVMBuildSelect(self.builder, cond, a, b, c"math_min".as_ptr());
                     Ok(Some(result))
                 }
@@ -6072,7 +6791,13 @@ impl LLVMCodegen {
                     let a = self.codegen_expression(&arguments[0])?;
                     let b = self.codegen_expression(&arguments[1])?;
                     // max(a, b) = a > b ? a : b
-                    let cond = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntSGT, a, b, c"max.cmp".as_ptr());
+                    let cond = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntSGT,
+                        a,
+                        b,
+                        c"max.cmp".as_ptr(),
+                    );
                     let result = LLVMBuildSelect(self.builder, cond, a, b, c"math_max".as_ptr());
                     Ok(Some(result))
                 }
@@ -6080,14 +6805,21 @@ impl LLVMCodegen {
                 // ============================================================
                 // Random Stdlib: rand_int, rand_float, rand_seed
                 // ============================================================
-
                 "rand_seed" => {
                     let seed = self.codegen_expression(&arguments[0])?;
-                    let srand_fn = *self.functions.get("srand").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing srand")
-                    })?;
+                    let srand_fn = *self
+                        .functions
+                        .get("srand")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing srand"))?;
                     let srand_ty = LLVMGlobalGetValueType(srand_fn);
-                    LLVMBuildCall2(self.builder, srand_ty, srand_fn, [seed].as_mut_ptr(), 1, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        srand_ty,
+                        srand_fn,
+                        [seed].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
                 }
@@ -6095,37 +6827,58 @@ impl LLVMCodegen {
                 "rand_int" => {
                     let min = self.codegen_expression(&arguments[0])?;
                     let max = self.codegen_expression(&arguments[1])?;
-                    let rand_fn = *self.functions.get("rand").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing rand")
-                    })?;
+                    let rand_fn = *self
+                        .functions
+                        .get("rand")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing rand"))?;
                     let rand_ty = LLVMGlobalGetValueType(rand_fn);
                     let i64_ty = LLVMInt64TypeInContext(self.context);
-                    
+
                     // rand() returns int, convert to i64
-                    let rand_val = LLVMBuildCall2(self.builder, rand_ty, rand_fn, [].as_mut_ptr(), 0, c"rand".as_ptr());
-                    let rand_i64 = LLVMBuildSExt(self.builder, rand_val, i64_ty, c"rand.ext".as_ptr());
-                    
+                    let rand_val = LLVMBuildCall2(
+                        self.builder,
+                        rand_ty,
+                        rand_fn,
+                        [].as_mut_ptr(),
+                        0,
+                        c"rand".as_ptr(),
+                    );
+                    let rand_i64 =
+                        LLVMBuildSExt(self.builder, rand_val, i64_ty, c"rand.ext".as_ptr());
+
                     // result = min + (rand % (max - min + 1))
                     let range = LLVMBuildSub(self.builder, max, min, c"range.sub".as_ptr());
                     let one = LLVMConstInt(i64_ty, 1, 0);
-                    let range_plus_one = LLVMBuildAdd(self.builder, range, one, c"range.add".as_ptr());
-                    let mod_val = LLVMBuildSRem(self.builder, rand_i64, range_plus_one, c"rand.mod".as_ptr());
+                    let range_plus_one =
+                        LLVMBuildAdd(self.builder, range, one, c"range.add".as_ptr());
+                    let mod_val =
+                        LLVMBuildSRem(self.builder, rand_i64, range_plus_one, c"rand.mod".as_ptr());
                     let result = LLVMBuildAdd(self.builder, min, mod_val, c"rand_int".as_ptr());
                     Ok(Some(result))
                 }
 
                 "rand_float" => {
-                    let rand_fn = *self.functions.get("rand").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing rand")
-                    })?;
+                    let rand_fn = *self
+                        .functions
+                        .get("rand")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing rand"))?;
                     let rand_ty = LLVMGlobalGetValueType(rand_fn);
                     let f64_ty = LLVMDoubleTypeInContext(self.context);
-                    
+
                     // rand() / RAND_MAX -> 0.0 to 1.0
-                    let rand_val = LLVMBuildCall2(self.builder, rand_ty, rand_fn, [].as_mut_ptr(), 0, c"rand".as_ptr());
-                    let rand_f64 = LLVMBuildSIToFP(self.builder, rand_val, f64_ty, c"rand.fp".as_ptr());
+                    let rand_val = LLVMBuildCall2(
+                        self.builder,
+                        rand_ty,
+                        rand_fn,
+                        [].as_mut_ptr(),
+                        0,
+                        c"rand".as_ptr(),
+                    );
+                    let rand_f64 =
+                        LLVMBuildSIToFP(self.builder, rand_val, f64_ty, c"rand.fp".as_ptr());
                     let rand_max = LLVMConstReal(f64_ty, 2147483647.0); // RAND_MAX
-                    let result = LLVMBuildFDiv(self.builder, rand_f64, rand_max, c"rand_float".as_ptr());
+                    let result =
+                        LLVMBuildFDiv(self.builder, rand_f64, rand_max, c"rand_float".as_ptr());
                     Ok(Some(result))
                 }
 
@@ -6135,73 +6888,131 @@ impl LLVMCodegen {
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     let i8_ty = LLVMInt8TypeInContext(self.context);
                     let _i8_ptr_ty = LLVMPointerType(i8_ty, 0);
-                    
+
                     // Allocate buffer
-                    let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing malloc")
-                    })?;
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                     let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
-                    let buf = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn, [n].as_mut_ptr(), 1, c"rand_buf".as_ptr());
-                    
+                    let buf = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [n].as_mut_ptr(),
+                        1,
+                        c"rand_buf".as_ptr(),
+                    );
+
                     // Get rand function
-                    let rand_fn = *self.functions.get("rand").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing rand")
-                    })?;
+                    let rand_fn = *self
+                        .functions
+                        .get("rand")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing rand"))?;
                     let rand_ty = LLVMGlobalGetValueType(rand_fn);
-                    
+
                     // Create loop to fill buffer
                     let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
-                    let loop_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"rand.loop".as_ptr());
-                    let done_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"rand.done".as_ptr());
-                    
+                    let loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"rand.loop".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"rand.done".as_ptr(),
+                    );
+
                     // Alloca for loop counter
                     let counter = LLVMBuildAlloca(self.builder, i64_ty, c"i".as_ptr());
                     LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), counter);
                     LLVMBuildBr(self.builder, loop_bb);
-                    
+
                     // Loop block
                     LLVMPositionBuilderAtEnd(self.builder, loop_bb);
                     let i = LLVMBuildLoad2(self.builder, i64_ty, counter, c"i.val".as_ptr());
-                    let cond = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntSLT, i, n, c"cond".as_ptr());
-                    
-                    let body_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"rand.body".as_ptr());
+                    let cond = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntSLT,
+                        i,
+                        n,
+                        c"cond".as_ptr(),
+                    );
+
+                    let body_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"rand.body".as_ptr(),
+                    );
                     LLVMBuildCondBr(self.builder, cond, body_bb, done_bb);
-                    
+
                     // Body block
                     LLVMPositionBuilderAtEnd(self.builder, body_bb);
-                    let rand_val = LLVMBuildCall2(self.builder, rand_ty, rand_fn, [].as_mut_ptr(), 0, c"rand".as_ptr());
+                    let rand_val = LLVMBuildCall2(
+                        self.builder,
+                        rand_ty,
+                        rand_fn,
+                        [].as_mut_ptr(),
+                        0,
+                        c"rand".as_ptr(),
+                    );
                     let rand_byte = LLVMBuildTrunc(self.builder, rand_val, i8_ty, c"byte".as_ptr());
-                    let ptr = LLVMBuildGEP2(self.builder, i8_ty, buf, [i].as_mut_ptr(), 1, c"ptr".as_ptr());
+                    let ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ty,
+                        buf,
+                        [i].as_mut_ptr(),
+                        1,
+                        c"ptr".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, rand_byte, ptr);
-                    
+
                     // Increment counter
-                    let next_i = LLVMBuildAdd(self.builder, i, LLVMConstInt(i64_ty, 1, 0), c"next_i".as_ptr());
+                    let next_i = LLVMBuildAdd(
+                        self.builder,
+                        i,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"next_i".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, next_i, counter);
                     LLVMBuildBr(self.builder, loop_bb);
-                    
+
                     // Done block
                     LLVMPositionBuilderAtEnd(self.builder, done_bb);
-                    
+
                     Ok(Some(buf))
                 }
 
                 // ============================================================
                 // Log Stdlib: log_debug, log_info, log_warn, log_error
                 // ============================================================
-
                 "log_debug" => {
                     let msg = self.codegen_expression(&arguments[0])?;
                     let prefix = CString::new("[DEBUG] ").expect("CString failed");
-                    let prefix_ptr = LLVMBuildGlobalStringPtr(self.builder, prefix.as_ptr(), c"log.prefix".as_ptr());
-                    
-                    let printf_fn = *self.functions.get("printf").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing printf")
-                    })?;
+                    let prefix_ptr = LLVMBuildGlobalStringPtr(
+                        self.builder,
+                        prefix.as_ptr(),
+                        c"log.prefix".as_ptr(),
+                    );
+
+                    let printf_fn = *self
+                        .functions
+                        .get("printf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing printf"))?;
                     let printf_ty = LLVMGlobalGetValueType(printf_fn);
                     let fmt = CString::new("%s%s\n").expect("CString failed");
-                    let fmt_ptr = LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"log.fmt".as_ptr());
-                    LLVMBuildCall2(self.builder, printf_ty, printf_fn, [fmt_ptr, prefix_ptr, msg].as_mut_ptr(), 3, c"".as_ptr());
-                    
+                    let fmt_ptr =
+                        LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"log.fmt".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        printf_ty,
+                        printf_fn,
+                        [fmt_ptr, prefix_ptr, msg].as_mut_ptr(),
+                        3,
+                        c"".as_ptr(),
+                    );
+
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
                 }
@@ -6209,16 +7020,29 @@ impl LLVMCodegen {
                 "log_info" => {
                     let msg = self.codegen_expression(&arguments[0])?;
                     let prefix = CString::new("[INFO] ").expect("CString failed");
-                    let prefix_ptr = LLVMBuildGlobalStringPtr(self.builder, prefix.as_ptr(), c"log.prefix".as_ptr());
-                    
-                    let printf_fn = *self.functions.get("printf").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing printf")
-                    })?;
+                    let prefix_ptr = LLVMBuildGlobalStringPtr(
+                        self.builder,
+                        prefix.as_ptr(),
+                        c"log.prefix".as_ptr(),
+                    );
+
+                    let printf_fn = *self
+                        .functions
+                        .get("printf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing printf"))?;
                     let printf_ty = LLVMGlobalGetValueType(printf_fn);
                     let fmt = CString::new("%s%s\n").expect("CString failed");
-                    let fmt_ptr = LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"log.fmt".as_ptr());
-                    LLVMBuildCall2(self.builder, printf_ty, printf_fn, [fmt_ptr, prefix_ptr, msg].as_mut_ptr(), 3, c"".as_ptr());
-                    
+                    let fmt_ptr =
+                        LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"log.fmt".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        printf_ty,
+                        printf_fn,
+                        [fmt_ptr, prefix_ptr, msg].as_mut_ptr(),
+                        3,
+                        c"".as_ptr(),
+                    );
+
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
                 }
@@ -6226,16 +7050,29 @@ impl LLVMCodegen {
                 "log_warn" => {
                     let msg = self.codegen_expression(&arguments[0])?;
                     let prefix = CString::new("[WARN] ").expect("CString failed");
-                    let prefix_ptr = LLVMBuildGlobalStringPtr(self.builder, prefix.as_ptr(), c"log.prefix".as_ptr());
-                    
-                    let printf_fn = *self.functions.get("printf").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing printf")
-                    })?;
+                    let prefix_ptr = LLVMBuildGlobalStringPtr(
+                        self.builder,
+                        prefix.as_ptr(),
+                        c"log.prefix".as_ptr(),
+                    );
+
+                    let printf_fn = *self
+                        .functions
+                        .get("printf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing printf"))?;
                     let printf_ty = LLVMGlobalGetValueType(printf_fn);
                     let fmt = CString::new("%s%s\n").expect("CString failed");
-                    let fmt_ptr = LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"log.fmt".as_ptr());
-                    LLVMBuildCall2(self.builder, printf_ty, printf_fn, [fmt_ptr, prefix_ptr, msg].as_mut_ptr(), 3, c"".as_ptr());
-                    
+                    let fmt_ptr =
+                        LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"log.fmt".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        printf_ty,
+                        printf_fn,
+                        [fmt_ptr, prefix_ptr, msg].as_mut_ptr(),
+                        3,
+                        c"".as_ptr(),
+                    );
+
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
                 }
@@ -6243,16 +7080,29 @@ impl LLVMCodegen {
                 "log_error" => {
                     let msg = self.codegen_expression(&arguments[0])?;
                     let prefix = CString::new("[ERROR] ").expect("CString failed");
-                    let prefix_ptr = LLVMBuildGlobalStringPtr(self.builder, prefix.as_ptr(), c"log.prefix".as_ptr());
-                    
-                    let printf_fn = *self.functions.get("printf").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing printf")
-                    })?;
+                    let prefix_ptr = LLVMBuildGlobalStringPtr(
+                        self.builder,
+                        prefix.as_ptr(),
+                        c"log.prefix".as_ptr(),
+                    );
+
+                    let printf_fn = *self
+                        .functions
+                        .get("printf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing printf"))?;
                     let printf_ty = LLVMGlobalGetValueType(printf_fn);
                     let fmt = CString::new("%s%s\n").expect("CString failed");
-                    let fmt_ptr = LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"log.fmt".as_ptr());
-                    LLVMBuildCall2(self.builder, printf_ty, printf_fn, [fmt_ptr, prefix_ptr, msg].as_mut_ptr(), 3, c"".as_ptr());
-                    
+                    let fmt_ptr =
+                        LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"log.fmt".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        printf_ty,
+                        printf_fn,
+                        [fmt_ptr, prefix_ptr, msg].as_mut_ptr(),
+                        3,
+                        c"".as_ptr(),
+                    );
+
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
                 }
@@ -6269,115 +7119,195 @@ impl LLVMCodegen {
                 // ============================================================
                 // Format Stdlib: fmt_int, fmt_float, fmt_bool, fmt_hex
                 // ============================================================
-
                 "fmt_int" => {
                     let n = self.codegen_expression(&arguments[0])?;
-                    
+
                     // Allocate buffer and use sprintf
-                    let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing malloc")
-                    })?;
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                     let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     let buf_size = LLVMConstInt(i64_ty, 32, 0);
-                    let buf = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn, [buf_size].as_mut_ptr(), 1, c"fmt.buf".as_ptr());
-                    
-                    let sprintf_fn = *self.functions.get("sprintf").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing sprintf")
-                    })?;
+                    let buf = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [buf_size].as_mut_ptr(),
+                        1,
+                        c"fmt.buf".as_ptr(),
+                    );
+
+                    let sprintf_fn = *self
+                        .functions
+                        .get("sprintf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing sprintf"))?;
                     let sprintf_ty = LLVMGlobalGetValueType(sprintf_fn);
                     let fmt = CString::new("%ld").expect("CString failed");
-                    let fmt_ptr = LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"fmt.int".as_ptr());
-                    LLVMBuildCall2(self.builder, sprintf_ty, sprintf_fn, [buf, fmt_ptr, n].as_mut_ptr(), 3, c"".as_ptr());
-                    
+                    let fmt_ptr =
+                        LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"fmt.int".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        sprintf_ty,
+                        sprintf_fn,
+                        [buf, fmt_ptr, n].as_mut_ptr(),
+                        3,
+                        c"".as_ptr(),
+                    );
+
                     Ok(Some(buf))
                 }
 
                 "fmt_hex" => {
                     let n = self.codegen_expression(&arguments[0])?;
-                    
-                    let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing malloc")
-                    })?;
+
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                     let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     let buf_size = LLVMConstInt(i64_ty, 32, 0);
-                    let buf = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn, [buf_size].as_mut_ptr(), 1, c"fmt.buf".as_ptr());
-                    
-                    let sprintf_fn = *self.functions.get("sprintf").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing sprintf")
-                    })?;
+                    let buf = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [buf_size].as_mut_ptr(),
+                        1,
+                        c"fmt.buf".as_ptr(),
+                    );
+
+                    let sprintf_fn = *self
+                        .functions
+                        .get("sprintf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing sprintf"))?;
                     let sprintf_ty = LLVMGlobalGetValueType(sprintf_fn);
                     let fmt = CString::new("0x%lx").expect("CString failed");
-                    let fmt_ptr = LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"fmt.hex".as_ptr());
-                    LLVMBuildCall2(self.builder, sprintf_ty, sprintf_fn, [buf, fmt_ptr, n].as_mut_ptr(), 3, c"".as_ptr());
-                    
+                    let fmt_ptr =
+                        LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"fmt.hex".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        sprintf_ty,
+                        sprintf_fn,
+                        [buf, fmt_ptr, n].as_mut_ptr(),
+                        3,
+                        c"".as_ptr(),
+                    );
+
                     Ok(Some(buf))
                 }
 
                 "fmt_bool" => {
                     let b = self.codegen_expression(&arguments[0])?;
                     let _i1_ty = LLVMInt1TypeInContext(self.context);
-                    
+
                     // Convert to i1 if needed
-                    let cond = if LLVMGetTypeKind(LLVMTypeOf(b)) == llvm_sys::LLVMTypeKind::LLVMIntegerTypeKind 
-                        && LLVMGetIntTypeWidth(LLVMTypeOf(b)) != 1 {
+                    let cond = if LLVMGetTypeKind(LLVMTypeOf(b))
+                        == llvm_sys::LLVMTypeKind::LLVMIntegerTypeKind
+                        && LLVMGetIntTypeWidth(LLVMTypeOf(b)) != 1
+                    {
                         let zero = LLVMConstInt(LLVMTypeOf(b), 0, 0);
-                        LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntNE, b, zero, c"fmt.cond".as_ptr())
+                        LLVMBuildICmp(
+                            self.builder,
+                            llvm_sys::LLVMIntPredicate::LLVMIntNE,
+                            b,
+                            zero,
+                            c"fmt.cond".as_ptr(),
+                        )
                     } else {
                         b
                     };
-                    
+
                     let true_str = CString::new("true").expect("CString failed");
                     let false_str = CString::new("false").expect("CString failed");
-                    let true_ptr = LLVMBuildGlobalStringPtr(self.builder, true_str.as_ptr(), c"fmt.true".as_ptr());
-                    let false_ptr = LLVMBuildGlobalStringPtr(self.builder, false_str.as_ptr(), c"fmt.false".as_ptr());
-                    
-                    let result = LLVMBuildSelect(self.builder, cond, true_ptr, false_ptr, c"fmt_bool".as_ptr());
+                    let true_ptr = LLVMBuildGlobalStringPtr(
+                        self.builder,
+                        true_str.as_ptr(),
+                        c"fmt.true".as_ptr(),
+                    );
+                    let false_ptr = LLVMBuildGlobalStringPtr(
+                        self.builder,
+                        false_str.as_ptr(),
+                        c"fmt.false".as_ptr(),
+                    );
+
+                    let result = LLVMBuildSelect(
+                        self.builder,
+                        cond,
+                        true_ptr,
+                        false_ptr,
+                        c"fmt_bool".as_ptr(),
+                    );
                     Ok(Some(result))
                 }
 
                 "fmt_float" => {
                     let f = self.codegen_expression(&arguments[0])?;
                     let precision = self.codegen_expression(&arguments[1])?;
-                    
-                    let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing malloc")
-                    })?;
+
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                     let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     let buf_size = LLVMConstInt(i64_ty, 64, 0);
-                    let buf = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn, [buf_size].as_mut_ptr(), 1, c"fmt.buf".as_ptr());
-                    
-                    let sprintf_fn = *self.functions.get("sprintf").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing sprintf")
-                    })?;
+                    let buf = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [buf_size].as_mut_ptr(),
+                        1,
+                        c"fmt.buf".as_ptr(),
+                    );
+
+                    let sprintf_fn = *self
+                        .functions
+                        .get("sprintf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing sprintf"))?;
                     let sprintf_ty = LLVMGlobalGetValueType(sprintf_fn);
                     let fmt = CString::new("%.*f").expect("CString failed");
-                    let fmt_ptr = LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"fmt.float".as_ptr());
-                    
+                    let fmt_ptr =
+                        LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"fmt.float".as_ptr());
+
                     // Truncate precision to i32 for printf
                     let i32_ty = LLVMInt32TypeInContext(self.context);
-                    let prec_i32 = LLVMBuildTrunc(self.builder, precision, i32_ty, c"prec.trunc".as_ptr());
-                    LLVMBuildCall2(self.builder, sprintf_ty, sprintf_fn, [buf, fmt_ptr, prec_i32, f].as_mut_ptr(), 4, c"".as_ptr());
-                    
+                    let prec_i32 =
+                        LLVMBuildTrunc(self.builder, precision, i32_ty, c"prec.trunc".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        sprintf_ty,
+                        sprintf_fn,
+                        [buf, fmt_ptr, prec_i32, f].as_mut_ptr(),
+                        4,
+                        c"".as_ptr(),
+                    );
+
                     Ok(Some(buf))
                 }
 
                 // ============================================================
                 // Test Framework: assert, assert_eq, assert_ne
                 // ============================================================
-
                 "assert" => {
                     // assert(cond) - abort with message if condition is false
                     let cond = self.codegen_expression(&arguments[0])?;
                     let i1_ty = LLVMInt1TypeInContext(self.context);
-                    
+
                     // Convert to i1 if needed (non-zero = true)
-                    let cond_i1 = if LLVMGetTypeKind(LLVMTypeOf(cond)) == llvm_sys::LLVMTypeKind::LLVMIntegerTypeKind 
-                        && LLVMGetIntTypeWidth(LLVMTypeOf(cond)) != 1 {
+                    let cond_i1 = if LLVMGetTypeKind(LLVMTypeOf(cond))
+                        == llvm_sys::LLVMTypeKind::LLVMIntegerTypeKind
+                        && LLVMGetIntTypeWidth(LLVMTypeOf(cond)) != 1
+                    {
                         let zero = LLVMConstInt(LLVMTypeOf(cond), 0, 0);
-                        LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntNE, cond, zero, c"assert.cond".as_ptr())
+                        LLVMBuildICmp(
+                            self.builder,
+                            llvm_sys::LLVMIntPredicate::LLVMIntNE,
+                            cond,
+                            zero,
+                            c"assert.cond".as_ptr(),
+                        )
                     } else {
                         cond
                     };
@@ -6386,26 +7316,54 @@ impl LLVMCodegen {
                     let current_fn = self.current_function.ok_or_else(|| {
                         CompilerError::codegen_error("assert: no current function")
                     })?;
-                    let pass_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"assert.pass".as_ptr());
-                    let fail_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"assert.fail".as_ptr());
+                    let pass_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"assert.pass".as_ptr(),
+                    );
+                    let fail_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"assert.fail".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, cond_i1, pass_bb, fail_bb);
 
                     // Fail block: print message and abort
                     LLVMPositionBuilderAtEnd(self.builder, fail_bb);
                     let msg_str = CString::new("Assertion failed").expect("CString failed");
-                    let msg = LLVMBuildGlobalStringPtr(self.builder, msg_str.as_ptr(), c"assert.msg".as_ptr());
-                    let puts_fn = *self.functions.get("puts").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing puts")
-                    })?;
+                    let msg = LLVMBuildGlobalStringPtr(
+                        self.builder,
+                        msg_str.as_ptr(),
+                        c"assert.msg".as_ptr(),
+                    );
+                    let puts_fn = *self
+                        .functions
+                        .get("puts")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing puts"))?;
                     let puts_ty = LLVMGlobalGetValueType(puts_fn);
-                    LLVMBuildCall2(self.builder, puts_ty, puts_fn, [msg].as_mut_ptr(), 1, c"".as_ptr());
-                    
-                    let abort_fn = *self.functions.get("abort").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing abort")
-                    })?;
+                    LLVMBuildCall2(
+                        self.builder,
+                        puts_ty,
+                        puts_fn,
+                        [msg].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    let abort_fn = *self
+                        .functions
+                        .get("abort")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing abort"))?;
                     let abort_ty = LLVMGlobalGetValueType(abort_fn);
-                    LLVMBuildCall2(self.builder, abort_ty, abort_fn, [].as_mut_ptr(), 0, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        abort_ty,
+                        abort_fn,
+                        [].as_mut_ptr(),
+                        0,
+                        c"".as_ptr(),
+                    );
                     LLVMBuildUnreachable(self.builder);
 
                     // Pass block: continue execution
@@ -6422,32 +7380,67 @@ impl LLVMCodegen {
                     let i1_ty = LLVMInt1TypeInContext(self.context);
 
                     // Compare for equality
-                    let cond = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ, a, b, c"assert_eq.cmp".as_ptr());
+                    let cond = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        a,
+                        b,
+                        c"assert_eq.cmp".as_ptr(),
+                    );
 
                     // Create blocks for pass/fail
                     let current_fn = self.current_function.ok_or_else(|| {
                         CompilerError::codegen_error("assert_eq: no current function")
                     })?;
-                    let pass_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"assert_eq.pass".as_ptr());
-                    let fail_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"assert_eq.fail".as_ptr());
+                    let pass_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"assert_eq.pass".as_ptr(),
+                    );
+                    let fail_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"assert_eq.fail".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, cond, pass_bb, fail_bb);
 
                     // Fail block: print message and abort
                     LLVMPositionBuilderAtEnd(self.builder, fail_bb);
-                    let msg_str = CString::new("Assertion failed: values not equal").expect("CString failed");
-                    let msg = LLVMBuildGlobalStringPtr(self.builder, msg_str.as_ptr(), c"assert_eq.msg".as_ptr());
-                    let puts_fn = *self.functions.get("puts").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing puts")
-                    })?;
+                    let msg_str =
+                        CString::new("Assertion failed: values not equal").expect("CString failed");
+                    let msg = LLVMBuildGlobalStringPtr(
+                        self.builder,
+                        msg_str.as_ptr(),
+                        c"assert_eq.msg".as_ptr(),
+                    );
+                    let puts_fn = *self
+                        .functions
+                        .get("puts")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing puts"))?;
                     let puts_ty = LLVMGlobalGetValueType(puts_fn);
-                    LLVMBuildCall2(self.builder, puts_ty, puts_fn, [msg].as_mut_ptr(), 1, c"".as_ptr());
-                    
-                    let abort_fn = *self.functions.get("abort").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing abort")
-                    })?;
+                    LLVMBuildCall2(
+                        self.builder,
+                        puts_ty,
+                        puts_fn,
+                        [msg].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    let abort_fn = *self
+                        .functions
+                        .get("abort")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing abort"))?;
                     let abort_ty = LLVMGlobalGetValueType(abort_fn);
-                    LLVMBuildCall2(self.builder, abort_ty, abort_fn, [].as_mut_ptr(), 0, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        abort_ty,
+                        abort_fn,
+                        [].as_mut_ptr(),
+                        0,
+                        c"".as_ptr(),
+                    );
                     LLVMBuildUnreachable(self.builder);
 
                     // Pass block: continue execution
@@ -6464,32 +7457,67 @@ impl LLVMCodegen {
                     let i1_ty = LLVMInt1TypeInContext(self.context);
 
                     // Compare for inequality
-                    let cond = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntNE, a, b, c"assert_ne.cmp".as_ptr());
+                    let cond = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntNE,
+                        a,
+                        b,
+                        c"assert_ne.cmp".as_ptr(),
+                    );
 
                     // Create blocks for pass/fail
                     let current_fn = self.current_function.ok_or_else(|| {
                         CompilerError::codegen_error("assert_ne: no current function")
                     })?;
-                    let pass_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"assert_ne.pass".as_ptr());
-                    let fail_bb = LLVMAppendBasicBlockInContext(self.context, current_fn, c"assert_ne.fail".as_ptr());
+                    let pass_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"assert_ne.pass".as_ptr(),
+                    );
+                    let fail_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"assert_ne.fail".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, cond, pass_bb, fail_bb);
 
                     // Fail block: print message and abort
                     LLVMPositionBuilderAtEnd(self.builder, fail_bb);
-                    let msg_str = CString::new("Assertion failed: values are equal").expect("CString failed");
-                    let msg = LLVMBuildGlobalStringPtr(self.builder, msg_str.as_ptr(), c"assert_ne.msg".as_ptr());
-                    let puts_fn = *self.functions.get("puts").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing puts")
-                    })?;
+                    let msg_str =
+                        CString::new("Assertion failed: values are equal").expect("CString failed");
+                    let msg = LLVMBuildGlobalStringPtr(
+                        self.builder,
+                        msg_str.as_ptr(),
+                        c"assert_ne.msg".as_ptr(),
+                    );
+                    let puts_fn = *self
+                        .functions
+                        .get("puts")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing puts"))?;
                     let puts_ty = LLVMGlobalGetValueType(puts_fn);
-                    LLVMBuildCall2(self.builder, puts_ty, puts_fn, [msg].as_mut_ptr(), 1, c"".as_ptr());
-                    
-                    let abort_fn = *self.functions.get("abort").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing abort")
-                    })?;
+                    LLVMBuildCall2(
+                        self.builder,
+                        puts_ty,
+                        puts_fn,
+                        [msg].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    let abort_fn = *self
+                        .functions
+                        .get("abort")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing abort"))?;
                     let abort_ty = LLVMGlobalGetValueType(abort_fn);
-                    LLVMBuildCall2(self.builder, abort_ty, abort_fn, [].as_mut_ptr(), 0, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        abort_ty,
+                        abort_fn,
+                        [].as_mut_ptr(),
+                        0,
+                        c"".as_ptr(),
+                    );
                     LLVMBuildUnreachable(self.builder);
 
                     // Pass block: continue execution
@@ -6502,34 +7530,65 @@ impl LLVMCodegen {
                 // ============================================================
                 // Test Harness Helpers
                 // ============================================================
-
                 "test_pass" => {
                     let msg = self.codegen_expression(&arguments[0])?;
-                    let printf_fn = *self.functions.get("printf").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing printf")
-                    })?;
+                    let printf_fn = *self
+                        .functions
+                        .get("printf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing printf"))?;
                     let printf_ty = LLVMGlobalGetValueType(printf_fn);
                     let fmt = CString::new("\x1b[32m[PASS]\x1b[0m %s\n").expect("CString failed");
-                    let fmt_ptr = LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"test.pass.fmt".as_ptr());
-                    LLVMBuildCall2(self.builder, printf_ty, printf_fn, [fmt_ptr, msg].as_mut_ptr(), 2, c"".as_ptr());
+                    let fmt_ptr = LLVMBuildGlobalStringPtr(
+                        self.builder,
+                        fmt.as_ptr(),
+                        c"test.pass.fmt".as_ptr(),
+                    );
+                    LLVMBuildCall2(
+                        self.builder,
+                        printf_ty,
+                        printf_fn,
+                        [fmt_ptr, msg].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
                 }
 
                 "test_fail" => {
                     let msg = self.codegen_expression(&arguments[0])?;
-                    let printf_fn = *self.functions.get("printf").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing printf")
-                    })?;
+                    let printf_fn = *self
+                        .functions
+                        .get("printf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing printf"))?;
                     let printf_ty = LLVMGlobalGetValueType(printf_fn);
                     let fmt = CString::new("\x1b[31m[FAIL]\x1b[0m %s\n").expect("CString failed");
-                    let fmt_ptr = LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"test.fail.fmt".as_ptr());
-                    LLVMBuildCall2(self.builder, printf_ty, printf_fn, [fmt_ptr, msg].as_mut_ptr(), 2, c"".as_ptr());
-                    let abort_fn = *self.functions.get("abort").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing abort")
-                    })?;
+                    let fmt_ptr = LLVMBuildGlobalStringPtr(
+                        self.builder,
+                        fmt.as_ptr(),
+                        c"test.fail.fmt".as_ptr(),
+                    );
+                    LLVMBuildCall2(
+                        self.builder,
+                        printf_ty,
+                        printf_fn,
+                        [fmt_ptr, msg].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    let abort_fn = *self
+                        .functions
+                        .get("abort")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing abort"))?;
                     let abort_ty = LLVMGlobalGetValueType(abort_fn);
-                    LLVMBuildCall2(self.builder, abort_ty, abort_fn, [].as_mut_ptr(), 0, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        abort_ty,
+                        abort_fn,
+                        [].as_mut_ptr(),
+                        0,
+                        c"".as_ptr(),
+                    );
                     LLVMBuildUnreachable(self.builder);
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
@@ -6537,26 +7596,50 @@ impl LLVMCodegen {
 
                 "test_skip" => {
                     let msg = self.codegen_expression(&arguments[0])?;
-                    let printf_fn = *self.functions.get("printf").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing printf")
-                    })?;
+                    let printf_fn = *self
+                        .functions
+                        .get("printf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing printf"))?;
                     let printf_ty = LLVMGlobalGetValueType(printf_fn);
                     let fmt = CString::new("\x1b[33m[SKIP]\x1b[0m %s\n").expect("CString failed");
-                    let fmt_ptr = LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"test.skip.fmt".as_ptr());
-                    LLVMBuildCall2(self.builder, printf_ty, printf_fn, [fmt_ptr, msg].as_mut_ptr(), 2, c"".as_ptr());
+                    let fmt_ptr = LLVMBuildGlobalStringPtr(
+                        self.builder,
+                        fmt.as_ptr(),
+                        c"test.skip.fmt".as_ptr(),
+                    );
+                    LLVMBuildCall2(
+                        self.builder,
+                        printf_ty,
+                        printf_fn,
+                        [fmt_ptr, msg].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
                 }
 
                 "test_section" => {
                     let msg = self.codegen_expression(&arguments[0])?;
-                    let printf_fn = *self.functions.get("printf").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing printf")
-                    })?;
+                    let printf_fn = *self
+                        .functions
+                        .get("printf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing printf"))?;
                     let printf_ty = LLVMGlobalGetValueType(printf_fn);
                     let fmt = CString::new("\n\x1b[1m=== %s ===\x1b[0m\n").expect("CString failed");
-                    let fmt_ptr = LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"test.section.fmt".as_ptr());
-                    LLVMBuildCall2(self.builder, printf_ty, printf_fn, [fmt_ptr, msg].as_mut_ptr(), 2, c"".as_ptr());
+                    let fmt_ptr = LLVMBuildGlobalStringPtr(
+                        self.builder,
+                        fmt.as_ptr(),
+                        c"test.section.fmt".as_ptr(),
+                    );
+                    LLVMBuildCall2(
+                        self.builder,
+                        printf_ty,
+                        printf_fn,
+                        [fmt_ptr, msg].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
                 }
@@ -6564,7 +7647,6 @@ impl LLVMCodegen {
                 // ============================================================
                 // Runtime Benchmark Helpers
                 // ============================================================
-
                 "bench_start" => {
                     // Placeholder: returns 0 (actual timing would use clock_gettime)
                     // This stub allows the API to work while full timing is deferred
@@ -6577,18 +7659,1743 @@ impl LLVMCodegen {
                     let _start_time = self.codegen_expression(&arguments[0])?;
                     let name = self.codegen_expression(&arguments[1])?;
                     let iterations = self.codegen_expression(&arguments[2])?;
-                    
+
                     let i64_ty = LLVMInt64TypeInContext(self.context);
-                    
+
                     // Print result (timing placeholder shows 0 for now)
-                    let printf_fn = *self.functions.get("printf").ok_or_else(|| {
-                        CompilerError::codegen_error("Missing printf")
-                    })?;
+                    let printf_fn = *self
+                        .functions
+                        .get("printf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing printf"))?;
                     let printf_ty = LLVMGlobalGetValueType(printf_fn);
-                    let fmt = CString::new("\x1b[36m[BENCH]\x1b[0m %s: completed (%ld iterations)\n").expect("CString failed");
-                    let fmt_ptr = LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"bench.fmt".as_ptr());
-                    LLVMBuildCall2(self.builder, printf_ty, printf_fn, [fmt_ptr, name, iterations].as_mut_ptr(), 3, c"".as_ptr());
-                    
+                    let fmt =
+                        CString::new("\x1b[36m[BENCH]\x1b[0m %s: completed (%ld iterations)\n")
+                            .expect("CString failed");
+                    let fmt_ptr =
+                        LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"bench.fmt".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        printf_ty,
+                        printf_fn,
+                        [fmt_ptr, name, iterations].as_mut_ptr(),
+                        3,
+                        c"".as_ptr(),
+                    );
+
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+
+                // ============================================================
+                // Threading Primitives
+                // ============================================================
+                "thread_sleep_ms" => {
+                    // Delegate to existing sleep_ms implementation
+                    let ms = self.codegen_expression(&arguments[0])?;
+
+                    // Convert milliseconds to microseconds (usleep takes microseconds)
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let thousand = LLVMConstInt(i64_ty, 1000, 0);
+                    let us = LLVMBuildMul(self.builder, ms, thousand, c"us".as_ptr());
+
+                    // Call usleep(microseconds)
+                    let usleep_fn = *self
+                        .functions
+                        .get("usleep")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing usleep"))?;
+                    let usleep_ty = LLVMGlobalGetValueType(usleep_fn);
+
+                    // usleep takes u32 on some platforms, truncate if needed
+                    let i32_ty = LLVMInt32TypeInContext(self.context);
+                    let us_32 = LLVMBuildTrunc(self.builder, us, i32_ty, c"us32".as_ptr());
+
+                    LLVMBuildCall2(
+                        self.builder,
+                        usleep_ty,
+                        usleep_fn,
+                        [us_32].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+
+                // ============================================================
+                // Thread Primitives
+                // ============================================================
+                "thread_spawn" => {
+                    // thread_spawn takes a function pointer and spawns a new thread
+                    let func_ptr = self.codegen_expression(&arguments[0])?;
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+
+                    // Allocate space for pthread_t (8 bytes on 64-bit)
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
+                    let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                    let thread_size = LLVMConstInt(i64_ty, 8, 0);
+                    let thread_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [thread_size].as_mut_ptr(),
+                        1,
+                        c"thread.ptr".as_ptr(),
+                    );
+
+                    // Convert function pointer from int to actual pointer
+                    let func_as_ptr =
+                        LLVMBuildIntToPtr(self.builder, func_ptr, i8_ptr_ty, c"func.ptr".as_ptr());
+
+                    // Call pthread_create(thread_ptr, NULL, func, NULL)
+                    let null_ptr = LLVMConstNull(i8_ptr_ty);
+                    let pthread_create_fn = *self
+                        .functions
+                        .get("pthread_create")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing pthread_create"))?;
+                    let pthread_create_ty = LLVMGlobalGetValueType(pthread_create_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_create_ty,
+                        pthread_create_fn,
+                        [thread_ptr, null_ptr, func_as_ptr, null_ptr].as_mut_ptr(),
+                        4,
+                        c"".as_ptr(),
+                    );
+
+                    // Return thread handle as int
+                    let result = LLVMBuildPtrToInt(
+                        self.builder,
+                        thread_ptr,
+                        i64_ty,
+                        c"thread.handle".as_ptr(),
+                    );
+                    Ok(Some(result))
+                }
+
+                "thread_join" => {
+                    let thread_handle = self.codegen_expression(&arguments[0])?;
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
+
+                    // Convert handle back to pointer to pthread_t
+                    let thread_ptr = LLVMBuildIntToPtr(
+                        self.builder,
+                        thread_handle,
+                        LLVMPointerType(i8_ptr_ty, 0),
+                        c"thread.ptr".as_ptr(),
+                    );
+
+                    // Load the pthread_t value (which is a pointer on macOS)
+                    let thread_id =
+                        LLVMBuildLoad2(self.builder, i8_ptr_ty, thread_ptr, c"thread.id".as_ptr());
+
+                    // Call pthread_join(thread_id, NULL)
+                    let null_ptr = LLVMConstNull(i8_ptr_ty);
+                    let pthread_join_fn = *self
+                        .functions
+                        .get("pthread_join")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing pthread_join"))?;
+                    let pthread_join_ty = LLVMGlobalGetValueType(pthread_join_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_join_ty,
+                        pthread_join_fn,
+                        [thread_id, null_ptr].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+
+                    // Free the thread handle memory
+                    let free_fn = *self
+                        .functions
+                        .get("free")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing free"))?;
+                    let free_ty = LLVMGlobalGetValueType(free_fn);
+                    let thread_ptr_i8 =
+                        LLVMBuildBitCast(self.builder, thread_ptr, i8_ptr_ty, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [thread_ptr_i8].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    // Return 0 for now (could return thread result)
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+
+                "thread_detach" => {
+                    let thread_handle = self.codegen_expression(&arguments[0])?;
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+
+                    // Convert handle back to pointer
+                    let thread_ptr = LLVMBuildIntToPtr(
+                        self.builder,
+                        thread_handle,
+                        LLVMPointerType(i64_ty, 0),
+                        c"thread.ptr".as_ptr(),
+                    );
+
+                    // Load the pthread_t value
+                    let thread_id =
+                        LLVMBuildLoad2(self.builder, i64_ty, thread_ptr, c"thread.id".as_ptr());
+
+                    // Call pthread_detach(thread_id)
+                    let pthread_detach_fn = *self
+                        .functions
+                        .get("pthread_detach")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing pthread_detach"))?;
+                    let pthread_detach_ty = LLVMGlobalGetValueType(pthread_detach_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_detach_ty,
+                        pthread_detach_fn,
+                        [thread_id].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    // Free the thread handle memory
+                    let free_fn = *self
+                        .functions
+                        .get("free")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing free"))?;
+                    let free_ty = LLVMGlobalGetValueType(free_fn);
+                    let thread_ptr_i8 =
+                        LLVMBuildBitCast(self.builder, thread_ptr, i8_ptr_ty, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [thread_ptr_i8].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+
+                // ============================================================
+                // Mutex Primitives
+                // ============================================================
+                "mutex_create" => {
+                    // Allocate space for pthread_mutex_t (64 bytes should be enough for most platforms)
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let mutex_size = LLVMConstInt(i64_ty, 64, 0);
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
+                    let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                    let mutex_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [mutex_size].as_mut_ptr(),
+                        1,
+                        c"mutex.ptr".as_ptr(),
+                    );
+
+                    // Initialize the mutex
+                    let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
+                    let null_ptr = LLVMConstNull(i8_ptr_ty);
+                    let pthread_mutex_init_fn =
+                        *self.functions.get("pthread_mutex_init").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_mutex_init")
+                        })?;
+                    let pthread_mutex_init_ty = LLVMGlobalGetValueType(pthread_mutex_init_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_init_ty,
+                        pthread_mutex_init_fn,
+                        [mutex_ptr, null_ptr].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+
+                    // Return mutex pointer as int
+                    let result = LLVMBuildPtrToInt(
+                        self.builder,
+                        mutex_ptr,
+                        i64_ty,
+                        c"mutex.handle".as_ptr(),
+                    );
+                    Ok(Some(result))
+                }
+
+                "mutex_lock" => {
+                    let handle = self.codegen_expression(&arguments[0])?;
+                    let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    let mutex_ptr =
+                        LLVMBuildIntToPtr(self.builder, handle, i8_ptr_ty, c"mutex.ptr".as_ptr());
+                    let pthread_mutex_lock_fn =
+                        *self.functions.get("pthread_mutex_lock").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_mutex_lock")
+                        })?;
+                    let pthread_mutex_lock_ty = LLVMGlobalGetValueType(pthread_mutex_lock_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_lock_ty,
+                        pthread_mutex_lock_fn,
+                        [mutex_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+
+                "mutex_unlock" => {
+                    let handle = self.codegen_expression(&arguments[0])?;
+                    let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    let mutex_ptr =
+                        LLVMBuildIntToPtr(self.builder, handle, i8_ptr_ty, c"mutex.ptr".as_ptr());
+                    let pthread_mutex_unlock_fn =
+                        *self.functions.get("pthread_mutex_unlock").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_mutex_unlock")
+                        })?;
+                    let pthread_mutex_unlock_ty = LLVMGlobalGetValueType(pthread_mutex_unlock_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_unlock_ty,
+                        pthread_mutex_unlock_fn,
+                        [mutex_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+
+                "mutex_destroy" => {
+                    let handle = self.codegen_expression(&arguments[0])?;
+                    let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    let mutex_ptr =
+                        LLVMBuildIntToPtr(self.builder, handle, i8_ptr_ty, c"mutex.ptr".as_ptr());
+                    let pthread_mutex_destroy_fn =
+                        *self.functions.get("pthread_mutex_destroy").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_mutex_destroy")
+                        })?;
+                    let pthread_mutex_destroy_ty = LLVMGlobalGetValueType(pthread_mutex_destroy_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_destroy_ty,
+                        pthread_mutex_destroy_fn,
+                        [mutex_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    // Free the mutex memory
+                    let free_fn = *self
+                        .functions
+                        .get("free")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing free"))?;
+                    let free_ty = LLVMGlobalGetValueType(free_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [mutex_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+
+                // ============================================================
+                // Condition Variable Primitives
+                // ============================================================
+                "condvar_create" => {
+                    // Allocate space for pthread_cond_t (64 bytes should be enough)
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let cond_size = LLVMConstInt(i64_ty, 64, 0);
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
+                    let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                    let cond_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [cond_size].as_mut_ptr(),
+                        1,
+                        c"condvar.ptr".as_ptr(),
+                    );
+
+                    // Initialize the condition variable
+                    let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
+                    let null_ptr = LLVMConstNull(i8_ptr_ty);
+                    let pthread_cond_init_fn = *self
+                        .functions
+                        .get("pthread_cond_init")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing pthread_cond_init"))?;
+                    let pthread_cond_init_ty = LLVMGlobalGetValueType(pthread_cond_init_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_cond_init_ty,
+                        pthread_cond_init_fn,
+                        [cond_ptr, null_ptr].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+
+                    // Return condvar pointer as int
+                    let result = LLVMBuildPtrToInt(
+                        self.builder,
+                        cond_ptr,
+                        i64_ty,
+                        c"condvar.handle".as_ptr(),
+                    );
+                    Ok(Some(result))
+                }
+
+                "condvar_wait" => {
+                    let cond_handle = self.codegen_expression(&arguments[0])?;
+                    let mutex_handle = self.codegen_expression(&arguments[1])?;
+                    let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    let cond_ptr = LLVMBuildIntToPtr(
+                        self.builder,
+                        cond_handle,
+                        i8_ptr_ty,
+                        c"condvar.ptr".as_ptr(),
+                    );
+                    let mutex_ptr = LLVMBuildIntToPtr(
+                        self.builder,
+                        mutex_handle,
+                        i8_ptr_ty,
+                        c"mutex.ptr".as_ptr(),
+                    );
+                    let pthread_cond_wait_fn = *self
+                        .functions
+                        .get("pthread_cond_wait")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing pthread_cond_wait"))?;
+                    let pthread_cond_wait_ty = LLVMGlobalGetValueType(pthread_cond_wait_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_cond_wait_ty,
+                        pthread_cond_wait_fn,
+                        [cond_ptr, mutex_ptr].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+
+                "condvar_signal" => {
+                    let cond_handle = self.codegen_expression(&arguments[0])?;
+                    let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    let cond_ptr = LLVMBuildIntToPtr(
+                        self.builder,
+                        cond_handle,
+                        i8_ptr_ty,
+                        c"condvar.ptr".as_ptr(),
+                    );
+                    let pthread_cond_signal_fn =
+                        *self.functions.get("pthread_cond_signal").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_cond_signal")
+                        })?;
+                    let pthread_cond_signal_ty = LLVMGlobalGetValueType(pthread_cond_signal_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_cond_signal_ty,
+                        pthread_cond_signal_fn,
+                        [cond_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+
+                "condvar_broadcast" => {
+                    let cond_handle = self.codegen_expression(&arguments[0])?;
+                    let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    let cond_ptr = LLVMBuildIntToPtr(
+                        self.builder,
+                        cond_handle,
+                        i8_ptr_ty,
+                        c"condvar.ptr".as_ptr(),
+                    );
+                    let pthread_cond_broadcast_fn = *self
+                        .functions
+                        .get("pthread_cond_broadcast")
+                        .ok_or_else(|| {
+                        CompilerError::codegen_error("Missing pthread_cond_broadcast")
+                    })?;
+                    let pthread_cond_broadcast_ty =
+                        LLVMGlobalGetValueType(pthread_cond_broadcast_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_cond_broadcast_ty,
+                        pthread_cond_broadcast_fn,
+                        [cond_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+
+                "condvar_destroy" => {
+                    let cond_handle = self.codegen_expression(&arguments[0])?;
+                    let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    let cond_ptr = LLVMBuildIntToPtr(
+                        self.builder,
+                        cond_handle,
+                        i8_ptr_ty,
+                        c"condvar.ptr".as_ptr(),
+                    );
+                    let pthread_cond_destroy_fn =
+                        *self.functions.get("pthread_cond_destroy").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_cond_destroy")
+                        })?;
+                    let pthread_cond_destroy_ty = LLVMGlobalGetValueType(pthread_cond_destroy_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_cond_destroy_ty,
+                        pthread_cond_destroy_fn,
+                        [cond_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    // Free the condvar memory
+                    let free_fn = *self
+                        .functions
+                        .get("free")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing free"))?;
+                    let free_ty = LLVMGlobalGetValueType(free_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [cond_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+
+                // ============================================================
+                // Channel Primitives (mutex-protected ring buffer)
+                // Layout: [mutex:64][condvar:64][buffer_ptr:8][capacity:8][head:8][tail:8][count:8][closed:8]
+                // Total: 168 bytes
+                // ============================================================
+                "channel_create" => {
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
+
+                    // Allocate channel struct (168 bytes)
+                    let chan_size = LLVMConstInt(i64_ty, 168, 0);
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
+                    let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+                    let chan_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [chan_size].as_mut_ptr(),
+                        1,
+                        c"channel.ptr".as_ptr(),
+                    );
+
+                    // Initialize mutex at offset 0
+                    let null_ptr = LLVMConstNull(i8_ptr_ty);
+                    let pthread_mutex_init_fn =
+                        *self.functions.get("pthread_mutex_init").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_mutex_init")
+                        })?;
+                    let pthread_mutex_init_ty = LLVMGlobalGetValueType(pthread_mutex_init_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_init_ty,
+                        pthread_mutex_init_fn,
+                        [chan_ptr, null_ptr].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+
+                    // Initialize condvar at offset 64
+                    let condvar_offset = LLVMConstInt(i64_ty, 64, 0);
+                    let condvar_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [condvar_offset].as_mut_ptr(),
+                        1,
+                        c"condvar.ptr".as_ptr(),
+                    );
+                    let pthread_cond_init_fn = *self
+                        .functions
+                        .get("pthread_cond_init")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing pthread_cond_init"))?;
+                    let pthread_cond_init_ty = LLVMGlobalGetValueType(pthread_cond_init_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_cond_init_ty,
+                        pthread_cond_init_fn,
+                        [condvar_ptr, null_ptr].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+
+                    // Allocate buffer (default capacity 16)
+                    let capacity = LLVMConstInt(i64_ty, 16, 0);
+                    let elem_size = LLVMConstInt(i64_ty, 8, 0);
+                    let buf_size =
+                        LLVMBuildMul(self.builder, capacity, elem_size, c"buf.size".as_ptr());
+                    let buffer = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [buf_size].as_mut_ptr(),
+                        1,
+                        c"buffer".as_ptr(),
+                    );
+
+                    // Store buffer_ptr at offset 128
+                    let buf_ptr_offset = LLVMConstInt(i64_ty, 128, 0);
+                    let buf_ptr_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [buf_ptr_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let buf_ptr_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        buf_ptr_loc,
+                        LLVMPointerType(i8_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, buffer, buf_ptr_loc_typed);
+
+                    // Store capacity at offset 136
+                    let cap_offset = LLVMConstInt(i64_ty, 136, 0);
+                    let cap_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [cap_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        cap_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, capacity, cap_loc_typed);
+
+                    // Initialize head, tail, count, closed to 0
+                    let zero = LLVMConstInt(i64_ty, 0, 0);
+                    for offset in [144, 152, 160] {
+                        let field_offset = LLVMConstInt(i64_ty, offset, 0);
+                        let field_loc = LLVMBuildInBoundsGEP2(
+                            self.builder,
+                            i8_ty,
+                            chan_ptr,
+                            [field_offset].as_mut_ptr(),
+                            1,
+                            c"".as_ptr(),
+                        );
+                        let field_loc_typed = LLVMBuildBitCast(
+                            self.builder,
+                            field_loc,
+                            LLVMPointerType(i64_ty, 0),
+                            c"".as_ptr(),
+                        );
+                        LLVMBuildStore(self.builder, zero, field_loc_typed);
+                    }
+
+                    // Return channel handle
+                    let result = LLVMBuildPtrToInt(
+                        self.builder,
+                        chan_ptr,
+                        i64_ty,
+                        c"channel.handle".as_ptr(),
+                    );
+                    Ok(Some(result))
+                }
+
+                "channel_send" => {
+                    // Blocking send with mutex synchronization
+                    let chan_handle = self.codegen_expression(&arguments[0])?;
+                    let value = self.codegen_expression(&arguments[1])?;
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
+
+                    let chan_ptr = LLVMBuildIntToPtr(
+                        self.builder,
+                        chan_handle,
+                        i8_ptr_ty,
+                        c"chan.ptr".as_ptr(),
+                    );
+
+                    // Lock mutex
+                    let pthread_mutex_lock_fn =
+                        *self.functions.get("pthread_mutex_lock").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_mutex_lock")
+                        })?;
+                    let pthread_mutex_lock_ty = LLVMGlobalGetValueType(pthread_mutex_lock_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_lock_ty,
+                        pthread_mutex_lock_fn,
+                        [chan_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    // Get buffer, tail, capacity, count
+                    let buf_ptr_offset = LLVMConstInt(i64_ty, 128, 0);
+                    let buf_ptr_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [buf_ptr_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let buf_ptr_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        buf_ptr_loc,
+                        LLVMPointerType(i8_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let buffer = LLVMBuildLoad2(
+                        self.builder,
+                        i8_ptr_ty,
+                        buf_ptr_loc_typed,
+                        c"buffer".as_ptr(),
+                    );
+
+                    let tail_offset = LLVMConstInt(i64_ty, 152, 0);
+                    let tail_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [tail_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let tail_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        tail_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let tail =
+                        LLVMBuildLoad2(self.builder, i64_ty, tail_loc_typed, c"tail".as_ptr());
+
+                    let cap_offset = LLVMConstInt(i64_ty, 136, 0);
+                    let cap_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [cap_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        cap_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let capacity =
+                        LLVMBuildLoad2(self.builder, i64_ty, cap_loc_typed, c"capacity".as_ptr());
+
+                    let count_offset = LLVMConstInt(i64_ty, 160, 0);
+                    let count_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [count_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let count_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        count_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let count =
+                        LLVMBuildLoad2(self.builder, i64_ty, count_loc_typed, c"count".as_ptr());
+
+                    // Store value at buffer[tail]
+                    let elem_size = LLVMConstInt(i64_ty, 8, 0);
+                    let byte_offset = LLVMBuildMul(self.builder, tail, elem_size, c"".as_ptr());
+                    let elem_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        buffer,
+                        [byte_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let elem_ptr_typed = LLVMBuildBitCast(
+                        self.builder,
+                        elem_ptr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, value, elem_ptr_typed);
+
+                    // Update tail = (tail + 1) % capacity
+                    let one = LLVMConstInt(i64_ty, 1, 0);
+                    let new_tail = LLVMBuildAdd(self.builder, tail, one, c"".as_ptr());
+                    let new_tail = LLVMBuildURem(self.builder, new_tail, capacity, c"".as_ptr());
+                    LLVMBuildStore(self.builder, new_tail, tail_loc_typed);
+
+                    // Update count++
+                    let new_count = LLVMBuildAdd(self.builder, count, one, c"".as_ptr());
+                    LLVMBuildStore(self.builder, new_count, count_loc_typed);
+
+                    // Signal condvar (wake up any waiting receivers)
+                    let condvar_offset = LLVMConstInt(i64_ty, 64, 0);
+                    let condvar_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [condvar_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let pthread_cond_signal_fn =
+                        *self.functions.get("pthread_cond_signal").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_cond_signal")
+                        })?;
+                    let pthread_cond_signal_ty = LLVMGlobalGetValueType(pthread_cond_signal_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_cond_signal_ty,
+                        pthread_cond_signal_fn,
+                        [condvar_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    // Unlock mutex
+                    let pthread_mutex_unlock_fn =
+                        *self.functions.get("pthread_mutex_unlock").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_mutex_unlock")
+                        })?;
+                    let pthread_mutex_unlock_ty = LLVMGlobalGetValueType(pthread_mutex_unlock_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_unlock_ty,
+                        pthread_mutex_unlock_fn,
+                        [chan_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    let _ = cap_loc_typed; // suppress warning
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+
+                "channel_recv" => {
+                    let chan_handle = self.codegen_expression(&arguments[0])?;
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
+
+                    let chan_ptr = LLVMBuildIntToPtr(
+                        self.builder,
+                        chan_handle,
+                        i8_ptr_ty,
+                        c"chan.ptr".as_ptr(),
+                    );
+
+                    // Lock mutex
+                    let pthread_mutex_lock_fn =
+                        *self.functions.get("pthread_mutex_lock").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_mutex_lock")
+                        })?;
+                    let pthread_mutex_lock_ty = LLVMGlobalGetValueType(pthread_mutex_lock_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_lock_ty,
+                        pthread_mutex_lock_fn,
+                        [chan_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    // Wait loop while count == 0
+                    let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
+                    let wait_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"chan.wait".as_ptr(),
+                    );
+                    let recv_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"chan.recv".as_ptr(),
+                    );
+
+                    LLVMBuildBr(self.builder, wait_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, wait_bb);
+
+                    let count_offset = LLVMConstInt(i64_ty, 160, 0);
+                    let count_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [count_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let count_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        count_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let count =
+                        LLVMBuildLoad2(self.builder, i64_ty, count_loc_typed, c"count".as_ptr());
+
+                    let zero = LLVMConstInt(i64_ty, 0, 0);
+                    let is_empty = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        count,
+                        zero,
+                        c"is.empty".as_ptr(),
+                    );
+
+                    let wait_cond_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"chan.wait.cond".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, is_empty, wait_cond_bb, recv_bb);
+
+                    LLVMPositionBuilderAtEnd(self.builder, wait_cond_bb);
+                    let condvar_offset = LLVMConstInt(i64_ty, 64, 0);
+                    let condvar_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [condvar_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let pthread_cond_wait_fn = *self
+                        .functions
+                        .get("pthread_cond_wait")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing pthread_cond_wait"))?;
+                    let pthread_cond_wait_ty = LLVMGlobalGetValueType(pthread_cond_wait_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_cond_wait_ty,
+                        pthread_cond_wait_fn,
+                        [condvar_ptr, chan_ptr].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildBr(self.builder, wait_bb);
+
+                    // Receive value
+                    LLVMPositionBuilderAtEnd(self.builder, recv_bb);
+
+                    let buf_ptr_offset = LLVMConstInt(i64_ty, 128, 0);
+                    let buf_ptr_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [buf_ptr_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let buf_ptr_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        buf_ptr_loc,
+                        LLVMPointerType(i8_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let buffer = LLVMBuildLoad2(
+                        self.builder,
+                        i8_ptr_ty,
+                        buf_ptr_loc_typed,
+                        c"buffer".as_ptr(),
+                    );
+
+                    let head_offset = LLVMConstInt(i64_ty, 144, 0);
+                    let head_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [head_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let head_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        head_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let head =
+                        LLVMBuildLoad2(self.builder, i64_ty, head_loc_typed, c"head".as_ptr());
+
+                    let cap_offset = LLVMConstInt(i64_ty, 136, 0);
+                    let cap_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [cap_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        cap_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let capacity =
+                        LLVMBuildLoad2(self.builder, i64_ty, cap_loc_typed, c"capacity".as_ptr());
+
+                    // Read value from buffer[head]
+                    let elem_size = LLVMConstInt(i64_ty, 8, 0);
+                    let byte_offset = LLVMBuildMul(self.builder, head, elem_size, c"".as_ptr());
+                    let elem_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        buffer,
+                        [byte_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let elem_ptr_typed = LLVMBuildBitCast(
+                        self.builder,
+                        elem_ptr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let value =
+                        LLVMBuildLoad2(self.builder, i64_ty, elem_ptr_typed, c"value".as_ptr());
+
+                    // Update head = (head + 1) % capacity
+                    let one = LLVMConstInt(i64_ty, 1, 0);
+                    let new_head = LLVMBuildAdd(self.builder, head, one, c"".as_ptr());
+                    let new_head =
+                        LLVMBuildURem(self.builder, new_head, capacity, c"new.head".as_ptr());
+                    LLVMBuildStore(self.builder, new_head, head_loc_typed);
+
+                    // Update count--
+                    let count2 =
+                        LLVMBuildLoad2(self.builder, i64_ty, count_loc_typed, c"count2".as_ptr());
+                    let new_count = LLVMBuildSub(self.builder, count2, one, c"new.count".as_ptr());
+                    LLVMBuildStore(self.builder, new_count, count_loc_typed);
+
+                    // Unlock mutex
+                    let pthread_mutex_unlock_fn =
+                        *self.functions.get("pthread_mutex_unlock").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_mutex_unlock")
+                        })?;
+                    let pthread_mutex_unlock_ty = LLVMGlobalGetValueType(pthread_mutex_unlock_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_unlock_ty,
+                        pthread_mutex_unlock_fn,
+                        [chan_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    Ok(Some(value))
+                }
+
+                "channel_try_send" => {
+                    // Non-blocking send - returns true if sent, false if full
+                    let chan_handle = self.codegen_expression(&arguments[0])?;
+                    let value = self.codegen_expression(&arguments[1])?;
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let i1_ty = LLVMInt1TypeInContext(self.context);
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
+
+                    let chan_ptr = LLVMBuildIntToPtr(
+                        self.builder,
+                        chan_handle,
+                        i8_ptr_ty,
+                        c"chan.ptr".as_ptr(),
+                    );
+
+                    // Lock mutex
+                    let pthread_mutex_lock_fn =
+                        *self.functions.get("pthread_mutex_lock").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_mutex_lock")
+                        })?;
+                    let pthread_mutex_lock_ty = LLVMGlobalGetValueType(pthread_mutex_lock_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_lock_ty,
+                        pthread_mutex_lock_fn,
+                        [chan_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    // Check if full
+                    let count_offset = LLVMConstInt(i64_ty, 160, 0);
+                    let count_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [count_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let count_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        count_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let count =
+                        LLVMBuildLoad2(self.builder, i64_ty, count_loc_typed, c"count".as_ptr());
+
+                    let cap_offset = LLVMConstInt(i64_ty, 136, 0);
+                    let cap_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [cap_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        cap_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let capacity =
+                        LLVMBuildLoad2(self.builder, i64_ty, cap_loc_typed, c"capacity".as_ptr());
+
+                    let is_full = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        count,
+                        capacity,
+                        c"is.full".as_ptr(),
+                    );
+
+                    let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
+                    let send_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"try.send".as_ptr(),
+                    );
+                    let full_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"try.full".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"try.done".as_ptr(),
+                    );
+
+                    LLVMBuildCondBr(self.builder, is_full, full_bb, send_bb);
+
+                    // Send block
+                    LLVMPositionBuilderAtEnd(self.builder, send_bb);
+                    let buf_ptr_offset = LLVMConstInt(i64_ty, 128, 0);
+                    let buf_ptr_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [buf_ptr_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let buf_ptr_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        buf_ptr_loc,
+                        LLVMPointerType(i8_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let buffer = LLVMBuildLoad2(
+                        self.builder,
+                        i8_ptr_ty,
+                        buf_ptr_loc_typed,
+                        c"buffer".as_ptr(),
+                    );
+
+                    let tail_offset = LLVMConstInt(i64_ty, 152, 0);
+                    let tail_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [tail_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let tail_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        tail_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let tail =
+                        LLVMBuildLoad2(self.builder, i64_ty, tail_loc_typed, c"tail".as_ptr());
+
+                    let elem_size = LLVMConstInt(i64_ty, 8, 0);
+                    let byte_offset = LLVMBuildMul(self.builder, tail, elem_size, c"".as_ptr());
+                    let elem_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        buffer,
+                        [byte_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let elem_ptr_typed = LLVMBuildBitCast(
+                        self.builder,
+                        elem_ptr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, value, elem_ptr_typed);
+
+                    let one = LLVMConstInt(i64_ty, 1, 0);
+                    let new_tail = LLVMBuildAdd(self.builder, tail, one, c"".as_ptr());
+                    let new_tail = LLVMBuildURem(self.builder, new_tail, capacity, c"".as_ptr());
+                    LLVMBuildStore(self.builder, new_tail, tail_loc_typed);
+
+                    let new_count = LLVMBuildAdd(self.builder, count, one, c"".as_ptr());
+                    LLVMBuildStore(self.builder, new_count, count_loc_typed);
+
+                    let condvar_offset = LLVMConstInt(i64_ty, 64, 0);
+                    let condvar_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [condvar_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let pthread_cond_signal_fn =
+                        *self.functions.get("pthread_cond_signal").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_cond_signal")
+                        })?;
+                    let pthread_cond_signal_ty = LLVMGlobalGetValueType(pthread_cond_signal_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_cond_signal_ty,
+                        pthread_cond_signal_fn,
+                        [condvar_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    let pthread_mutex_unlock_fn =
+                        *self.functions.get("pthread_mutex_unlock").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_mutex_unlock")
+                        })?;
+                    let pthread_mutex_unlock_ty = LLVMGlobalGetValueType(pthread_mutex_unlock_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_unlock_ty,
+                        pthread_mutex_unlock_fn,
+                        [chan_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildBr(self.builder, done_bb);
+
+                    // Full block
+                    LLVMPositionBuilderAtEnd(self.builder, full_bb);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_unlock_ty,
+                        pthread_mutex_unlock_fn,
+                        [chan_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildBr(self.builder, done_bb);
+
+                    // Done block with phi
+                    LLVMPositionBuilderAtEnd(self.builder, done_bb);
+                    let phi = LLVMBuildPhi(self.builder, i1_ty, c"result".as_ptr());
+                    let true_val = LLVMConstInt(i1_ty, 1, 0);
+                    let false_val = LLVMConstInt(i1_ty, 0, 0);
+                    LLVMAddIncoming(phi, [true_val].as_mut_ptr(), [send_bb].as_mut_ptr(), 1);
+                    LLVMAddIncoming(phi, [false_val].as_mut_ptr(), [full_bb].as_mut_ptr(), 1);
+
+                    Ok(Some(phi))
+                }
+
+                "channel_try_recv" => {
+                    // Non-blocking recv - returns value or 0 if empty
+                    let chan_handle = self.codegen_expression(&arguments[0])?;
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
+
+                    let chan_ptr = LLVMBuildIntToPtr(
+                        self.builder,
+                        chan_handle,
+                        i8_ptr_ty,
+                        c"chan.ptr".as_ptr(),
+                    );
+
+                    // Lock mutex
+                    let pthread_mutex_lock_fn =
+                        *self.functions.get("pthread_mutex_lock").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_mutex_lock")
+                        })?;
+                    let pthread_mutex_lock_ty = LLVMGlobalGetValueType(pthread_mutex_lock_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_lock_ty,
+                        pthread_mutex_lock_fn,
+                        [chan_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    let count_offset = LLVMConstInt(i64_ty, 160, 0);
+                    let count_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [count_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let count_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        count_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let count =
+                        LLVMBuildLoad2(self.builder, i64_ty, count_loc_typed, c"count".as_ptr());
+
+                    let zero = LLVMConstInt(i64_ty, 0, 0);
+                    let is_empty = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        count,
+                        zero,
+                        c"is.empty".as_ptr(),
+                    );
+
+                    let current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder));
+                    let recv_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"try.recv".as_ptr(),
+                    );
+                    let empty_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"try.empty".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"try.done".as_ptr(),
+                    );
+
+                    LLVMBuildCondBr(self.builder, is_empty, empty_bb, recv_bb);
+
+                    // Recv block
+                    LLVMPositionBuilderAtEnd(self.builder, recv_bb);
+                    let buf_ptr_offset = LLVMConstInt(i64_ty, 128, 0);
+                    let buf_ptr_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [buf_ptr_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let buf_ptr_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        buf_ptr_loc,
+                        LLVMPointerType(i8_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let buffer = LLVMBuildLoad2(
+                        self.builder,
+                        i8_ptr_ty,
+                        buf_ptr_loc_typed,
+                        c"buffer".as_ptr(),
+                    );
+
+                    let head_offset = LLVMConstInt(i64_ty, 144, 0);
+                    let head_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [head_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let head_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        head_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let head =
+                        LLVMBuildLoad2(self.builder, i64_ty, head_loc_typed, c"head".as_ptr());
+
+                    let cap_offset = LLVMConstInt(i64_ty, 136, 0);
+                    let cap_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [cap_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        cap_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let capacity =
+                        LLVMBuildLoad2(self.builder, i64_ty, cap_loc_typed, c"capacity".as_ptr());
+
+                    let elem_size = LLVMConstInt(i64_ty, 8, 0);
+                    let byte_offset = LLVMBuildMul(self.builder, head, elem_size, c"".as_ptr());
+                    let elem_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        buffer,
+                        [byte_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let elem_ptr_typed = LLVMBuildBitCast(
+                        self.builder,
+                        elem_ptr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let value =
+                        LLVMBuildLoad2(self.builder, i64_ty, elem_ptr_typed, c"value".as_ptr());
+
+                    let one = LLVMConstInt(i64_ty, 1, 0);
+                    let new_head = LLVMBuildAdd(self.builder, head, one, c"".as_ptr());
+                    let new_head = LLVMBuildURem(self.builder, new_head, capacity, c"".as_ptr());
+                    LLVMBuildStore(self.builder, new_head, head_loc_typed);
+
+                    let new_count = LLVMBuildSub(self.builder, count, one, c"".as_ptr());
+                    LLVMBuildStore(self.builder, new_count, count_loc_typed);
+
+                    let pthread_mutex_unlock_fn =
+                        *self.functions.get("pthread_mutex_unlock").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_mutex_unlock")
+                        })?;
+                    let pthread_mutex_unlock_ty = LLVMGlobalGetValueType(pthread_mutex_unlock_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_unlock_ty,
+                        pthread_mutex_unlock_fn,
+                        [chan_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildBr(self.builder, done_bb);
+
+                    // Empty block
+                    LLVMPositionBuilderAtEnd(self.builder, empty_bb);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_unlock_ty,
+                        pthread_mutex_unlock_fn,
+                        [chan_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildBr(self.builder, done_bb);
+
+                    // Done block with phi
+                    LLVMPositionBuilderAtEnd(self.builder, done_bb);
+                    let phi = LLVMBuildPhi(self.builder, i64_ty, c"result".as_ptr());
+                    LLVMAddIncoming(phi, [value].as_mut_ptr(), [recv_bb].as_mut_ptr(), 1);
+                    LLVMAddIncoming(phi, [zero].as_mut_ptr(), [empty_bb].as_mut_ptr(), 1);
+
+                    Ok(Some(phi))
+                }
+
+                "channel_close" => {
+                    let chan_handle = self.codegen_expression(&arguments[0])?;
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
+
+                    let chan_ptr = LLVMBuildIntToPtr(
+                        self.builder,
+                        chan_handle,
+                        i8_ptr_ty,
+                        c"chan.ptr".as_ptr(),
+                    );
+
+                    // Destroy mutex and condvar
+                    let pthread_mutex_destroy_fn =
+                        *self.functions.get("pthread_mutex_destroy").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_mutex_destroy")
+                        })?;
+                    let pthread_mutex_destroy_ty = LLVMGlobalGetValueType(pthread_mutex_destroy_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_mutex_destroy_ty,
+                        pthread_mutex_destroy_fn,
+                        [chan_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    let condvar_offset = LLVMConstInt(i64_ty, 64, 0);
+                    let condvar_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [condvar_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let pthread_cond_destroy_fn =
+                        *self.functions.get("pthread_cond_destroy").ok_or_else(|| {
+                            CompilerError::codegen_error("Missing pthread_cond_destroy")
+                        })?;
+                    let pthread_cond_destroy_ty = LLVMGlobalGetValueType(pthread_cond_destroy_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_cond_destroy_ty,
+                        pthread_cond_destroy_fn,
+                        [condvar_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    // Free buffer
+                    let buf_ptr_offset = LLVMConstInt(i64_ty, 128, 0);
+                    let buf_ptr_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        chan_ptr,
+                        [buf_ptr_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let buf_ptr_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        buf_ptr_loc,
+                        LLVMPointerType(i8_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let buffer = LLVMBuildLoad2(
+                        self.builder,
+                        i8_ptr_ty,
+                        buf_ptr_loc_typed,
+                        c"buffer".as_ptr(),
+                    );
+
+                    let free_fn = *self
+                        .functions
+                        .get("free")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing free"))?;
+                    let free_ty = LLVMGlobalGetValueType(free_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [buffer].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    // Free channel struct
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [chan_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+
+                "pool_new" => {
+                    // Create thread pool: allocate struct with channel and thread handles
+                    // Pool layout:
+                    //   0-7: work channel handle (int)
+                    //   8-15: num_threads (int)
+                    //   16-23: shutdown flag (int)
+                    //   24+: thread handles array (num_threads * 8 bytes)
+                    let num_threads = self.codegen_expression(&arguments[0])?;
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+
+                    // Allocate pool struct (base 24 bytes + thread handles)
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
+                    let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+
+                    let base_size = LLVMConstInt(i64_ty, 24, 0);
+                    let eight = LLVMConstInt(i64_ty, 8, 0);
+                    let handles_size = LLVMBuildMul(self.builder, num_threads, eight, c"".as_ptr());
+                    let pool_size =
+                        LLVMBuildAdd(self.builder, base_size, handles_size, c"pool.size".as_ptr());
+
+                    let pool_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [pool_size].as_mut_ptr(),
+                        1,
+                        c"pool".as_ptr(),
+                    );
+
+                    // Store num_threads at offset 8
+                    let num_offset = LLVMConstInt(i64_ty, 8, 0);
+                    let num_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        pool_ptr,
+                        [num_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let num_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        num_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, num_threads, num_loc_typed);
+
+                    // Initialize shutdown flag to 0
+                    let shutdown_offset = LLVMConstInt(i64_ty, 16, 0);
+                    let shutdown_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        pool_ptr,
+                        [shutdown_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let shutdown_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        shutdown_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let zero = LLVMConstInt(i64_ty, 0, 0);
+                    LLVMBuildStore(self.builder, zero, shutdown_loc_typed);
+
+                    // Note: Work channel and worker threads would be created here
+                    // For now, store 0 as placeholder for channel handle
+                    let chan_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        pool_ptr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildStore(self.builder, zero, chan_loc_typed);
+
+                    let result =
+                        LLVMBuildPtrToInt(self.builder, pool_ptr, i64_ty, c"pool.handle".as_ptr());
+                    Ok(Some(result))
+                }
+
+                "pool_spawn" => {
+                    // Submit work to thread pool (simplified: just evaluate args for now)
+                    let _pool_handle = self.codegen_expression(&arguments[0])?;
+                    let _func_ptr = self.codegen_expression(&arguments[1])?;
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+
+                    // TODO: Send function pointer to work channel for workers to pick up
+                    // For now, this is a no-op placeholder
+                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                }
+
+                "pool_shutdown" => {
+                    // Shutdown thread pool
+                    let pool_handle = self.codegen_expression(&arguments[0])?;
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
+
+                    let pool_ptr = LLVMBuildIntToPtr(
+                        self.builder,
+                        pool_handle,
+                        i8_ptr_ty,
+                        c"pool.ptr".as_ptr(),
+                    );
+
+                    // Set shutdown flag to 1
+                    let shutdown_offset = LLVMConstInt(i64_ty, 16, 0);
+                    let shutdown_loc = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        pool_ptr,
+                        [shutdown_offset].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let shutdown_loc_typed = LLVMBuildBitCast(
+                        self.builder,
+                        shutdown_loc,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let one = LLVMConstInt(i64_ty, 1, 0);
+                    LLVMBuildStore(self.builder, one, shutdown_loc_typed);
+
+                    // Free pool struct
+                    let free_fn = *self
+                        .functions
+                        .get("free")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing free"))?;
+                    let free_ty = LLVMGlobalGetValueType(free_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        free_ty,
+                        free_fn,
+                        [pool_ptr].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+
                     Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
                 }
 

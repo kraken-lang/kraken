@@ -107,7 +107,7 @@ impl IrLowering {
     ) -> CompilerResult<IrStruct> {
         let ir_fields: Vec<(String, IrType)> = fields
             .iter()
-            .map(|f| (f.name.clone(), self.lower_type(&f.field_type)))
+            .map(|f| (f.name.clone(), Self::lower_type(&f.field_type)))
             .collect();
 
         // Register struct field names for MemberAccess lowering
@@ -141,17 +141,16 @@ impl IrLowering {
             .iter()
             .map(|p| IrParam {
                 name: p.name.clone(),
-                ty: self.lower_type(&p.param_type),
+                ty: Self::lower_type(&p.param_type),
             })
             .collect();
 
         // Determine return type
-        let ret_ty = return_type
-            .map(|t| self.lower_type(t))
-            .unwrap_or(IrType::Void);
+        let ret_ty = return_type.map(Self::lower_type).unwrap_or(IrType::Void);
 
         // Register function return type for call lowering
-        self.function_return_types.insert(name.to_string(), ret_ty.clone());
+        self.function_return_types
+            .insert(name.to_string(), ret_ty.clone());
 
         let mut ir_func = IrFunction::new(name.to_string(), ir_params, ret_ty, is_public);
 
@@ -165,7 +164,7 @@ impl IrLowering {
             self.variables.insert(param.name.clone(), value_id);
             entry_block.instructions.push(IrInstruction::Alloca {
                 dest: value_id,
-                ty: self.lower_type(&param.param_type),
+                ty: Self::lower_type(&param.param_type),
                 name: param.name.clone(),
             });
             // Store incoming parameter value
@@ -213,12 +212,13 @@ impl IrLowering {
             } => {
                 let ty = type_annotation
                     .as_ref()
-                    .map(|t| self.lower_type(t))
+                    .map(Self::lower_type)
                     .unwrap_or(IrType::Int);
 
                 // Track struct type for MemberAccess lowering
                 if let Some(Type::Custom(struct_name)) = type_annotation {
-                    self.var_struct_types.insert(name.clone(), struct_name.clone());
+                    self.var_struct_types
+                        .insert(name.clone(), struct_name.clone());
                 }
 
                 let value_id = self.alloc_value();
@@ -360,7 +360,7 @@ impl IrLowering {
 
                 ir_block.instructions.push(IrInstruction::BinaryOp {
                     dest,
-                    op: operator.clone(),
+                    op: *operator,
                     left: left_val,
                     right: right_val,
                     ty: IrType::Int, // Type inference simplified
@@ -375,7 +375,7 @@ impl IrLowering {
 
                 ir_block.instructions.push(IrInstruction::UnaryOp {
                     dest,
-                    op: operator.clone(),
+                    op: *operator,
                     operand: operand_val,
                     ty: IrType::Int,
                 });
@@ -396,7 +396,8 @@ impl IrLowering {
 
                 let dest = self.alloc_value();
                 // Look up the function's return type, default to Int for stdlib functions
-                let ret_ty = self.function_return_types
+                let ret_ty = self
+                    .function_return_types
                     .get(&func_name)
                     .cloned()
                     .unwrap_or(IrType::Int);
@@ -544,12 +545,12 @@ impl IrLowering {
                 // Lower the spawn body into a separate function-like structure
                 // For now, emit a spawn call with the body as a closure
                 let dest = self.alloc_value();
-                
+
                 // Lower body statements
                 for stmt in &body.statements {
                     self.lower_statement(stmt, ir_block)?;
                 }
-                
+
                 // Emit spawn call (returns handle)
                 ir_block.instructions.push(IrInstruction::Call {
                     dest: Some(dest),
@@ -569,7 +570,7 @@ impl IrLowering {
     }
 
     /// Convert AST type to IR type.
-    fn lower_type(&self, ty: &Type) -> IrType {
+    fn lower_type(ty: &Type) -> IrType {
         match ty {
             Type::Int => IrType::Int,
             Type::Float => IrType::Float,
@@ -587,11 +588,11 @@ impl IrLowering {
             Type::SliceString => IrType::SliceString,
             Type::SliceBytes => IrType::SliceBytes,
             Type::Array { element_type, size } => IrType::Array {
-                element: Box::new(self.lower_type(element_type)),
+                element: Box::new(Self::lower_type(element_type)),
                 size: *size,
             },
             Type::Reference { inner_type, .. } | Type::Pointer { inner_type, .. } => {
-                IrType::Pointer(Box::new(self.lower_type(inner_type)))
+                IrType::Pointer(Box::new(Self::lower_type(inner_type)))
             }
             Type::Custom(name) => IrType::Struct(name.clone()),
             Type::Generic { name, .. } => IrType::Struct(name.clone()),

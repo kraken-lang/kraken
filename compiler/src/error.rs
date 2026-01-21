@@ -95,10 +95,23 @@ pub struct SourceSpan {
     pub end_col: usize,
 }
 
+#[allow(dead_code)]
 impl SourceSpan {
     /// Create a new source span.
-    pub fn new(file: PathBuf, start_line: usize, start_col: usize, end_line: usize, end_col: usize) -> Self {
-        Self { file, start_line, start_col, end_line, end_col }
+    pub fn new(
+        file: PathBuf,
+        start_line: usize,
+        start_col: usize,
+        end_line: usize,
+        end_col: usize,
+    ) -> Self {
+        Self {
+            file,
+            start_line,
+            start_col,
+            end_line,
+            end_col,
+        }
     }
 
     /// Create a span from a single location (zero-width).
@@ -121,29 +134,52 @@ impl SourceSpan {
 impl std::fmt::Display for SourceSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.start_line == self.end_line {
-            write!(f, "{}:{}:{}-{}", self.file.display(), self.start_line, self.start_col, self.end_col)
+            write!(
+                f,
+                "{}:{}:{}-{}",
+                self.file.display(),
+                self.start_line,
+                self.start_col,
+                self.end_col
+            )
         } else {
-            write!(f, "{}:{}:{}-{}:{}", self.file.display(), self.start_line, self.start_col, self.end_line, self.end_col)
+            write!(
+                f,
+                "{}:{}:{}-{}:{}",
+                self.file.display(),
+                self.start_line,
+                self.start_col,
+                self.end_line,
+                self.end_col
+            )
         }
     }
 }
 
 /// Diagnostic hint for helping users fix errors.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct DiagnosticHint {
     pub message: String,
     pub suggestion: Option<String>,
 }
 
+#[allow(dead_code)]
 impl DiagnosticHint {
     /// Create a new hint with just a message.
     pub fn new(message: impl Into<String>) -> Self {
-        Self { message: message.into(), suggestion: None }
+        Self {
+            message: message.into(),
+            suggestion: None,
+        }
     }
 
     /// Create a hint with a suggestion.
     pub fn with_suggestion(message: impl Into<String>, suggestion: impl Into<String>) -> Self {
-        Self { message: message.into(), suggestion: Some(suggestion.into()) }
+        Self {
+            message: message.into(),
+            suggestion: Some(suggestion.into()),
+        }
     }
 }
 
@@ -151,7 +187,7 @@ impl std::fmt::Display for DiagnosticHint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "\x1b[36mhint:\x1b[0m {}", self.message)?;
         if let Some(ref suggestion) = self.suggestion {
-            write!(f, "\n      \x1b[32msuggestion:\x1b[0m {}", suggestion)?;
+            write!(f, "\n      \x1b[32msuggestion:\x1b[0m {suggestion}")?;
         }
         Ok(())
     }
@@ -159,6 +195,7 @@ impl std::fmt::Display for DiagnosticHint {
 
 /// Enhanced diagnostic with span and hints.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Diagnostic {
     pub span: SourceSpan,
     pub message: String,
@@ -167,6 +204,7 @@ pub struct Diagnostic {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
 pub enum DiagnosticSeverity {
     Error,
     Warning,
@@ -174,6 +212,7 @@ pub enum DiagnosticSeverity {
     Info,
 }
 
+#[allow(dead_code)]
 impl Diagnostic {
     /// Create a new error diagnostic.
     pub fn error(span: SourceSpan, message: impl Into<String>) -> Self {
@@ -212,20 +251,23 @@ impl Diagnostic {
 
         let mut output = format!(
             "{}: {}\n  \x1b[34m-->\x1b[0m {}\n",
-            severity_str,
-            self.message,
-            self.span
+            severity_str, self.message, self.span
         );
 
         // Show source context
         let lines: Vec<&str> = source.lines().collect();
         if self.span.start_line > 0 && self.span.start_line <= lines.len() {
+            use std::fmt::Write as _;
+
             let line_num = self.span.start_line;
             let line = lines[line_num - 1];
-            let line_num_width = format!("{}", line_num).len();
+            let line_num_width = format!("{line_num}").len();
 
-            output.push_str(&format!("   \x1b[34m|\x1b[0m\n"));
-            output.push_str(&format!("\x1b[34m{:>width$} |\x1b[0m {}\n", line_num, line, width = line_num_width));
+            output.push_str("   \x1b[34m|\x1b[0m\n");
+            let _ = writeln!(
+                &mut output,
+                "\x1b[34m{line_num:>line_num_width$} |\x1b[0m {line}"
+            );
 
             // Underline the error span
             let start = self.span.start_col.saturating_sub(1);
@@ -245,7 +287,7 @@ impl Diagnostic {
 
         // Add hints
         for hint in &self.hints {
-            output.push_str(&format!("   {}\n", hint));
+            output.push_str(&format!("   {hint}\n"));
         }
 
         output
@@ -329,10 +371,8 @@ mod tests {
         let hint = DiagnosticHint::new("variable not in scope");
         assert!(hint.to_string().contains("variable not in scope"));
 
-        let hint_with_suggestion = DiagnosticHint::with_suggestion(
-            "did you mean",
-            "use `let` to declare a variable"
-        );
+        let hint_with_suggestion =
+            DiagnosticHint::with_suggestion("did you mean", "use `let` to declare a variable");
         let s = hint_with_suggestion.to_string();
         assert!(s.contains("did you mean"));
         assert!(s.contains("use `let`"));
@@ -341,11 +381,9 @@ mod tests {
     #[test]
     fn test_diagnostic_format_with_source() {
         let span = SourceSpan::new(PathBuf::from("test.kr"), 2, 5, 2, 10);
-        let diag = Diagnostic::error(span, "undefined variable `foo`")
-            .with_hint(DiagnosticHint::with_suggestion(
-                "did you mean `bar`?",
-                "bar"
-            ));
+        let diag = Diagnostic::error(span, "undefined variable `foo`").with_hint(
+            DiagnosticHint::with_suggestion("did you mean `bar`?", "bar"),
+        );
 
         let source = "fn main() {\n    foo + 1\n}";
         let output = diag.format_with_source(source);

@@ -1,0 +1,50 @@
+// Test: Enum payloads (tagged unions)
+
+enum Option {
+    None,
+    Some(int)
+}
+
+enum Result {
+    Ok(int),
+    Err(string)
+}
+
+fn main() {
+    test_section("Enum Payload Tests");
+    
+    // Test simple enum without payload
+    let none = Option::None;
+    match (none) {
+        Option::None -> {
+            test_pass("Option::None matches correctly");
+        }
+        Option::Some(x) -> {
+            test_fail("Should not match Some");
+        }
+    }
+    
+    // Test enum with payload
+    let some_val = Option::Some(42);
+    match (some_val) {
+        Option::None -> {
+            test_fail("Should not match None");
+        }
+        Option::Some(x) -> {
+            test_pass("Option::Some matches correctly");
+        }
+    }
+    
+    // Test Result enum
+    let ok_val = Result::Ok(100);
+    match (ok_val) {
+        Result::Ok(n) -> {
+            test_pass("Result::Ok matches correctly");
+        }
+        Result::Err(msg) -> {
+            test_fail("Should not match Err");
+        }
+    }
+    
+    puts("Enum payload tests complete!");
+}

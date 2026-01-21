@@ -499,9 +499,10 @@ fn rewrite_statement(
             statement: Box::new(rewrite_statement(file, *statement, private_mangle)?),
         }),
 
-        Statement::Break | Statement::Continue | Statement::InterfaceDeclaration { .. } | Statement::EnumDeclaration { .. } => {
-            Ok(statement)
-        }
+        Statement::Break
+        | Statement::Continue
+        | Statement::InterfaceDeclaration { .. }
+        | Statement::EnumDeclaration { .. } => Ok(statement),
     }
 }
 
@@ -627,7 +628,7 @@ fn rewrite_expression(expr: Expression, private_mangle: &HashMap<String, String>
             Expression::Spawn {
                 body: Block::new(statements),
             }
-        },
+        }
 
         Expression::IntLiteral(_)
         | Expression::FloatLiteral(_)
