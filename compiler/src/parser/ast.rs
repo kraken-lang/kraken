@@ -101,11 +101,18 @@ pub enum Statement {
         body: Block,
     },
 
-    /// For loop
+    /// For loop (C-style)
     For {
         initializer: Option<Box<Statement>>,
         condition: Option<Expression>,
         increment: Option<Expression>,
+        body: Block,
+    },
+
+    /// For-in loop (iterator-based): for (x in range) { ... }
+    ForIn {
+        variable: String,
+        iterable: Expression,
         body: Block,
     },
 
@@ -232,6 +239,13 @@ pub enum Expression {
         tuple: Box<Expression>,
         index: usize,
     },
+
+    /// Range expression: 0..10 or 0..=10
+    Range {
+        start: Box<Expression>,
+        end: Box<Expression>,
+        inclusive: bool,
+    },
 }
 
 /// Code block containing statements.
@@ -305,6 +319,13 @@ pub enum Pattern {
     /// Tuple pattern: (x, y, z)
     Tuple {
         patterns: Vec<Pattern>,
+    },
+
+    /// Range pattern: 0..10 or 0..=10
+    Range {
+        start: Box<Expression>,
+        end: Box<Expression>,
+        inclusive: bool,
     },
 }
 

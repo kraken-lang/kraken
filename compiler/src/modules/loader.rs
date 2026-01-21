@@ -491,6 +491,12 @@ fn rewrite_statement(
             body: rewrite_block(body, private_mangle)?,
         }),
 
+        Statement::ForIn { variable, iterable, body } => Ok(Statement::ForIn {
+            variable,
+            iterable: rewrite_expression(iterable, private_mangle),
+            body: rewrite_block(body, private_mangle)?,
+        }),
+
         Statement::Match { expression, arms } => {
             let mut new_arms = Vec::with_capacity(arms.len());
             for arm in arms {
@@ -542,6 +548,11 @@ fn rewrite_pattern(pattern: Pattern, private_mangle: &HashMap<String, String>) -
                 .into_iter()
                 .map(|p| rewrite_pattern(p, private_mangle))
                 .collect(),
+        },
+        Pattern::Range { start, end, inclusive } => Pattern::Range {
+            start: Box::new(rewrite_expression(*start, private_mangle)),
+            end: Box::new(rewrite_expression(*end, private_mangle)),
+            inclusive,
         },
         Pattern::Identifier(_) | Pattern::Wildcard | Pattern::EnumVariant { .. } => pattern,
     }
@@ -683,6 +694,12 @@ fn rewrite_expression(expr: Expression, private_mangle: &HashMap<String, String>
         Expression::TupleIndex { tuple, index } => Expression::TupleIndex {
             tuple: Box::new(rewrite_expression(*tuple, private_mangle)),
             index,
+        },
+
+        Expression::Range { start, end, inclusive } => Expression::Range {
+            start: Box::new(rewrite_expression(*start, private_mangle)),
+            end: Box::new(rewrite_expression(*end, private_mangle)),
+            inclusive,
         },
 
         Expression::IntLiteral(_)

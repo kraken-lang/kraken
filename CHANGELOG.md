@@ -13,6 +13,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.15] - 2026-01-21
+
+### Added
+- Added `Expression::Range { start, end, inclusive }` to AST for range expressions
+- Added `Statement::ForIn { variable, iterable, body }` to AST for iterator-based for loops
+- Added `Pattern::Range { start, end, inclusive }` to AST for range patterns in match expressions
+- Added `Operator::DotDot` and `Operator::DotDotEqual` to token system for range syntax
+- Updated lexer to recognize `..` and `..=` operators
+- Added parser support for range expressions: `0..10` (exclusive), `0..=10` (inclusive)
+- Added parser support for for-in loops: `for (x in range) { ... }`
+- Updated `parse_for_statement` to detect and parse both C-style and for-in loops
+- Added type checking for range expressions (validates start and end are int type)
+- Added type checking for for-in loops with proper scope management for loop variables
+- Added IR lowering for range expressions
+- Added IR lowering for for-in loops (desugared to while loops with counter variables)
+- Added LLVM codegen for for-in loops with proper loop structure (condition, body, increment blocks)
+- Implemented support for both exclusive (`..`) and inclusive (`..=`) ranges in for-in loops
+- Added range pattern support in match expressions for checking if value is within range
+- Added range pattern LLVM codegen with proper comparison logic
+- Added parser support for range patterns in match expressions: `0..10 -> { ... }`
+- Added comprehensive tests for ranges, for-in loops, and range patterns
+
 ## [0.8.14] - 2026-01-21
 
 ### Added

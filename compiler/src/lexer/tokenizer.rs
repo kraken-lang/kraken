@@ -81,7 +81,17 @@ impl Tokenizer {
             ']' => TokenKind::RightBracket,
             ';' => TokenKind::Semicolon,
             ',' => TokenKind::Comma,
-            '.' => TokenKind::Dot,
+            '.' => {
+                if self.match_char('.') {
+                    if self.match_char('=') {
+                        TokenKind::Operator(Operator::DotDotEqual)
+                    } else {
+                        TokenKind::Operator(Operator::DotDot)
+                    }
+                } else {
+                    TokenKind::Dot
+                }
+            }
             ':' => {
                 if self.match_char(':') {
                     TokenKind::ColonColon

@@ -522,10 +522,33 @@ impl Parser {
         Ok(Statement::While { condition, body })
     }
 
-    /// Parse a for statement.
+    /// Parse a for statement (C-style or for-in).
     fn parse_for_statement(&mut self) -> CompilerResult<Statement> {
         self.expect_token(TokenKind::LeftParen)?;
 
+        // Check if this is a for-in loop: for (x in range)
+        if self.check_token(TokenKind::Identifier) {
+            let checkpoint = self.current;
+            let var_name = self.consume_identifier()?;
+            
+            if self.match_keyword(Keyword::In) {
+                // This is a for-in loop
+                let iterable = self.parse_expression()?;
+                self.expect_token(TokenKind::RightParen)?;
+                let body = self.parse_block()?;
+                
+                return Ok(Statement::ForIn {
+                    variable: var_name,
+                    iterable,
+                    body,
+                });
+            } else {
+                // Not a for-in loop, restore position and parse as C-style for
+                self.current = checkpoint;
+            }
+        }
+
+        // Parse C-style for loop
         let initializer = if self.check_token(TokenKind::Semicolon) {
             None
         } else {
@@ -763,7 +786,20 @@ impl Parser {
                 Ok(Pattern::Identifier(name))
             }
         } else {
+            // Parse literal or range pattern
             let expr = self.parse_primary()?;
+            
+            // Check if this is a range pattern
+            if let Some(op) = self.match_operators(&[Operator::DotDot, Operator::DotDotEqual]) {
+                let inclusive = op == Operator::DotDotEqual;
+                let end = self.parse_primary()?;
+                return Ok(Pattern::Range {
+                    start: Box::new(expr),
+                    end: Box::new(end),
+                    inclusive,
+                });
+            }
+            
             Ok(Pattern::Literal(expr))
         }
     }
@@ -891,7 +927,7 @@ impl Parser {
 
     /// Parse comparison expression.
     fn parse_comparison(&mut self) -> CompilerResult<Expression> {
-        let mut left = self.parse_shift()?;
+        let mut left = self.parse_range()?;
 
         while let Some(op) = self.match_operators(&[
             Operator::Less,
@@ -899,12 +935,29 @@ impl Parser {
             Operator::Greater,
             Operator::GreaterEqual,
         ]) {
-            let right = self.parse_shift()?;
+            let right = self.parse_range()?;
             left = Expression::Binary {
                 left: Box::new(left),
                 operator: op,
                 right: Box::new(right),
             };
+        }
+
+        Ok(left)
+    }
+
+    /// Parse range expression (.. or ..=).
+    fn parse_range(&mut self) -> CompilerResult<Expression> {
+        let left = self.parse_shift()?;
+
+        if let Some(op) = self.match_operators(&[Operator::DotDot, Operator::DotDotEqual]) {
+            let inclusive = op == Operator::DotDotEqual;
+            let right = self.parse_shift()?;
+            return Ok(Expression::Range {
+                start: Box::new(left),
+                end: Box::new(right),
+                inclusive,
+            });
         }
 
         Ok(left)

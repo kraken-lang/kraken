@@ -857,6 +857,103 @@ impl LLVMCodegen {
                 Ok(())
             }
 
+            Statement::ForIn { variable, iterable, body } => {
+                unsafe {
+                    let function = self.current_function.ok_or_else(|| {
+                        CompilerError::codegen_error("No current function for for-in loop")
+                    })?;
+
+                    // Extract range bounds
+                    if let Expression::Range { start, end, inclusive } = iterable {
+                        // Allocate loop variable
+                        let var_type = LLVMInt64TypeInContext(self.context);
+                        let var_alloca = self.create_entry_block_alloca(var_type, variable)?;
+                        
+                        // Initialize loop variable to start value
+                        let start_val = self.codegen_expression(start)?;
+                        LLVMBuildStore(self.builder, start_val, var_alloca);
+                        self.named_values.insert(variable.clone(), var_alloca);
+                        
+                        // Evaluate end value once
+                        let end_val = self.codegen_expression(end)?;
+                        let end_alloca = self.create_entry_block_alloca(var_type, "__range_end")?;
+                        LLVMBuildStore(self.builder, end_val, end_alloca);
+                        
+                        // Create blocks
+                        let cond_bb = LLVMAppendBasicBlockInContext(
+                            self.context,
+                            function,
+                            c"for_in.cond".as_ptr(),
+                        );
+                        let loop_bb = LLVMAppendBasicBlockInContext(
+                            self.context,
+                            function,
+                            c"for_in.body".as_ptr(),
+                        );
+                        let inc_bb = LLVMAppendBasicBlockInContext(
+                            self.context,
+                            function,
+                            c"for_in.inc".as_ptr(),
+                        );
+                        let after_bb = LLVMAppendBasicBlockInContext(
+                            self.context,
+                            function,
+                            c"for_in.end".as_ptr(),
+                        );
+                        
+                        // Push loop blocks for break/continue
+                        self.loop_exit_blocks.push(after_bb);
+                        self.loop_continue_blocks.push(inc_bb);
+                        
+                        // Branch to condition
+                        LLVMBuildBr(self.builder, cond_bb);
+                        
+                        // Generate condition block: i < end or i <= end
+                        LLVMPositionBuilderAtEnd(self.builder, cond_bb);
+                        let current_val = LLVMBuildLoad2(self.builder, var_type, var_alloca, c"".as_ptr());
+                        let end_loaded = LLVMBuildLoad2(self.builder, var_type, end_alloca, c"".as_ptr());
+                        let cond_val = if *inclusive {
+                            LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntSLE, current_val, end_loaded, c"".as_ptr())
+                        } else {
+                            LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntSLT, current_val, end_loaded, c"".as_ptr())
+                        };
+                        LLVMBuildCondBr(self.builder, cond_val, loop_bb, after_bb);
+                        
+                        // Generate loop body
+                        LLVMPositionBuilderAtEnd(self.builder, loop_bb);
+                        for stmt in &body.statements {
+                            self.codegen_statement(stmt)?;
+                            let current_bb = LLVMGetInsertBlock(self.builder);
+                            if !LLVMGetBasicBlockTerminator(current_bb).is_null() {
+                                break;
+                            }
+                        }
+                        let current_bb = LLVMGetInsertBlock(self.builder);
+                        if LLVMGetBasicBlockTerminator(current_bb).is_null() {
+                            LLVMBuildBr(self.builder, inc_bb);
+                        }
+                        
+                        // Generate increment block: i = i + 1
+                        LLVMPositionBuilderAtEnd(self.builder, inc_bb);
+                        let current_val = LLVMBuildLoad2(self.builder, var_type, var_alloca, c"".as_ptr());
+                        let one = LLVMConstInt(var_type, 1, 0);
+                        let next_val = LLVMBuildAdd(self.builder, current_val, one, c"".as_ptr());
+                        LLVMBuildStore(self.builder, next_val, var_alloca);
+                        LLVMBuildBr(self.builder, cond_bb);
+                        
+                        // Pop loop blocks
+                        self.loop_exit_blocks.pop();
+                        self.loop_continue_blocks.pop();
+                        
+                        // Continue after loop
+                        LLVMPositionBuilderAtEnd(self.builder, after_bb);
+                    } else {
+                        return Err(CompilerError::codegen_error("For-in loop requires range expression"));
+                    }
+                }
+                Ok(())
+            }
+
             Statement::Break => {
                 unsafe {
                     if let Some(&exit_bb) = self.loop_exit_blocks.last() {
@@ -1018,6 +1115,45 @@ impl LLVMCodegen {
                                     // Enum not found, just branch
                                     LLVMBuildBr(self.builder, arm_blocks[i]);
                                 }
+                            }
+                            Pattern::Range { start, end, inclusive } => {
+                                // Range pattern: check if match_val is within range
+                                let start_val = self.codegen_expression(start)?;
+                                let end_val = self.codegen_expression(end)?;
+                                
+                                // Check if match_val >= start
+                                let ge_cond = LLVMBuildICmp(
+                                    self.builder,
+                                    llvm_sys::LLVMIntPredicate::LLVMIntSGE,
+                                    match_val,
+                                    start_val,
+                                    c"range.ge".as_ptr(),
+                                );
+                                
+                                // Check if match_val < end (or <= end if inclusive)
+                                let le_cond = if *inclusive {
+                                    LLVMBuildICmp(
+                                        self.builder,
+                                        llvm_sys::LLVMIntPredicate::LLVMIntSLE,
+                                        match_val,
+                                        end_val,
+                                        c"range.le".as_ptr(),
+                                    )
+                                } else {
+                                    LLVMBuildICmp(
+                                        self.builder,
+                                        llvm_sys::LLVMIntPredicate::LLVMIntSLT,
+                                        match_val,
+                                        end_val,
+                                        c"range.lt".as_ptr(),
+                                    )
+                                };
+                                
+                                // Combine conditions with AND
+                                let cond = LLVMBuildAnd(self.builder, ge_cond, le_cond, c"range.cond".as_ptr());
+                                
+                                // Branch to arm or next check
+                                LLVMBuildCondBr(self.builder, cond, arm_blocks[i], next_check_blocks[i]);
                             }
                         }
 

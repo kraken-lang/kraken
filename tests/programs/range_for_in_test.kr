@@ -1,0 +1,188 @@
+// Comprehensive tests for ranges and for-in loops
+
+fn test_basic_for_in() -> int {
+    test_section("Basic For-In Loops");
+    
+    // Basic exclusive range
+    let sum: int = 0;
+    for (i in 0..5) {
+        sum = sum + i;
+    }
+    assert_eq(sum, 10); // 0+1+2+3+4 = 10
+    test_pass("Exclusive range 0..5");
+    
+    // Basic inclusive range
+    let sum2: int = 0;
+    for (i in 0..=5) {
+        sum2 = sum2 + i;
+    }
+    assert_eq(sum2, 15); // 0+1+2+3+4+5 = 15
+    test_pass("Inclusive range 0..=5");
+    
+    // Range starting from non-zero
+    let sum3: int = 0;
+    for (i in 5..10) {
+        sum3 = sum3 + i;
+    }
+    assert_eq(sum3, 35); // 5+6+7+8+9 = 35
+    test_pass("Range 5..10");
+    
+    // Single iteration range
+    let count: int = 0;
+    for (i in 10..11) {
+        count = count + 1;
+        assert_eq(i, 10);
+    }
+    assert_eq(count, 1);
+    test_pass("Single iteration range");
+    
+    // Empty range (start == end for exclusive)
+    let count2: int = 0;
+    for (i in 5..5) {
+        count2 = count2 + 1;
+    }
+    assert_eq(count2, 0);
+    test_pass("Empty range (exclusive)");
+    
+    0;
+}
+
+fn test_for_in_with_operations() -> int {
+    test_section("For-In with Operations");
+    
+    // Multiplication in loop
+    let product: int = 1;
+    for (i in 1..=5) {
+        product = product * i;
+    }
+    assert_eq(product, 120); // 5! = 120
+    test_pass("Factorial using for-in");
+    
+    // Counting even numbers
+    let even_count: int = 0;
+    for (i in 0..10) {
+        if (i % 2 == 0) {
+            even_count = even_count + 1;
+        }
+    }
+    assert_eq(even_count, 5); // 0,2,4,6,8
+    test_pass("Count even numbers");
+    
+    // Nested for-in loops
+    let total: int = 0;
+    for (i in 0..3) {
+        for (j in 0..3) {
+            total = total + i + j;
+        }
+    }
+    assert_eq(total, 18); // (0+0)+(0+1)+(0+2)+(1+0)+(1+1)+(1+2)+(2+0)+(2+1)+(2+2)
+    test_pass("Nested for-in loops");
+    
+    0;
+}
+
+fn test_range_patterns() -> int {
+    test_section("Range Patterns in Match");
+    
+    // Basic range pattern
+    let x: int = 5;
+    match (x) {
+        0..10 -> {
+            test_pass("Range pattern 0..10 matches 5");
+        }
+        _ -> {
+            test_fail("Should match range");
+        }
+    }
+    
+    // Inclusive range pattern
+    let y: int = 10;
+    match (y) {
+        0..=10 -> {
+            test_pass("Inclusive range 0..=10 matches 10");
+        }
+        _ -> {
+            test_fail("Should match inclusive range");
+        }
+    }
+    
+    // Range pattern not matching
+    let z: int = 15;
+    match (z) {
+        0..10 -> {
+            test_fail("Should not match range");
+        }
+        _ -> {
+            test_pass("Wildcard matches 15");
+        }
+    }
+    
+    // Multiple range patterns
+    let val: int = 25;
+    match (val) {
+        0..10 -> {
+            test_fail("Should not match 0..10");
+        }
+        10..20 -> {
+            test_fail("Should not match 10..20");
+        }
+        20..30 -> {
+            test_pass("Matches 20..30");
+        }
+        _ -> {
+            test_fail("Should match range");
+        }
+    }
+    
+    0;
+}
+
+fn test_edge_cases() -> int {
+    test_section("Edge Cases");
+    
+    // Large range
+    let count: int = 0;
+    for (i in 0..100) {
+        count = count + 1;
+    }
+    assert_eq(count, 100);
+    test_pass("Large range 0..100");
+    
+    // Break in for-in loop
+    let sum3: int = 0;
+    for (i in 0..100) {
+        if (i == 5) {
+            break;
+        }
+        sum3 = sum3 + i;
+    }
+    assert_eq(sum3, 10); // 0+1+2+3+4 = 10
+    test_pass("Break in for-in loop");
+    
+    // Continue in for-in loop
+    let sum4: int = 0;
+    for (i in 0..10) {
+        if (i % 2 == 1) {
+            continue;
+        }
+        sum4 = sum4 + i;
+    }
+    assert_eq(sum4, 20); // 0+2+4+6+8 = 20
+    test_pass("Continue in for-in loop");
+    
+    0;
+}
+
+fn main() -> int {
+    puts("=== RANGE AND FOR-IN LOOP TESTS ===");
+    puts("");
+    
+    test_basic_for_in();
+    test_for_in_with_operations();
+    test_range_patterns();
+    test_edge_cases();
+    
+    puts("");
+    puts("=== ALL TESTS PASSED ===");
+    0;
+}

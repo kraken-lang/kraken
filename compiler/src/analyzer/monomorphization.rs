@@ -173,7 +173,7 @@ impl Monomorphizer {
                 // Bind pattern variables in the environment
                 if let Some(ty) = type_annotation {
                     self.bind_pattern_to_env(pattern, ty.clone(), env);
-                } else if let Some(init) = initializer {
+                } else if let Some(_init) = initializer {
                     // For now, use Int as default type when no annotation
                     // TODO: Proper type inference from initializer
                     self.bind_pattern_to_env(pattern, Type::Int, env);
@@ -244,6 +244,13 @@ impl Monomorphizer {
                 if let Some(inc) = increment {
                     self.infer_expression(inc, &mut loop_env)?;
                 }
+                self.infer_block(body, &mut loop_env)
+            }
+
+            Statement::ForIn { variable, iterable, body } => {
+                self.infer_expression(iterable, env)?;
+                let mut loop_env = env.clone();
+                loop_env.insert(variable.clone(), Type::Int);
                 self.infer_block(body, &mut loop_env)
             }
 
@@ -370,6 +377,11 @@ impl Monomorphizer {
             }
 
             Expression::TupleIndex { tuple, .. } => self.infer_expression(tuple, env),
+
+            Expression::Range { start, end, inclusive: _ } => {
+                self.infer_expression(start, env)?;
+                self.infer_expression(end, env)
+            }
 
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)
@@ -908,6 +920,12 @@ impl Monomorphizer {
                 body: self.rewrite_block_with_subst(body, subst)?,
             }),
 
+            Statement::ForIn { variable, iterable, body } => Ok(Statement::ForIn {
+                variable,
+                iterable: self.rewrite_expression_with_subst(iterable, subst)?,
+                body: self.rewrite_block_with_subst(body, subst)?,
+            }),
+
             Statement::Match { expression, arms } => {
                 let expression = self.rewrite_expression_with_subst(expression, subst)?;
                 let arms = arms
@@ -1106,6 +1124,12 @@ impl Monomorphizer {
                 index,
             }),
 
+            Expression::Range { start, end, inclusive } => Ok(Expression::Range {
+                start: Box::new(self.rewrite_expression_with_subst(*start, subst)?),
+                end: Box::new(self.rewrite_expression_with_subst(*end, subst)?),
+                inclusive,
+            }),
+
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)
             | Expression::StringLiteral(_)
@@ -1199,7 +1223,7 @@ impl Monomorphizer {
                     }
                 }
             }
-            Pattern::Wildcard | Pattern::Literal(_) | Pattern::EnumVariant { .. } => {
+            Pattern::Wildcard | Pattern::Literal(_) | Pattern::EnumVariant { .. } | Pattern::Range { .. } => {
                 // These don't bind variables
             }
         }
@@ -1350,6 +1374,12 @@ impl Monomorphizer {
             }
 
             Statement::Break | Statement::Continue => Ok(()),
+
+            Statement::ForIn { variable: _, iterable, body } => {
+                self.scan_expression(iterable)?;
+                self.scan_block(body)?;
+                Ok(())
+            }
         }
     }
 
@@ -1460,6 +1490,12 @@ impl Monomorphizer {
             }
 
             Expression::TupleIndex { tuple, .. } => self.scan_expression(tuple),
+
+            Expression::Range { start, end, inclusive: _ } => {
+                self.scan_expression(start)?;
+                self.scan_expression(end)?;
+                Ok(())
+            }
 
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)

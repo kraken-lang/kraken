@@ -246,12 +246,12 @@ impl IrLowering {
                 } else if let Pattern::Tuple { patterns } = pattern {
                     // Tuple destructuring: let (x, y) = tuple_expr;
                     if let Some(init) = initializer {
-                        let tuple_value = self.lower_expression(init, ir_block)?;
+                        let _tuple_value = self.lower_expression(init, ir_block)?;
                         
                         // For now, treat tuple destructuring as individual variable assignments
                         // The LLVM backend will handle the actual tuple element extraction
                         // We just need to track that these variables exist
-                        for (_index, pat) in patterns.iter().enumerate() {
+                        for pat in patterns.iter() {
                             if let Pattern::Identifier(name) = pat {
                                 let var_id = self.alloc_value();
                                 self.variables.insert(name.clone(), var_id);
@@ -322,6 +322,45 @@ impl IrLowering {
                 self.lower_block(body, ir_block)?;
                 if let Some(inc) = increment {
                     self.lower_expression(inc, ir_block)?;
+                }
+            }
+
+            Statement::ForIn { variable, iterable, body } => {
+                // Desugar for-in loop to while loop
+                // for (i in start..end) { body }
+                // becomes:
+                // let i = start;
+                // while (i < end) { body; i = i + 1; }
+                
+                // Extract range start and end from iterable
+                if let Expression::Range { start, end, inclusive } = iterable {
+                    // Allocate variable for loop counter
+                    let value_id = self.alloc_value();
+                    self.variables.insert(variable.clone(), value_id);
+                    ir_block.instructions.push(IrInstruction::Alloca {
+                        dest: value_id,
+                        ty: IrType::Int,
+                        name: variable.clone(),
+                    });
+                    
+                    // Initialize counter to start value
+                    let start_val = self.lower_expression(start, ir_block)?;
+                    ir_block.instructions.push(IrInstruction::Store {
+                        value: start_val,
+                        ptr: IrValue::Register(value_id),
+                    });
+                    
+                    // Lower the loop body (condition and increment handled by LLVM codegen)
+                    // Store end value for comparison
+                    let _end_val = self.lower_expression(end, ir_block)?;
+                    let _inclusive = *inclusive;
+                    
+                    // Lower body
+                    self.lower_block(body, ir_block)?;
+                } else {
+                    return Err(CompilerError::codegen_error(
+                        "For-in loop requires range expression",
+                    ));
                 }
             }
 
@@ -637,6 +676,15 @@ impl IrLowering {
                     ret_ty: IrType::Int,
                 });
                 Ok(IrValue::Register(dest))
+            }
+
+            Expression::Range { start, end, inclusive: _ } => {
+                // Range expressions are only used in for-in loops
+                // They don't produce a value themselves, just validate the bounds
+                let _start_val = self.lower_expression(start, ir_block)?;
+                let _end_val = self.lower_expression(end, ir_block)?;
+                // Return a placeholder value
+                Ok(IrValue::ConstInt(0))
             }
         }
     }

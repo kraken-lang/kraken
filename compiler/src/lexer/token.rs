@@ -298,6 +298,8 @@ pub enum Operator {
     // Other
     Question,  // ?
     Ampersand, // & (also used for references)
+    DotDot,    // .. (range)
+    DotDotEqual, // ..= (inclusive range)
 }
 
 impl Operator {
@@ -332,6 +334,8 @@ impl Operator {
             Self::PercentAssign => "%=",
             Self::Question => "?",
             Self::Ampersand => "&",
+            Self::DotDot => "..",
+            Self::DotDotEqual => "..=",
         }
     }
 }

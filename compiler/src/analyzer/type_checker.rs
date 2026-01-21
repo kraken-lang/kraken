@@ -2126,6 +2126,33 @@ impl TypeChecker {
                 Ok(())
             }
 
+            Statement::ForIn { variable, iterable, body } => {
+                // Check that iterable is a valid range expression
+                let iterable_type = self.check_expression(iterable)?;
+                
+                // For now, we only support ranges as iterables
+                // The iterable_type will be Int (from Range expression check)
+                if iterable_type != Type::Int {
+                    return Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("For-in loop requires range expression, found {iterable_type}"),
+                    ));
+                }
+                
+                // Create a new scope for the loop body and define the loop variable
+                let child_env = self.env.child();
+                let saved_env = std::mem::replace(&mut self.env, child_env);
+                
+                // Loop variable is always int (from range)
+                self.env.define_variable(variable.clone(), Type::Int);
+                
+                self.check_block(body)?;
+                
+                // Restore environment
+                self.env = saved_env;
+                Ok(())
+            }
+
             Statement::Match { expression, arms } => {
                 let expr_type = self.check_expression(expression)?;
 
@@ -2212,6 +2239,24 @@ impl TypeChecker {
                             self.check_block(&arm.body)?;
                             self.env = saved_env;
                             continue;
+                        }
+                        Pattern::Range { start, end, inclusive: _ } => {
+                            // Validate range bounds are int type
+                            let start_type = self.check_expression(start)?;
+                            let end_type = self.check_expression(end)?;
+                            if start_type != Type::Int || end_type != Type::Int {
+                                return Err(CompilerError::type_error(
+                                    SourceLocation::new(self.file_path.clone(), 0, 0),
+                                    format!("Range pattern requires int bounds, found {start_type}..{end_type}"),
+                                ));
+                            }
+                            // Check that expression type is int
+                            if expr_type != Type::Int {
+                                return Err(CompilerError::type_error(
+                                    SourceLocation::new(self.file_path.clone(), 0, 0),
+                                    format!("Range pattern requires int expression, found {expr_type}"),
+                                ));
+                            }
                         }
                     }
 
@@ -2603,6 +2648,29 @@ impl TypeChecker {
                     )),
                 }
             }
+
+            Expression::Range { start, end, inclusive: _ } => {
+                let start_type = self.check_expression(start)?;
+                let end_type = self.check_expression(end)?;
+                
+                // Both start and end must be int type
+                if start_type != Type::Int {
+                    return Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Range start must be int, found {start_type}"),
+                    ));
+                }
+                if end_type != Type::Int {
+                    return Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Range end must be int, found {end_type}"),
+                    ));
+                }
+                
+                // Range expressions don't have a specific type - they're used in for loops
+                // For now, we'll just validate them and return int (representing the iterator)
+                Ok(Type::Int)
+            }
         }
     }
 
@@ -2781,6 +2849,10 @@ impl TypeChecker {
                 // Enum variant patterns are handled in match expressions
                 Ok(())
             }
+            Pattern::Range { .. } => {
+                // Range patterns don't bind variables
+                Ok(())
+            }
         }
     }
 
@@ -2826,6 +2898,10 @@ impl TypeChecker {
             }
             Pattern::EnumVariant { .. } => {
                 // Enum variant patterns are handled in match expressions
+                Ok(())
+            }
+            Pattern::Range { .. } => {
+                // Range patterns don't bind variables
                 Ok(())
             }
         }
