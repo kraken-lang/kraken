@@ -3,16 +3,36 @@
     <h1>Kraken Language</h1>
 </div>
 
-**Kraken** is an open-source, general-purpose programming language.
+**Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
 Current version: `v0.8.15`
 
+## Language Features
+
+### Type System (0.8.14)
+- **Tuples**: `(int, string, bool)` with destructuring and pattern matching
+- **Enums**: Variant types with payloads (`Option<T>`, `Result<T, E>`)
+- **Pattern Matching**: Comprehensive match expressions with literal, tuple, and enum patterns
+- **Generics**: Generic functions and types with monomorphization
+
+### Iteration & Ranges (0.8.15)
+- **Range Types**: `0..10` (exclusive), `0..=10` (inclusive)
+- **For-In Loops**: `for (x in 0..10) { ... }`
+- **Range Patterns**: Match expressions with range patterns
+
+### Core Features
+- **Static Typing**: Strong type system with type inference
+- **LLVM Backend**: Efficient native code generation
+- **C FFI**: Seamless interop with C libraries
+- **Module System**: Organized code with imports and visibility control
+- **Memory Safety**: Ownership-based memory management (in development)
+
 ## Workspace Layout
 
- - **compiler/**
- - **runtime/**
- - **examples/**
- - **tests/programs/**
+ - **compiler/** — Kraken compiler implementation
+ - **runtime/** — Runtime library and C FFI bindings
+ - **examples/** — Example programs
+ - **tests/programs/** — Comprehensive test suite
 
 ## Prerequisites
 
@@ -75,6 +95,70 @@ RUSTFLAGS="-D warnings" cargo clippy --workspace --all-targets --all-features
 ```bash
 cargo run -p kraken -- build examples/hello.kr
 ./build/hello
+```
+
+## Quick Examples
+
+### Tuples & Destructuring
+
+```kraken
+fn main() -> int {
+    let point: (int, int) = (10, 20);
+    let (x, y) = point;
+    
+    puts("Point coordinates:");
+    puts(x);  // 10
+    puts(y);  // 20
+    
+    0;
+}
+```
+
+### Pattern Matching
+
+```kraken
+fn classify(x: int) -> string {
+    match (x) {
+        0 -> { "zero" }
+        1..10 -> { "single digit" }
+        10..100 -> { "two digits" }
+        _ -> { "large number" }
+    }
+}
+```
+
+### For-In Loops
+
+```kraken
+fn factorial(n: int) -> int {
+    let result: int = 1;
+    for (i in 1..=n) {
+        result = result * i;
+    }
+    result;
+}
+
+fn main() -> int {
+    puts(factorial(5));  // 120
+    0;
+}
+```
+
+### Enums (Option & Result)
+
+```kraken
+fn safe_divide(a: int, b: int) -> int {
+    if (b == 0) {
+        return 0;
+    }
+    a / b;
+}
+
+fn main() -> int {
+    let result: int = safe_divide(10, 2);
+    puts(result);  // 5
+    0;
+}
 ```
 
 ## Containers v1 (0.8.5)
