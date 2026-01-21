@@ -1,0 +1,15 @@
+fn main() -> int {
+    let v: Vec<string> = vec_string_new();
+
+    vec_string_push(v, "hello");
+    vec_string_push(v, "world");
+
+    let len = vec_string_len(v);
+    vec_string_free(v);
+
+    if (len != 2) {
+        return 1;
+    }
+
+    return 0;
+}

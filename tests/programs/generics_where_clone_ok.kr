@@ -1,0 +1,11 @@
+fn id_clone<T>(x: T) -> T where T: Clone {
+    return x;
+}
+
+fn main() -> int {
+    let a = id_clone(123);
+    if (a != 123) {
+        return 1;
+    }
+    return 0;
+}

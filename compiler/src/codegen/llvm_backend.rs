@@ -267,6 +267,8 @@ impl LLVMCodegen {
             for statement in &program.statements {
                 if let Statement::FunctionDeclaration {
                     name,
+                    generic_params: _,
+                    where_constraints: _,
                     parameters,
                     return_type,
                     ..
@@ -377,6 +379,8 @@ impl LLVMCodegen {
         match statement {
             Statement::FunctionDeclaration {
                 name,
+                generic_params: _,
+                where_constraints: _,
                 parameters,
                 return_type,
                 body,
@@ -394,6 +398,8 @@ impl LLVMCodegen {
 
             Statement::StructDeclaration {
                 name,
+                generic_params: _,
+                where_constraints: _,
                 fields,
                 is_public: _,
             } => {
@@ -1863,7 +1869,11 @@ impl LLVMCodegen {
                     Ok(result)
                 }
 
-                Expression::Call { callee, arguments } => {
+                Expression::Call {
+                    callee,
+                    type_args: _,
+                    arguments,
+                } => {
                     // For now, only support direct function calls (identifier)
                     if let Expression::Identifier(name) = &**callee {
                         if name == "cstr" {
@@ -2824,7 +2834,11 @@ impl LLVMCodegen {
                     Ok(new_str)
                 }
 
-                Expression::StructLiteral { name, fields } => {
+                Expression::StructLiteral {
+                    name,
+                    type_args: _,
+                    fields,
+                } => {
                     // Get the struct type (clone to avoid borrow issues)
                     let (struct_type, field_names, _) =
                         self.struct_types.get(name).cloned().ok_or_else(|| {
@@ -3466,6 +3480,47 @@ impl LLVMCodegen {
                         c"".as_ptr(),
                     );
                     let len_val = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"".as_ptr());
+
+                    // Trap on empty vector
+                    let current_bb = LLVMGetInsertBlock(self.builder);
+                    let current_fn = LLVMGetBasicBlockParent(current_bb);
+                    let trap_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"vec.int.pop.trap".as_ptr(),
+                    );
+                    let ok_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"vec.int.pop.ok".as_ptr(),
+                    );
+
+                    let is_empty = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntEQ,
+                        len_val,
+                        LLVMConstInt(i64_ty, 0, 0),
+                        c"is.empty".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, is_empty, trap_bb, ok_bb);
+
+                    LLVMPositionBuilderAtEnd(self.builder, trap_bb);
+                    let abort_fn = *self
+                        .functions
+                        .get("abort")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing abort"))?;
+                    let abort_ty = LLVMGlobalGetValueType(abort_fn);
+                    LLVMBuildCall2(
+                        self.builder,
+                        abort_ty,
+                        abort_fn,
+                        std::ptr::null_mut(),
+                        0,
+                        c"".as_ptr(),
+                    );
+                    LLVMBuildUnreachable(self.builder);
+
+                    LLVMPositionBuilderAtEnd(self.builder, ok_bb);
 
                     // Compute last index (len - 1)
                     let last_idx = LLVMBuildSub(

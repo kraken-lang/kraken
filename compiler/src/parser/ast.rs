@@ -41,6 +41,8 @@ pub enum Statement {
     /// Function declaration
     FunctionDeclaration {
         name: String,
+        generic_params: Vec<String>,
+        where_constraints: Vec<WhereConstraint>,
         parameters: Vec<Parameter>,
         return_type: Option<Type>,
         body: Block,
@@ -51,6 +53,8 @@ pub enum Statement {
     /// Struct declaration
     StructDeclaration {
         name: String,
+        generic_params: Vec<String>,
+        where_constraints: Vec<WhereConstraint>,
         fields: Vec<StructField>,
         is_public: bool,
     },
@@ -160,6 +164,7 @@ pub enum Expression {
     /// Function call
     Call {
         callee: Box<Expression>,
+        type_args: Option<Vec<Type>>,
         arguments: Vec<Expression>,
     },
 
@@ -188,6 +193,7 @@ pub enum Expression {
     /// Struct literal (Point { x: 1, y: 2 })
     StructLiteral {
         name: String,
+        type_args: Option<Vec<Type>>,
         fields: Vec<(String, Expression)>,
     },
 
@@ -258,6 +264,12 @@ pub struct FunctionSignature {
 pub struct MatchArm {
     pub pattern: Pattern,
     pub body: Block,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct WhereConstraint {
+    pub type_param: String,
+    pub trait_name: String,
 }
 
 /// Pattern for match expressions.

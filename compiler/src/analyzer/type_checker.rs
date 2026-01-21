@@ -13,6 +13,7 @@ pub struct TypeChecker {
     env: TypeEnvironment,
     file_path: PathBuf,
     current_function_return_type: Option<Type>,
+    current_generic_params: Vec<String>,
 }
 
 impl TypeChecker {
@@ -1705,7 +1706,12 @@ impl TypeChecker {
             env,
             file_path,
             current_function_return_type: None,
+            current_generic_params: Vec::new(),
         }
+    }
+
+    fn is_generic_param(&self, name: &str) -> bool {
+        self.current_generic_params.iter().any(|p| p == name)
     }
 
     /// Type check a program.
@@ -1737,6 +1743,7 @@ impl TypeChecker {
 
             Statement::FunctionDeclaration {
                 name,
+                generic_params: _,
                 parameters,
                 return_type,
                 is_async,
@@ -1841,6 +1848,8 @@ impl TypeChecker {
 
             Statement::FunctionDeclaration {
                 name: _,
+                generic_params,
+                where_constraints: _,
                 parameters,
                 return_type,
                 body,
@@ -1852,6 +1861,9 @@ impl TypeChecker {
                 let previous_return_type = self.current_function_return_type.clone();
                 self.current_function_return_type = Some(ret_type);
 
+                let previous_generic_params = std::mem::take(&mut self.current_generic_params);
+                self.current_generic_params = generic_params.clone();
+
                 let mut func_env = self.env.child();
                 for param in parameters {
                     func_env.define_variable(param.name.clone(), param.param_type.clone());
@@ -1861,12 +1873,16 @@ impl TypeChecker {
                 self.check_block(body)?;
                 self.env = saved_env;
 
+                self.current_generic_params = previous_generic_params;
+
                 self.current_function_return_type = previous_return_type;
                 Ok(())
             }
 
             Statement::StructDeclaration {
                 name,
+                generic_params: _,
+                where_constraints: _,
                 fields,
                 is_public: _,
             } => {
@@ -2121,7 +2137,18 @@ impl TypeChecker {
                 self.check_unary_operation(operator, &operand_type)
             }
 
-            Expression::Call { callee, arguments } => {
+            Expression::Call {
+                callee,
+                type_args,
+                arguments,
+            } => {
+                if type_args.is_some() {
+                    return Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        "Generic type arguments are not allowed here (monomorphization expected)"
+                            .to_string(),
+                    ));
+                }
                 // Check if it's a function call first (before checking as variable)
                 if let Expression::Identifier(func_name) = callee.as_ref() {
                     if let Some(func_type) = self.env.lookup_function(func_name) {
@@ -2276,7 +2303,18 @@ impl TypeChecker {
                 }
             }
 
-            Expression::StructLiteral { name, fields } => {
+            Expression::StructLiteral {
+                name,
+                type_args,
+                fields,
+            } => {
+                if type_args.is_some() {
+                    return Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        "Generic type arguments are not allowed here (monomorphization expected)"
+                            .to_string(),
+                    ));
+                }
                 // Look up the struct type
                 let struct_type = self.env.lookup_struct(name).ok_or_else(|| {
                     CompilerError::type_error(
@@ -2538,6 +2576,17 @@ impl TypeChecker {
 
     /// Check if two types are compatible.
     fn types_compatible(&self, expected: &Type, actual: &Type) -> bool {
+        if let Type::Custom(name) = expected {
+            if self.is_generic_param(name) {
+                return true;
+            }
+        }
+
+        // Generics should be fully erased by monomorphization before type checking.
+        if matches!(expected, Type::Generic { .. }) || matches!(actual, Type::Generic { .. }) {
+            return false;
+        }
+
         if expected == actual {
             return true;
         }

@@ -306,6 +306,8 @@ fn rewrite_statement(
 
         Statement::FunctionDeclaration {
             name,
+            generic_params,
+            where_constraints,
             parameters,
             return_type,
             body,
@@ -344,6 +346,8 @@ fn rewrite_statement(
 
             Ok(Statement::FunctionDeclaration {
                 name: new_name,
+                generic_params,
+                where_constraints,
                 parameters: new_params,
                 return_type: new_return,
                 body: new_body,
@@ -354,6 +358,8 @@ fn rewrite_statement(
 
         Statement::StructDeclaration {
             name,
+            generic_params,
+            where_constraints,
             fields,
             is_public,
         } => {
@@ -377,6 +383,8 @@ fn rewrite_statement(
 
             Ok(Statement::StructDeclaration {
                 name: new_name,
+                generic_params,
+                where_constraints,
                 fields: new_fields,
                 is_public,
             })
@@ -535,7 +543,11 @@ fn rewrite_pattern(pattern: Pattern, private_mangle: &HashMap<String, String>) -
 
 fn rewrite_expression(expr: Expression, private_mangle: &HashMap<String, String>) -> Expression {
     match expr {
-        Expression::Call { callee, arguments } => {
+        Expression::Call {
+            callee,
+            type_args,
+            arguments,
+        } => {
             let callee = match *callee {
                 Expression::Identifier(name) => {
                     if let Some(m) = private_mangle.get(&name) {
@@ -552,7 +564,17 @@ fn rewrite_expression(expr: Expression, private_mangle: &HashMap<String, String>
                 .map(|a| rewrite_expression(a, private_mangle))
                 .collect();
 
-            Expression::Call { callee, arguments }
+            let type_args = type_args.map(|args| {
+                args.into_iter()
+                    .map(|t| rewrite_type(t, private_mangle))
+                    .collect()
+            });
+
+            Expression::Call {
+                callee,
+                type_args,
+                arguments,
+            }
         }
 
         Expression::Array { elements } => Expression::Array {
@@ -593,13 +615,28 @@ fn rewrite_expression(expr: Expression, private_mangle: &HashMap<String, String>
             member,
         },
 
-        Expression::StructLiteral { name, fields } => {
+        Expression::StructLiteral {
+            name,
+            type_args,
+            fields,
+        } => {
             let name = private_mangle.get(&name).cloned().unwrap_or(name);
             let fields = fields
                 .into_iter()
                 .map(|(n, e)| (n, rewrite_expression(e, private_mangle)))
                 .collect();
-            Expression::StructLiteral { name, fields }
+
+            let type_args = type_args.map(|args| {
+                args.into_iter()
+                    .map(|t| rewrite_type(t, private_mangle))
+                    .collect()
+            });
+
+            Expression::StructLiteral {
+                name,
+                type_args,
+                fields,
+            }
         }
 
         Expression::Assignment { target, value } => Expression::Assignment {

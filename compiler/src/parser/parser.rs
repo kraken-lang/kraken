@@ -1,6 +1,13 @@
-use super::ast::*;
-use crate::error::{CompilerError, CompilerResult, SourceLocation};
-use crate::lexer::token::{Keyword, Operator, Token, TokenKind};
+use crate::parser::ast::{
+    Block, Expression, FunctionSignature, MatchArm, Parameter, Pattern, Program, Statement,
+    StructField, Type, WhereConstraint,
+};
+use crate::{
+    error::{CompilerError, CompilerResult, SourceLocation},
+    lexer::{
+        token::{Keyword, Operator, Token, TokenKind},
+    },
+};
 use std::path::PathBuf;
 
 /// Recursive descent parser for Kraken language.
@@ -164,6 +171,18 @@ impl Parser {
     ) -> CompilerResult<Statement> {
         let name = self.consume_identifier()?;
 
+        let generic_params = if self.match_operator(Operator::Less) {
+            let mut params = Vec::new();
+            params.push(self.consume_identifier()?);
+            while self.match_token(TokenKind::Comma) {
+                params.push(self.consume_identifier()?);
+            }
+            self.expect_operator(Operator::Greater)?;
+            params
+        } else {
+            Vec::new()
+        };
+
         self.expect_token(TokenKind::LeftParen)?;
         let parameters = self.parse_parameter_list()?;
         self.expect_token(TokenKind::RightParen)?;
@@ -174,10 +193,18 @@ impl Parser {
             None
         };
 
+        let where_constraints = if self.match_keyword(Keyword::Where) {
+            self.parse_where_constraints()?
+        } else {
+            Vec::new()
+        };
+
         let body = self.parse_block()?;
 
         Ok(Statement::FunctionDeclaration {
             name,
+            generic_params,
+            where_constraints,
             parameters,
             return_type,
             body,
@@ -205,15 +232,55 @@ impl Parser {
     fn parse_struct_declaration(&mut self, is_public: bool) -> CompilerResult<Statement> {
         let name = self.consume_identifier()?;
 
+        let generic_params = if self.match_operator(Operator::Less) {
+            let mut params = Vec::new();
+            params.push(self.consume_identifier()?);
+            while self.match_token(TokenKind::Comma) {
+                params.push(self.consume_identifier()?);
+            }
+            self.expect_operator(Operator::Greater)?;
+            params
+        } else {
+            Vec::new()
+        };
+
+        let where_constraints = if self.match_keyword(Keyword::Where) {
+            self.parse_where_constraints()?
+        } else {
+            Vec::new()
+        };
+
         self.expect_token(TokenKind::LeftBrace)?;
         let fields = self.parse_struct_fields()?;
         self.expect_token(TokenKind::RightBrace)?;
 
         Ok(Statement::StructDeclaration {
             name,
+            generic_params,
+            where_constraints,
             fields,
             is_public,
         })
+    }
+
+    fn parse_where_constraints(&mut self) -> CompilerResult<Vec<WhereConstraint>> {
+        let mut constraints = Vec::new();
+
+        loop {
+            let type_param = self.consume_identifier()?;
+            self.expect_token(TokenKind::Colon)?;
+            let trait_name = self.consume_identifier()?;
+            constraints.push(WhereConstraint {
+                type_param,
+                trait_name,
+            });
+
+            if !self.match_token(TokenKind::Comma) {
+                break;
+            }
+        }
+
+        Ok(constraints)
     }
 
     /// Parse an enum declaration.
@@ -556,7 +623,18 @@ impl Parser {
         }
 
         let name = self.consume_identifier()?;
-        Ok(Type::Custom(name))
+
+        if self.match_operator(Operator::Less) {
+            let mut type_params = Vec::new();
+            type_params.push(self.parse_type()?);
+            while self.match_token(TokenKind::Comma) {
+                type_params.push(self.parse_type()?);
+            }
+            self.expect_operator(Operator::Greater)?;
+            Ok(Type::Generic { name, type_params })
+        } else {
+            Ok(Type::Custom(name))
+        }
     }
 
     /// Parse a pattern for match expressions.
@@ -833,11 +911,80 @@ impl Parser {
         let mut expr = self.parse_primary()?;
 
         loop {
+            // Generic call/struct literal syntax:
+            //   Identifier<T>(...) or Identifier<T> { ... }
+            // Only attempted when the next token is '<' and the base expression is an identifier.
+            if matches!(self.peek().kind, TokenKind::Operator(Operator::Less)) {
+                if let Expression::Identifier(name) = &expr {
+                    let saved = self.current;
+
+                    // Consume '<'
+                    self.advance();
+
+                    // Parse type argument list (speculatively). If anything fails, roll back.
+                    let type_args = (|| {
+                        let mut type_args = Vec::new();
+                        type_args.push(self.parse_type()?);
+                        while self.match_token(TokenKind::Comma) {
+                            type_args.push(self.parse_type()?);
+                        }
+                        self.expect_operator(Operator::Greater)?;
+                        Ok::<_, CompilerError>(type_args)
+                    })();
+
+                    let type_args = match type_args {
+                        Ok(v) => v,
+                        Err(_) => {
+                            self.current = saved;
+                            Vec::new()
+                        }
+                    };
+
+                    if self.current != saved && self.check_token(TokenKind::LeftParen) {
+                        self.advance();
+                        let arguments = self.parse_argument_list()?;
+                        self.expect_token(TokenKind::RightParen)?;
+                        expr = Expression::Call {
+                            callee: Box::new(Expression::Identifier(name.clone())),
+                            type_args: Some(type_args),
+                            arguments,
+                        };
+                        continue;
+                    } else if self.current != saved && self.check_token(TokenKind::LeftBrace) {
+                        self.advance(); // consume '{'
+                        let mut fields = Vec::new();
+
+                        while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
+                            let field_name = self.consume_identifier()?;
+                            self.expect_token(TokenKind::Colon)?;
+                            let field_value = self.parse_expression()?;
+                            fields.push((field_name, field_value));
+
+                            if !self.match_token(TokenKind::Comma) {
+                                break;
+                            }
+                        }
+
+                        self.expect_token(TokenKind::RightBrace)?;
+                        expr = Expression::StructLiteral {
+                            name: name.clone(),
+                            type_args: Some(type_args),
+                            fields,
+                        };
+                        continue;
+                    } else if self.current != saved {
+                        // Parsed type args, but not followed by '(' or '{' => not a generic call/struct literal.
+                        self.current = saved;
+                    }
+                }
+            }
+
             if self.match_token(TokenKind::LeftParen) {
                 let arguments = self.parse_argument_list()?;
                 self.expect_token(TokenKind::RightParen)?;
                 expr = Expression::Call {
                     callee: Box::new(expr),
+                    type_args: None,
                     arguments,
                 };
             } else if self.match_token(TokenKind::LeftBracket) {
@@ -907,6 +1054,7 @@ impl Parser {
                     self.expect_token(TokenKind::RightBrace)?;
                     expr = Expression::StructLiteral {
                         name: struct_name,
+                        type_args: None,
                         fields,
                     };
                 } else {
@@ -1161,6 +1309,31 @@ mod tests {
         let program = parse_source("if (x > 0) { return x; }").expect("parse failed");
         assert_eq!(program.statements.len(), 1);
         assert!(matches!(program.statements[0], Statement::If { .. }));
+    }
+
+    #[test]
+    fn test_parse_generic_struct_declaration() {
+        let program = parse_source("struct Box<T> { value: T; }").expect("parse failed");
+        assert_eq!(program.statements.len(), 1);
+        assert!(matches!(
+            program.statements[0],
+            Statement::StructDeclaration { .. }
+        ));
+    }
+
+    #[test]
+    fn test_parse_generic_call_site() {
+        let program =
+            parse_source("fn main() -> int { return id<int>(1); }").expect("parse failed");
+        assert_eq!(program.statements.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_generic_struct_literal_site() {
+        let program =
+            parse_source("fn main() -> int { let _b = Box<int> { value: 1 }; return 0; }")
+                .expect("parse failed");
+        assert_eq!(program.statements.len(), 1);
     }
 
     #[test]

@@ -1,0 +1,24 @@
+fn main() -> int {
+    let m: Map<string, int> = map_string_int_new();
+
+    map_string_int_set(m, "a", 10);
+    map_string_int_set(m, "b", 20);
+
+    if (map_string_int_len(m) != 2) {
+        map_string_int_free(m);
+        return 1;
+    }
+
+    if (map_string_int_get(m, "a") != 10) {
+        map_string_int_free(m);
+        return 2;
+    }
+
+    if (map_string_int_has(m, "b") != 1) {
+        map_string_int_free(m);
+        return 3;
+    }
+
+    map_string_int_free(m);
+    return 0;
+}

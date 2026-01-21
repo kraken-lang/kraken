@@ -60,6 +60,8 @@ impl IrLowering {
             match stmt {
                 Statement::StructDeclaration {
                     name,
+                    generic_params: _,
+                    where_constraints: _,
                     fields,
                     is_public,
                 } => {
@@ -68,6 +70,8 @@ impl IrLowering {
                 }
                 Statement::FunctionDeclaration {
                     name,
+                    generic_params: _,
+                    where_constraints: _,
                     parameters,
                     return_type,
                     body,
@@ -383,7 +387,11 @@ impl IrLowering {
                 Ok(IrValue::Register(dest))
             }
 
-            Expression::Call { callee, arguments } => {
+            Expression::Call {
+                callee,
+                type_args: _,
+                arguments,
+            } => {
                 let args: Vec<IrValue> = arguments
                     .iter()
                     .map(|a| self.lower_expression(a, ir_block))
@@ -503,7 +511,11 @@ impl IrLowering {
                 Ok(IrValue::Null)
             }
 
-            Expression::StructLiteral { name, fields } => {
+            Expression::StructLiteral {
+                name,
+                type_args: _,
+                fields,
+            } => {
                 for (_, expr) in fields {
                     self.lower_expression(expr, ir_block)?;
                 }
@@ -635,17 +647,20 @@ mod tests {
         let mut lowering = IrLowering::new();
         let program = Program::new(vec![Statement::FunctionDeclaration {
             name: "main".to_string(),
+            generic_params: vec![],
+            where_constraints: vec![],
             parameters: vec![],
             return_type: Some(Type::Int),
-            body: Block::new(vec![Statement::Return {
-                value: Some(Expression::IntLiteral(0)),
-            }]),
+            body: Block {
+                statements: vec![Statement::Return {
+                    value: Some(Expression::IntLiteral(42)),
+                }],
+            },
             is_async: false,
             is_public: false,
         }]);
-
-        let ir = lowering.lower_program(&program).unwrap();
-        assert_eq!(ir.functions.len(), 1);
-        assert_eq!(ir.functions[0].name, "main");
+        let ir_program = lowering.lower_program(&program).unwrap();
+        assert_eq!(ir_program.functions.len(), 1);
+        assert_eq!(ir_program.functions[0].name, "main");
     }
 }

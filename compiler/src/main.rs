@@ -16,7 +16,7 @@ mod lexer;
 mod modules;
 mod parser;
 
-use analyzer::TypeChecker;
+use analyzer::{monomorphize_program, TypeChecker};
 use codegen::LLVMCodegen;
 use ir::IrLowering;
 use lexer::tokenizer::is_kraken_source_file;
@@ -138,6 +138,7 @@ async fn build_command(
 
     for file in &files {
         let program = loader::load_program(file).await?;
+        let program = monomorphize_program(program, file.to_path_buf())?;
         let has_main = program.statements.iter().any(|s| match s {
             Statement::FunctionDeclaration { name, .. } => name == "main",
             _ => false,
@@ -291,6 +292,7 @@ async fn compile_file(file: &Path) -> Result<PathBuf> {
     // Phase 1: Parsing
     let parse_start = std::time::Instant::now();
     let program = loader::load_program(file).await?;
+    let program = monomorphize_program(program, file.to_path_buf())?;
     let parse_time = parse_start.elapsed();
 
     // Phase 2: Type checking
@@ -383,6 +385,7 @@ async fn check_file(file: &Path) -> Result<()> {
         .context("Invalid stdlib/FFI signature table")?;
 
     let program = loader::load_program(file).await?;
+    let program = monomorphize_program(program, file.to_path_buf())?;
 
     let mut type_checker = TypeChecker::new(file.to_path_buf());
     type_checker
@@ -454,6 +457,15 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn generics_where_clone_void_fails() -> Result<()> {
+        assert_check_fails_contains(
+            PathBuf::from("../tests/programs/neg_generics_where_clone_void.kr"),
+            "Clone",
+        )
+        .await
+    }
+
+    #[tokio::test]
     async fn ffi_strcmp_compile_and_run() -> Result<()> {
         assert_program_exit_code(PathBuf::from("../tests/programs/simple_strcmp.kr"), 0).await
     }
@@ -471,6 +483,57 @@ mod tests {
     #[tokio::test]
     async fn bytes_index_compile_and_run() -> Result<()> {
         assert_program_exit_code(PathBuf::from("../tests/programs/simple_bytes_index.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn generics_id_int_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/generics_id_int.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn generics_id_infer_int_compile_and_run() -> Result<()> {
+        assert_program_exit_code(
+            PathBuf::from("../tests/programs/generics_id_infer_int.kr"),
+            0,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn generics_box_int_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/generics_box_int.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn generics_vec_int_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/generics_vec_int.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn generics_vec_string_compile_and_run() -> Result<()> {
+        assert_program_exit_code(
+            PathBuf::from("../tests/programs/generics_vec_string.kr"),
+            0,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn generics_map_string_int_compile_and_run() -> Result<()> {
+        assert_program_exit_code(
+            PathBuf::from("../tests/programs/generics_map_string_int.kr"),
+            0,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn generics_where_clone_ok_compile_and_run() -> Result<()> {
+        assert_program_exit_code(
+            PathBuf::from("../tests/programs/generics_where_clone_ok.kr"),
+            0,
+        )
+        .await
     }
 
     #[tokio::test]
@@ -548,6 +611,14 @@ mod tests {
     async fn ffi_negative_from_cstr_null_traps() -> Result<()> {
         assert_program_terminated_by_signal(PathBuf::from(
             "../tests/programs/neg_from_cstr_null.kr",
+        ))
+        .await
+    }
+
+    #[tokio::test]
+    async fn vec_int_pop_empty_traps() -> Result<()> {
+        assert_program_terminated_by_signal(PathBuf::from(
+            "../tests/programs/neg_vec_int_pop_empty.kr",
         ))
         .await
     }

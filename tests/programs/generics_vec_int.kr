@@ -1,0 +1,26 @@
+fn main() -> int {
+    let v: Vec<int> = vec_int_new();
+
+    vec_int_push(v, 10);
+    vec_int_push(v, 20);
+    vec_int_push(v, 30);
+
+    if (vec_int_len(v) != 3) {
+        vec_int_free(v);
+        return 1;
+    }
+
+    if (vec_int_get(v, 0) != 10) {
+        vec_int_free(v);
+        return 2;
+    }
+
+    let popped = vec_int_pop(v);
+    if (popped != 30) {
+        vec_int_free(v);
+        return 3;
+    }
+
+    vec_int_free(v);
+    return 0;
+}

@@ -1,0 +1,11 @@
+fn id<T>(x: T) -> T {
+    return x;
+}
+
+fn main() -> int {
+    let y = id(123);
+    if (y != 123) {
+        return 1;
+    }
+    return 0;
+}

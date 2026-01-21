@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.12] - 2026-01-21
+
+### Added
+- Added parser/AST support for generic parameters on functions/structs and generic type arguments in type annotations.
+- Added basic type-checker support for generic parameters and generic type arguments.
+- Added parser/AST support for explicit generic call/type arguments (e.g. `id<int>(...)`, `Box<int> { ... }`).
+- Added monomorphization/specialization pass (MVP) that generates concrete copies of generic functions/structs and rewrites call sites/types.
+- Added compile-and-run tests for monomorphized generic function (`id<int>(...)`) and generic struct (`Box<int> { ... }`).
+- Added generic call-site type inference during monomorphization for generic functions (e.g. `id(123)` infers `T = int`).
+- Added builtin generic container shims (`Vec<T>`, `Map<K,V>`) lowered during monomorphization, plus compile-and-run tests.
+- Added `where`-clause parsing and minimal trait constraint enforcement (`where T: Clone`) during monomorphization, with tests.
+
+### Fixed
+- Fixed `vec_int_pop` to trap on empty vectors.
+- Added negative test ensuring `vec_int_pop` traps on empty vectors.
+
+### Changed
+
 ## [0.8.11] - 2026-01-21
 
 ### Added
@@ -794,7 +812,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
-[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.10...HEAD
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.12...HEAD
+[0.8.12]: https://github.com/kraken-lang/kraken/compare/v0.8.11...v0.8.12
 [0.8.11]: https://github.com/kraken-lang/kraken/compare/v0.8.10...v0.8.11
 [0.8.10]: https://github.com/kraken-lang/kraken/compare/v0.8.9...v0.8.10
 [0.8.9]:  https://github.com/kraken-lang/kraken/compare/v0.8.8...v0.8.9

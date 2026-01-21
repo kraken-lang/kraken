@@ -1,0 +1,9 @@
+fn id_clone<T>(x: T) -> T where T: Clone {
+    return x;
+}
+
+fn main() -> int {
+    // `null` is typed as void; `void` is not cloneable by the compiler's where-clause rules.
+    let _x = id_clone(null);
+    return 0;
+}
