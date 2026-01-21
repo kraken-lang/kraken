@@ -121,6 +121,19 @@ impl IrCodegen {
                     // For now, treat structs as opaque pointers
                     LLVMPointerType(LLVMInt8TypeInContext(self.context), 0)
                 }
+                IrType::Tuple(element_types) => {
+                    // Tuple is a struct with numbered fields
+                    let mut field_types: Vec<LLVMTypeRef> = element_types
+                        .iter()
+                        .map(|t| self.ir_type_to_llvm(t))
+                        .collect();
+                    LLVMStructTypeInContext(
+                        self.context,
+                        field_types.as_mut_ptr(),
+                        field_types.len() as u32,
+                        0,
+                    )
+                }
             }
         }
     }

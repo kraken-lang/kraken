@@ -1,0 +1,84 @@
+// Test Option and Result standard library enums
+
+enum Option {
+    None,
+    Some(int)
+}
+
+enum Result {
+    Ok(int),
+    Err(string)
+}
+
+fn main() -> int {
+    test_section("Option and Result Tests");
+    
+    // Test Option::Some
+    test_option_some();
+    
+    // Test Option::None  
+    test_option_none();
+    
+    // Test Result::Ok
+    test_result_ok();
+    
+    // Test Result::Err
+    test_result_err();
+    
+    puts("All Option and Result tests passed!");
+    0;
+}
+
+fn test_option_some() -> int {
+    let some_val: Option = Option::Some(42);
+    match (some_val) {
+        Option::Some(n) -> {
+            assert_eq(n, 42);
+            test_pass("Option::Some pattern match");
+        }
+        Option::None -> {
+            test_fail("Should not match None");
+        }
+    }
+    0;
+}
+
+fn test_option_none() -> int {
+    let none_val: Option = Option::None;
+    match (none_val) {
+        Option::Some(_) -> {
+            test_fail("Should not match Some");
+        }
+        Option::None -> {
+            test_pass("Option::None pattern match");
+        }
+    }
+    0;
+}
+
+fn test_result_ok() -> int {
+    let ok_val: Result = Result::Ok(100);
+    match (ok_val) {
+        Result::Ok(n) -> {
+            assert_eq(n, 100);
+            test_pass("Result::Ok pattern match");
+        }
+        Result::Err(_) -> {
+            test_fail("Should not match Err");
+        }
+    }
+    0;
+}
+
+fn test_result_err() -> int {
+    let err_val: Result = Result::Err("error message");
+    match (err_val) {
+        Result::Ok(_) -> {
+            test_fail("Should not match Ok");
+        }
+        Result::Err(msg) -> {
+            test_pass("Result::Err pattern match");
+        }
+    }
+    0;
+}

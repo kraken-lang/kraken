@@ -1,5 +1,5 @@
 use crate::error::{CompilerError, CompilerResult, SourceLocation};
-use crate::parser::ast::{Block, Expression, Program, Statement, Type, WhereConstraint};
+use crate::parser::ast::{Block, Expression, Pattern, Program, Statement, Type, WhereConstraint};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
 
@@ -29,6 +29,14 @@ fn type_mangle_part(ty: &Type) -> String {
             for p in type_params {
                 out.push_str("__");
                 out.push_str(&type_mangle_part(p));
+            }
+            out
+        }
+        Type::Tuple { element_types } => {
+            let mut out = "tuple".to_string();
+            for elem_ty in element_types {
+                out.push_str("__");
+                out.push_str(&type_mangle_part(elem_ty));
             }
             out
         }
@@ -154,20 +162,21 @@ impl Monomorphizer {
     ) -> CompilerResult<()> {
         match stmt {
             Statement::VariableDeclaration {
-                name,
+                pattern,
                 type_annotation,
                 initializer,
-                ..
+                is_mutable: _,
             } => {
                 if let Some(init) = initializer {
                     self.infer_expression(init, env)?;
                 }
-                if let Some(ty) = type_annotation.clone() {
-                    env.insert(name.clone(), ty);
-                } else if let Some(init) = initializer.as_ref() {
-                    if let Some(init_ty) = self.expression_type(init, env)? {
-                        env.insert(name.clone(), init_ty);
-                    }
+                // Bind pattern variables in the environment
+                if let Some(ty) = type_annotation {
+                    self.bind_pattern_to_env(pattern, ty.clone(), env);
+                } else if let Some(init) = initializer {
+                    // For now, use Int as default type when no annotation
+                    // TODO: Proper type inference from initializer
+                    self.bind_pattern_to_env(pattern, Type::Int, env);
                 }
                 Ok(())
             }
@@ -352,6 +361,15 @@ impl Monomorphizer {
                 }
                 Ok(())
             }
+
+            Expression::Tuple { elements } => {
+                for elem in elements.iter_mut() {
+                    self.infer_expression(elem, env)?;
+                }
+                Ok(())
+            }
+
+            Expression::TupleIndex { tuple, .. } => self.infer_expression(tuple, env),
 
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)
@@ -737,12 +755,12 @@ impl Monomorphizer {
             Statement::Module { .. } | Statement::Import { .. } => Ok(stmt),
 
             Statement::VariableDeclaration {
-                name,
+                pattern,
                 type_annotation,
                 initializer,
                 is_mutable,
             } => Ok(Statement::VariableDeclaration {
-                name,
+                pattern: self.rewrite_pattern_with_subst(pattern, subst),
                 type_annotation: type_annotation.map(|t| self.rewrite_type_with_subst(t, subst)),
                 initializer: initializer
                     .map(|e| self.rewrite_expression_with_subst(e, subst))
@@ -1076,6 +1094,18 @@ impl Monomorphizer {
                 },
             }),
 
+            Expression::Tuple { elements } => Ok(Expression::Tuple {
+                elements: elements
+                    .into_iter()
+                    .map(|e| self.rewrite_expression_with_subst(e, subst))
+                    .collect::<CompilerResult<Vec<_>>>()?,
+            }),
+
+            Expression::TupleIndex { tuple, index } => Ok(Expression::TupleIndex {
+                tuple: Box::new(self.rewrite_expression_with_subst(*tuple, subst)?),
+                index,
+            }),
+
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)
             | Expression::StringLiteral(_)
@@ -1134,7 +1164,44 @@ impl Monomorphizer {
                 is_mutable,
             },
 
+            Type::Tuple { element_types } => Type::Tuple {
+                element_types: element_types
+                    .into_iter()
+                    .map(|t| self.rewrite_type_with_subst(t, subst))
+                    .collect(),
+            },
+
             other => other,
+        }
+    }
+
+    fn rewrite_pattern_with_subst(&mut self, pattern: Pattern, subst: &HashMap<String, Type>) -> Pattern {
+        match pattern {
+            Pattern::Tuple { patterns } => Pattern::Tuple {
+                patterns: patterns
+                    .into_iter()
+                    .map(|p| self.rewrite_pattern_with_subst(p, subst))
+                    .collect(),
+            },
+            other => other,
+        }
+    }
+
+    fn bind_pattern_to_env(&self, pattern: &Pattern, ty: Type, env: &mut HashMap<String, Type>) {
+        match pattern {
+            Pattern::Identifier(name) => {
+                env.insert(name.clone(), ty);
+            }
+            Pattern::Tuple { patterns } => {
+                if let Type::Tuple { element_types } = ty {
+                    for (pat, elem_ty) in patterns.iter().zip(element_types.iter()) {
+                        self.bind_pattern_to_env(pat, elem_ty.clone(), env);
+                    }
+                }
+            }
+            Pattern::Wildcard | Pattern::Literal(_) | Pattern::EnumVariant { .. } => {
+                // These don't bind variables
+            }
         }
     }
 
@@ -1169,9 +1236,10 @@ impl Monomorphizer {
             Statement::Module { .. } | Statement::Import { .. } => Ok(()),
 
             Statement::VariableDeclaration {
+                pattern: _,
                 type_annotation,
                 initializer,
-                ..
+                is_mutable: _,
             } => {
                 if let Some(t) = type_annotation {
                     self.scan_type(t)?;
@@ -1384,6 +1452,15 @@ impl Monomorphizer {
                 Ok(())
             }
 
+            Expression::Tuple { elements } => {
+                for elem in elements {
+                    self.scan_expression(elem)?;
+                }
+                Ok(())
+            }
+
+            Expression::TupleIndex { tuple, .. } => self.scan_expression(tuple),
+
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)
             | Expression::StringLiteral(_)
@@ -1418,6 +1495,12 @@ impl Monomorphizer {
             Type::Array { element_type, .. } => self.scan_type(element_type),
             Type::Reference { inner_type, .. } => self.scan_type(inner_type),
             Type::Pointer { inner_type, .. } => self.scan_type(inner_type),
+            Type::Tuple { element_types } => {
+                for elem_ty in element_types {
+                    self.scan_type(elem_ty)?;
+                }
+                Ok(())
+            }
             _ => Ok(()),
         }
     }

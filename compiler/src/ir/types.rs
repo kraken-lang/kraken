@@ -49,6 +49,7 @@ pub enum IrType {
     },
     Pointer(Box<IrType>),
     Struct(String),
+    Tuple(Vec<IrType>),
 }
 
 impl fmt::Display for IrType {
@@ -78,6 +79,16 @@ impl fmt::Display for IrType {
             }
             IrType::Pointer(inner) => write!(f, "*{inner}"),
             IrType::Struct(name) => write!(f, "%{name}"),
+            IrType::Tuple(elements) => {
+                write!(f, "(")?;
+                for (i, elem) in elements.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{elem}")?;
+                }
+                write!(f, ")")
+            }
         }
     }
 }

@@ -1,0 +1,11 @@
+fn main() -> int {
+    let pair: (int, int) = (10, 20);
+    
+    match (pair) {
+        _ -> {
+            puts("Matched");
+        }
+    }
+    
+    0;
+}

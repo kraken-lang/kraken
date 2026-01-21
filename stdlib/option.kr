@@ -1,0 +1,40 @@
+// Option<T> - represents an optional value
+// Generic enum for values that may or may not exist
+
+enum Option {
+    None,
+    Some(int)  // TODO: Make generic when full generics are implemented
+}
+
+// Helper functions for Option
+fn option_is_some(opt: Option) -> bool {
+    match (opt) {
+        Option::Some(_) -> { true; }
+        Option::None -> { false; }
+    };
+}
+
+fn option_is_none(opt: Option) -> bool {
+    match (opt) {
+        Option::Some(_) -> { false; }
+        Option::None -> { true; }
+    };
+}
+
+fn option_unwrap(opt: Option) -> int {
+    match (opt) {
+        Option::Some(val) -> { val; }
+        Option::None -> {
+            puts("Error: unwrap called on None");
+            abort();
+            0;
+        }
+    };
+}
+
+fn option_unwrap_or(opt: Option, default: int) -> int {
+    match (opt) {
+        Option::Some(val) -> { val; }
+        Option::None -> { default; }
+    };
+}

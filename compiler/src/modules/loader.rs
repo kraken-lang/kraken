@@ -428,12 +428,12 @@ fn rewrite_statement(
         }
 
         Statement::VariableDeclaration {
-            name,
+            pattern,
             type_annotation,
             initializer,
             is_mutable,
         } => Ok(Statement::VariableDeclaration {
-            name,
+            pattern: rewrite_pattern(pattern, private_mangle),
             type_annotation: type_annotation.map(|t| rewrite_type(t, private_mangle)),
             initializer: initializer.map(|e| rewrite_expression(e, private_mangle)),
             is_mutable,
@@ -537,6 +537,12 @@ fn rewrite_match_arm(arm: MatchArm, private_mangle: &HashMap<String, String>) ->
 fn rewrite_pattern(pattern: Pattern, private_mangle: &HashMap<String, String>) -> Pattern {
     match pattern {
         Pattern::Literal(e) => Pattern::Literal(rewrite_expression(e, private_mangle)),
+        Pattern::Tuple { patterns } => Pattern::Tuple {
+            patterns: patterns
+                .into_iter()
+                .map(|p| rewrite_pattern(p, private_mangle))
+                .collect(),
+        },
         Pattern::Identifier(_) | Pattern::Wildcard | Pattern::EnumVariant { .. } => pattern,
     }
 }
@@ -666,6 +672,18 @@ fn rewrite_expression(expr: Expression, private_mangle: &HashMap<String, String>
                 body: Block::new(statements),
             }
         }
+
+        Expression::Tuple { elements } => Expression::Tuple {
+            elements: elements
+                .into_iter()
+                .map(|e| rewrite_expression(e, private_mangle))
+                .collect(),
+        },
+
+        Expression::TupleIndex { tuple, index } => Expression::TupleIndex {
+            tuple: Box::new(rewrite_expression(*tuple, private_mangle)),
+            index,
+        },
 
         Expression::IntLiteral(_)
         | Expression::FloatLiteral(_)

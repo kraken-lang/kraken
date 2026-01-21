@@ -1,0 +1,32 @@
+fn main() -> int {
+    // Test tuple literals
+    let pair: (int, int) = (10, 20);
+    let triple: (int, string, bool) = (42, "hello", true);
+    
+    // Test tuple indexing
+    let x: int = pair.0;
+    let y: int = pair.1;
+    
+    let a: int = triple.0;
+    let b: string = triple.1;
+    let c: bool = triple.2;
+    
+    // Test empty tuple (unit type)
+    let unit: () = ();
+    
+    // Test nested tuples
+    let nested: ((int, int), (string, bool)) = ((1, 2), ("test", false));
+    let inner1: (int, int) = nested.0;
+    let inner2: (string, bool) = nested.1;
+    let val: int = inner1.0;
+    
+    // Verify values
+    assert_eq(x, 10);
+    assert_eq(y, 20);
+    assert_eq(a, 42);
+    assert_eq(val, 1);
+    
+    puts("Tuple test passed!");
+    
+    0;
+}

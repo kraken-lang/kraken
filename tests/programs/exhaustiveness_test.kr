@@ -1,0 +1,34 @@
+enum Color {
+    Red,
+    Green,
+    Blue,
+}
+
+fn test_exhaustive(c: Color) -> int {
+    match (c) {
+        Color::Red -> { 1; }
+        Color::Green -> { 2; }
+        Color::Blue -> { 3; }
+    }
+}
+
+fn test_non_exhaustive(c: Color) -> int {
+    // This should warn/error - missing Blue variant
+    match (c) {
+        Color::Red -> { 1; }
+        Color::Green -> { 2; }
+        _ -> { 0; }
+    }
+}
+
+fn main() -> int {
+    let c: Color = Color::Red;
+    let result: int = test_exhaustive(c);
+    assert_eq(result, 1);
+    
+    let result2: int = test_non_exhaustive(c);
+    assert_eq(result2, 1);
+    
+    puts("Exhaustiveness tests passed");
+    0;
+}

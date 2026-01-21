@@ -472,11 +472,53 @@ impl LLVMCodegen {
             }
 
             Statement::VariableDeclaration {
-                name,
+                pattern,
                 type_annotation,
                 initializer,
                 is_mutable: _,
             } => {
+                // Handle tuple destructuring
+                if let Pattern::Tuple { patterns } = pattern {
+                    unsafe {
+                        if let Some(init_expr) = initializer {
+                            // Generate the tuple value
+                            let tuple_val = self.codegen_expression(init_expr)?;
+                            
+                            // Extract each element and bind to variables
+                            for (index, pat) in patterns.iter().enumerate() {
+                                if let Pattern::Identifier(name) = pat {
+                                    // Extract element from tuple using extractvalue
+                                    let elem_val = LLVMBuildExtractValue(
+                                        self.builder,
+                                        tuple_val,
+                                        index as u32,
+                                        c"tuple_elem".as_ptr(),
+                                    );
+                                    
+                                    // Create alloca for the variable
+                                    let elem_type = LLVMTypeOf(elem_val);
+                                    let alloca = self.create_entry_block_alloca(elem_type, name)?;
+                                    
+                                    // Store the extracted value
+                                    LLVMBuildStore(self.builder, elem_val, alloca);
+                                    
+                                    // Track the variable
+                                    self.named_values.insert(name.clone(), alloca);
+                                }
+                            }
+                        }
+                    }
+                    return Ok(());
+                }
+                
+                // Handle simple identifier patterns
+                let name = match pattern {
+                    Pattern::Identifier(n) => n.clone(),
+                    _ => {
+                        // Other patterns not yet supported
+                        return Ok(());
+                    }
+                };
                 unsafe {
                     // Check if this is an array or struct type
                     let is_array = matches!(type_annotation, Some(Type::Array { .. }));
@@ -539,7 +581,7 @@ impl LLVMCodegen {
                     };
 
                     // Create alloca at the entry block
-                    let alloca = self.create_entry_block_alloca(var_type, name)?;
+                    let alloca = self.create_entry_block_alloca(var_type, &name)?;
 
                     // Store initial value if provided
                     if let Some(init_expr) = initializer {
@@ -901,6 +943,36 @@ impl LLVMCodegen {
                             }
                             Pattern::Wildcard => {
                                 // Always matches
+                                LLVMBuildBr(self.builder, arm_blocks[i]);
+                            }
+                            Pattern::Tuple { patterns } => {
+                                // Tuple patterns always match - extract elements and jump to arm
+                                // Builder is already positioned at the current check block
+                                
+                                // Extract each element from the tuple and bind to pattern variables
+                                for (index, pat) in patterns.iter().enumerate() {
+                                    if let Pattern::Identifier(name) = pat {
+                                        // Extract element from tuple
+                                        let elem_val = LLVMBuildExtractValue(
+                                            self.builder,
+                                            match_val,
+                                            index as u32,
+                                            c"match_tuple_elem".as_ptr(),
+                                        );
+                                        
+                                        // Create alloca for the variable
+                                        let elem_type = LLVMTypeOf(elem_val);
+                                        let alloca = self.create_entry_block_alloca(elem_type, name)?;
+                                        
+                                        // Store the extracted value
+                                        LLVMBuildStore(self.builder, elem_val, alloca);
+                                        
+                                        // Track the variable for the arm body
+                                        self.named_values.insert(name.clone(), alloca);
+                                    }
+                                }
+                                
+                                // Jump to the arm block
                                 LLVMBuildBr(self.builder, arm_blocks[i]);
                             }
                             Pattern::EnumVariant {
@@ -3170,6 +3242,57 @@ impl LLVMCodegen {
                     }
                 }
 
+                Expression::Tuple { elements } => {
+                    // Create tuple as LLVM struct
+                    let mut field_values = Vec::new();
+                    let mut field_types = Vec::new();
+                    
+                    for elem in elements {
+                        let val = self.codegen_expression(elem)?;
+                        field_values.push(val);
+                        field_types.push(LLVMTypeOf(val));
+                    }
+                    
+                    // Create struct type for tuple
+                    let struct_ty = LLVMStructTypeInContext(
+                        self.context,
+                        field_types.as_mut_ptr(),
+                        field_types.len() as u32,
+                        0,
+                    );
+                    
+                    // Allocate space for tuple on stack
+                    let alloc = LLVMBuildAlloca(self.builder, struct_ty, c"tuple".as_ptr());
+                    
+                    // Store each field
+                    for (i, val) in field_values.iter().enumerate() {
+                        let field_ptr = LLVMBuildStructGEP2(
+                            self.builder,
+                            struct_ty,
+                            alloc,
+                            i as u32,
+                            c"field".as_ptr(),
+                        );
+                        LLVMBuildStore(self.builder, *val, field_ptr);
+                    }
+                    
+                    // Load the complete tuple value
+                    Ok(LLVMBuildLoad2(self.builder, struct_ty, alloc, c"tuple_val".as_ptr()))
+                }
+
+                Expression::TupleIndex { tuple, index } => {
+                    // Get the tuple value
+                    let tuple_val = self.codegen_expression(tuple)?;
+                    
+                    // Extract the field at the given index using extractvalue
+                    Ok(LLVMBuildExtractValue(
+                        self.builder,
+                        tuple_val,
+                        *index as u32,
+                        c"tuple_elem".as_ptr(),
+                    ))
+                }
+
                 _ => Err(CompilerError::codegen_error("Unsupported expression type")),
             }
         }
@@ -3229,6 +3352,19 @@ impl LLVMCodegen {
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     let mut fields = [i8_ptr, i64_ty];
                     LLVMStructTypeInContext(self.context, fields.as_mut_ptr(), 2, 0)
+                }
+                Type::Tuple { element_types } => {
+                    // Tuple is a struct with numbered fields
+                    let mut field_types: Vec<LLVMTypeRef> = element_types
+                        .iter()
+                        .map(|t| self.get_llvm_type(t))
+                        .collect();
+                    LLVMStructTypeInContext(
+                        self.context,
+                        field_types.as_mut_ptr(),
+                        field_types.len() as u32,
+                        0,
+                    )
                 }
             }
         }

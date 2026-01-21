@@ -23,9 +23,9 @@ pub enum Statement {
         path: Vec<String>,
     },
 
-    /// Variable declaration: let x = expr;
+    /// Variable declaration: let x = expr; or let (x, y) = tuple;
     VariableDeclaration {
-        name: String,
+        pattern: Pattern,
         type_annotation: Option<Type>,
         initializer: Option<Expression>,
         is_mutable: bool,
@@ -221,6 +221,17 @@ pub enum Expression {
         variant_name: String,
         payload: Option<Vec<Expression>>,
     },
+
+    /// Tuple literal expression: (1, "hello", true)
+    Tuple {
+        elements: Vec<Expression>,
+    },
+
+    /// Tuple indexing: tuple.0, tuple.1
+    TupleIndex {
+        tuple: Box<Expression>,
+        index: usize,
+    },
 }
 
 /// Code block containing statements.
@@ -290,6 +301,11 @@ pub enum Pattern {
         variant_name: String,
         bindings: Vec<String>,
     },
+
+    /// Tuple pattern: (x, y, z)
+    Tuple {
+        patterns: Vec<Pattern>,
+    },
 }
 
 /// Type representation.
@@ -342,6 +358,11 @@ pub enum Type {
     Generic {
         name: String,
         type_params: Vec<Type>,
+    },
+
+    /// Tuple type
+    Tuple {
+        element_types: Vec<Type>,
     },
 }
 
@@ -424,6 +445,16 @@ impl std::fmt::Display for Type {
                     write!(f, "{param}")?;
                 }
                 write!(f, ">")
+            }
+            Type::Tuple { element_types } => {
+                write!(f, "(")?;
+                for (i, ty) in element_types.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{ty}")?;
+                }
+                write!(f, ")")
             }
         }
     }

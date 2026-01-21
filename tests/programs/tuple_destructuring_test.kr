@@ -1,0 +1,25 @@
+fn main() -> int {
+    test_section("Tuple Destructuring Tests");
+    
+    // Test 1: Simple tuple destructuring
+    let (x, y): (int, int) = (10, 20);
+    assert_eq(x, 10);
+    assert_eq(y, 20);
+    test_pass("Simple tuple destructuring");
+    
+    // Test 2: Tuple destructuring with three elements
+    let (a, b, c): (int, int, int) = (1, 2, 3);
+    assert_eq(a, 1);
+    assert_eq(b, 2);
+    assert_eq(c, 3);
+    test_pass("Three-element tuple destructuring");
+    
+    // Test 3: Tuple destructuring with different values
+    let (m, n): (int, int) = (100, 200);
+    assert_eq(m, 100);
+    assert_eq(n, 200);
+    test_pass("Different values tuple destructuring");
+    
+    puts("All tuple destructuring tests passed!");
+    0;
+}

@@ -1,0 +1,38 @@
+fn main() -> int {
+    test_section("Tuple Pattern Matching Tests");
+    
+    // Test 1: Match tuple with binding patterns
+    let pair: (int, int) = (10, 20);
+    match (pair) {
+        (x, y) -> {
+            assert_eq(x, 10);
+            assert_eq(y, 20);
+            test_pass("Tuple pattern with bindings");
+        }
+    }
+    
+    // Test 2: Match tuple with literal and binding
+    let data: (int, int) = (1, 42);
+    match (data) {
+        (1, n) -> {
+            assert_eq(n, 42);
+            test_pass("Tuple pattern with literal and binding");
+        }
+        (_, _) -> {
+            test_fail("Should not match wildcard");
+        }
+    }
+    
+    // Test 3: Match tuple with wildcards
+    let triple: (int, int, int) = (5, 10, 15);
+    match (triple) {
+        (a, _, c) -> {
+            assert_eq(a, 5);
+            assert_eq(c, 15);
+            test_pass("Tuple pattern with wildcards");
+        }
+    }
+    
+    puts("All tuple pattern matching tests passed!");
+    0;
+}

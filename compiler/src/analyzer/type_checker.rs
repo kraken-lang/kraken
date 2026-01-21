@@ -1898,7 +1898,7 @@ impl TypeChecker {
             Statement::Import { .. } => Ok(()),
 
             Statement::VariableDeclaration {
-                name,
+                pattern,
                 type_annotation,
                 initializer,
                 is_mutable: _,
@@ -1926,7 +1926,8 @@ impl TypeChecker {
                     ));
                 };
 
-                self.env.define_variable(name.clone(), var_type);
+                // Bind pattern to type
+                self.bind_pattern(pattern, &var_type)?;
                 Ok(())
             }
 
@@ -2151,6 +2152,36 @@ impl TypeChecker {
                             continue;
                         }
                         Pattern::Wildcard => {}
+                        Pattern::Tuple { patterns } => {
+                            // Check tuple pattern against tuple type
+                            if let Type::Tuple { element_types } = &expr_type {
+                                if patterns.len() != element_types.len() {
+                                    return Err(CompilerError::type_error(
+                                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                                        format!(
+                                            "Tuple pattern has {} elements but type has {} elements",
+                                            patterns.len(),
+                                            element_types.len()
+                                        ),
+                                    ));
+                                }
+                                // Create child env and bind pattern variables to it BEFORE switching
+                                let mut arm_env = self.env.child();
+                                for (pat, elem_ty) in patterns.iter().zip(element_types.iter()) {
+                                    self.bind_pattern_to_env(pat, elem_ty, &mut arm_env)?;
+                                }
+                                // Switch to arm env and check body
+                                let saved_env = std::mem::replace(&mut self.env, arm_env);
+                                self.check_block(&arm.body)?;
+                                self.env = saved_env;
+                                continue;
+                            } else {
+                                return Err(CompilerError::type_error(
+                                    SourceLocation::new(self.file_path.clone(), 0, 0),
+                                    format!("Cannot match tuple pattern against non-tuple type: {expr_type}"),
+                                ));
+                            }
+                        }
                         Pattern::EnumVariant {
                             enum_name,
                             variant_name,
@@ -2544,6 +2575,34 @@ impl TypeChecker {
                     ))
                 }
             }
+
+            Expression::Tuple { elements } => {
+                let mut element_types = Vec::new();
+                for elem in elements {
+                    element_types.push(self.check_expression(elem)?);
+                }
+                Ok(Type::Tuple { element_types })
+            }
+
+            Expression::TupleIndex { tuple, index } => {
+                let tuple_type = self.check_expression(tuple)?;
+                match tuple_type {
+                    Type::Tuple { element_types } => {
+                        if *index < element_types.len() {
+                            Ok(element_types[*index].clone())
+                        } else {
+                            Err(CompilerError::type_error(
+                                SourceLocation::new(self.file_path.clone(), 0, 0),
+                                format!("Tuple index {} out of bounds (tuple has {} elements)", index, element_types.len()),
+                            ))
+                        }
+                    }
+                    _ => Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Cannot index non-tuple type: {tuple_type}"),
+                    )),
+                }
+            }
         }
     }
 
@@ -2675,6 +2734,100 @@ impl TypeChecker {
                 SourceLocation::new(self.file_path.clone(), 0, 0),
                 format!("Unsupported unary operator: {operator}"),
             )),
+        }
+    }
+
+    /// Bind a pattern to a type, defining variables in the environment
+    fn bind_pattern(&mut self, pattern: &Pattern, ty: &Type) -> CompilerResult<()> {
+        match pattern {
+            Pattern::Identifier(name) => {
+                self.env.define_variable(name.clone(), ty.clone());
+                Ok(())
+            }
+            Pattern::Wildcard => {
+                // Wildcard doesn't bind anything
+                Ok(())
+            }
+            Pattern::Tuple { patterns } => {
+                // Destructure tuple type
+                match ty {
+                    Type::Tuple { element_types } => {
+                        if patterns.len() != element_types.len() {
+                            return Err(CompilerError::type_error(
+                                SourceLocation::new(self.file_path.clone(), 0, 0),
+                                format!(
+                                    "Tuple pattern has {} elements but type has {} elements",
+                                    patterns.len(),
+                                    element_types.len()
+                                ),
+                            ));
+                        }
+                        for (pat, elem_ty) in patterns.iter().zip(element_types.iter()) {
+                            self.bind_pattern(pat, elem_ty)?;
+                        }
+                        Ok(())
+                    }
+                    _ => Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Cannot destructure non-tuple type: {ty}"),
+                    )),
+                }
+            }
+            Pattern::Literal(_) => {
+                // Literal patterns don't bind variables
+                Ok(())
+            }
+            Pattern::EnumVariant { .. } => {
+                // Enum variant patterns are handled in match expressions
+                Ok(())
+            }
+        }
+    }
+
+    /// Bind a pattern to a type in a specific environment
+    fn bind_pattern_to_env(&self, pattern: &Pattern, ty: &Type, env: &mut TypeEnvironment) -> CompilerResult<()> {
+        match pattern {
+            Pattern::Identifier(name) => {
+                env.define_variable(name.clone(), ty.clone());
+                Ok(())
+            }
+            Pattern::Wildcard => {
+                // Wildcard doesn't bind anything
+                Ok(())
+            }
+            Pattern::Tuple { patterns } => {
+                // Destructure tuple type
+                match ty {
+                    Type::Tuple { element_types } => {
+                        if patterns.len() != element_types.len() {
+                            return Err(CompilerError::type_error(
+                                SourceLocation::new(self.file_path.clone(), 0, 0),
+                                format!(
+                                    "Tuple pattern has {} elements but type has {} elements",
+                                    patterns.len(),
+                                    element_types.len()
+                                ),
+                            ));
+                        }
+                        for (pat, elem_ty) in patterns.iter().zip(element_types.iter()) {
+                            self.bind_pattern_to_env(pat, elem_ty, env)?;
+                        }
+                        Ok(())
+                    }
+                    _ => Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Cannot destructure non-tuple type: {ty}"),
+                    )),
+                }
+            }
+            Pattern::Literal(_) => {
+                // Literal patterns don't bind variables
+                Ok(())
+            }
+            Pattern::EnumVariant { .. } => {
+                // Enum variant patterns are handled in match expressions
+                Ok(())
+            }
         }
     }
 

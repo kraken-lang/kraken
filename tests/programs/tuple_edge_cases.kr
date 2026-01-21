@@ -1,0 +1,71 @@
+fn main() -> int {
+    test_section("Tuple Edge Cases");
+    
+    // Test 1: Single element tuple
+    let single: (int,) = (42,);
+    assert_eq(single.0, 42);
+    test_pass("Single element tuple");
+    
+    // Test 2: Large tuple (many elements)
+    let large: (int, int, int, int, int, int, int, int) = (1, 2, 3, 4, 5, 6, 7, 8);
+    assert_eq(large.0, 1);
+    assert_eq(large.7, 8);
+    test_pass("Large tuple (8 elements)");
+    
+    // Test 3: Deeply nested tuples
+    let deep: (((int, int), int), int) = (((1, 2), 3), 4);
+    let inner3: ((int, int), int) = deep.0;
+    let inner2: (int, int) = inner3.0;
+    assert_eq(inner2.0, 1);
+    assert_eq(inner2.1, 2);
+    assert_eq(inner3.1, 3);
+    assert_eq(deep.1, 4);
+    test_pass("Deeply nested tuples");
+    
+    // Test 4: Multiple tuple variables
+    let t1: (int, int, int, int) = (100, 1, 200, 0);
+    assert_eq(t1.0, 100);
+    assert_eq(t1.1, 1);
+    assert_eq(t1.2, 200);
+    assert_eq(t1.3, 0);
+    test_pass("Multiple element tuples");
+    
+    // Test 5: Empty tuple (unit type)
+    let unit: () = ();
+    test_pass("Empty tuple (unit type)");
+    
+    // Test 6: Multiple tuple variables
+    let first: (int, int) = (1, 2);
+    let second: (int, int) = (3, 4);
+    assert_eq(first.0, 1);
+    assert_eq(second.0, 3);
+    test_pass("Multiple tuple variables");
+    
+    // Test 7: Tuple with string
+    let with_str: (int, string, int) = (42, "test", 99);
+    assert_eq(with_str.0, 42);
+    assert_eq(with_str.2, 99);
+    test_pass("Tuple with string");
+    
+    // Test 8: Tuple indexing all positions
+    let indexed: (int, int, int, int, int) = (10, 20, 30, 40, 50);
+    assert_eq(indexed.0, 10);
+    assert_eq(indexed.1, 20);
+    assert_eq(indexed.2, 30);
+    assert_eq(indexed.3, 40);
+    assert_eq(indexed.4, 50);
+    test_pass("Tuple indexing all positions");
+    
+    // Test 9: Nested tuple indexing
+    let nested: ((int, int), (int, int)) = ((1, 2), (3, 4));
+    let left: (int, int) = nested.0;
+    let right: (int, int) = nested.1;
+    assert_eq(left.0, 1);
+    assert_eq(left.1, 2);
+    assert_eq(right.0, 3);
+    assert_eq(right.1, 4);
+    test_pass("Nested tuple indexing");
+    
+    puts("All tuple edge case tests passed!");
+    0;
+}

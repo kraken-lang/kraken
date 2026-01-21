@@ -1,0 +1,52 @@
+// Result<T, E> - represents success or failure
+// Generic enum for operations that can fail
+
+enum Result {
+    Ok(int),      // TODO: Make generic when full generics are implemented
+    Err(string)   // TODO: Make generic when full generics are implemented
+}
+
+// Helper functions for Result
+fn result_is_ok(res: Result) -> bool {
+    match (res) {
+        Result::Ok(_) -> { true; }
+        Result::Err(_) -> { false; }
+    };
+}
+
+fn result_is_err(res: Result) -> bool {
+    match (res) {
+        Result::Ok(_) -> { false; }
+        Result::Err(_) -> { true; }
+    };
+}
+
+fn result_unwrap(res: Result) -> int {
+    match (res) {
+        Result::Ok(val) -> { val; }
+        Result::Err(msg) -> {
+            puts("Error: unwrap called on Err:");
+            puts(msg);
+            abort();
+            0;
+        }
+    };
+}
+
+fn result_unwrap_or(res: Result, default: int) -> int {
+    match (res) {
+        Result::Ok(val) -> { val; }
+        Result::Err(_) -> { default; }
+    };
+}
+
+fn result_expect(res: Result, error_msg: string) -> int {
+    match (res) {
+        Result::Ok(val) -> { val; }
+        Result::Err(_) -> {
+            puts(error_msg);
+            abort();
+            0;
+        }
+    };
+}

@@ -13,6 +13,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.14] - 2026-01-21
+
+### Added
+- Added tuple type support to AST (`Type::Tuple { element_types }`)
+- Added tuple expression support to AST (`Expression::Tuple { elements }`)
+- Added tuple indexing support to AST (`Expression::TupleIndex { tuple, index }`)
+- Added tuple type checking in analyzer
+- Added tuple support in monomorphization pass
+- Added tuple IR type (`IrType::Tuple`)
+- Added tuple lowering to IR
+- Added tuple LLVM codegen support
+- Added parser support for tuple type syntax: `(int, string, bool)`
+- Added parser support for tuple literals: `(1, "hello", true)`
+- Added parser support for tuple indexing: `tuple.0`, `tuple.1`
+- Added parser support for empty tuple `()` as unit type
+- Added LLVM codegen for tuple creation (struct allocation and initialization)
+- Added LLVM codegen for tuple indexing (extractvalue instruction)
+- Added comprehensive tuple test program with nested tuples
+- Added comprehensive tuple edge case tests (single element, large tuples, deeply nested, multiple variables)
+- Verified enum type system with tuple payloads working (already implemented)
+- Verified pattern matching with enums, literals, wildcards, and bindings working (already implemented)
+- Added `Option<T>` standard library enum with helper functions (is_some, is_none, unwrap, unwrap_or)
+- Added `Result<T,E>` standard library enum with helper functions (is_ok, is_err, unwrap, unwrap_or, expect)
+- Verified Option and Result enums working with pattern matching (tests in enum_payload_test.kr)
+- Implemented tuple destructuring in let statements: `let (x, y) = tuple;`
+- Implemented tuple patterns in match expressions: `match (tuple) { (x, y) -> { ... } }`
+- Added Pattern::Tuple variant to AST for destructuring support
+- Updated parser to parse tuple patterns recursively
+- Updated type checker to validate and bind tuple patterns with proper scope management
+- Updated LLVM backend to extract tuple elements using extractvalue instruction
+- Added comprehensive tuple destructuring tests (all passing)
+- Added comprehensive tuple pattern matching tests (all passing)
+
 ## [0.8.13] - 2026-01-21
 
 ### Added
