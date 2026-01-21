@@ -1327,6 +1327,110 @@ impl TypeChecker {
                 is_async: false,
             },
         );
+        env.define_function(
+            "str_trim".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_contains".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::String],
+                return_type: Type::Bool,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_starts_with".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::String],
+                return_type: Type::Bool,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_ends_with".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::String],
+                return_type: Type::Bool,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_is_valid_utf8".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Bool,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_split".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::String],
+                return_type: Type::VecString,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_join".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::VecString, Type::String],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_to_upper".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_to_lower".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_replace".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::String, Type::String],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_index_of".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::String],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_char_count".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_char_at_utf8".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::Int],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
 
         // String functions
         env.define_function(

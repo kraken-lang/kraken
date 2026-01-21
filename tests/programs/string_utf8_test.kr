@@ -1,0 +1,21 @@
+fn main() -> int {
+    // Test valid ASCII (subset of UTF-8)
+    let s1 = "hello world";
+    if (!str_is_valid_utf8(s1)) {
+        return 1;
+    }
+    
+    // Test empty string
+    let s2 = "";
+    if (!str_is_valid_utf8(s2)) {
+        return 2;
+    }
+    
+    // Test string with numbers and symbols
+    let s3 = "test123!@#";
+    if (!str_is_valid_utf8(s3)) {
+        return 3;
+    }
+    
+    return 0;
+}

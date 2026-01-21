@@ -1,0 +1,46 @@
+fn main() -> int {
+    let s1 = "hello,world,test";
+    let parts = str_split(s1, ",");
+    let len = vec_string_len(parts);
+    
+    if (len != 3) {
+        return 1;
+    }
+    
+    let part0 = vec_string_get(parts, 0);
+    let part1 = vec_string_get(parts, 1);
+    let part2 = vec_string_get(parts, 2);
+    
+    if (!str_eq(part0, "hello")) {
+        return 2;
+    }
+    if (!str_eq(part1, "world")) {
+        return 3;
+    }
+    if (!str_eq(part2, "test")) {
+        return 4;
+    }
+    
+    let s2 = "single";
+    let parts2 = str_split(s2, ",");
+    let len2 = vec_string_len(parts2);
+    if (len2 != 1) {
+        return 5;
+    }
+    
+    let s3 = "a::b::c";
+    let parts3 = str_split(s3, "::");
+    let len3 = vec_string_len(parts3);
+    if (len3 != 3) {
+        return 6;
+    }
+    
+    let s4 = "";
+    let parts4 = str_split(s4, ",");
+    let len4 = vec_string_len(parts4);
+    if (len4 != 1) {
+        return 7;
+    }
+    
+    return 0;
+}

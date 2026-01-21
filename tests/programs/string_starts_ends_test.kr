@@ -1,0 +1,43 @@
+fn main() -> int {
+    let s = "hello world";
+    
+    // Test starts_with - positive cases
+    if (!str_starts_with(s, "hello")) {
+        return 1;
+    }
+    if (!str_starts_with(s, "h")) {
+        return 2;
+    }
+    if (!str_starts_with(s, "hello world")) {
+        return 3;
+    }
+    
+    // Test starts_with - negative cases
+    if (str_starts_with(s, "world")) {
+        return 4;
+    }
+    if (str_starts_with(s, "xyz")) {
+        return 5;
+    }
+    
+    // Test ends_with - positive cases
+    if (!str_ends_with(s, "world")) {
+        return 6;
+    }
+    if (!str_ends_with(s, "d")) {
+        return 7;
+    }
+    if (!str_ends_with(s, "hello world")) {
+        return 8;
+    }
+    
+    // Test ends_with - negative cases
+    if (str_ends_with(s, "hello")) {
+        return 9;
+    }
+    if (str_ends_with(s, "xyz")) {
+        return 10;
+    }
+    
+    return 0;
+}

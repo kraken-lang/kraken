@@ -1,0 +1,31 @@
+fn main() -> int {
+    // Test basic trim
+    let s1 = "  hello  ";
+    let trimmed1 = str_trim(s1);
+    if (str_len(trimmed1) != 5) {
+        return 1;
+    }
+    
+    // Test trim with tabs and newlines
+    let s2 = "\t\nhello\n\t";
+    let trimmed2 = str_trim(s2);
+    if (str_len(trimmed2) != 5) {
+        return 2;
+    }
+    
+    // Test trim with only whitespace
+    let s3 = "   ";
+    let trimmed3 = str_trim(s3);
+    if (str_len(trimmed3) != 0) {
+        return 3;
+    }
+    
+    // Test trim with no whitespace
+    let s4 = "hello";
+    let trimmed4 = str_trim(s4);
+    if (str_len(trimmed4) != 5) {
+        return 4;
+    }
+    
+    return 0;
+}

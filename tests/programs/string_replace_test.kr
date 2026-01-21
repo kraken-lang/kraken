@@ -1,0 +1,33 @@
+fn main() -> int {
+    let s1 = "hello world hello";
+    let replaced1 = str_replace(s1, "hello", "hi");
+    if (!str_eq(replaced1, "hi world hi")) {
+        return 1;
+    }
+    
+    let s2 = "test";
+    let replaced2 = str_replace(s2, "x", "y");
+    if (!str_eq(replaced2, "test")) {
+        return 2;
+    }
+    
+    let s3 = "aaa";
+    let replaced3 = str_replace(s3, "a", "bb");
+    if (!str_eq(replaced3, "bbbbbb")) {
+        return 3;
+    }
+    
+    let s4 = "hello";
+    let replaced4 = str_replace(s4, "", "x");
+    if (!str_eq(replaced4, "hello")) {
+        return 4;
+    }
+    
+    let s5 = "one::two::three";
+    let replaced5 = str_replace(s5, "::", "-");
+    if (!str_eq(replaced5, "one-two-three")) {
+        return 5;
+    }
+    
+    return 0;
+}

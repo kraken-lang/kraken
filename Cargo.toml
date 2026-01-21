@@ -27,7 +27,7 @@ resolver = "2"
 # Workspace Package
 [workspace.package]
 #####################################################
-version       = "0.8.12"
+version       = "0.8.13"
 readme        = "README.md"
 license       = "Apache-2.0"
 publish       = false

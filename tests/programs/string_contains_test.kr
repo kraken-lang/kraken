@@ -1,0 +1,29 @@
+fn main() -> int {
+    // Test basic contains
+    let s1 = "hello world";
+    if (!str_contains(s1, "world")) {
+        return 1;
+    }
+    
+    // Test contains at start
+    if (!str_contains(s1, "hello")) {
+        return 2;
+    }
+    
+    // Test contains in middle
+    if (!str_contains(s1, "lo wo")) {
+        return 3;
+    }
+    
+    // Test not contains
+    if (str_contains(s1, "xyz")) {
+        return 4;
+    }
+    
+    // Test empty needle
+    if (!str_contains(s1, "")) {
+        return 5;
+    }
+    
+    return 0;
+}

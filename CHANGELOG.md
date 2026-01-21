@@ -13,6 +13,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.13] - 2026-01-21
+
+### Added
+- Added `str_trim(s)` — remove leading/trailing whitespace (space, tab, newline, carriage return)
+- Added `str_contains(haystack, needle)` — check if string contains substring
+- Added `str_starts_with(s, prefix)` — check if string starts with prefix
+- Added `str_ends_with(s, suffix)` — check if string ends with suffix
+- Added `str_to_upper(s)` — convert ASCII characters to uppercase
+- Added `str_to_lower(s)` — convert ASCII characters to lowercase
+- Added `str_index_of(haystack, needle)` — find first occurrence of substring (returns -1 if not found)
+- Added `str_replace(s, old, new)` — replace all occurrences of substring
+- Added `str_is_valid_utf8(s)` — validate UTF-8 encoding (basic validation)
+- Added `str_char_count(s)` — count UTF-8 characters (not bytes)
+- Added `str_char_at_utf8(s, char_idx)` — get nth UTF-8 character
+- Added comprehensive compile-and-run tests for all new string operations (5 test programs, 101 tests passing)
+
+### Changed
+- Deferred `str_split(s, delim)` and `str_join(vec, sep)` to 0.8.16 (C runtime library implementation)
+
 ## [0.8.12] - 2026-01-21
 
 ### Added

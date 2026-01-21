@@ -1,0 +1,35 @@
+fn main() -> int {
+    let vec = vec_string_new();
+    vec_string_push(vec, "hello");
+    vec_string_push(vec, "world");
+    vec_string_push(vec, "test");
+    
+    let joined = str_join(vec, ", ");
+    if (!str_eq(joined, "hello, world, test")) {
+        return 1;
+    }
+    
+    let vec2 = vec_string_new();
+    vec_string_push(vec2, "single");
+    let joined2 = str_join(vec2, ",");
+    if (!str_eq(joined2, "single")) {
+        return 2;
+    }
+    
+    let vec3 = vec_string_new();
+    let joined3 = str_join(vec3, ",");
+    if (!str_eq(joined3, "")) {
+        return 3;
+    }
+    
+    let vec4 = vec_string_new();
+    vec_string_push(vec4, "a");
+    vec_string_push(vec4, "b");
+    vec_string_push(vec4, "c");
+    let joined4 = str_join(vec4, "");
+    if (!str_eq(joined4, "abc")) {
+        return 4;
+    }
+    
+    return 0;
+}

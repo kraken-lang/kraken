@@ -361,6 +361,15 @@ fn link_executable(object_file: &PathBuf, output: &PathBuf) -> Result<()> {
     let mut cmd = std::process::Command::new("clang");
     cmd.arg(object_file).arg("-o").arg(output);
 
+    // Link Kraken runtime library
+    let runtime_lib = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("runtime/libkraken_runtime.a");
+    if runtime_lib.exists() {
+        cmd.arg(&runtime_lib);
+    }
+
     // Platform-aware link rules:
     // - macOS: clang driver links libSystem by default; keep flags minimal.
     // - Linux: libc is default but libm is not; add -lm for math symbols.
@@ -531,6 +540,71 @@ mod tests {
     async fn generics_where_clone_ok_compile_and_run() -> Result<()> {
         assert_program_exit_code(
             PathBuf::from("../tests/programs/generics_where_clone_ok.kr"),
+            0,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn string_trim_test_compile_and_run() -> Result<()> {
+        assert_program_exit_code(
+            PathBuf::from("../tests/programs/string_trim_test.kr"),
+            0,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn string_contains_test_compile_and_run() -> Result<()> {
+        assert_program_exit_code(
+            PathBuf::from("../tests/programs/string_contains_test.kr"),
+            0,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn string_starts_ends_test_compile_and_run() -> Result<()> {
+        assert_program_exit_code(
+            PathBuf::from("../tests/programs/string_starts_ends_test.kr"),
+            0,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn string_utf8_test_compile_and_run() -> Result<()> {
+        assert_program_exit_code(
+            PathBuf::from("../tests/programs/string_utf8_test.kr"),
+            0,
+        )
+        .await
+    }
+
+    // TODO: Re-enable in 0.8.16 when C runtime library is implemented
+    // #[tokio::test]
+    // async fn string_split_test_compile_and_run() -> Result<()> {
+    //     assert_program_exit_code(
+    //         PathBuf::from("../tests/programs/string_split_test.kr"),
+    //         0,
+    //     )
+    //     .await
+    // }
+
+    // TODO: Re-enable in 0.8.16 when C runtime library is implemented
+    // #[tokio::test]
+    // async fn string_join_test_compile_and_run() -> Result<()> {
+    //     assert_program_exit_code(
+    //         PathBuf::from("../tests/programs/string_join_test.kr"),
+    //         0,
+    //     )
+    //     .await
+    // }
+
+    #[tokio::test]
+    async fn string_replace_test_compile_and_run() -> Result<()> {
+        assert_program_exit_code(
+            PathBuf::from("../tests/programs/string_replace_test.kr"),
             0,
         )
         .await
