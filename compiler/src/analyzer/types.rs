@@ -217,13 +217,13 @@ impl StructType {
 pub struct EnumType {
     /// Enum name
     pub name: String,
-    /// Variants: (variant_name, tag_value, optional_payload_types)
-    pub variants: Vec<(String, u32, Option<Vec<Type>>)>,
+    /// Variants: (variant_name, tag_value, optional_payload)
+    pub variants: Vec<(String, u32, Option<crate::parser::ast::EnumVariantPayload>)>,
 }
 
 impl EnumType {
     /// Create a new enum type.
-    pub fn new(name: String, variants: Vec<(String, Option<Vec<Type>>)>) -> Self {
+    pub fn new(name: String, variants: Vec<(String, Option<crate::parser::ast::EnumVariantPayload>)>) -> Self {
         let variants_with_tags: Vec<_> = variants
             .into_iter()
             .enumerate()
@@ -245,7 +245,7 @@ impl EnumType {
     }
 
     /// Get the payload types for a variant.
-    pub fn get_variant_payload(&self, variant_name: &str) -> Option<Option<Vec<Type>>> {
+    pub fn get_variant_payload(&self, variant_name: &str) -> Option<Option<crate::parser::ast::EnumVariantPayload>> {
         self.variants
             .iter()
             .find(|(name, _, _)| name == variant_name)

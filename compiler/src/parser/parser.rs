@@ -1,6 +1,6 @@
 use crate::parser::ast::{
     Block, Expression, FunctionSignature, MatchArm, Parameter, Pattern, Program, Statement,
-    StructField, Type, WhereConstraint,
+    StructField, Type, WhereConstraint, EnumVariantPayload,
 };
 use crate::{
     error::{CompilerError, CompilerResult, SourceLocation},
@@ -351,14 +351,15 @@ impl Parser {
     }
 
     /// Parse enum variants.
-    fn parse_enum_variants(&mut self) -> CompilerResult<Vec<(String, Option<Vec<Type>>)>> {
+    fn parse_enum_variants(&mut self) -> CompilerResult<Vec<(String, Option<EnumVariantPayload>)>> {
         let mut variants = Vec::new();
 
         while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
             let variant_name = self.consume_identifier()?;
 
-            // Check for payload types: VariantName(Type1, Type2, ...)
+            // Check for payload types: VariantName(Type1, Type2, ...) or VariantName { field: Type, ... }
             let payload = if self.match_token(TokenKind::LeftParen) {
+                // Tuple payload
                 let mut types = Vec::new();
                 if !self.check_token(TokenKind::RightParen) {
                     types.push(self.parse_type()?);
@@ -367,7 +368,22 @@ impl Parser {
                     }
                 }
                 self.expect_token(TokenKind::RightParen)?;
-                Some(types)
+                Some(EnumVariantPayload::Tuple(types))
+            } else if self.match_token(TokenKind::LeftBrace) {
+                // Struct payload
+                let mut fields = Vec::new();
+                while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
+                    let field_name = self.consume_identifier()?;
+                    self.expect_token(TokenKind::Colon)?;
+                    let field_type = self.parse_type()?;
+                    fields.push((field_name, field_type));
+                    
+                    if !self.match_token(TokenKind::Comma) {
+                        break;
+                    }
+                }
+                self.expect_token(TokenKind::RightBrace)?;
+                Some(EnumVariantPayload::Struct(fields))
             } else {
                 None
             };
@@ -591,10 +607,18 @@ impl Parser {
 
         while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
             let pattern = self.parse_pattern()?;
+            
+            // Check for guard clause: pattern if condition
+            let guard = if self.match_keyword(Keyword::If) {
+                Some(self.parse_expression()?)
+            } else {
+                None
+            };
+            
             self.expect_token(TokenKind::Arrow)?;
             let body = self.parse_block()?;
 
-            arms.push(MatchArm { pattern, body });
+            arms.push(MatchArm { pattern, guard, body });
         }
 
         self.expect_token(TokenKind::RightBrace)?;
@@ -636,12 +660,15 @@ impl Parser {
         if !self.check_token(TokenKind::RightParen) {
             loop {
                 let is_reference = self.match_keyword(Keyword::Ref);
-                let name = self.consume_identifier()?;
+                
+                // Parse pattern for parameter (supports destructuring)
+                let pattern = self.parse_pattern()?;
+                
                 self.expect_token(TokenKind::Colon)?;
                 let param_type = self.parse_type()?;
 
                 parameters.push(Parameter {
-                    name,
+                    pattern,
                     param_type,
                     is_reference,
                 });
@@ -740,6 +767,25 @@ impl Parser {
 
     /// Parse a pattern for match expressions.
     fn parse_pattern(&mut self) -> CompilerResult<Pattern> {
+        let pattern = self.parse_pattern_base()?;
+        
+        // Check for or pattern: pattern | pattern | pattern
+        if self.match_operator(Operator::BitOr) {
+            let mut patterns = vec![pattern];
+            patterns.push(self.parse_pattern_base()?);
+            
+            while self.match_operator(Operator::BitOr) {
+                patterns.push(self.parse_pattern_base()?);
+            }
+            
+            return Ok(Pattern::Or { patterns });
+        }
+        
+        Ok(pattern)
+    }
+
+    /// Parse a base pattern (without or patterns).
+    fn parse_pattern_base(&mut self) -> CompilerResult<Pattern> {
         if self.check_token(TokenKind::LeftParen) {
             // Tuple pattern: (x, y, z) or (1, _, x)
             self.advance();
@@ -781,6 +827,48 @@ impl Parser {
                     enum_name: name,
                     variant_name,
                     bindings,
+                })
+            } else if self.match_token(TokenKind::LeftBrace) {
+                // Struct pattern: StructName { field1, field2, .. }
+                let struct_name = name;
+                let mut fields = Vec::new();
+                let mut partial = false;
+                
+                if !self.check_token(TokenKind::RightBrace) {
+                    loop {
+                        // Check for partial pattern (..)
+                        if self.match_operator(Operator::DotDot) {
+                            partial = true;
+                            break;
+                        }
+                        
+                        // Parse field pattern: field or field: pattern
+                        let field_name = self.consume_identifier()?;
+                        let field_pattern = if self.match_token(TokenKind::Colon) {
+                            self.parse_pattern()?
+                        } else {
+                            // Shorthand: field means field: field
+                            Pattern::Identifier(field_name.clone())
+                        };
+                        
+                        fields.push((field_name, field_pattern));
+                        
+                        if !self.match_token(TokenKind::Comma) {
+                            break;
+                        }
+                        
+                        // Allow trailing comma before }
+                        if self.check_token(TokenKind::RightBrace) {
+                            break;
+                        }
+                    }
+                }
+                
+                self.expect_token(TokenKind::RightBrace)?;
+                Ok(Pattern::Struct {
+                    struct_name,
+                    fields,
+                    partial,
                 })
             } else {
                 Ok(Pattern::Identifier(name))

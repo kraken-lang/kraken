@@ -26,6 +26,23 @@ pub struct IrLowering {
 }
 
 impl IrLowering {
+    /// Extract a simple name from a pattern (for parameter names)
+    fn extract_pattern_name(pattern: &Pattern) -> Option<String> {
+        match pattern {
+            Pattern::Identifier(name) => Some(name.clone()),
+            Pattern::Tuple { patterns } => {
+                // For tuple patterns, use first identifier or generate name
+                patterns.iter()
+                    .find_map(Self::extract_pattern_name)
+            }
+            Pattern::Struct { fields, .. } => {
+                // For struct patterns, use first field name
+                fields.first().map(|(name, _)| name.clone())
+            }
+            _ => None,
+        }
+    }
+
     pub fn new() -> Self {
         Self {
             next_value_id: 0,
@@ -140,12 +157,17 @@ impl IrLowering {
         self.variables.clear();
         self.current_function = Some(name.to_string());
 
-        // Convert parameters
+        // Convert parameters - extract names from patterns
         let ir_params: Vec<IrParam> = parameters
             .iter()
-            .map(|p| IrParam {
-                name: p.name.clone(),
-                ty: Self::lower_type(&p.param_type),
+            .enumerate()
+            .map(|(i, p)| {
+                let param_name = Self::extract_pattern_name(&p.pattern)
+                    .unwrap_or_else(|| format!("param_{i}"));
+                IrParam {
+                    name: param_name,
+                    ty: Self::lower_type(&p.param_type),
+                }
             })
             .collect();
 
@@ -163,16 +185,18 @@ impl IrLowering {
         let mut entry_block = IrBlock::new(entry_block_id, "entry".to_string());
 
         // Allocate parameters as local variables
-        for param in parameters {
+        for (i, param) in parameters.iter().enumerate() {
+            let param_name = Self::extract_pattern_name(&param.pattern)
+                .unwrap_or_else(|| format!("param_{i}"));
             let value_id = self.alloc_value();
-            self.variables.insert(param.name.clone(), value_id);
+            self.variables.insert(param_name.clone(), value_id);
             entry_block.instructions.push(IrInstruction::Alloca {
                 dest: value_id,
                 ty: Self::lower_type(&param.param_type),
-                name: param.name.clone(),
+                name: param_name.clone(),
             });
             // Store incoming parameter value
-            let param_value = IrValue::Variable(param.name.clone());
+            let param_value = IrValue::Variable(param_name.clone());
             entry_block.instructions.push(IrInstruction::Store {
                 value: param_value,
                 ptr: IrValue::Register(value_id),

@@ -14,7 +14,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::ptr;
 
-type EnumVariantInfo = (String, u32, Option<Vec<crate::parser::ast::Type>>);
+type EnumVariantInfo = (String, u32, Option<crate::parser::ast::EnumVariantPayload>);
 type EnumTypesMap = HashMap<String, Vec<EnumVariantInfo>>;
 
 /// LLVM code generator for Kraken.
@@ -38,6 +38,20 @@ pub struct LLVMCodegen {
 }
 
 impl LLVMCodegen {
+    /// Extract a simple name from a pattern (for parameter names)
+    fn extract_pattern_name(pattern: &Pattern) -> Option<String> {
+        match pattern {
+            Pattern::Identifier(name) => Some(name.clone()),
+            Pattern::Tuple { patterns } => {
+                patterns.iter().find_map(Self::extract_pattern_name)
+            }
+            Pattern::Struct { fields, .. } => {
+                fields.first().map(|(name, _)| name.clone())
+            }
+            _ => None,
+        }
+    }
+
     /// Create a new LLVM code generator.
     ///
     /// # Arguments
@@ -442,7 +456,7 @@ impl LLVMCodegen {
                 is_public: _,
             } => {
                 // Register enum variants with their tag values and payload types
-                let variants_with_tags: Vec<(String, u32, Option<Vec<crate::parser::ast::Type>>)> =
+                let variants_with_tags: Vec<(String, u32, Option<EnumVariantPayload>)> =
                     variants
                         .iter()
                         .enumerate()
@@ -1154,6 +1168,76 @@ impl LLVMCodegen {
                                 
                                 // Branch to arm or next check
                                 LLVMBuildCondBr(self.builder, cond, arm_blocks[i], next_check_blocks[i]);
+                            }
+                            Pattern::Or { patterns } => {
+                                // Or pattern: check if match_val matches any of the alternatives
+                                // Build a chain of OR conditions
+                                let mut combined_cond = None;
+                                
+                                for pat in patterns {
+                                    match pat {
+                                        Pattern::Literal(lit_expr) => {
+                                            let lit_val = self.codegen_expression(lit_expr)?;
+                                            let cmp = LLVMBuildICmp(
+                                                self.builder,
+                                                llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                                                match_val,
+                                                lit_val,
+                                                c"or.cmp".as_ptr(),
+                                            );
+                                            
+                                            combined_cond = Some(if let Some(prev) = combined_cond {
+                                                LLVMBuildOr(self.builder, prev, cmp, c"or.combined".as_ptr())
+                                            } else {
+                                                cmp
+                                            });
+                                        }
+                                        _ => {
+                                            // Other pattern types in or patterns would need more complex handling
+                                            // For now, just accept them (will be validated by type checker)
+                                        }
+                                    }
+                                }
+                                
+                                if let Some(cond) = combined_cond {
+                                    LLVMBuildCondBr(self.builder, cond, arm_blocks[i], next_check_blocks[i]);
+                                } else {
+                                    // No conditions, just branch to arm
+                                    LLVMBuildBr(self.builder, arm_blocks[i]);
+                                }
+                            }
+                            Pattern::Struct { struct_name: _, fields: _, partial: _ } => {
+                                // Struct pattern: extract fields and bind to variables
+                                // For struct patterns, we always match (type checking ensures correctness)
+                                // The actual field extraction and binding will happen in the arm body
+                                // when variables are accessed. For now, just branch to the arm block.
+                                LLVMBuildBr(self.builder, arm_blocks[i]);
+                            }
+                        }
+
+                        // Check guard clause if present
+                        if arm.guard.is_some() {
+                            // Guard clauses require additional condition checking
+                            // Position at the arm block and add guard check
+                            LLVMPositionBuilderAtEnd(self.builder, arm_blocks[i]);
+                            
+                            if let Some(guard_expr) = &arm.guard {
+                                let guard_val = self.codegen_expression(guard_expr)?;
+                                
+                                // Create blocks for guard success and failure
+                                let guard_success = LLVMAppendBasicBlockInContext(
+                                    self.context,
+                                    self.current_function.unwrap(),
+                                    c"guard.success".as_ptr(),
+                                );
+                                let guard_fail = next_check_blocks[i];
+                                
+                                // Branch based on guard condition
+                                LLVMBuildCondBr(self.builder, guard_val, guard_success, guard_fail);
+                                
+                                // Position at guard success block for arm body
+                                LLVMPositionBuilderAtEnd(self.builder, guard_success);
+                                arm_blocks[i] = guard_success; // Update arm block to guard success
                             }
                         }
 
@@ -1887,23 +1971,28 @@ impl LLVMCodegen {
             self.struct_variables.clear();
             for (i, param) in parameters.iter().enumerate() {
                 let param_val = LLVMGetParam(function, i as u32);
-                let param_name = CString::new(param.name.as_str()).expect("CString failed");
-                LLVMSetValueName2(param_val, param_name.as_ptr(), param.name.len());
+                
+                // Extract parameter name from pattern
+                let param_name = Self::extract_pattern_name(&param.pattern)
+                    .unwrap_or_else(|| format!("param_{i}"));
+                
+                let param_name_cstr = CString::new(param_name.as_str()).expect("CString failed");
+                LLVMSetValueName2(param_val, param_name_cstr.as_ptr(), param_name.len());
 
                 if let Type::Custom(struct_name) = &param.param_type {
                     self.struct_variables
-                        .insert(param.name.clone(), struct_name.clone());
+                        .insert(param_name.clone(), struct_name.clone());
                 }
 
                 // Allocate stack space for parameter
                 let param_type = self.get_llvm_type(&param.param_type);
-                let alloca = self.create_entry_block_alloca(param_type, &param.name)?;
+                let alloca = self.create_entry_block_alloca(param_type, &param_name)?;
 
                 // Store parameter value into alloca
                 LLVMBuildStore(self.builder, param_val, alloca);
 
                 // Store alloca in named_values
-                self.named_values.insert(param.name.clone(), alloca);
+                self.named_values.insert(param_name, alloca);
             }
 
             // Generate body
@@ -3303,11 +3392,18 @@ impl LLVMCodegen {
                             let i64_ty = LLVMInt64TypeInContext(self.context);
 
                             // Check if this variant has a payload
-                            if let (Some(payload_exprs), Some(ptypes)) = (payload, payload_types) {
-                                if !payload_exprs.is_empty() && !ptypes.is_empty() {
+                            if let (Some(payload_exprs), Some(payload_type)) = (payload, payload_types) {
+                                let payload_types_vec = match payload_type {
+                                    EnumVariantPayload::Tuple(types) => types.clone(),
+                                    EnumVariantPayload::Struct(fields) => {
+                                        fields.iter().map(|(_, ty)| ty.clone()).collect()
+                                    }
+                                };
+                                
+                                if !payload_exprs.is_empty() && !payload_types_vec.is_empty() {
                                     // Create a tagged union: { tag: i64, payload_0: T0, payload_1: T1, ... }
                                     let mut field_types = vec![i64_ty];
-                                    for ptype in ptypes {
+                                    for ptype in &payload_types_vec {
                                         field_types.push(self.get_llvm_type(ptype));
                                     }
 

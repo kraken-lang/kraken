@@ -536,6 +536,7 @@ fn rewrite_block(block: Block, private_mangle: &HashMap<String, String>) -> Resu
 fn rewrite_match_arm(arm: MatchArm, private_mangle: &HashMap<String, String>) -> Result<MatchArm> {
     Ok(MatchArm {
         pattern: rewrite_pattern(arm.pattern, private_mangle),
+        guard: arm.guard.map(|g| rewrite_expression(g, private_mangle)),
         body: rewrite_block(arm.body, private_mangle)?,
     })
 }
@@ -553,6 +554,20 @@ fn rewrite_pattern(pattern: Pattern, private_mangle: &HashMap<String, String>) -
             start: Box::new(rewrite_expression(*start, private_mangle)),
             end: Box::new(rewrite_expression(*end, private_mangle)),
             inclusive,
+        },
+        Pattern::Or { patterns } => Pattern::Or {
+            patterns: patterns
+                .into_iter()
+                .map(|p| rewrite_pattern(p, private_mangle))
+                .collect(),
+        },
+        Pattern::Struct { struct_name, fields, partial } => Pattern::Struct {
+            struct_name,
+            fields: fields
+                .into_iter()
+                .map(|(name, pat)| (name, rewrite_pattern(pat, private_mangle)))
+                .collect(),
+            partial,
         },
         Pattern::Identifier(_) | Pattern::Wildcard | Pattern::EnumVariant { .. } => pattern,
     }

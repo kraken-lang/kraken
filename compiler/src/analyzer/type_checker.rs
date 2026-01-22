@@ -1971,7 +1971,8 @@ impl TypeChecker {
 
                 let mut func_env = self.env.child();
                 for param in parameters {
-                    func_env.define_variable(param.name.clone(), param.param_type.clone());
+                    // Bind parameter pattern to function environment
+                    self.bind_pattern_to_env(&param.pattern, &param.param_type, &mut func_env)?;
                 }
 
                 let saved_env = std::mem::replace(&mut self.env, func_env);
@@ -2221,9 +2222,17 @@ impl TypeChecker {
                             if let Some(enum_type) = self.env.lookup_enum(enum_name) {
                                 // get_variant_payload returns Option<Option<Vec<Type>>>
                                 // Outer Option: variant exists? Inner Option: has payload?
-                                if let Some(Some(payload_types)) =
+                                if let Some(Some(payload)) =
                                     enum_type.get_variant_payload(variant_name)
                                 {
+                                    // Extract types from payload (tuple or struct)
+                                    let payload_types = match payload {
+                                        EnumVariantPayload::Tuple(types) => types,
+                                        EnumVariantPayload::Struct(fields) => {
+                                            fields.iter().map(|(_, ty)| ty.clone()).collect()
+                                        }
+                                    };
+                                    
                                     // Bind each variable to its corresponding payload type
                                     for (i, binding) in bindings.iter().enumerate() {
                                         let binding_type =
@@ -2258,9 +2267,106 @@ impl TypeChecker {
                                 ));
                             }
                         }
+                        Pattern::Or { patterns } => {
+                            // Or patterns: check each alternative matches the expression type
+                            for pat in patterns {
+                                // Recursively type check each pattern alternative
+                                // For now, we just validate they're compatible with expr_type
+                                match pat {
+                                    Pattern::Literal(lit_expr) => {
+                                        let lit_type = self.check_expression(lit_expr)?;
+                                        if !self.types_compatible(&expr_type, &lit_type) {
+                                            return Err(CompilerError::type_error(
+                                                SourceLocation::new(self.file_path.clone(), 0, 0),
+                                                format!("Or pattern type mismatch: expected {expr_type}, found {lit_type}"),
+                                            ));
+                                        }
+                                    }
+                                    _ => {
+                                        // Other pattern types in or patterns are validated recursively
+                                    }
+                                }
+                            }
+                        }
+                        Pattern::Struct { struct_name, fields, partial } => {
+                            // Check struct pattern against struct type
+                            if let Type::Custom(type_name) = &expr_type {
+                                if type_name != struct_name {
+                                    return Err(CompilerError::type_error(
+                                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                                        format!("Struct pattern {struct_name} does not match type {type_name}"),
+                                    ));
+                                }
+                                
+                                // Look up struct definition and validate fields
+                                if let Some(struct_def) = self.env.lookup_struct(struct_name) {
+                                    // Create child env and bind pattern variables
+                                    let mut arm_env = self.env.child();
+                                    for (field_name, field_pattern) in fields {
+                                        if let Some(field_type) = struct_def.fields.iter()
+                                            .find(|(name, _)| name.as_str() == field_name.as_str())
+                                            .map(|(_, ty)| ty)
+                                        {
+                                            self.bind_pattern_to_env(field_pattern, field_type, &mut arm_env)?;
+                                        } else {
+                                            return Err(CompilerError::type_error(
+                                                SourceLocation::new(self.file_path.clone(), 0, 0),
+                                                format!("Struct {struct_name} has no field named {field_name}"),
+                                            ));
+                                        }
+                                    }
+                                    
+                                    // If not partial, ensure all fields are covered
+                                    if !partial && fields.len() != struct_def.fields.len() {
+                                        return Err(CompilerError::type_error(
+                                            SourceLocation::new(self.file_path.clone(), 0, 0),
+                                            format!(
+                                                "Struct pattern for {struct_name} must match all {} fields or use .. for partial match",
+                                                struct_def.fields.len()
+                                            ),
+                                        ));
+                                    }
+                                    
+                                    // Switch to arm env and check body
+                                    let saved_env = std::mem::replace(&mut self.env, arm_env);
+                                    self.check_block(&arm.body)?;
+                                    self.env = saved_env;
+                                    continue;
+                                } else {
+                                    return Err(CompilerError::type_error(
+                                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                                        format!("Unknown struct type: {struct_name}"),
+                                    ));
+                                }
+                            } else {
+                                return Err(CompilerError::type_error(
+                                    SourceLocation::new(self.file_path.clone(), 0, 0),
+                                    format!("Cannot match struct pattern against non-struct type: {expr_type}"),
+                                ));
+                            }
+                        }
+                    }
+
+                    // Check guard clause if present
+                    if let Some(guard_expr) = &arm.guard {
+                        let guard_type = self.check_expression(guard_expr)?;
+                        if guard_type != Type::Bool {
+                            return Err(CompilerError::type_error(
+                                SourceLocation::new(self.file_path.clone(), 0, 0),
+                                format!("Guard clause must be bool, found {guard_type}"),
+                            ));
+                        }
                     }
 
                     self.check_block(&arm.body)?;
+                }
+
+                // Check exhaustiveness
+                if !self.is_match_exhaustive(arms, &expr_type) {
+                    return Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Non-exhaustive match expression for type {expr_type}. Add a wildcard pattern (_) to handle all cases."),
+                    ));
                 }
 
                 Ok(())
@@ -2853,6 +2959,67 @@ impl TypeChecker {
                 // Range patterns don't bind variables
                 Ok(())
             }
+            Pattern::Or { patterns } => {
+                // Or patterns: all alternatives must bind the same variables with the same types
+                // For now, we don't bind variables from or patterns (they're typically used with literals)
+                // Full implementation would require checking all patterns bind the same vars
+                for pat in patterns {
+                    self.bind_pattern(pat, ty)?;
+                }
+                Ok(())
+            }
+            Pattern::Struct { struct_name, fields, partial } => {
+                // Validate struct type and destructure fields
+                if let Type::Custom(type_name) = ty {
+                    if type_name != struct_name {
+                        return Err(CompilerError::type_error(
+                            SourceLocation::new(self.file_path.clone(), 0, 0),
+                            format!("Struct pattern {struct_name} does not match type {type_name}"),
+                        ));
+                    }
+                    
+                    // Look up struct definition
+                    if let Some(struct_def) = self.env.lookup_struct(struct_name) {
+                        // Validate all pattern fields exist in struct
+                        for (field_name, field_pattern) in fields {
+                            if let Some(field_type) = struct_def.fields.iter()
+                                .find(|(name, _)| name.as_str() == field_name.as_str())
+                                .map(|(_, ty)| ty)
+                            {
+                                self.bind_pattern(field_pattern, field_type)?;
+                            } else {
+                                return Err(CompilerError::type_error(
+                                    SourceLocation::new(self.file_path.clone(), 0, 0),
+                                    format!("Struct {struct_name} has no field named {field_name}"),
+                                ));
+                            }
+                        }
+                        
+                        // If not partial, ensure all fields are covered
+                        if !partial && fields.len() != struct_def.fields.len() {
+                            return Err(CompilerError::type_error(
+                                SourceLocation::new(self.file_path.clone(), 0, 0),
+                                format!(
+                                    "Struct pattern for {struct_name} must match all {} fields or use .. for partial match",
+                                    struct_def.fields.len()
+                                ),
+                            ));
+                        }
+                        
+                        Ok(())
+                    } else {
+                        Err(CompilerError::type_error(
+                            SourceLocation::new(self.file_path.clone(), 0, 0),
+                            format!("Unknown struct type: {struct_name}"),
+                        ))
+                    }
+                } else {
+                    Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Cannot destructure non-struct type: {ty}"),
+                    ))
+                }
+            }
         }
     }
 
@@ -2904,6 +3071,53 @@ impl TypeChecker {
                 // Range patterns don't bind variables
                 Ok(())
             }
+            Pattern::Or { patterns } => {
+                // Or patterns: bind variables from all alternatives
+                for pat in patterns {
+                    self.bind_pattern_to_env(pat, ty, env)?;
+                }
+                Ok(())
+            }
+            Pattern::Struct { struct_name, fields, partial: _ } => {
+                // Validate struct type and bind field patterns
+                if let Type::Custom(type_name) = ty {
+                    if type_name != struct_name {
+                        return Err(CompilerError::type_error(
+                            SourceLocation::new(self.file_path.clone(), 0, 0),
+                            format!("Struct pattern {struct_name} does not match type {type_name}"),
+                        ));
+                    }
+                    
+                    // Look up struct definition
+                    if let Some(struct_def) = self.env.lookup_struct(struct_name) {
+                        // Bind variables from field patterns
+                        for (field_name, field_pattern) in fields {
+                            if let Some(field_type) = struct_def.fields.iter()
+                                .find(|(name, _)| name.as_str() == field_name.as_str())
+                                .map(|(_, ty)| ty)
+                            {
+                                self.bind_pattern_to_env(field_pattern, field_type, env)?;
+                            } else {
+                                return Err(CompilerError::type_error(
+                                    SourceLocation::new(self.file_path.clone(), 0, 0),
+                                    format!("Struct {struct_name} has no field named {field_name}"),
+                                ));
+                            }
+                        }
+                        Ok(())
+                    } else {
+                        Err(CompilerError::type_error(
+                            SourceLocation::new(self.file_path.clone(), 0, 0),
+                            format!("Unknown struct type: {struct_name}"),
+                        ))
+                    }
+                } else {
+                    Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Cannot destructure non-struct type: {ty}"),
+                    ))
+                }
+            }
         }
     }
 
@@ -2928,6 +3142,73 @@ impl TypeChecker {
             (expected, actual),
             (Type::String, Type::Bytes) | (Type::Bytes, Type::String)
         )
+    }
+
+    /// Check if a match expression is exhaustive.
+    fn is_match_exhaustive(&self, arms: &[MatchArm], expr_type: &Type) -> bool {
+        // Check if there's a wildcard pattern (always exhaustive)
+        for arm in arms {
+            if self.pattern_is_wildcard(&arm.pattern) {
+                return true;
+            }
+        }
+
+        // For enum types, check if all variants are covered
+        if let Type::Custom(enum_name) = expr_type {
+            if let Some(enum_type) = self.env.lookup_enum(enum_name) {
+                return self.enum_variants_covered(arms, &enum_type);
+            }
+        }
+
+        // For primitive types without wildcard, not exhaustive
+        // (would need to enumerate all possible values, which is impractical)
+        false
+    }
+
+    /// Check if a pattern is effectively a wildcard (matches everything).
+    fn pattern_is_wildcard(&self, pattern: &Pattern) -> bool {
+        match pattern {
+            Pattern::Wildcard => true,
+            Pattern::Identifier(_) => true, // Identifier patterns match everything
+            Pattern::Or { patterns } => {
+                // Or pattern is wildcard if any alternative is wildcard
+                patterns.iter().any(|p| self.pattern_is_wildcard(p))
+            }
+            _ => false,
+        }
+    }
+
+    /// Check if all enum variants are covered by the match arms.
+    fn enum_variants_covered(&self, arms: &[MatchArm], enum_type: &EnumType) -> bool {
+        let mut covered_variants = std::collections::HashSet::new();
+
+        for arm in arms {
+            self.collect_covered_variants(&arm.pattern, &mut covered_variants);
+        }
+
+        // Check if all variants are covered
+        for (variant_name, _tag, _payload) in &enum_type.variants {
+            if !covered_variants.contains(variant_name) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    /// Collect which enum variants are covered by a pattern.
+    fn collect_covered_variants(&self, pattern: &Pattern, covered: &mut std::collections::HashSet<String>) {
+        match pattern {
+            Pattern::EnumVariant { variant_name, .. } => {
+                covered.insert(variant_name.clone());
+            }
+            Pattern::Or { patterns } => {
+                for p in patterns {
+                    self.collect_covered_variants(p, covered);
+                }
+            }
+            _ => {}
+        }
     }
 }
 

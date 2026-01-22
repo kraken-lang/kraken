@@ -27,7 +27,7 @@ resolver = "2"
 # Workspace Package
 [workspace.package]
 #####################################################
-version       = "0.8.15"
+version       = "0.8.17"
 readme        = "README.md"
 license       = "Apache-2.0"
 publish       = false
@@ -54,7 +54,7 @@ authors = [
 error-forge  = "0.9.6"
 metrics-lib  = { version = "0.9.0", features = ["timer", "count", "gauge", "meter", "async"] }
 config-lib   = { version = "0.9.0", features = ["json", "toml", "noml", "validation", "async"] }
-mod-cli      = { version = "0.8.15" }
+mod-cli      = { version = "0.6.4" }
 
 # External Dependencies
 # ========================

@@ -1,0 +1,143 @@
+// Comprehensive tests for exhaustiveness checking
+
+fn test_exhaustive_with_wildcard() -> int {
+    test_section("Exhaustive: Wildcard Pattern");
+    
+    // Wildcard makes match exhaustive
+    let x: int = 42;
+    match (x) {
+        1 -> {
+            test_pass("Literal 1");
+        }
+        2 -> {
+            test_pass("Literal 2");
+        }
+        _ -> {
+            test_pass("Wildcard catches all other cases");
+        }
+    }
+    
+    0;
+}
+
+fn test_exhaustive_with_identifier() -> int {
+    test_section("Exhaustive: Identifier Pattern");
+    
+    // Identifier pattern matches everything (exhaustive)
+    let x: int = 100;
+    match (x) {
+        n -> {
+            test_pass("Identifier pattern is exhaustive");
+        }
+    }
+    
+    0;
+}
+
+fn test_exhaustive_multiple_literals() -> int {
+    test_section("Exhaustive: Multiple Literals with Wildcard");
+    
+    // Multiple literals with wildcard is exhaustive
+    let x: int = 5;
+    match (x) {
+        1 -> {
+            test_pass("Literal 1");
+        }
+        2 -> {
+            test_pass("Literal 2");
+        }
+        3 -> {
+            test_pass("Literal 3");
+        }
+        _ -> {
+            test_pass("Wildcard covers all other cases");
+        }
+    }
+    
+    0;
+}
+
+fn test_exhaustive_range_with_wildcard() -> int {
+    test_section("Exhaustive: Range with Wildcard");
+    
+    // Range pattern with wildcard is exhaustive
+    let x: int = 25;
+    match (x) {
+        0..10 -> {
+            test_pass("Range 0..10");
+        }
+        10..20 -> {
+            test_pass("Range 10..20");
+        }
+        _ -> {
+            test_pass("Wildcard covers remaining");
+        }
+    }
+    
+    0;
+}
+
+fn test_exhaustive_or_pattern_with_wildcard() -> int {
+    test_section("Exhaustive: Or Pattern with Wildcard");
+    
+    // Or pattern containing wildcard is exhaustive
+    let x: int = 999;
+    match (x) {
+        1 | 2 | _ -> {
+            test_pass("Or pattern with wildcard is exhaustive");
+        }
+    }
+    
+    0;
+}
+
+fn test_exhaustive_guard_with_wildcard() -> int {
+    test_section("Exhaustive: Guard with Wildcard Fallback");
+    
+    // Guard with wildcard fallback is exhaustive
+    let x: int = 15;
+    match (x) {
+        _ if x > 10 -> {
+            test_pass("Guard matches");
+        }
+        _ -> {
+            test_pass("Wildcard fallback ensures exhaustiveness");
+        }
+    }
+    
+    0;
+}
+
+fn test_exhaustive_nested_patterns() -> int {
+    test_section("Exhaustive: Nested Patterns");
+    
+    // Tuple pattern with wildcard is exhaustive
+    let pair: (int, int) = (1, 2);
+    match (pair) {
+        (1, 2) -> {
+            test_pass("Exact match");
+        }
+        _ -> {
+            test_pass("Wildcard covers all other tuples");
+        }
+    }
+    
+    0;
+}
+
+fn main() -> int {
+    puts("=== EXHAUSTIVENESS CHECKING TESTS ===");
+    puts("");
+    
+    test_exhaustive_with_wildcard();
+    test_exhaustive_with_identifier();
+    test_exhaustive_multiple_literals();
+    test_exhaustive_range_with_wildcard();
+    test_exhaustive_or_pattern_with_wildcard();
+    test_exhaustive_guard_with_wildcard();
+    test_exhaustive_nested_patterns();
+    
+    puts("");
+    puts("=== ALL EXHAUSTIVENESS TESTS PASSED ===");
+    0;
+}

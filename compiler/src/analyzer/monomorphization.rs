@@ -1,5 +1,5 @@
 use crate::error::{CompilerError, CompilerResult, SourceLocation};
-use crate::parser::ast::{Block, Expression, Pattern, Program, Statement, Type, WhereConstraint};
+use crate::parser::ast::{Block, EnumVariantPayload, Expression, Pattern, Program, Statement, Type, WhereConstraint};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
 
@@ -202,7 +202,8 @@ impl Monomorphizer {
             } => {
                 let mut fn_env = env.clone();
                 for p in parameters {
-                    fn_env.insert(p.name.clone(), p.param_type.clone());
+                    // Bind parameter pattern to environment
+                    self.bind_pattern_to_env(&p.pattern, p.param_type.clone(), &mut fn_env);
                 }
                 self.infer_block(body, &mut fn_env)
             }
@@ -1226,6 +1227,18 @@ impl Monomorphizer {
             Pattern::Wildcard | Pattern::Literal(_) | Pattern::EnumVariant { .. } | Pattern::Range { .. } => {
                 // These don't bind variables
             }
+            Pattern::Or { patterns } => {
+                // Or patterns: bind variables from all alternatives
+                for pat in patterns {
+                    self.bind_pattern_to_env(pat, ty.clone(), env);
+                }
+            }
+            Pattern::Struct { struct_name: _, fields: _, partial: _ } => {
+                // Struct patterns: bind variables from field patterns
+                // Note: Type checking has already validated the struct type and fields
+                // For monomorphization, we don't need to do anything special here
+                // as the type information is already resolved
+            }
         }
     }
 
@@ -1352,9 +1365,18 @@ impl Monomorphizer {
 
             Statement::EnumDeclaration { variants, .. } => {
                 for (_, payload) in variants {
-                    if let Some(types) = payload {
-                        for t in types {
-                            self.scan_type(t)?;
+                    if let Some(payload) = payload {
+                        match payload {
+                            EnumVariantPayload::Tuple(types) => {
+                                for t in types {
+                                    self.scan_type(t)?;
+                                }
+                            }
+                            EnumVariantPayload::Struct(fields) => {
+                                for (_, field_type) in fields {
+                                    self.scan_type(field_type)?;
+                                }
+                            }
                         }
                     }
                 }

@@ -76,7 +76,7 @@ pub enum Statement {
     /// Enum declaration
     EnumDeclaration {
         name: String,
-        variants: Vec<(String, Option<Vec<Type>>)>, // (variant_name, optional_payload_types)
+        variants: Vec<(String, Option<EnumVariantPayload>)>, // (variant_name, optional_payload)
         is_public: bool,
     },
 
@@ -263,7 +263,7 @@ impl Block {
 /// Function parameter.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Parameter {
-    pub name: String,
+    pub pattern: Pattern,  // Changed from name: String to support destructuring
     pub param_type: Type,
     pub is_reference: bool,
 }
@@ -274,6 +274,15 @@ pub struct StructField {
     pub name: String,
     pub field_type: Type,
     pub is_public: bool,
+}
+
+/// Enum variant payload type.
+#[derive(Debug, Clone, PartialEq)]
+pub enum EnumVariantPayload {
+    /// Tuple payload: Some(int, string)
+    Tuple(Vec<Type>),
+    /// Struct payload: Point { x: int, y: int }
+    Struct(Vec<(String, Type)>),
 }
 
 /// Function signature (for interfaces).
@@ -288,6 +297,7 @@ pub struct FunctionSignature {
 #[derive(Debug, Clone, PartialEq)]
 pub struct MatchArm {
     pub pattern: Pattern,
+    pub guard: Option<Expression>,
     pub body: Block,
 }
 
@@ -326,6 +336,18 @@ pub enum Pattern {
         start: Box<Expression>,
         end: Box<Expression>,
         inclusive: bool,
+    },
+
+    /// Or pattern: 1 | 2 | 3
+    Or {
+        patterns: Vec<Pattern>,
+    },
+
+    /// Struct pattern: Point { x, y } or Point { x, .. }
+    Struct {
+        struct_name: String,
+        fields: Vec<(String, Pattern)>,
+        partial: bool, // true if using .. to ignore remaining fields
     },
 }
 

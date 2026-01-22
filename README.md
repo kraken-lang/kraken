@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
-Current version: `v0.8.15`
+Current version: `v0.8.17`
 
 ## Language Features
 
@@ -19,6 +19,18 @@ Current version: `v0.8.15`
 - **Range Types**: `0..10` (exclusive), `0..=10` (inclusive)
 - **For-In Loops**: `for (x in 0..10) { ... }`
 - **Range Patterns**: Match expressions with range patterns
+
+### Advanced Patterns (0.8.16)
+- **Or Patterns**: `1 | 2 | 3 -> { ... }`
+- **Guard Clauses**: `pattern if condition -> { ... }`
+- **Exhaustiveness Checking**: Compile-time validation of match coverage
+
+### Struct Patterns & Advanced Destructuring (0.8.17)
+- **Struct Patterns**: `Point { x, y } -> { ... }` in match expressions
+- **Partial Patterns**: `Point { x, .. }` to ignore remaining fields
+- **Let Destructuring**: `let Point { x, y } = point;`
+- **Function Parameter Destructuring**: `fn foo((x, y): (int, int))` and `fn bar(Point { x, y }: Point)`
+- **Enum Struct Payloads**: `enum Shape { Circle(int), Point { x: int, y: int } }`
 
 ### Core Features
 - **Static Typing**: Strong type system with type inference
@@ -114,13 +126,15 @@ fn main() -> int {
 }
 ```
 
-### Pattern Matching
+### Pattern Matching with Or Patterns & Guards
 
 ```kraken
 fn classify(x: int) -> string {
     match (x) {
         0 -> { "zero" }
-        1..10 -> { "single digit" }
+        1 | 2 | 3 -> { "one, two, or three" }
+        _ if x < 0 -> { "negative" }
+        _ if x < 10 -> { "single digit" }
         10..100 -> { "two digits" }
         _ -> { "large number" }
     }

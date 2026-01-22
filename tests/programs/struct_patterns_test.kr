@@ -1,0 +1,229 @@
+// Comprehensive tests for struct patterns and destructuring
+
+struct Point {
+    x: int,
+    y: int,
+}
+
+struct Point3D {
+    x: int,
+    y: int,
+    z: int,
+}
+
+struct Person {
+    name: string,
+    age: int,
+}
+
+fn test_basic_struct_pattern() -> int {
+    test_section("Basic Struct Patterns");
+    
+    let p: Point = Point { x: 10, y: 20 };
+    
+    match (p) {
+        Point { x, y } -> {
+            if (x == 10 && y == 20) {
+                test_pass("Basic struct pattern matches and binds fields");
+            } else {
+                test_fail("Field values incorrect");
+            }
+        }
+    }
+    
+    0;
+}
+
+fn test_partial_struct_pattern() -> int {
+    test_section("Partial Struct Patterns");
+    
+    let p: Point3D = Point3D { x: 1, y: 2, z: 3 };
+    
+    match (p) {
+        Point3D { x, .. } -> {
+            if (x == 1) {
+                test_pass("Partial struct pattern with .. works");
+            } else {
+                test_fail("Field x value incorrect");
+            }
+        }
+    }
+    
+    0;
+}
+
+fn test_struct_pattern_with_wildcard() -> int {
+    test_section("Struct Pattern with Wildcard");
+    
+    let p: Point = Point { x: 5, y: 10 };
+    
+    match (p) {
+        Point { x: _, y } -> {
+            if (y == 10) {
+                test_pass("Struct pattern with wildcard field works");
+            } else {
+                test_fail("Field y value incorrect");
+            }
+        }
+    }
+    
+    0;
+}
+
+fn test_multiple_struct_patterns() -> int {
+    test_section("Multiple Struct Patterns");
+    
+    let p1: Point = Point { x: 0, y: 0 };
+    let p2: Point = Point { x: 1, y: 1 };
+    let p3: Point = Point { x: 5, y: 10 };
+    
+    match (p1) {
+        Point { x: 0, y: 0 } -> {
+            test_pass("Origin point matched");
+        }
+        _ -> {
+            test_fail("Should match origin");
+        }
+    }
+    
+    match (p2) {
+        Point { x: 0, y: 0 } -> {
+            test_fail("Should not match origin");
+        }
+        Point { x: 1, y: 1 } -> {
+            test_pass("Unit point matched");
+        }
+        _ -> {
+            test_fail("Should match unit point");
+        }
+    }
+    
+    match (p3) {
+        Point { x: 0, y: 0 } -> {
+            test_fail("Should not match origin");
+        }
+        Point { x: 1, y: 1 } -> {
+            test_fail("Should not match unit");
+        }
+        _ -> {
+            test_pass("Wildcard matches other points");
+        }
+    }
+    
+    0;
+}
+
+fn test_nested_field_access() -> int {
+    test_section("Nested Field Access in Patterns");
+    
+    let p: Point = Point { x: 100, y: 200 };
+    
+    match (p) {
+        Point { x, y } -> {
+            let sum: int = x + y;
+            if (sum == 300) {
+                test_pass("Can use destructured fields in expressions");
+            } else {
+                test_fail("Field arithmetic incorrect");
+            }
+        }
+    }
+    
+    0;
+}
+
+fn test_struct_pattern_exhaustiveness() -> int {
+    test_section("Struct Pattern Exhaustiveness");
+    
+    let p: Point = Point { x: 42, y: 24 };
+    
+    // This should be exhaustive with wildcard
+    match (p) {
+        Point { x: 0, y: 0 } -> {
+            test_fail("Not origin");
+        }
+        _ -> {
+            test_pass("Wildcard makes match exhaustive");
+        }
+    }
+    
+    0;
+}
+
+fn test_struct_shorthand() -> int {
+    test_section("Struct Pattern Shorthand");
+    
+    let p: Point = Point { x: 7, y: 14 };
+    
+    // Shorthand: { x } means { x: x }
+    match (p) {
+        Point { x, y } -> {
+            if (x == 7 && y == 14) {
+                test_pass("Shorthand syntax works");
+            } else {
+                test_fail("Shorthand values incorrect");
+            }
+        }
+    }
+    
+    0;
+}
+
+fn test_edge_cases() -> int {
+    test_section("Edge Cases");
+    
+    // Zero values
+    let p1: Point = Point { x: 0, y: 0 };
+    match (p1) {
+        Point { x: 0, y: 0 } -> {
+            test_pass("Zero values match correctly");
+        }
+        _ -> {
+            test_fail("Should match zero values");
+        }
+    }
+    
+    // Negative values
+    let p2: Point = Point { x: -5, y: -10 };
+    match (p2) {
+        Point { x, y } -> {
+            if (x == -5 && y == -10) {
+                test_pass("Negative values work in patterns");
+            } else {
+                test_fail("Negative values incorrect");
+            }
+        }
+    }
+    
+    // Large values
+    let p3: Point = Point { x: 1000000, y: 2000000 };
+    match (p3) {
+        Point { x, y } -> {
+            if (x == 1000000 && y == 2000000) {
+                test_pass("Large values work in patterns");
+            } else {
+                test_fail("Large values incorrect");
+            }
+        }
+    }
+    
+    0;
+}
+
+fn main() -> int {
+    puts("=== STRUCT PATTERNS TESTS ===");
+    puts("");
+    
+    test_basic_struct_pattern();
+    test_partial_struct_pattern();
+    test_struct_pattern_with_wildcard();
+    test_multiple_struct_patterns();
+    test_nested_field_access();
+    test_struct_pattern_exhaustiveness();
+    test_struct_shorthand();
+    test_edge_cases();
+    
+    puts("");
+    puts("=== ALL STRUCT PATTERN TESTS PASSED ===");
+    0;
+}

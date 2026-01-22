@@ -13,6 +13,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.17] - 2026-01-22
+
+### Added
+- Added `Pattern::Struct { struct_name, fields, partial }` to AST for struct pattern support
+- Added parser support for struct patterns: `Point { x, y }` in match expressions
+- Added parser support for partial struct patterns: `Point { x, .. }` to ignore remaining fields
+- Added parser support for field pattern shorthand: `{ x }` means `{ x: x }`
+- Added type checking for struct patterns in `bind_pattern()` and `bind_pattern_to_env()`
+- Added struct pattern validation: field existence, type compatibility, completeness checking
+- Added struct pattern support in match expression type checking
+- Added struct pattern support in monomorphization pass
+- Added struct pattern support in modules/loader for pattern rewriting
+- Added LLVM codegen for struct patterns with field extraction and variable binding
+- Changed `Parameter` struct to use `Pattern` instead of `String` for function parameter destructuring
+- Updated parser to support pattern parsing in function parameters
+- Updated type checker to bind parameter patterns to function environment
+- Updated monomorphization to handle parameter patterns
+- Updated IR lowering with pattern name extraction for parameters
+- Updated LLVM codegen with pattern name extraction for parameters
+- Function parameters now support tuple destructuring: `fn foo((x, y): (int, int))`
+- Function parameters now support struct destructuring: `fn bar(Point { x, y }: Point)`
+- Added `EnumVariantPayload` enum to AST supporting both tuple and struct payloads
+- Updated parser to support enum struct variant syntax: `variant Point { x: int, y: int }`
+- Updated type checker to handle enum struct payloads in pattern matching
+- Updated monomorphization to scan enum struct payload field types
+- Updated LLVM codegen to handle enum struct payloads in construction and matching
+- Enum variants now support struct-style payloads in addition to tuple payloads
+
+### Fixed
+- Fixed clippy lint warnings for format string inlining
+
+### Changed
+
+## [0.8.16] - 2026-01-21
+
+### Added
+- Added `Pattern::Or { patterns }` to AST for or pattern support (`1 | 2 | 3`)
+- Added `guard: Option<Expression>` field to `MatchArm` for guard clause support (`pattern if condition`)
+- Added parser support for or patterns: `1 | 2 | 3 -> { ... }`
+- Added parser support for guard clauses: `_ if x > 10 -> { ... }`
+- Implemented `parse_pattern_base()` for parsing individual patterns
+- Modified `parse_match_statement()` to parse guard clauses after patterns
+- Added type checking for or patterns in `bind_pattern()` and `bind_pattern_to_env()`
+- Added type checking for guard clauses (validates bool type)
+- Added or pattern support in match expression type checking
+- Added or pattern support in monomorphization pass
+- Added or pattern support in modules/loader.rs for pattern rewriting
+- Added LLVM codegen for or patterns (builds chain of OR conditions)
+- Added LLVM codegen for guard clauses (creates conditional branches)
+- Added exhaustiveness checking for match expressions
+- Exhaustiveness checking validates wildcard/identifier patterns
+- Exhaustiveness checking validates all enum variants are covered
+- Exhaustiveness checking provides clear error messages for non-exhaustive matches
+- Created comprehensive test suite: `tests/programs/advanced_patterns_test.kr` (18 tests)
+- Created exhaustiveness checking test suite: `tests/programs/exhaustiveness_check_test.kr` (7 tests)
+- Tests cover or patterns, guard clauses, combined patterns, exhaustiveness, and edge cases
+
+### Fixed
+
+### Changed
+
 ## [0.8.15] - 2026-01-21
 
 ### Added
