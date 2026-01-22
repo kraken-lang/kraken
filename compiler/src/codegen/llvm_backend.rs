@@ -3525,6 +3525,13 @@ impl LLVMCodegen {
                     ))
                 }
 
+                Expression::Try { expression } => {
+                    // Try operator should be desugared before codegen
+                    // For now, just codegen the inner expression
+                    // TODO: Implement proper desugaring before this stage
+                    self.codegen_expression(expression)
+                }
+
                 _ => Err(CompilerError::codegen_error("Unsupported expression type")),
             }
         }

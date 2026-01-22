@@ -384,6 +384,8 @@ impl Monomorphizer {
                 self.infer_expression(end, env)
             }
 
+            Expression::Try { expression } => self.infer_expression(expression, env),
+
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)
             | Expression::StringLiteral(_)
@@ -759,6 +761,7 @@ impl Monomorphizer {
         self.rewrite_statement_with_subst(stmt, &HashMap::new())
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn rewrite_statement_with_subst(
         &mut self,
         stmt: Statement,
@@ -1131,6 +1134,10 @@ impl Monomorphizer {
                 inclusive,
             }),
 
+            Expression::Try { expression } => Ok(Expression::Try {
+                expression: Box::new(self.rewrite_expression_with_subst(*expression, subst)?),
+            }),
+
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)
             | Expression::StringLiteral(_)
@@ -1200,6 +1207,7 @@ impl Monomorphizer {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn rewrite_pattern_with_subst(&mut self, pattern: Pattern, subst: &HashMap<String, Type>) -> Pattern {
         match pattern {
             Pattern::Tuple { patterns } => Pattern::Tuple {
@@ -1212,6 +1220,7 @@ impl Monomorphizer {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn bind_pattern_to_env(&self, pattern: &Pattern, ty: Type, env: &mut HashMap<String, Type>) {
         match pattern {
             Pattern::Identifier(name) => {
@@ -1518,6 +1527,8 @@ impl Monomorphizer {
                 self.scan_expression(end)?;
                 Ok(())
             }
+
+            Expression::Try { expression } => self.scan_expression(expression),
 
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)

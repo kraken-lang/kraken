@@ -1,0 +1,164 @@
+// Test file for ? operator (try operator) with Result and Option types
+// Tests error propagation and early return semantics
+
+// Define Result enum
+enum Result {
+    Ok(int),
+    Err(int),
+}
+
+// Define Option enum
+enum Option {
+    Some(int),
+    None,
+}
+
+// Helper function that returns Result
+fn divide(a: int, b: int) -> Result {
+    if (b == 0) {
+        Result::Err(1);
+    } else {
+        Result::Ok(a / b);
+    }
+}
+
+// Helper function that returns Option
+fn find_value(arr: [int], target: int) -> Option {
+    let i: int = 0;
+    while (i < 5) {
+        if (arr[i] == target) {
+            return Option::Some(i);
+        }
+        i = i + 1;
+    }
+    Option::None;
+}
+
+// Test 1: Basic Result propagation (manual for now, will use ? later)
+fn test_result_propagation() -> int {
+    let result: Result = divide(10, 2);
+    match (result) {
+        Result::Ok(value) -> {
+            puts("Test 1 passed: Result propagation");
+            value;
+        }
+        Result::Err(e) -> {
+            puts("Test 1 failed: Unexpected error");
+            -1;
+        }
+    }
+}
+
+// Test 2: Error case propagation (manual)
+fn test_error_propagation() -> int {
+    let result: Result = divide(10, 0);
+    match (result) {
+        Result::Ok(value) -> {
+            puts("Test 2 failed: Should have errored");
+            -1;
+        }
+        Result::Err(e) -> {
+            puts("Test 2 passed: Error propagated correctly");
+            e;
+        }
+    }
+}
+
+// Test 3: Option Some case (manual)
+fn test_option_some() -> int {
+    let arr: [int] = [1, 2, 3, 4, 5];
+    let result: Option = find_value(arr, 3);
+    match (result) {
+        Option::Some(index) -> {
+            puts("Test 3 passed: Found value at index");
+            print_int(index);
+            index;
+        }
+        Option::None -> {
+            puts("Test 3 failed: Should have found value");
+            -1;
+        }
+    }
+}
+
+// Test 4: Option None case (manual)
+fn test_option_none() -> int {
+    let arr: [int] = [1, 2, 3, 4, 5];
+    let result: Option = find_value(arr, 10);
+    match (result) {
+        Option::Some(index) -> {
+            puts("Test 4 failed: Should not have found value");
+            -1;
+        }
+        Option::None -> {
+            puts("Test 4 passed: None propagated correctly");
+            0;
+        }
+    }
+}
+
+// Test 5: Chained Result operations (manual)
+fn test_chained_results() -> Result {
+    let r1: Result = divide(20, 2);
+    match (r1) {
+        Result::Ok(v1) -> {
+            let r2: Result = divide(v1, 2);
+            match (r2) {
+                Result::Ok(v2) -> {
+                    puts("Test 5 passed: Chained results");
+                    print_int(v2);
+                    Result::Ok(v2);
+                }
+                Result::Err(e) -> {
+                    Result::Err(e);
+                }
+            }
+        }
+        Result::Err(e) -> {
+            Result::Err(e);
+        }
+    }
+}
+
+// Test 6: Mixed Result and Option (manual)
+fn test_mixed_types() -> int {
+    let arr: [int] = [10, 20, 30, 40, 50];
+    let opt: Option = find_value(arr, 30);
+    match (opt) {
+        Option::Some(index) -> {
+            let value: int = arr[index];
+            let result: Result = divide(value, 3);
+            match (result) {
+                Result::Ok(v) -> {
+                    puts("Test 6 passed: Mixed types");
+                    print_int(v);
+                    v;
+                }
+                Result::Err(e) -> {
+                    -1;
+                }
+            }
+        }
+        Option::None -> {
+            -1;
+        }
+    }
+}
+
+// Main test runner
+fn main() -> int {
+    puts("=== Try Operator Tests ===");
+    puts("");
+    
+    test_result_propagation();
+    test_error_propagation();
+    test_option_some();
+    test_option_none();
+    
+    let r: Result = test_chained_results();
+    test_mixed_types();
+    
+    puts("");
+    puts("=== All Tests Complete ===");
+    0;
+}

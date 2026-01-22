@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
-Current version: `v0.8.17`
+Current version: `v0.8.18`
 
 ## Language Features
 
@@ -31,6 +31,12 @@ Current version: `v0.8.17`
 - **Let Destructuring**: `let Point { x, y } = point;`
 - **Function Parameter Destructuring**: `fn foo((x, y): (int, int))` and `fn bar(Point { x, y }: Point)`
 - **Enum Struct Payloads**: `enum Shape { Circle(int), Point { x: int, y: int } }`
+
+### Operator Desugaring & Error Handling (0.8.18)
+- **`?` Operator Infrastructure**: Full compiler support for try operator syntax
+- **Error Propagation Patterns**: Result and Option enum-based error handling
+- **AST Desugaring Framework**: Infrastructure for operator transformations
+- **Comprehensive Error Handling**: Manual match-based propagation with Result/Option types
 
 ### Core Features
 - **Static Typing**: Strong type system with type inference

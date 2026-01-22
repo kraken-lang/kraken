@@ -2777,6 +2777,18 @@ impl TypeChecker {
                 // For now, we'll just validate them and return int (representing the iterator)
                 Ok(Type::Int)
             }
+
+            Expression::Try { expression } => {
+                // Type check the inner expression
+                let inner_type = self.check_expression(expression)?;
+                
+                // The ? operator works on Result<T, E> and Option<T>
+                // For Result<T, E>, it returns T and propagates E
+                // For Option<T>, it returns T and propagates None
+                // For now, we'll just return the inner type
+                // TODO: Implement proper Result/Option unwrapping after desugaring
+                Ok(inner_type)
+            }
         }
     }
 
@@ -3166,6 +3178,7 @@ impl TypeChecker {
     }
 
     /// Check if a pattern is effectively a wildcard (matches everything).
+    #[allow(clippy::only_used_in_recursion)]
     fn pattern_is_wildcard(&self, pattern: &Pattern) -> bool {
         match pattern {
             Pattern::Wildcard => true,
@@ -3197,6 +3210,7 @@ impl TypeChecker {
     }
 
     /// Collect which enum variants are covered by a pattern.
+    #[allow(clippy::only_used_in_recursion)]
     fn collect_covered_variants(&self, pattern: &Pattern, covered: &mut std::collections::HashSet<String>) {
         match pattern {
             Pattern::EnumVariant { variant_name, .. } => {

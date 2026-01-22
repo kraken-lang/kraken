@@ -717,6 +717,10 @@ fn rewrite_expression(expr: Expression, private_mangle: &HashMap<String, String>
             inclusive,
         },
 
+        Expression::Try { expression } => Expression::Try {
+            expression: Box::new(rewrite_expression(*expression, private_mangle)),
+        },
+
         Expression::IntLiteral(_)
         | Expression::FloatLiteral(_)
         | Expression::StringLiteral(_)

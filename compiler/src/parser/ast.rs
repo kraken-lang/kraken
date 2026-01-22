@@ -240,6 +240,11 @@ pub enum Expression {
         index: usize,
     },
 
+    /// Try expression: expr? (for Result/Option error propagation)
+    Try {
+        expression: Box<Expression>,
+    },
+
     /// Range expression: 0..10 or 0..=10
     Range {
         start: Box<Expression>,

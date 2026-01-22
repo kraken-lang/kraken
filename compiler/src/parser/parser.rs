@@ -1308,6 +1308,11 @@ impl Parser {
                 } else {
                     break;
                 }
+            } else if self.match_token(TokenKind::Question) {
+                // Try operator: expr?
+                expr = Expression::Try {
+                    expression: Box::new(expr),
+                };
             } else {
                 break;
             }

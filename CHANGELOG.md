@@ -13,6 +13,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.18] - 2026-01-22
+
+### Added
+- Added `Expression::Try` to AST for `?` operator support
+- Added `TokenKind::Question` for `?` token
+- Added parser support for `?` postfix operator in expression parsing
+- Added AST desugaring infrastructure (`AstDesugar` module in analyzer)
+- Added Try expression handling to type checker with Result/Option validation
+- Added Try expression handling to monomorphization (infer, rewrite, scan)
+- Added Try expression handling to modules/loader pattern rewriting
+- Added Try expression handling to IR lowering
+- Added Try expression handling to LLVM codegen
+- Created comprehensive error handling test suite (`try_operator_test.kr`)
+- Added support for Result and Option enum patterns with manual error propagation
+- Added desugaring pass integration points in compiler pipeline
+
+### Fixed
+- Fixed clippy `only_used_in_recursion` warnings by adding allow attributes to recursive helper functions
+
+### Changed
+- Updated lexer tokenizer to emit `TokenKind::Question` instead of `Operator::Question`
+
 ## [0.8.17] - 2026-01-22
 
 ### Added

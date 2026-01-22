@@ -50,6 +50,7 @@ pub enum TokenKind {
     Colon,        // :
     ColonColon,   // ::
     Arrow,        // ->
+    Question,     // ?
 
     // Special
     Eof,

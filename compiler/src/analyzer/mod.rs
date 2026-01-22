@@ -1,3 +1,4 @@
+pub mod desugar;
 pub mod monomorphization;
 pub mod type_checker;
 pub mod types;

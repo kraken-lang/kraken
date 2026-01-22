@@ -702,6 +702,13 @@ impl IrLowering {
                 Ok(IrValue::Register(dest))
             }
 
+            Expression::Try { expression } => {
+                // Try operator should be desugared before IR lowering
+                // For now, just lower the inner expression
+                // TODO: Implement proper desugaring before this stage
+                self.lower_expression(expression, ir_block)
+            }
+
             Expression::Range { start, end, inclusive: _ } => {
                 // Range expressions are only used in for-in loops
                 // They don't produce a value themselves, just validate the bounds
