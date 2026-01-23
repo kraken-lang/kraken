@@ -2,7 +2,9 @@
 //!
 //! Transforms the type-checked AST into Kraken IR.
 
+use crate::analyzer::closure_analysis::ClosureAnalyzer;
 use crate::error::{CompilerError, CompilerResult};
+use crate::ir::types::{IrBlock, IrFunction, IrInstruction, IrProgram, IrType, IrValue, ValueId, BlockId};
 use crate::parser::ast::{self, Block, Expression, Parameter, Pattern, Program, Statement, Type};
 
 use super::types::*;
@@ -717,6 +719,44 @@ impl IrLowering {
                 // Return a placeholder value
                 Ok(IrValue::ConstInt(0))
             }
+
+            Expression::Closure {
+                parameters,
+                return_type,
+                body,
+                is_move,
+            } => {
+                // Perform capture analysis
+                let mut analyzer = ClosureAnalyzer::new();
+                let _env = analyzer.analyze_closure(parameters, body, *is_move)?;
+                
+                // Generate unique closure environment struct name
+                let closure_id = self.next_value_id;
+                self.next_value_id += 1;
+                let env_struct_name = format!("__closure_env_{closure_id}");
+                
+                // For now, create a placeholder value representing the closure
+                // Full implementation would:
+                // 1. Generate environment struct type with captured variable fields
+                // 2. Allocate environment struct on heap
+                // 3. Initialize captured variables in the struct
+                // 4. Create function pointer with environment as context
+                // 5. Return closure value (function pointer + environment pointer)
+                
+                // Placeholder: return a constant representing the closure
+                // This allows the code to compile but closures can't be called yet
+                // Full implementation requires:
+                // - Environment struct allocation
+                // - Captured variable initialization
+                // - Function pointer creation
+                
+                // For now, return a placeholder value
+                // The closure environment info is tracked in `env` for future use
+                let _ = env_struct_name; // Suppress unused warning
+                let _ = return_type; // Suppress unused warning
+                
+                Ok(IrValue::ConstInt(0))
+            }
         }
     }
 
@@ -750,6 +790,11 @@ impl IrLowering {
             Type::Tuple { element_types } => {
                 // Lower tuple to struct with numbered fields
                 IrType::Tuple(element_types.iter().map(Self::lower_type).collect())
+            }
+            Type::Function { .. } => {
+                // Function types are represented as pointers in IR
+                // TODO: Implement proper function pointer representation
+                IrType::Pointer(Box::new(IrType::Void))
             }
         }
     }

@@ -1,0 +1,114 @@
+// Higher-Order Functions Test
+// Tests functions that accept closures as parameters
+
+fn apply(x: int, f: fn(int) -> int) -> int {
+    return f(x);
+}
+
+fn apply_twice(x: int, f: fn(int) -> int) -> int {
+    return f(f(x));
+}
+
+fn compose(f: fn(int) -> int, g: fn(int) -> int) -> fn(int) -> int {
+    return |x| f(g(x));
+}
+
+fn map_array(arr: [int], f: fn(int) -> int) -> [int] {
+    let result: [int] = [];
+    for (i in arr) {
+        result.push(f(i));
+    }
+    return result;
+}
+
+fn filter_array(arr: [int], predicate: fn(int) -> bool) -> [int] {
+    let result: [int] = [];
+    for (i in arr) {
+        if (predicate(i)) {
+            result.push(i);
+        }
+    }
+    return result;
+}
+
+fn reduce_array(arr: [int], initial: int, reducer: fn(int, int) -> int) -> int {
+    let acc = initial;
+    for (i in arr) {
+        acc = reducer(acc, i);
+    }
+    return acc;
+}
+
+fn test_apply() {
+    let double = |x: int| -> int { return x * 2; };
+    let result = apply(5, double);
+    // result should be 10
+}
+
+fn test_apply_twice() {
+    let increment = |x: int| -> int { return x + 1; };
+    let result = apply_twice(5, increment);
+    // result should be 7
+}
+
+fn test_compose() {
+    let double = |x: int| -> int { return x * 2; };
+    let increment = |x: int| -> int { return x + 1; };
+    let composed = compose(double, increment);
+    let result = composed(5);
+    // result should be 12 (5 + 1 = 6, 6 * 2 = 12)
+}
+
+fn test_map() {
+    let arr = [1, 2, 3, 4, 5];
+    let doubled = map_array(arr, |x| x * 2);
+    // doubled should be [2, 4, 6, 8, 10]
+}
+
+fn test_filter() {
+    let arr = [1, 2, 3, 4, 5, 6];
+    let evens = filter_array(arr, |x| x % 2 == 0);
+    // evens should be [2, 4, 6]
+}
+
+fn test_reduce() {
+    let arr = [1, 2, 3, 4, 5];
+    let sum = reduce_array(arr, 0, |acc, x| acc + x);
+    // sum should be 15
+}
+
+fn test_inline_closures() {
+    let result1 = apply(10, |x| x * 3);
+    // result1 should be 30
+    
+    let result2 = apply_twice(5, |x| x + 2);
+    // result2 should be 9
+}
+
+fn test_closure_with_captures() {
+    let multiplier = 3;
+    let result = apply(5, |x| x * multiplier);
+    // result should be 15
+}
+
+fn test_multiple_closures() {
+    let add = |x: int, y: int| -> int { return x + y; };
+    let multiply = |x: int, y: int| -> int { return x * y; };
+    
+    // Can pass different closures to same function
+    let arr = [1, 2, 3];
+    let sums = map_array(arr, |x| x + 10);
+    let products = map_array(arr, |x| x * 10);
+}
+
+fn main() {
+    test_apply();
+    test_apply_twice();
+    test_compose();
+    test_map();
+    test_filter();
+    test_reduce();
+    test_inline_closures();
+    test_closure_with_captures();
+    test_multiple_closures();
+}

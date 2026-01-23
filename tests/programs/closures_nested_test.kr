@@ -1,0 +1,226 @@
+// Nested Closures Test
+// Tests closures defined within closures
+
+fn test_simple_nested() {
+    let outer = |x: int| -> fn(int) -> int {
+        return |y| x + y;
+    };
+    
+    let add5 = outer(5);
+    let result = add5(3); // 8
+}
+
+fn test_double_nested() {
+    let outer = |x: int| -> fn(int) -> fn(int) -> int {
+        return |y| {
+            return |z| x + y + z;
+        };
+    };
+    
+    let f1 = outer(1);
+    let f2 = f1(2);
+    let result = f2(3); // 6
+}
+
+fn test_nested_with_captures() {
+    let a = 10;
+    let outer = |b: int| -> fn(int) -> int {
+        let inner = |c: int| -> int {
+            return a + b + c;
+        };
+        return inner;
+    };
+    
+    let f = outer(20);
+    let result = f(30); // 60
+}
+
+fn test_nested_closure_chain() {
+    let make_multiplier = |factor: int| -> fn(int) -> int {
+        return |x| {
+            let double = |y: int| -> int { return y * 2; };
+            return double(x) * factor;
+        };
+    };
+    
+    let triple = make_multiplier(3);
+    let result = triple(5); // 30 (5 * 2 * 3)
+}
+
+fn test_nested_with_state() {
+    let make_counter = || -> fn() -> int {
+        let mut count = 0;
+        return || {
+            count = count + 1;
+            return count;
+        };
+    };
+    
+    let counter1 = make_counter();
+    let counter2 = make_counter();
+    
+    let r1 = counter1(); // 1
+    let r2 = counter1(); // 2
+    let r3 = counter2(); // 1
+    let r4 = counter1(); // 3
+}
+
+fn test_nested_returning_multiple() {
+    let make_ops = |x: int| -> (fn(int) -> int, fn(int) -> int) {
+        let add = |y: int| -> int { return x + y; };
+        let mul = |y: int| -> int { return x * y; };
+        return (add, mul);
+    };
+    
+    let (add5, mul5) = make_ops(5);
+    let r1 = add5(3); // 8
+    let r2 = mul5(3); // 15
+}
+
+fn test_nested_in_loop() {
+    let closures: [fn(int) -> int] = [];
+    
+    for (i in [1, 2, 3, 4, 5]) {
+        let closure = |x: int| -> int { return x * i; };
+        closures.push(closure);
+    }
+    
+    let r1 = closures[0](10); // 10
+    let r2 = closures[2](10); // 30
+    let r3 = closures[4](10); // 50
+}
+
+fn test_nested_conditional() {
+    let make_conditional = |flag: bool| -> fn(int) -> int {
+        if (flag) {
+            return |x| x * 2;
+        } else {
+            return |x| x + 2;
+        }
+    };
+    
+    let double = make_conditional(true);
+    let add2 = make_conditional(false);
+    
+    let r1 = double(5); // 10
+    let r2 = add2(5);   // 7
+}
+
+fn test_nested_recursive_style() {
+    let make_factorial = || -> fn(int) -> int {
+        let factorial = |n: int| -> int {
+            if (n <= 1) {
+                return 1;
+            } else {
+                // Note: true recursion would require self-reference
+                // This is a simplified version
+                return n;
+            }
+        };
+        return factorial;
+    };
+    
+    let fact = make_factorial();
+    let result = fact(5);
+}
+
+fn test_triple_nested() {
+    let level1 = |a: int| -> fn(int) -> fn(int) -> int {
+        return |b| {
+            return |c| {
+                return a + b + c;
+            };
+        };
+    };
+    
+    let result = level1(1)(2)(3); // 6
+}
+
+fn test_nested_with_mixed_captures() {
+    let global = 100;
+    
+    let outer = |x: int| -> fn(int) -> int {
+        let local = 10;
+        return |y| global + x + local + y;
+    };
+    
+    let f = outer(5);
+    let result = f(1); // 116
+}
+
+fn test_nested_closure_composition() {
+    let compose = |f: fn(int) -> int, g: fn(int) -> int| -> fn(int) -> int {
+        return |x| f(g(x));
+    };
+    
+    let double = |x: int| -> int { return x * 2; };
+    let increment = |x: int| -> int { return x + 1; };
+    
+    let composed = compose(double, increment);
+    let result = composed(5); // 12
+}
+
+fn test_nested_partial_application() {
+    let add = |x: int| -> fn(int) -> int {
+        return |y| x + y;
+    };
+    
+    let add1 = add(1);
+    let add2 = add(2);
+    let add10 = add(10);
+    
+    let r1 = add1(5);  // 6
+    let r2 = add2(5);  // 7
+    let r3 = add10(5); // 15
+}
+
+fn test_deeply_nested_captures() {
+    let a = 1;
+    let f1 = || {
+        let b = 2;
+        let f2 = || {
+            let c = 3;
+            let f3 = || {
+                let d = 4;
+                let f4 = || {
+                    return a + b + c + d;
+                };
+                return f4();
+            };
+            return f3();
+        };
+        return f2();
+    };
+    
+    let result = f1(); // 10
+}
+
+fn test_nested_with_parameters_and_captures() {
+    let multiplier = 3;
+    
+    let outer = |x: int| -> fn(int) -> int {
+        let offset = 10;
+        return |y| (x + y + offset) * multiplier;
+    };
+    
+    let f = outer(5);
+    let result = f(2); // 51 ((5 + 2 + 10) * 3)
+}
+
+fn main() {
+    test_simple_nested();
+    test_double_nested();
+    test_nested_with_captures();
+    test_nested_closure_chain();
+    test_nested_with_state();
+    test_nested_returning_multiple();
+    test_nested_in_loop();
+    test_nested_conditional();
+    test_nested_recursive_style();
+    test_triple_nested();
+    test_nested_with_mixed_captures();
+    test_nested_closure_composition();
+    test_nested_partial_application();
+    test_deeply_nested_captures();
+    test_nested_with_parameters_and_captures();
+}

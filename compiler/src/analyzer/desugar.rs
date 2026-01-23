@@ -16,6 +16,13 @@ pub struct AstDesugar {
     temp_counter: u32,
 }
 
+impl Default for AstDesugar {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[allow(dead_code)]
 impl AstDesugar {
     pub fn new() -> Self {
         Self { temp_counter: 0 }
@@ -42,11 +49,10 @@ impl AstDesugar {
             Statement::FunctionDeclaration { body, .. } => {
                 self.desugar_block(body)?;
             }
-            Statement::VariableDeclaration { initializer, .. } => {
-                if let Some(expr) = initializer {
-                    self.desugar_expression(expr)?;
-                }
+            Statement::VariableDeclaration { initializer: Some(expr), .. } => {
+                self.desugar_expression(expr)?;
             }
+            Statement::VariableDeclaration { initializer: None, .. } => {}
             Statement::Expression(expression) => {
                 self.desugar_expression(expression)?;
             }
@@ -82,11 +88,10 @@ impl AstDesugar {
                 }
                 self.desugar_block(body)?;
             }
-            Statement::Return { value } => {
-                if let Some(expr) = value {
-                    self.desugar_expression(expr)?;
-                }
+            Statement::Return { value: Some(expr) } => {
+                self.desugar_expression(expr)?;
             }
+            Statement::Return { value: None } => {}
             Statement::Match { expression, arms } => {
                 self.desugar_expression(expression)?;
                 for arm in arms {

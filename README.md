@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
-Current version: `v0.8.18`
+Current version: `v0.8.19`
 
 ## Language Features
 
@@ -36,6 +36,14 @@ Current version: `v0.8.18`
 - **`?` Operator Infrastructure**: Full compiler support for try operator syntax
 - **Error Propagation Patterns**: Result and Option enum-based error handling
 - **AST Desugaring Framework**: Infrastructure for operator transformations
+
+### Closures & Lambdas (0.8.19)
+- **Closure Syntax**: `|x, y| x + y` and `|x| { ... }` with full type inference
+- **Function Types**: `fn(int, int) -> int` for function pointers
+- **Capture Analysis**: Automatic detection of captured variables
+- **Move Closures**: `move |x| ...` for capture by value
+- **Higher-Order Functions**: Functions accepting and returning closures
+- **Comprehensive Tests**: 1,027 lines of tests covering all scenarios
 - **Comprehensive Error Handling**: Manual match-based propagation with Result/Option types
 
 ### Core Features

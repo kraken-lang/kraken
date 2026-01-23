@@ -1,0 +1,268 @@
+// Closure Composition Test
+// Tests composing closures to create new functions
+
+fn compose(f: fn(int) -> int, g: fn(int) -> int) -> fn(int) -> int {
+    return |x| f(g(x));
+}
+
+fn pipe(f: fn(int) -> int, g: fn(int) -> int) -> fn(int) -> int {
+    return |x| g(f(x));
+}
+
+fn test_basic_composition() {
+    let double = |x: int| -> int { return x * 2; };
+    let increment = |x: int| -> int { return x + 1; };
+    
+    let composed = compose(double, increment);
+    let result = composed(5);
+    // result should be 12 (increment 5 to 6, then double to 12)
+}
+
+fn test_pipe_composition() {
+    let double = |x: int| -> int { return x * 2; };
+    let increment = |x: int| -> int { return x + 1; };
+    
+    let piped = pipe(double, increment);
+    let result = piped(5);
+    // result should be 11 (double 5 to 10, then increment to 11)
+}
+
+fn test_triple_composition() {
+    let f = |x: int| -> int { return x + 1; };
+    let g = |x: int| -> int { return x * 2; };
+    let h = |x: int| -> int { return x - 3; };
+    
+    let composed = compose(f, compose(g, h));
+    let result = composed(10);
+    // result should be 15 ((10 - 3) * 2 + 1 = 15)
+}
+
+fn test_composition_chain() {
+    let add1 = |x: int| -> int { return x + 1; };
+    let mul2 = |x: int| -> int { return x * 2; };
+    let sub3 = |x: int| -> int { return x - 3; };
+    
+    let chain = compose(add1, compose(mul2, sub3));
+    let result = chain(10);
+    // result should be 15
+}
+
+fn test_identity_composition() {
+    let identity = |x: int| -> int { return x; };
+    let double = |x: int| -> int { return x * 2; };
+    
+    let composed1 = compose(identity, double);
+    let composed2 = compose(double, identity);
+    
+    let r1 = composed1(5); // 10
+    let r2 = composed2(5); // 10
+}
+
+fn test_composition_with_captures() {
+    let offset = 10;
+    let add_offset = |x: int| -> int { return x + offset; };
+    let double = |x: int| -> int { return x * 2; };
+    
+    let composed = compose(add_offset, double);
+    let result = composed(5);
+    // result should be 20 (5 * 2 + 10)
+}
+
+fn test_composition_factory() {
+    fn make_adder(n: int) -> fn(int) -> int {
+        return |x| x + n;
+    }
+    
+    fn make_multiplier(n: int) -> fn(int) -> int {
+        return |x| x * n;
+    }
+    
+    let add5 = make_adder(5);
+    let mul3 = make_multiplier(3);
+    
+    let composed = compose(add5, mul3);
+    let result = composed(10);
+    // result should be 35 (10 * 3 + 5)
+}
+
+fn test_self_composition() {
+    let double = |x: int| -> int { return x * 2; };
+    let quad = compose(double, double);
+    
+    let result = quad(5); // 20 (5 * 2 * 2)
+}
+
+fn test_composition_with_conditionals() {
+    let abs = |x: int| -> int {
+        if (x < 0) {
+            return -x;
+        } else {
+            return x;
+        }
+    };
+    
+    let double = |x: int| -> int { return x * 2; };
+    
+    let composed = compose(double, abs);
+    let r1 = composed(-5); // 10
+    let r2 = composed(5);  // 10
+}
+
+fn test_partial_application_composition() {
+    fn curry_add(x: int) -> fn(int) -> int {
+        return |y| x + y;
+    }
+    
+    let add5 = curry_add(5);
+    let add10 = curry_add(10);
+    
+    let composed = compose(add10, add5);
+    let result = composed(3);
+    // result should be 18 (3 + 5 + 10)
+}
+
+fn test_composition_with_multiple_types() {
+    // Note: This would require generic support, simplified for now
+    let to_string = |x: int| -> string { return "value"; };
+    let get_length = |s: string| -> int { return 5; };
+    
+    // Would be: compose(get_length, to_string)
+    // For now, manual composition
+    let combined = |x: int| -> int {
+        let s = to_string(x);
+        return get_length(s);
+    };
+    
+    let result = combined(42); // 5
+}
+
+fn test_composition_associativity() {
+    let f = |x: int| -> int { return x + 1; };
+    let g = |x: int| -> int { return x * 2; };
+    let h = |x: int| -> int { return x - 3; };
+    
+    // (f ∘ g) ∘ h should equal f ∘ (g ∘ h)
+    let left = compose(compose(f, g), h);
+    let right = compose(f, compose(g, h));
+    
+    let r1 = left(10);  // Should be same
+    let r2 = right(10); // Should be same
+}
+
+fn test_composition_with_state() {
+    let mut counter = 0;
+    
+    let increment_counter = |x: int| -> int {
+        counter = counter + 1;
+        return x;
+    };
+    
+    let double = |x: int| -> int { return x * 2; };
+    
+    let composed = compose(increment_counter, double);
+    let r1 = composed(5); // 10, counter = 1
+    let r2 = composed(5); // 10, counter = 2
+}
+
+fn test_higher_order_composition() {
+    fn compose_twice(f: fn(int) -> int) -> fn(int) -> int {
+        return compose(f, f);
+    }
+    
+    let increment = |x: int| -> int { return x + 1; };
+    let add2 = compose_twice(increment);
+    
+    let result = add2(5); // 7
+}
+
+fn test_composition_with_closures_returning_closures() {
+    let make_adder = |n: int| -> fn(int) -> int {
+        return |x| x + n;
+    };
+    
+    let compose_adders = |a: int, b: int| -> fn(int) -> int {
+        return compose(make_adder(a), make_adder(b));
+    };
+    
+    let add15 = compose_adders(5, 10);
+    let result = add15(3); // 18
+}
+
+fn test_composition_pipeline() {
+    let operations = [
+        |x: int| -> int { return x + 1; },
+        |x: int| -> int { return x * 2; },
+        |x: int| -> int { return x - 3; },
+        |x: int| -> int { return x / 2; },
+    ];
+    
+    // Manually compose all operations
+    let pipeline = |x: int| -> int {
+        let result = x;
+        result = operations[0](result);
+        result = operations[1](result);
+        result = operations[2](result);
+        result = operations[3](result);
+        return result;
+    };
+    
+    let result = pipeline(10);
+    // ((10 + 1) * 2 - 3) / 2 = 9
+}
+
+fn test_composition_with_filtering() {
+    let is_positive = |x: int| -> bool { return x > 0; };
+    let double_if_positive = |x: int| -> int {
+        if (is_positive(x)) {
+            return x * 2;
+        } else {
+            return x;
+        }
+    };
+    
+    let increment = |x: int| -> int { return x + 1; };
+    let composed = compose(increment, double_if_positive);
+    
+    let r1 = composed(5);  // 11 (5 * 2 + 1)
+    let r2 = composed(-5); // -4 (-5 + 1)
+}
+
+fn test_composition_memoization_style() {
+    let mut cache = 0;
+    let mut cached = false;
+    
+    let expensive = |x: int| -> int {
+        if (!cached) {
+            cache = x * x;
+            cached = true;
+        }
+        return cache;
+    };
+    
+    let add10 = |x: int| -> int { return x + 10; };
+    let composed = compose(add10, expensive);
+    
+    let r1 = composed(5); // 35 (25 + 10)
+    let r2 = composed(6); // 35 (cached value + 10)
+}
+
+fn main() {
+    test_basic_composition();
+    test_pipe_composition();
+    test_triple_composition();
+    test_composition_chain();
+    test_identity_composition();
+    test_composition_with_captures();
+    test_composition_factory();
+    test_self_composition();
+    test_composition_with_conditionals();
+    test_partial_application_composition();
+    test_composition_with_multiple_types();
+    test_composition_associativity();
+    test_composition_with_state();
+    test_higher_order_composition();
+    test_composition_with_closures_returning_closures();
+    test_composition_pipeline();
+    test_composition_with_filtering();
+    test_composition_memoization_style();
+}

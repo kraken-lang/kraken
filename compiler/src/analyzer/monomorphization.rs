@@ -1,5 +1,5 @@
 use crate::error::{CompilerError, CompilerResult, SourceLocation};
-use crate::parser::ast::{Block, EnumVariantPayload, Expression, Pattern, Program, Statement, Type, WhereConstraint};
+use crate::parser::ast::{Block, ClosureBody, EnumVariantPayload, Expression, Parameter, Pattern, Program, Statement, Type, WhereConstraint};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
 
@@ -38,6 +38,19 @@ fn type_mangle_part(ty: &Type) -> String {
                 out.push_str("__");
                 out.push_str(&type_mangle_part(elem_ty));
             }
+            out
+        }
+        Type::Function {
+            param_types,
+            return_type,
+        } => {
+            let mut out = "fn".to_string();
+            for param_ty in param_types {
+                out.push_str("__");
+                out.push_str(&type_mangle_part(param_ty));
+            }
+            out.push_str("__ret_");
+            out.push_str(&type_mangle_part(return_type));
             out
         }
     }
@@ -385,6 +398,19 @@ impl Monomorphizer {
             }
 
             Expression::Try { expression } => self.infer_expression(expression, env),
+
+            Expression::Closure { parameters: _, return_type: _, body, is_move: _ } => {
+                // Type check closure body
+                match body {
+                    ClosureBody::Expression(expr) => self.infer_expression(expr, env),
+                    ClosureBody::Block(block) => {
+                        for stmt in &mut block.statements {
+                            self.infer_statement(stmt, env)?;
+                        }
+                        Ok(())
+                    }
+                }
+            }
 
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)
@@ -1138,6 +1164,43 @@ impl Monomorphizer {
                 expression: Box::new(self.rewrite_expression_with_subst(*expression, subst)?),
             }),
 
+            Expression::Closure {
+                parameters,
+                return_type,
+                body,
+                is_move,
+            } => {
+                // Rewrite parameter types
+                let rewritten_params = parameters
+                    .into_iter()
+                    .map(|p| Parameter {
+                        pattern: p.pattern,
+                        param_type: self.rewrite_type_with_subst(p.param_type, subst),
+                        is_reference: p.is_reference,
+                    })
+                    .collect();
+
+                // Rewrite return type
+                let rewritten_return = return_type.map(|t| self.rewrite_type_with_subst(t, subst));
+
+                // Rewrite body
+                let rewritten_body = match body {
+                    ClosureBody::Expression(expr) => {
+                        ClosureBody::Expression(Box::new(self.rewrite_expression_with_subst(*expr, subst)?))
+                    }
+                    ClosureBody::Block(block) => {
+                        ClosureBody::Block(self.rewrite_block_with_subst(block, subst)?)
+                    }
+                };
+
+                Ok(Expression::Closure {
+                    parameters: rewritten_params,
+                    return_type: rewritten_return,
+                    body: rewritten_body,
+                    is_move,
+                })
+            }
+
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)
             | Expression::StringLiteral(_)
@@ -1201,6 +1264,17 @@ impl Monomorphizer {
                     .into_iter()
                     .map(|t| self.rewrite_type_with_subst(t, subst))
                     .collect(),
+            },
+
+            Type::Function {
+                param_types,
+                return_type,
+            } => Type::Function {
+                param_types: param_types
+                    .into_iter()
+                    .map(|t| self.rewrite_type_with_subst(t, subst))
+                    .collect(),
+                return_type: Box::new(self.rewrite_type_with_subst(*return_type, subst)),
             },
 
             other => other,
@@ -1530,6 +1604,13 @@ impl Monomorphizer {
 
             Expression::Try { expression } => self.scan_expression(expression),
 
+            Expression::Closure { parameters: _, return_type: _, body, is_move: _ } => {
+                match body {
+                    ClosureBody::Expression(expr) => self.scan_expression(expr),
+                    ClosureBody::Block(block) => self.scan_block(block),
+                }
+            }
+
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)
             | Expression::StringLiteral(_)
@@ -1568,6 +1649,16 @@ impl Monomorphizer {
                 for elem_ty in element_types {
                     self.scan_type(elem_ty)?;
                 }
+                Ok(())
+            }
+            Type::Function {
+                param_types,
+                return_type,
+            } => {
+                for param_ty in param_types {
+                    self.scan_type(param_ty)?;
+                }
+                self.scan_type(return_type)?;
                 Ok(())
             }
             _ => Ok(()),

@@ -51,6 +51,7 @@ pub enum TokenKind {
     ColonColon,   // ::
     Arrow,        // ->
     Question,     // ?
+    Pipe,         // |
 
     // Special
     Eof,
@@ -103,6 +104,7 @@ pub enum Keyword {
     Spawn,
     Ref,
     Mut,
+    Move,
 
     // Special
     True,
@@ -169,6 +171,7 @@ impl Keyword {
             "spawn" => Some(Self::Spawn),
             "ref" => Some(Self::Ref),
             "mut" => Some(Self::Mut),
+            "move" => Some(Self::Move),
             "true" => Some(Self::True),
             "false" => Some(Self::False),
             "null" => Some(Self::Null),
@@ -229,6 +232,7 @@ impl Keyword {
             Self::Spawn => "spawn",
             Self::Ref => "ref",
             Self::Mut => "mut",
+            Self::Move => "move",
             Self::True => "true",
             Self::False => "false",
             Self::Null => "null",
@@ -297,7 +301,8 @@ pub enum Operator {
     PercentAssign, // %=
 
     // Other
-    Question,  // ?
+    #[allow(dead_code)]
+    Question,  // ? (for future ? operator desugaring)
     Ampersand, // & (also used for references)
     DotDot,    // .. (range)
     DotDotEqual, // ..= (inclusive range)

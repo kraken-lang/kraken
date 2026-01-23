@@ -1,0 +1,311 @@
+// Closure Edge Cases Test
+// Tests edge cases, boundary conditions, and unusual scenarios
+
+fn test_empty_closure() {
+    let empty = || {};
+    empty();
+    // Should compile and run without error
+}
+
+fn test_empty_closure_with_return() {
+    let empty = || -> int { return 0; };
+    let result = empty(); // 0
+}
+
+fn test_no_parameters_no_captures() {
+    let constant = || 42;
+    let result = constant(); // 42
+}
+
+fn test_no_parameters_with_captures() {
+    let x = 10;
+    let y = 20;
+    let sum = || x + y;
+    let result = sum(); // 30
+}
+
+fn test_all_captures_no_parameters() {
+    let a = 1;
+    let b = 2;
+    let c = 3;
+    let d = 4;
+    let e = 5;
+    let sum_all = || a + b + c + d + e;
+    let result = sum_all(); // 15
+}
+
+fn test_single_parameter_no_captures() {
+    let identity = |x: int| -> int { return x; };
+    let result = identity(42); // 42
+}
+
+fn test_many_parameters_no_captures() {
+    let sum5 = |a: int, b: int, c: int, d: int, e: int| -> int {
+        return a + b + c + d + e;
+    };
+    let result = sum5(1, 2, 3, 4, 5); // 15
+}
+
+fn test_many_parameters_many_captures() {
+    let x1 = 1;
+    let x2 = 2;
+    let x3 = 3;
+    
+    let complex = |a: int, b: int, c: int| -> int {
+        return x1 + x2 + x3 + a + b + c;
+    };
+    
+    let result = complex(4, 5, 6); // 21
+}
+
+fn test_closure_returning_void() {
+    let mut side_effect = 0;
+    let do_something = || {
+        side_effect = side_effect + 1;
+    };
+    
+    do_something();
+    do_something();
+    do_something();
+    // side_effect should be 3
+}
+
+fn test_closure_with_early_return() {
+    let check = |x: int| -> int {
+        if (x < 0) {
+            return 0;
+        }
+        return x;
+    };
+    
+    let r1 = check(-5); // 0
+    let r2 = check(10); // 10
+}
+
+fn test_closure_with_multiple_returns() {
+    let classify = |x: int| -> string {
+        if (x < 0) {
+            return "negative";
+        } else if (x == 0) {
+            return "zero";
+        } else {
+            return "positive";
+        }
+    };
+    
+    let r1 = classify(-5);  // "negative"
+    let r2 = classify(0);   // "zero"
+    let r3 = classify(10);  // "positive"
+}
+
+fn test_closure_immediately_invoked() {
+    let result = (|x: int| -> int { return x * 2; })(21);
+    // result should be 42
+}
+
+fn test_closure_in_expression() {
+    let x = 10;
+    let result = x + (|y: int| -> int { return y * 2; })(5);
+    // result should be 20 (10 + 10)
+}
+
+fn test_closure_as_struct_field() {
+    struct Container {
+        f: fn(int) -> int,
+    }
+    
+    let c = Container {
+        f: |x| x * 2,
+    };
+    
+    let result = c.f(21); // 42
+}
+
+fn test_closure_in_tuple() {
+    let t = (|x: int| -> int { return x + 1; }, |x: int| -> int { return x * 2; });
+    let r1 = t.0(5); // 6
+    let r2 = t.1(5); // 10
+}
+
+fn test_closure_with_complex_body() {
+    let complex = |x: int| -> int {
+        let a = x * 2;
+        let b = a + 10;
+        let c = b / 2;
+        
+        if (c > 10) {
+            let d = c - 5;
+            return d;
+        } else {
+            return c;
+        }
+    };
+    
+    let result = complex(10); // 10
+}
+
+fn test_closure_capturing_closure() {
+    let inner = |x: int| -> int { return x * 2; };
+    let outer = |y: int| -> int { return inner(y) + 1; };
+    
+    let result = outer(5); // 11
+}
+
+fn test_move_closure_empty() {
+    let empty = move || {};
+    empty();
+}
+
+fn test_move_closure_no_captures() {
+    let f = move |x: int| -> int { return x * 2; };
+    let result = f(21); // 42
+}
+
+fn test_move_closure_with_captures() {
+    let x = 10;
+    let y = 20;
+    let f = move || x + y;
+    let result = f(); // 30
+}
+
+fn test_closure_with_same_param_and_capture_names() {
+    let x = 10;
+    // Parameter x shadows captured x
+    let f = |x: int| -> int { return x * 2; };
+    let result = f(5); // 10, not 20
+}
+
+fn test_closure_capturing_literal() {
+    // Literals don't need capture, but test anyway
+    let f = || 42;
+    let result = f(); // 42
+}
+
+fn test_closure_with_string_operations() {
+    let prefix = "Hello";
+    let suffix = "World";
+    let concat = || prefix + ", " + suffix + "!";
+    let result = concat(); // "Hello, World!"
+}
+
+fn test_closure_with_array_operations() {
+    let arr = [1, 2, 3, 4, 5];
+    let sum = || {
+        let total = 0;
+        for (i in arr) {
+            total = total + i;
+        }
+        return total;
+    };
+    let result = sum(); // 15
+}
+
+fn test_closure_with_nested_blocks() {
+    let x = 10;
+    let f = || {
+        {
+            {
+                return x;
+            }
+        }
+    };
+    let result = f(); // 10
+}
+
+fn test_closure_with_break_continue() {
+    let arr = [1, 2, 3, 4, 5];
+    let find_even = || {
+        for (i in arr) {
+            if (i % 2 == 0) {
+                return i;
+            }
+        }
+        return -1;
+    };
+    let result = find_even(); // 2
+}
+
+fn test_closure_with_match() {
+    let x = 5;
+    let classify = |y: int| -> string {
+        match (y) {
+            0 => "zero",
+            1 => "one",
+            _ => "other",
+        }
+    };
+    
+    let r1 = classify(0); // "zero"
+    let r2 = classify(1); // "one"
+    let r3 = classify(5); // "other"
+}
+
+fn test_closure_with_type_annotations() {
+    let f: fn(int) -> int = |x: int| -> int { return x * 2; };
+    let result = f(21); // 42
+}
+
+fn test_closure_assigned_to_variable() {
+    let x = 10;
+    let f = |y: int| -> int { return x + y; };
+    let g = f;
+    let result = g(5); // 15
+}
+
+fn test_closure_passed_and_returned() {
+    fn process(f: fn(int) -> int, x: int) -> int {
+        return f(x);
+    }
+    
+    let double = |x: int| -> int { return x * 2; };
+    let result = process(double, 21); // 42
+}
+
+fn test_zero_sized_closure() {
+    // Closure with no captures and no parameters
+    let f = || {};
+    f();
+}
+
+fn test_large_capture_list() {
+    let v1 = 1; let v2 = 2; let v3 = 3; let v4 = 4; let v5 = 5;
+    let v6 = 6; let v7 = 7; let v8 = 8; let v9 = 9; let v10 = 10;
+    
+    let sum_all = || v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8 + v9 + v10;
+    let result = sum_all(); // 55
+}
+
+fn main() {
+    test_empty_closure();
+    test_empty_closure_with_return();
+    test_no_parameters_no_captures();
+    test_no_parameters_with_captures();
+    test_all_captures_no_parameters();
+    test_single_parameter_no_captures();
+    test_many_parameters_no_captures();
+    test_many_parameters_many_captures();
+    test_closure_returning_void();
+    test_closure_with_early_return();
+    test_closure_with_multiple_returns();
+    test_closure_immediately_invoked();
+    test_closure_in_expression();
+    test_closure_as_struct_field();
+    test_closure_in_tuple();
+    test_closure_with_complex_body();
+    test_closure_capturing_closure();
+    test_move_closure_empty();
+    test_move_closure_no_captures();
+    test_move_closure_with_captures();
+    test_closure_with_same_param_and_capture_names();
+    test_closure_capturing_literal();
+    test_closure_with_string_operations();
+    test_closure_with_array_operations();
+    test_closure_with_nested_blocks();
+    test_closure_with_break_continue();
+    test_closure_with_match();
+    test_closure_with_type_annotations();
+    test_closure_assigned_to_variable();
+    test_closure_passed_and_returned();
+    test_zero_sized_closure();
+    test_large_capture_list();
+}

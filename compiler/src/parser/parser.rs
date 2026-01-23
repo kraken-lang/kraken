@@ -1,6 +1,6 @@
 use crate::parser::ast::{
     Block, Expression, FunctionSignature, MatchArm, Parameter, Pattern, Program, Statement,
-    StructField, Type, WhereConstraint, EnumVariantPayload,
+    StructField, Type, WhereConstraint, EnumVariantPayload, ClosureBody,
 };
 use crate::{
     error::{CompilerError, CompilerResult, SourceLocation},
@@ -1403,6 +1403,14 @@ impl Parser {
                 self.expect_token(TokenKind::RightBracket)?;
                 Ok(Expression::Array { elements })
             }
+            TokenKind::Pipe => {
+                // Closure: |params| expr or |params| { block }
+                self.parse_closure()
+            }
+            TokenKind::Keyword(Keyword::Move) => {
+                // Move closure: move |params| expr
+                self.parse_closure()
+            }
             _ => Err(self.error("Expected expression")),
         }
     }
@@ -1422,6 +1430,71 @@ impl Parser {
         }
 
         Ok(arguments)
+    }
+
+    /// Parse closure expression: |params| expr or move |params| { block }
+    fn parse_closure(&mut self) -> CompilerResult<Expression> {
+        // Check for move keyword
+        let is_move = self.match_keyword(Keyword::Move);
+
+        // Expect opening pipe
+        self.expect_token(TokenKind::Pipe)?;
+
+        // Parse parameters
+        let mut parameters = Vec::new();
+        if !self.check_token(TokenKind::Pipe) {
+            loop {
+                // Parse parameter pattern (identifier for now, can be extended)
+                let param_name = self.expect_identifier()?;
+                let pattern = Pattern::Identifier(param_name.clone());
+
+                // Optional type annotation
+                let param_type = if self.match_token(TokenKind::Colon) {
+                    self.parse_type()?
+                } else {
+                    // Type will be inferred
+                    Type::Custom("_infer".to_string())
+                };
+
+                parameters.push(Parameter {
+                    pattern,
+                    param_type,
+                    is_reference: false,
+                });
+
+                if !self.match_token(TokenKind::Comma) {
+                    break;
+                }
+            }
+        }
+
+        // Expect closing pipe
+        self.expect_token(TokenKind::Pipe)?;
+
+        // Optional return type annotation
+        let return_type = if self.match_token(TokenKind::Arrow) {
+            Some(self.parse_type()?)
+        } else {
+            None
+        };
+
+        // Parse body - either expression or block
+        let body = if self.check_token(TokenKind::LeftBrace) {
+            // Block body
+            let block = self.parse_block()?;
+            ClosureBody::Block(block)
+        } else {
+            // Expression body
+            let expr = self.parse_expression()?;
+            ClosureBody::Expression(Box::new(expr))
+        };
+
+        Ok(Expression::Closure {
+            parameters,
+            return_type,
+            body,
+            is_move,
+        })
     }
 
     // Helper methods for token manipulation
@@ -1514,6 +1587,16 @@ impl Parser {
             Ok(())
         } else {
             Err(self.error(&format!("Expected operator '{operator}'")))
+        }
+    }
+
+    fn expect_identifier(&mut self) -> CompilerResult<String> {
+        if matches!(self.peek().kind, TokenKind::Identifier) {
+            let name = self.peek().lexeme.clone();
+            self.advance();
+            Ok(name)
+        } else {
+            Err(self.error("Expected identifier"))
         }
     }
 

@@ -1,0 +1,214 @@
+// Closure Capture Tests
+// Tests various capture scenarios and semantics
+
+fn test_capture_by_reference() {
+    let x = 10;
+    let closure = |y: int| -> int { return x + y; };
+    let result = closure(5);
+    // result should be 15, x captured by reference
+}
+
+fn test_capture_multiple_vars() {
+    let a = 1;
+    let b = 2;
+    let c = 3;
+    let closure = || a + b + c;
+    let result = closure();
+    // result should be 6
+}
+
+fn test_capture_by_value_move() {
+    let x = 42;
+    let closure = move |y: int| -> int { return x + y; };
+    let result = closure(8);
+    // result should be 50, x captured by value
+}
+
+fn test_nested_capture() {
+    let outer = 10;
+    let inner_closure = || {
+        let middle = 20;
+        let innermost = || outer + middle;
+        return innermost();
+    };
+    let result = inner_closure();
+    // result should be 30
+}
+
+fn test_capture_in_loop() {
+    let sum = 0;
+    let arr = [1, 2, 3, 4, 5];
+    
+    for (i in arr) {
+        let add_to_sum = |x: int| -> int { return sum + x; };
+        sum = add_to_sum(i);
+    }
+    // sum should be 15
+}
+
+fn test_capture_mutable_reference() {
+    let mut counter = 0;
+    let increment = || {
+        counter = counter + 1;
+        return counter;
+    };
+    
+    let r1 = increment();
+    let r2 = increment();
+    let r3 = increment();
+    // r1 = 1, r2 = 2, r3 = 3, counter = 3
+}
+
+fn test_capture_from_parameter() {
+    fn make_adder(x: int) -> fn(int) -> int {
+        return |y| x + y;
+    }
+    
+    let add5 = make_adder(5);
+    let add10 = make_adder(10);
+    
+    let result1 = add5(3);  // 8
+    let result2 = add10(3); // 13
+}
+
+fn test_capture_struct_field() {
+    struct Point {
+        x: int,
+        y: int,
+    }
+    
+    let p = Point { x: 10, y: 20 };
+    let get_x = || p.x;
+    let get_y = || p.y;
+    
+    let x_val = get_x(); // 10
+    let y_val = get_y(); // 20
+}
+
+fn test_capture_array_element() {
+    let arr = [1, 2, 3, 4, 5];
+    let get_first = || arr[0];
+    let get_last = || arr[4];
+    
+    let first = get_first(); // 1
+    let last = get_last();   // 5
+}
+
+fn test_mixed_captures() {
+    let a = 1;
+    let b = 2;
+    let c = 3;
+    
+    // Capture a and b, c is parameter
+    let closure = |c: int| -> int { return a + b + c; };
+    let result = closure(10);
+    // result should be 13
+}
+
+fn test_capture_in_conditional() {
+    let flag = true;
+    let x = 10;
+    let y = 20;
+    
+    let closure = || {
+        if (flag) {
+            return x;
+        } else {
+            return y;
+        }
+    };
+    
+    let result = closure(); // 10
+}
+
+fn test_capture_shadowing() {
+    let x = 10;
+    let closure = |x: int| -> int {
+        // Parameter x shadows captured x
+        return x * 2;
+    };
+    
+    let result = closure(5); // 10, not 20
+}
+
+fn test_no_capture() {
+    let closure = |x: int, y: int| -> int {
+        return x + y;
+    };
+    
+    let result = closure(3, 4); // 7
+}
+
+fn test_capture_string() {
+    let message = "Hello";
+    let greet = |name: string| -> string {
+        return message + ", " + name;
+    };
+    
+    let greeting = greet("World"); // "Hello, World"
+}
+
+fn test_capture_bool() {
+    let is_valid = true;
+    let check = || is_valid;
+    
+    let result = check(); // true
+}
+
+fn test_deep_nesting() {
+    let a = 1;
+    let level1 = || {
+        let b = 2;
+        let level2 = || {
+            let c = 3;
+            let level3 = || {
+                return a + b + c;
+            };
+            return level3();
+        };
+        return level2();
+    };
+    
+    let result = level1(); // 6
+}
+
+fn test_closure_array() {
+    let x = 10;
+    let closures = [
+        |y: int| -> int { return x + y; },
+        |y: int| -> int { return x * y; },
+        |y: int| -> int { return x - y; },
+    ];
+    
+    let r1 = closures[0](5); // 15
+    let r2 = closures[1](5); // 50
+    let r3 = closures[2](5); // 5
+}
+
+fn test_move_prevents_later_use() {
+    let x = 42;
+    let closure = move || x;
+    // After move, x is no longer accessible in this scope
+    let result = closure(); // 42
+}
+
+fn main() {
+    test_capture_by_reference();
+    test_capture_multiple_vars();
+    test_capture_by_value_move();
+    test_nested_capture();
+    test_capture_in_loop();
+    test_capture_mutable_reference();
+    test_capture_from_parameter();
+    test_capture_struct_field();
+    test_capture_array_element();
+    test_mixed_captures();
+    test_capture_in_conditional();
+    test_capture_shadowing();
+    test_no_capture();
+    test_capture_string();
+    test_capture_bool();
+    test_deep_nesting();
+    test_closure_array();
+    test_move_prevents_later_use();
+}

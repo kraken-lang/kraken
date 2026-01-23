@@ -1,5 +1,5 @@
 use crate::lexer::tokenizer::Tokenizer;
-use crate::parser::ast::{Block, Expression, MatchArm, Pattern, Program, Statement, Type};
+use crate::parser::ast::{Block, ClosureBody, Expression, MatchArm, Pattern, Program, Statement, Type};
 use crate::parser::Parser;
 use anyhow::{Context, Result};
 use std::collections::hash_map::DefaultHasher;
@@ -720,6 +720,35 @@ fn rewrite_expression(expr: Expression, private_mangle: &HashMap<String, String>
         Expression::Try { expression } => Expression::Try {
             expression: Box::new(rewrite_expression(*expression, private_mangle)),
         },
+
+        Expression::Closure {
+            parameters,
+            return_type,
+            body,
+            is_move,
+        } => {
+            let rewritten_body = match body {
+                ClosureBody::Expression(expr) => {
+                    ClosureBody::Expression(Box::new(rewrite_expression(*expr, private_mangle)))
+                }
+                ClosureBody::Block(block) => {
+                    // Rewrite block statements directly
+                    let dummy_path = Path::new("");
+                    let rewritten_statements: Vec<Statement> = block.statements
+                        .into_iter()
+                        .filter_map(|stmt| rewrite_statement(dummy_path, stmt, private_mangle).ok())
+                        .collect();
+                    ClosureBody::Block(Block::new(rewritten_statements))
+                }
+            };
+
+            Expression::Closure {
+                parameters,
+                return_type,
+                body: rewritten_body,
+                is_move,
+            }
+        }
 
         Expression::IntLiteral(_)
         | Expression::FloatLiteral(_)

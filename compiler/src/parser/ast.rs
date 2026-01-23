@@ -251,6 +251,21 @@ pub enum Expression {
         end: Box<Expression>,
         inclusive: bool,
     },
+
+    /// Closure/Lambda expression: |x, y| x + y or |x| { ... }
+    Closure {
+        parameters: Vec<Parameter>,
+        return_type: Option<Type>,
+        body: ClosureBody,
+        is_move: bool, // move keyword for capture by value
+    },
+}
+
+/// Closure body can be either an expression or a block
+#[derive(Debug, Clone, PartialEq)]
+pub enum ClosureBody {
+    Expression(Box<Expression>),
+    Block(Block),
 }
 
 /// Code block containing statements.
@@ -412,6 +427,12 @@ pub enum Type {
     Tuple {
         element_types: Vec<Type>,
     },
+
+    /// Function type: fn(int, int) -> int
+    Function {
+        param_types: Vec<Type>,
+        return_type: Box<Type>,
+    },
 }
 
 impl Type {
@@ -503,6 +524,19 @@ impl std::fmt::Display for Type {
                     write!(f, "{ty}")?;
                 }
                 write!(f, ")")
+            }
+            Type::Function {
+                param_types,
+                return_type,
+            } => {
+                write!(f, "fn(")?;
+                for (i, ty) in param_types.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{ty}")?;
+                }
+                write!(f, ") -> {return_type}")
             }
         }
     }

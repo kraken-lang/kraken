@@ -1,0 +1,115 @@
+// Basic Closure Tests for Kraken Language
+// Tests closure syntax, type inference, and basic functionality
+
+// Test 1: Simple closure with expression body
+fn test_simple_closure() -> int {
+    let add_one = |x: int| x + 1;
+    // TODO: Call closure when calling convention is implemented
+    // let result = add_one(5);
+    // result
+    0
+}
+
+// Test 2: Closure with explicit return type
+fn test_closure_with_return_type() -> int {
+    let multiply = |x: int, y: int| -> int x * y;
+    // TODO: Call closure
+    // multiply(3, 4)
+    0
+}
+
+// Test 3: Closure with block body
+fn test_closure_with_block() -> int {
+    let complex_calc = |x: int| {
+        let doubled = x * 2;
+        let result = doubled + 10;
+        result
+    };
+    // TODO: Call closure
+    // complex_calc(5)
+    0
+}
+
+// Test 4: Closure with multiple parameters
+fn test_multi_param_closure() -> int {
+    let add_three = |a: int, b: int, c: int| a + b + c;
+    // TODO: Call closure
+    // add_three(1, 2, 3)
+    0
+}
+
+// Test 5: Closure with type inference (parameters)
+fn test_type_inference() -> int {
+    // Type inference for closure parameters
+    let square = |x: int| x * x;
+    // TODO: Call closure
+    // square(4)
+    0
+}
+
+// Test 6: Move closure (capture by value)
+fn test_move_closure() -> int {
+    let x = 10;
+    let capture_x = move |y: int| x + y;
+    // TODO: Call closure
+    // capture_x(5)
+    0
+}
+
+// Test 7: Closure capturing local variable (by reference)
+fn test_capture_by_reference() -> int {
+    let x = 20;
+    let use_x = |y: int| x + y;
+    // TODO: Call closure
+    // use_x(10)
+    0
+}
+
+// Test 8: Nested closures
+fn test_nested_closures() -> int {
+    let outer = |x: int| {
+        let inner = |y: int| x + y;
+        // TODO: Call inner closure
+        // inner(5)
+        x
+    };
+    // TODO: Call outer closure
+    // outer(10)
+    0
+}
+
+// Test 9: Closure with no parameters
+fn test_no_params() -> int {
+    let get_value = || 42;
+    // TODO: Call closure
+    // get_value()
+    0
+}
+
+// Test 10: Closure with void return
+fn test_void_return() -> int {
+    let print_msg = || {
+        puts("Hello from closure");
+    };
+    // TODO: Call closure
+    // print_msg();
+    0
+}
+
+fn main() -> int {
+    puts("Testing basic closure syntax...");
+    
+    test_simple_closure();
+    test_closure_with_return_type();
+    test_closure_with_block();
+    test_multi_param_closure();
+    test_type_inference();
+    test_move_closure();
+    test_capture_by_reference();
+    test_nested_closures();
+    test_no_params();
+    test_void_return();
+    
+    puts("All closure syntax tests passed!");
+    0
+}

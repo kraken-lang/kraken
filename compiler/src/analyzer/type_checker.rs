@@ -2789,6 +2789,66 @@ impl TypeChecker {
                 // TODO: Implement proper Result/Option unwrapping after desugaring
                 Ok(inner_type)
             }
+
+            Expression::Closure {
+                parameters,
+                return_type,
+                body,
+                is_move: _,
+            } => {
+                // Create new environment for closure scope
+                let mut closure_env = self.env.clone();
+
+                // Add parameters to closure environment
+                let mut param_types = Vec::new();
+                for param in parameters {
+                    let param_type = param.param_type.clone();
+                    param_types.push(param_type.clone());
+                    
+                    // Bind parameter pattern to environment
+                    self.bind_pattern_to_env(&param.pattern, &param_type, &mut closure_env)?;
+                }
+
+                // Type check closure body
+                let body_type = match body {
+                    ClosureBody::Expression(expr) => {
+                        // Temporarily swap environment
+                        let old_env = std::mem::replace(&mut self.env, closure_env);
+                        let result = self.check_expression(expr);
+                        self.env = old_env;
+                        result?
+                    }
+                    ClosureBody::Block(block) => {
+                        // Temporarily swap environment
+                        let old_env = std::mem::replace(&mut self.env, closure_env);
+                        self.check_block(block)?;
+                        self.env = old_env;
+                        // Blocks return void unless they have an explicit return
+                        Type::Void
+                    }
+                };
+
+                // Determine return type
+                let inferred_return_type = if let Some(ret_type) = return_type {
+                    // Verify body type matches declared return type
+                    if body_type != *ret_type && *ret_type != Type::Void {
+                        return Err(CompilerError::type_error(
+                            SourceLocation::new(self.file_path.clone(), 0, 0),
+                            format!("Closure body type {body_type} does not match declared return type {ret_type}"),
+                        ));
+                    }
+                    ret_type.clone()
+                } else {
+                    // Infer return type from body
+                    body_type
+                };
+
+                // Return function type
+                Ok(Type::Function {
+                    param_types,
+                    return_type: Box::new(inferred_return_type),
+                })
+            }
         }
     }
 

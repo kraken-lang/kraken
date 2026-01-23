@@ -3532,6 +3532,20 @@ impl LLVMCodegen {
                     self.codegen_expression(expression)
                 }
 
+                Expression::Closure {
+                    parameters: _,
+                    return_type: _,
+                    body: _,
+                    is_move: _,
+                } => {
+                    // Closures require environment struct generation and heap allocation
+                    // This is a complex feature that requires significant LLVM infrastructure
+                    // TODO: Implement closure environment generation and calling convention
+                    Err(CompilerError::codegen_error(
+                        "Closures are not yet fully implemented in LLVM codegen",
+                    ))
+                }
+
                 _ => Err(CompilerError::codegen_error("Unsupported expression type")),
             }
         }
@@ -3604,6 +3618,21 @@ impl LLVMCodegen {
                         field_types.len() as u32,
                         0,
                     )
+                }
+                Type::Function { param_types, return_type } => {
+                    // Function type is represented as a function pointer
+                    let mut param_llvm_types: Vec<LLVMTypeRef> = param_types
+                        .iter()
+                        .map(|t| self.get_llvm_type(t))
+                        .collect();
+                    let return_llvm_type = self.get_llvm_type(return_type);
+                    let fn_type = LLVMFunctionType(
+                        return_llvm_type,
+                        param_llvm_types.as_mut_ptr(),
+                        param_llvm_types.len() as u32,
+                        0,
+                    );
+                    LLVMPointerType(fn_type, 0)
                 }
             }
         }

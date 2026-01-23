@@ -187,7 +187,7 @@ impl Tokenizer {
                 if self.match_char('|') {
                     TokenKind::Operator(Operator::Or)
                 } else {
-                    TokenKind::Operator(Operator::BitOr)
+                    TokenKind::Pipe
                 }
             }
             '^' => TokenKind::Operator(Operator::BitXor),
