@@ -314,6 +314,7 @@ fn rewrite_statement(
             return_type,
             body,
             is_async,
+            is_unsafe,
             is_public,
         } => {
             if is_public {
@@ -354,6 +355,7 @@ fn rewrite_statement(
                 return_type: new_return,
                 body: new_body,
                 is_async,
+                is_unsafe,
                 is_public,
             })
         }
@@ -517,6 +519,10 @@ fn rewrite_statement(
 
         Statement::Defer { statement } => Ok(Statement::Defer {
             statement: Box::new(rewrite_statement(file, *statement, private_mangle)?),
+        }),
+
+        Statement::Unsafe { block } => Ok(Statement::Unsafe {
+            block: rewrite_block(block, private_mangle)?,
         }),
 
         Statement::Break

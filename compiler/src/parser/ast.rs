@@ -47,6 +47,7 @@ pub enum Statement {
         return_type: Option<Type>,
         body: Block,
         is_async: bool,
+        is_unsafe: bool,
         is_public: bool,
     },
 
@@ -146,6 +147,11 @@ pub enum Statement {
     /// Defer statement
     Defer {
         statement: Box<Statement>,
+    },
+
+    /// Unsafe block
+    Unsafe {
+        block: Block,
     },
 }
 
@@ -421,6 +427,12 @@ pub enum Type {
         is_mutable: bool,
     },
 
+    /// Raw pointer type: *const T or *mut T (unsafe)
+    RawPointer {
+        inner_type: Box<Type>,
+        is_mutable: bool,
+    },
+
     /// Custom type (struct, class, etc.)
     Custom(String),
 
@@ -509,6 +521,16 @@ impl std::fmt::Display for Type {
                     write!(f, "*mut {inner_type}")
                 } else {
                     write!(f, "*{inner_type}")
+                }
+            }
+            Type::RawPointer {
+                inner_type,
+                is_mutable,
+            } => {
+                if *is_mutable {
+                    write!(f, "*mut {inner_type}")
+                } else {
+                    write!(f, "*const {inner_type}")
                 }
             }
             Type::Custom(name) => write!(f, "{name}"),

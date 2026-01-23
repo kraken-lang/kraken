@@ -796,7 +796,9 @@ impl IrLowering {
                 element: Box::new(Self::lower_type(element_type)),
                 size: *size,
             },
-            Type::Reference { inner_type, .. } | Type::Pointer { inner_type, .. } => {
+            Type::Reference { inner_type, .. }
+            | Type::Pointer { inner_type, .. }
+            | Type::RawPointer { inner_type, .. } => {
                 IrType::Pointer(Box::new(Self::lower_type(inner_type)))
             }
             Type::Custom(name) => IrType::Struct(name.clone()),
@@ -859,6 +861,7 @@ mod tests {
                 }],
             },
             is_async: false,
+            is_unsafe: false,
             is_public: false,
         }]);
         let ir_program = lowering.lower_program(&program).unwrap();

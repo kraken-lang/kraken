@@ -281,6 +281,9 @@ impl LLVMCodegen {
                     where_constraints: _,
                     parameters,
                     return_type,
+                    is_async: _,
+                    is_unsafe: _,
+                    is_public: _,
                     ..
                 } = statement
                 {
@@ -395,6 +398,7 @@ impl LLVMCodegen {
                 return_type,
                 body,
                 is_async: _,
+                is_unsafe: _,
                 is_public: _,
             } => {
                 self.codegen_function(
@@ -3641,6 +3645,10 @@ impl LLVMCodegen {
                     LLVMPointerType(inner, 0)
                 }
                 Type::Pointer { inner_type, .. } => {
+                    let inner = self.get_llvm_type(inner_type);
+                    LLVMPointerType(inner, 0)
+                }
+                Type::RawPointer { inner_type, .. } => {
                     let inner = self.get_llvm_type(inner_type);
                     LLVMPointerType(inner, 0)
                 }

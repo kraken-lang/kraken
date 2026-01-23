@@ -52,9 +52,18 @@ impl Parser {
         } else if self.match_keyword(Keyword::Async) {
             // async fn declaration
             self.expect_keyword(Keyword::Fn)?;
-            self.parse_function_declaration(true, false)
+            self.parse_function_declaration(true, false, false)
+        } else if self.match_keyword(Keyword::Unsafe) {
+            // unsafe block or unsafe fn
+            if self.match_keyword(Keyword::Fn) {
+                self.parse_function_declaration(false, true, false)
+            } else {
+                // unsafe block
+                let block = self.parse_block()?;
+                Ok(Statement::Unsafe { block })
+            }
         } else if self.match_keyword(Keyword::Fn) {
-            self.parse_function_declaration(false, false)
+            self.parse_function_declaration(false, false, false)
         } else if self.match_keyword(Keyword::Module) {
             self.parse_module_statement()
         } else if self.match_keyword(Keyword::Import) {
@@ -221,6 +230,7 @@ impl Parser {
     fn parse_function_declaration(
         &mut self,
         is_async: bool,
+        is_unsafe: bool,
         is_public: bool,
     ) -> CompilerResult<Statement> {
         let name = self.consume_identifier()?;
@@ -263,6 +273,7 @@ impl Parser {
             return_type,
             body,
             is_async,
+            is_unsafe,
             is_public,
         })
     }
@@ -270,7 +281,7 @@ impl Parser {
     /// Parse a public declaration.
     fn parse_public_declaration(&mut self) -> CompilerResult<Statement> {
         if self.match_keyword(Keyword::Fn) {
-            self.parse_function_declaration(false, true)
+            self.parse_function_declaration(false, false, true)
         } else if self.match_keyword(Keyword::Struct) {
             self.parse_struct_declaration(true)
         } else if self.match_keyword(Keyword::Enum) {
@@ -436,7 +447,7 @@ impl Parser {
         while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
             if self.check_keyword(Keyword::Fn) {
                 self.advance();
-                methods.push(self.parse_function_declaration(false, false)?);
+                methods.push(self.parse_function_declaration(false, false, false)?);
             } else {
                 let is_field_public = self.match_keyword(Keyword::Pub);
                 let field_name = self.consume_identifier()?;
@@ -562,10 +573,10 @@ impl Parser {
         let mut methods = Vec::new();
         while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
             if self.match_keyword(Keyword::Fn) {
-                methods.push(self.parse_function_declaration(false, false)?);
+                methods.push(self.parse_function_declaration(false, false, false)?);
             } else if self.match_keyword(Keyword::Pub) {
                 self.expect_keyword(Keyword::Fn)?;
-                methods.push(self.parse_function_declaration(false, true)?);
+                methods.push(self.parse_function_declaration(false, false, true)?);
             } else {
                 return Err(self.error("Expected fn in impl block"));
             }
@@ -775,10 +786,27 @@ impl Parser {
 
     /// Parse a type annotation.
     fn parse_type(&mut self) -> CompilerResult<Type> {
+        // Parse raw pointer types: *const T or *mut T
+        if self.match_operator(Operator::Star) {
+            let is_mutable = if self.match_keyword(Keyword::Const) {
+                false
+            } else if self.match_keyword(Keyword::Mut) {
+                true
+            } else {
+                return Err(self.error("Expected 'const' or 'mut' after '*' in raw pointer type"));
+            };
+
+            let inner_type = Box::new(self.parse_type()?);
+            return Ok(Type::RawPointer {
+                inner_type,
+                is_mutable,
+            });
+        }
+
         // Parse function types: fn(int, string) -> bool
         if self.match_keyword(Keyword::Fn) {
             self.expect_token(TokenKind::LeftParen)?;
-            
+
             let mut param_types = Vec::new();
             if !self.check_token(TokenKind::RightParen) {
                 param_types.push(self.parse_type()?);
@@ -786,11 +814,11 @@ impl Parser {
                     param_types.push(self.parse_type()?);
                 }
             }
-            
+
             self.expect_token(TokenKind::RightParen)?;
             self.expect_token(TokenKind::Arrow)?;
             let return_type = Box::new(self.parse_type()?);
-            
+
             return Ok(Type::Function {
                 param_types,
                 return_type,
@@ -1264,13 +1292,13 @@ impl Parser {
             if matches!(self.peek().kind, TokenKind::ColonColon) {
                 if let Expression::Identifier(name) = &expr {
                     self.advance(); // Consume '::'
-                    
+
                     if !matches!(self.peek().kind, TokenKind::Operator(Operator::Less)) {
                         return Err(self.error("Expected '<' after '::' in turbofish syntax"));
                     }
-                    
+
                     self.advance(); // Consume '<'
-                    
+
                     let mut type_args = Vec::new();
                     type_args.push(self.parse_type()?);
                     while self.match_token(TokenKind::Comma) {
@@ -1313,11 +1341,13 @@ impl Parser {
                         };
                         continue;
                     } else {
-                        return Err(self.error("Expected '(' or '{' after turbofish type arguments"));
+                        return Err(
+                            self.error("Expected '(' or '{' after turbofish type arguments")
+                        );
                     }
                 }
             }
-            
+
             // Generic call/struct literal syntax:
             //   Identifier<T>(...) or Identifier<T> { ... }
             // Only attempted when the next token is '<' and the base expression is an identifier.

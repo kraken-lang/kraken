@@ -26,6 +26,7 @@ fn type_mangle_part(ty: &Type) -> String {
         Type::Array { element_type, .. } => format!("arr_{}", type_mangle_part(element_type)),
         Type::Reference { inner_type, .. } => format!("ref_{}", type_mangle_part(inner_type)),
         Type::Pointer { inner_type, .. } => format!("ptr_{}", type_mangle_part(inner_type)),
+        Type::RawPointer { inner_type, .. } => format!("raw_{}", type_mangle_part(inner_type)),
         Type::Custom(name) => format!("cust_{name}"),
         Type::Generic { name, type_params } => {
             let mut out = format!("gen_{name}");
@@ -292,6 +293,13 @@ impl Monomorphizer {
             }
 
             Statement::Defer { statement } => self.infer_statement(statement, env),
+
+            Statement::Unsafe { block } => {
+                for stmt in &mut block.statements {
+                    self.infer_statement(stmt, env)?;
+                }
+                Ok(())
+            }
 
             Statement::Module { .. }
             | Statement::Import { .. }
@@ -687,6 +695,7 @@ impl Monomorphizer {
             return_type,
             body,
             is_async,
+            is_unsafe,
             is_public,
         } = template
         else {
@@ -716,6 +725,7 @@ impl Monomorphizer {
             return_type,
             body,
             is_async,
+            is_unsafe,
             is_public,
         })
     }
@@ -863,6 +873,7 @@ impl Monomorphizer {
                 return_type,
                 body,
                 is_async,
+                is_unsafe,
                 is_public,
             } => {
                 let parameters = parameters
@@ -884,6 +895,7 @@ impl Monomorphizer {
                     return_type,
                     body,
                     is_async,
+                    is_unsafe,
                     is_public,
                 })
             }
@@ -1009,6 +1021,10 @@ impl Monomorphizer {
 
             Statement::Defer { statement } => Ok(Statement::Defer {
                 statement: Box::new(self.rewrite_statement_with_subst(*statement, subst)?),
+            }),
+
+            Statement::Unsafe { block } => Ok(Statement::Unsafe {
+                block: self.rewrite_block_with_subst(block, subst)?,
             }),
 
             Statement::Break
@@ -1510,6 +1526,13 @@ impl Monomorphizer {
             }
 
             Statement::Defer { statement } => self.scan_statement(statement),
+
+            Statement::Unsafe { block } => {
+                for stmt in &block.statements {
+                    self.scan_statement(stmt)?;
+                }
+                Ok(())
+            }
 
             Statement::EnumDeclaration { variants, .. } => {
                 for (_, payload) in variants {

@@ -1,0 +1,133 @@
+// Unsafe Syntax Test for 0.8.22
+// Tests unsafe blocks, unsafe functions, and raw pointer types
+
+// Test 1: Unsafe block
+fn test_unsafe_block() -> int {
+    let x = 42;
+    unsafe {
+        let y = x + 1;
+        if (y != 43) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+// Test 2: Unsafe function
+unsafe fn unsafe_function(x: int) -> int {
+    return x * 2;
+}
+
+fn test_unsafe_function() -> int {
+    let result = unsafe_function(21);
+    if (result != 42) {
+        return 1;
+    }
+    return 0;
+}
+
+// Test 3: Raw pointer types in function signatures
+fn test_raw_pointer_const(ptr: *const int) -> int {
+    return 0;
+}
+
+fn test_raw_pointer_mut(ptr: *mut int) -> int {
+    return 0;
+}
+
+// Test 4: Nested unsafe blocks
+fn test_nested_unsafe() -> int {
+    unsafe {
+        let x = 10;
+        unsafe {
+            let y = x + 5;
+            if (y != 15) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+// Test 5: Unsafe block with control flow
+fn test_unsafe_with_control_flow() -> int {
+    let result = 0;
+    unsafe {
+        let x = 42;
+        if (x > 40) {
+            result = 1;
+        }
+    }
+    if (result != 1) {
+        return 1;
+    }
+    return 0;
+}
+
+// Test 6: Unsafe block with loops
+fn test_unsafe_with_loop() -> int {
+    let sum = 0;
+    unsafe {
+        let i = 0;
+        while (i < 5) {
+            sum = sum + i;
+            i = i + 1;
+        }
+    }
+    if (sum != 10) {
+        return 1;
+    }
+    return 0;
+}
+
+// Test 7: Multiple raw pointer parameters
+fn test_multiple_raw_pointers(a: *const int, b: *mut int, c: *const bool) -> int {
+    return 0;
+}
+
+// Test 8: Raw pointers with complex types
+fn test_raw_pointer_complex(ptr: *const *mut int) -> int {
+    return 0;
+}
+
+// Test 9: Unsafe function calling another unsafe function
+unsafe fn helper_unsafe(x: int) -> int {
+    return x + 1;
+}
+
+unsafe fn test_unsafe_chain() -> int {
+    return helper_unsafe(41);
+}
+
+fn test_unsafe_function_chain() -> int {
+    let result = test_unsafe_chain();
+    if (result != 42) {
+        return 1;
+    }
+    return 0;
+}
+
+// Test 10: Unsafe block with return
+fn test_unsafe_with_return() -> int {
+    unsafe {
+        return 0;
+    }
+}
+
+fn main() -> int {
+    let failures = 0;
+    
+    failures = failures + test_unsafe_block();
+    failures = failures + test_unsafe_function();
+    failures = failures + test_nested_unsafe();
+    failures = failures + test_unsafe_with_control_flow();
+    failures = failures + test_unsafe_with_loop();
+    failures = failures + test_unsafe_function_chain();
+    failures = failures + test_unsafe_with_return();
+    
+    if (failures == 0) {
+        puts("All unsafe syntax tests passed!");
+    }
+    
+    return failures;
+}

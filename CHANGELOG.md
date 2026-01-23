@@ -13,6 +13,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.22] - 2026-01-23
+
+### Added
+- **Unsafe Blocks**
+  - Added `unsafe { ... }` block syntax
+  - Parser support for unsafe blocks
+  - AST representation with `Statement::Unsafe`
+  - Full integration with all compiler passes
+- **Unsafe Functions**
+  - Added `unsafe fn` function declaration syntax
+  - Parser support for unsafe function declarations
+  - `is_unsafe` flag in `FunctionDeclaration` AST node
+  - Type checker and codegen awareness of unsafe functions
+- **Raw Pointer Types**
+  - Added `*const T` and `*mut T` raw pointer type syntax
+  - Parser support for raw pointer types
+  - AST representation with `Type::RawPointer`
+  - Full type system integration (type checking, IR lowering, LLVM codegen)
+  - Support for complex raw pointer types (e.g., `*const *mut int`)
+- **Comprehensive Unsafe Syntax Tests**
+  - Created `unsafe_syntax_test.kr` with 10 test scenarios
+  - Tests for unsafe blocks, unsafe functions, raw pointers
+  - Tests for nested unsafe blocks, control flow, and loops
+  - All syntax tests passing
+
+### Changed
+- Updated all compiler passes to handle unsafe blocks and raw pointer types
+- Enhanced parser to support unsafe keyword in multiple contexts
+- Improved type system to handle raw pointer type conversions
+
 ## [0.8.21] - 2026-01-23
 
 ### Added

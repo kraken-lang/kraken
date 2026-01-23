@@ -308,6 +308,11 @@ impl ClosureAnalyzer {
             Statement::Defer { statement } => {
                 self.collect_statement_referenced_vars(statement, vars);
             }
+            Statement::Unsafe { block } => {
+                for stmt in &block.statements {
+                    self.collect_statement_referenced_vars(stmt, vars);
+                }
+            }
             Statement::FunctionDeclaration { .. }
             | Statement::StructDeclaration { .. }
             | Statement::EnumDeclaration { .. }

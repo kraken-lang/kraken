@@ -106,6 +106,7 @@ pub enum Keyword {
     Ref,
     Mut,
     Move,
+    Unsafe,
 
     // Special
     True,
@@ -174,6 +175,7 @@ impl Keyword {
             "ref" => Some(Self::Ref),
             "mut" => Some(Self::Mut),
             "move" => Some(Self::Move),
+            "unsafe" => Some(Self::Unsafe),
             "true" => Some(Self::True),
             "false" => Some(Self::False),
             "null" => Some(Self::Null),
@@ -236,6 +238,7 @@ impl Keyword {
             Self::Ref => "ref",
             Self::Mut => "mut",
             Self::Move => "move",
+            Self::Unsafe => "unsafe",
             Self::True => "true",
             Self::False => "false",
             Self::Null => "null",

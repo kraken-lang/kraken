@@ -109,6 +109,9 @@ impl AstDesugar {
             Statement::Defer { statement } => {
                 self.desugar_statement(statement)?;
             }
+            Statement::Unsafe { block } => {
+                self.desugar_block(block)?;
+            }
             _ => {}
         }
         Ok(())

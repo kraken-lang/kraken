@@ -1959,6 +1959,7 @@ impl TypeChecker {
                 return_type,
                 body,
                 is_async: _,
+                is_unsafe: _,
                 is_public: _,
             } => {
                 let ret_type = return_type.clone().unwrap_or(Type::Void);
@@ -2396,6 +2397,13 @@ impl TypeChecker {
 
             Statement::Defer { statement } => self.check_statement(statement),
 
+            Statement::Unsafe { block } => {
+                for stmt in &block.statements {
+                    self.check_statement(stmt)?;
+                }
+                Ok(())
+            }
+
             Statement::TypeAlias { .. } | Statement::ImplBlock { .. } => {
                 // Type aliases and impl blocks are handled separately
                 // Type aliases are resolved during type resolution
@@ -2500,7 +2508,11 @@ impl TypeChecker {
                     }
 
                     // Check if it's a variable with function type (higher-order function parameter)
-                    if let Some(Type::Function { param_types, return_type }) = self.env.lookup_variable(func_name) {
+                    if let Some(Type::Function {
+                        param_types,
+                        return_type,
+                    }) = self.env.lookup_variable(func_name)
+                    {
                         if arguments.len() != param_types.len() {
                             return Err(CompilerError::type_error(
                                 SourceLocation::new(self.file_path.clone(), 0, 0),

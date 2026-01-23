@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
-Current version: `v0.8.21`
+Current version: `v0.8.22`
 
 ## Language Features
 
@@ -57,6 +57,12 @@ Current version: `v0.8.21`
 - **Function Types**: `fn(int, string) -> bool` in parameter positions
 - **Improved Error Messages**: Better type inference failure diagnostics
 - **Type Checker Enhancements**: Support for calling function-typed variables
+
+### Unsafe Blocks & Raw Pointers (0.8.22)
+- **Unsafe Blocks**: `unsafe { ... }` for unsafe operations
+- **Unsafe Functions**: `unsafe fn` declarations
+- **Raw Pointer Types**: `*const T` and `*mut T` for low-level memory access
+- **Full Syntax Support**: Parser, type checker, and codegen integration
 
 ### Core Features
 - **Static Typing**: Strong type system with type inference
