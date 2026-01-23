@@ -1,0 +1,229 @@
+// Safe Pointer Usage Examples
+// Demonstrates memory safety features and safe pointer patterns in Kraken
+
+// External memory safety functions
+extern fn kraken_malloc_tracked(size: int, file: str, line: int) -> int;
+extern fn kraken_calloc_tracked(count: int, size: int, file: str, line: int) -> int;
+extern fn kraken_realloc_tracked(ptr: int, new_size: int, file: str, line: int) -> int;
+extern fn kraken_free_tracked(ptr: int) -> void;
+extern fn kraken_null_check(ptr: int, file: str, line: int) -> void;
+extern fn kraken_get_allocation_count() -> int;
+extern fn kraken_print_allocation_stats() -> void;
+
+// Example 1: Safe allocation and deallocation
+fn example_safe_allocation() -> void {
+    puts("=== Example 1: Safe Allocation ===");
+    
+    // Allocate memory with tracking
+    let ptr = kraken_malloc_tracked(100, "safe_pointers.kr", 18);
+    
+    if (ptr != 0) {
+        puts("Memory allocated successfully");
+        
+        // Use the memory...
+        
+        // Free when done
+        kraken_free_tracked(ptr);
+        puts("Memory freed successfully");
+    }
+    
+    puts("");
+}
+
+// Example 2: Null pointer checking
+fn example_null_checking() -> void {
+    puts("=== Example 2: Null Pointer Checking ===");
+    
+    let ptr = kraken_malloc_tracked(100, "safe_pointers.kr", 37);
+    
+    // Check for null before using
+    kraken_null_check(ptr, "safe_pointers.kr", 40);
+    
+    puts("Pointer is valid, safe to use");
+    
+    kraken_free_tracked(ptr);
+    
+    puts("");
+}
+
+// Example 3: Calloc for zeroed memory
+fn example_calloc() -> void {
+    puts("=== Example 3: Calloc for Zeroed Memory ===");
+    
+    // Allocate array of 10 integers, initialized to zero
+    let arr = kraken_calloc_tracked(10, 4, "safe_pointers.kr", 55);
+    
+    if (arr != 0) {
+        puts("Array allocated and zeroed");
+        kraken_free_tracked(arr);
+    }
+    
+    puts("");
+}
+
+// Example 4: Realloc for resizing
+fn example_realloc() -> void {
+    puts("=== Example 4: Realloc for Resizing ===");
+    
+    // Start with small allocation
+    let ptr = kraken_malloc_tracked(100, "safe_pointers.kr", 70);
+    
+    if (ptr != 0) {
+        puts("Initial allocation: 100 bytes");
+        
+        // Resize to larger
+        let new_ptr = kraken_realloc_tracked(ptr, 200, "safe_pointers.kr", 76);
+        
+        if (new_ptr != 0) {
+            puts("Resized to: 200 bytes");
+            kraken_free_tracked(new_ptr);
+        }
+    }
+    
+    puts("");
+}
+
+// Example 5: Tracking allocations
+fn example_tracking() -> void {
+    puts("=== Example 5: Tracking Allocations ===");
+    
+    let initial = kraken_get_allocation_count();
+    
+    // Allocate some memory
+    let ptr1 = kraken_malloc_tracked(100, "safe_pointers.kr", 95);
+    let ptr2 = kraken_malloc_tracked(200, "safe_pointers.kr", 96);
+    let ptr3 = kraken_malloc_tracked(300, "safe_pointers.kr", 97);
+    
+    let after_alloc = kraken_get_allocation_count();
+    
+    puts("Allocation statistics:");
+    kraken_print_allocation_stats();
+    
+    // Free all
+    kraken_free_tracked(ptr1);
+    kraken_free_tracked(ptr2);
+    kraken_free_tracked(ptr3);
+    
+    let after_free = kraken_get_allocation_count();
+    
+    puts("After freeing:");
+    kraken_print_allocation_stats();
+    
+    puts("");
+}
+
+// Example 6: RAII pattern (Resource Acquisition Is Initialization)
+fn example_raii() -> void {
+    puts("=== Example 6: RAII Pattern ===");
+    
+    // Allocate at start of scope
+    let resource = kraken_malloc_tracked(100, "safe_pointers.kr", 123);
+    
+    if (resource != 0) {
+        puts("Resource acquired");
+        
+        // Use resource...
+        
+        // Always free before returning
+        kraken_free_tracked(resource);
+        puts("Resource released");
+    }
+    
+    puts("");
+}
+
+// Example 7: Handling allocation failures
+fn example_allocation_failure() -> void {
+    puts("=== Example 7: Handling Allocation Failures ===");
+    
+    let ptr = kraken_malloc_tracked(100, "safe_pointers.kr", 143);
+    
+    if (ptr == 0) {
+        puts("ERROR: Allocation failed!");
+        return;
+    }
+    
+    puts("Allocation succeeded");
+    kraken_free_tracked(ptr);
+    
+    puts("");
+}
+
+// Example 8: Multiple allocations
+fn example_multiple_allocations() -> void {
+    puts("=== Example 8: Multiple Allocations ===");
+    
+    let ptr1 = kraken_malloc_tracked(100, "safe_pointers.kr", 160);
+    let ptr2 = kraken_malloc_tracked(200, "safe_pointers.kr", 161);
+    let ptr3 = kraken_malloc_tracked(300, "safe_pointers.kr", 162);
+    
+    if (ptr1 != 0 && ptr2 != 0 && ptr3 != 0) {
+        puts("All allocations succeeded");
+        
+        // Free in reverse order (good practice)
+        kraken_free_tracked(ptr3);
+        kraken_free_tracked(ptr2);
+        kraken_free_tracked(ptr1);
+        
+        puts("All memory freed");
+    }
+    
+    puts("");
+}
+
+// Example 9: Leak detection demonstration
+fn example_leak_detection() -> void {
+    puts("=== Example 9: Leak Detection ===");
+    puts("(Enable with KRAKEN_LEAK_CHECK=1)");
+    
+    // Intentionally leak memory for demonstration
+    let leaked = kraken_malloc_tracked(42, "safe_pointers.kr", 184);
+    
+    if (leaked != 0) {
+        puts("Allocated 42 bytes (will be detected as leak)");
+        // Intentionally NOT freeing to demonstrate leak detection
+    }
+    
+    puts("");
+}
+
+// Example 10: Best practices summary
+fn example_best_practices() -> void {
+    puts("=== Example 10: Best Practices ===");
+    
+    puts("1. Always check for null after allocation");
+    puts("2. Always free allocated memory");
+    puts("3. Use tracked functions during development");
+    puts("4. Enable KRAKEN_LEAK_CHECK=1 for testing");
+    puts("5. Free in reverse order of allocation");
+    puts("6. Don't use pointers after freeing");
+    puts("7. Use RAII pattern when possible");
+    
+    puts("");
+}
+
+fn main() -> int {
+    puts("Safe Pointer Usage Examples");
+    puts("===========================");
+    puts("");
+    puts("Note: Set KRAKEN_LEAK_CHECK=1 to enable leak tracking");
+    puts("");
+    
+    example_safe_allocation();
+    example_null_checking();
+    example_calloc();
+    example_realloc();
+    example_tracking();
+    example_raii();
+    example_allocation_failure();
+    example_multiple_allocations();
+    example_leak_detection();
+    example_best_practices();
+    
+    puts("All examples completed!");
+    puts("");
+    puts("Final allocation statistics:");
+    kraken_print_allocation_stats();
+    
+    return 0;
+}

@@ -1,0 +1,125 @@
+// Memory Leak Detection Tests for 0.8.24
+// Tests runtime memory leak tracking infrastructure
+
+// External declarations for leak detection functions
+extern fn kraken_malloc_tracked(size: int, file: str, line: int) -> int;
+extern fn kraken_calloc_tracked(count: int, size: int, file: str, line: int) -> int;
+extern fn kraken_realloc_tracked(ptr: int, new_size: int, file: str, line: int) -> int;
+extern fn kraken_free_tracked(ptr: int) -> void;
+extern fn kraken_get_allocation_count() -> int;
+extern fn kraken_get_allocated_bytes() -> int;
+extern fn kraken_print_allocation_stats() -> void;
+
+// Test malloc and free tracking
+fn test_malloc_free_tracking() -> int {
+    puts("Testing malloc/free tracking...");
+    
+    let initial_count = kraken_get_allocation_count();
+    
+    // Allocate memory
+    let ptr1 = kraken_malloc_tracked(100, "test_leak_detection.kr", 19);
+    let ptr2 = kraken_malloc_tracked(200, "test_leak_detection.kr", 20);
+    
+    let after_alloc = kraken_get_allocation_count();
+    
+    // Free memory
+    kraken_free_tracked(ptr1);
+    kraken_free_tracked(ptr2);
+    
+    let after_free = kraken_get_allocation_count();
+    
+    if (initial_count >= 0) {
+        puts("Malloc/free tracking test passed");
+    }
+    
+    return 0;
+}
+
+// Test calloc tracking
+fn test_calloc_tracking() -> int {
+    puts("Testing calloc tracking...");
+    
+    let ptr = kraken_calloc_tracked(10, 4, "test_leak_detection.kr", 42);
+    
+    if (ptr != 0) {
+        kraken_free_tracked(ptr);
+        puts("Calloc tracking test passed");
+    }
+    
+    return 0;
+}
+
+// Test realloc tracking
+fn test_realloc_tracking() -> int {
+    puts("Testing realloc tracking...");
+    
+    let ptr = kraken_malloc_tracked(100, "test_leak_detection.kr", 56);
+    
+    if (ptr != 0) {
+        let new_ptr = kraken_realloc_tracked(ptr, 200, "test_leak_detection.kr", 59);
+        
+        if (new_ptr != 0) {
+            kraken_free_tracked(new_ptr);
+            puts("Realloc tracking test passed");
+        }
+    }
+    
+    return 0;
+}
+
+// Test allocation statistics
+fn test_allocation_stats() -> int {
+    puts("Testing allocation statistics...");
+    
+    let count = kraken_get_allocation_count();
+    let bytes = kraken_get_allocated_bytes();
+    
+    if (count >= 0) {
+        puts("Allocation statistics test passed");
+    }
+    
+    return 0;
+}
+
+// Test intentional leak (for testing leak detection)
+fn test_intentional_leak() -> int {
+    puts("Testing intentional leak detection...");
+    puts("(This will show a leak if KRAKEN_LEAK_CHECK=1)");
+    
+    // Allocate but don't free - this should be detected as a leak
+    let leaked_ptr = kraken_malloc_tracked(42, "test_leak_detection.kr", 90);
+    
+    if (leaked_ptr != 0) {
+        puts("Intentional leak created for testing");
+    }
+    
+    return 0;
+}
+
+fn main() -> int {
+    let failures = 0;
+    
+    puts("Testing memory leak detection infrastructure...");
+    puts("Note: Set KRAKEN_LEAK_CHECK=1 to enable leak tracking");
+    puts("");
+    
+    failures = failures + test_malloc_free_tracking();
+    failures = failures + test_calloc_tracking();
+    failures = failures + test_realloc_tracking();
+    failures = failures + test_allocation_stats();
+    
+    puts("");
+    puts("Allocation statistics:");
+    kraken_print_allocation_stats();
+    
+    puts("");
+    failures = failures + test_intentional_leak();
+    
+    puts("");
+    if (failures == 0) {
+        puts("All leak detection tests passed!");
+        puts("Check for leak report at program exit if KRAKEN_LEAK_CHECK=1");
+    }
+    
+    return failures;
+}

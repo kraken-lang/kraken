@@ -1,0 +1,220 @@
+// String Processing Examples
+// Demonstrates various string manipulation operations in Kraken
+
+// External string utility functions
+extern fn kraken_str_len(s: str) -> int;
+extern fn kraken_str_concat(s1: str, s2: str) -> str;
+extern fn kraken_str_substring(s: str, start: int, end: int) -> str;
+extern fn kraken_str_contains(s: str, substr: str) -> int;
+extern fn kraken_str_starts_with(s: str, prefix: str) -> int;
+extern fn kraken_str_ends_with(s: str, suffix: str) -> int;
+extern fn kraken_str_to_upper(s: str) -> str;
+extern fn kraken_str_to_lower(s: str) -> str;
+extern fn kraken_str_trim(s: str) -> str;
+extern fn kraken_str_replace(s: str, old: str, new: str) -> str;
+
+// Example 1: Basic string operations
+fn example_basic_operations() -> void {
+    puts("=== Example 1: Basic String Operations ===");
+    
+    let text = "Hello, World!";
+    
+    // Get length
+    let len = kraken_str_len(text);
+    puts("Length:");
+    
+    // Concatenation
+    let greeting = kraken_str_concat("Hello, ", "Kraken!");
+    puts(greeting);
+    
+    // Substring
+    let hello = kraken_str_substring(text, 0, 5);
+    puts(hello);
+    
+    puts("");
+}
+
+// Example 2: String searching
+fn example_string_searching() -> void {
+    puts("=== Example 2: String Searching ===");
+    
+    let text = "The quick brown fox jumps over the lazy dog";
+    
+    // Contains
+    if (kraken_str_contains(text, "fox") == 1) {
+        puts("Found 'fox' in text");
+    }
+    
+    // Starts with
+    if (kraken_str_starts_with(text, "The") == 1) {
+        puts("Text starts with 'The'");
+    }
+    
+    // Ends with
+    if (kraken_str_ends_with(text, "dog") == 1) {
+        puts("Text ends with 'dog'");
+    }
+    
+    puts("");
+}
+
+// Example 3: Case conversion
+fn example_case_conversion() -> void {
+    puts("=== Example 3: Case Conversion ===");
+    
+    let text = "Hello, World!";
+    
+    let upper = kraken_str_to_upper(text);
+    puts("Uppercase:");
+    puts(upper);
+    
+    let lower = kraken_str_to_lower(text);
+    puts("Lowercase:");
+    puts(lower);
+    
+    puts("");
+}
+
+// Example 4: Trimming and cleaning
+fn example_trimming() -> void {
+    puts("=== Example 4: Trimming and Cleaning ===");
+    
+    let messy = "  Hello, World!  ";
+    puts("Original (with spaces):");
+    puts(messy);
+    
+    let clean = kraken_str_trim(messy);
+    puts("Trimmed:");
+    puts(clean);
+    
+    puts("");
+}
+
+// Example 5: String replacement
+fn example_replacement() -> void {
+    puts("=== Example 5: String Replacement ===");
+    
+    let text = "Hello, World! World is great!";
+    puts("Original:");
+    puts(text);
+    
+    let replaced = kraken_str_replace(text, "World", "Kraken");
+    puts("Replaced:");
+    puts(replaced);
+    
+    puts("");
+}
+
+// Example 6: Building strings
+fn example_building_strings() -> void {
+    puts("=== Example 6: Building Strings ===");
+    
+    let first = "Kraken";
+    let second = " is ";
+    let third = "awesome";
+    let exclamation = "!";
+    
+    let step1 = kraken_str_concat(first, second);
+    let step2 = kraken_str_concat(step1, third);
+    let final = kraken_str_concat(step2, exclamation);
+    
+    puts("Built string:");
+    puts(final);
+    
+    puts("");
+}
+
+// Example 7: Extracting parts
+fn example_extracting_parts() -> void {
+    puts("=== Example 7: Extracting Parts ===");
+    
+    let email = "user@example.com";
+    
+    // Extract username (before @)
+    let username = kraken_str_substring(email, 0, 4);
+    puts("Username:");
+    puts(username);
+    
+    // Extract domain (after @)
+    let domain = kraken_str_substring(email, 5, 16);
+    puts("Domain:");
+    puts(domain);
+    
+    puts("");
+}
+
+// Example 8: Validation
+fn example_validation() -> void {
+    puts("=== Example 8: String Validation ===");
+    
+    let url = "https://kraken-lang.org";
+    
+    if (kraken_str_starts_with(url, "https://") == 1) {
+        puts("URL uses HTTPS - secure!");
+    }
+    
+    let filename = "document.pdf";
+    
+    if (kraken_str_ends_with(filename, ".pdf") == 1) {
+        puts("File is a PDF document");
+    }
+    
+    puts("");
+}
+
+// Example 9: Text processing
+fn example_text_processing() -> void {
+    puts("=== Example 9: Text Processing ===");
+    
+    let raw_input = "  HELLO, WORLD!  ";
+    
+    // Clean and normalize
+    let step1 = kraken_str_trim(raw_input);
+    let normalized = kraken_str_to_lower(step1);
+    
+    puts("Raw input:");
+    puts(raw_input);
+    puts("Normalized:");
+    puts(normalized);
+    
+    puts("");
+}
+
+// Example 10: Pattern matching
+fn example_pattern_matching() -> void {
+    puts("=== Example 10: Pattern Matching ===");
+    
+    let text = "Error: File not found";
+    
+    if (kraken_str_starts_with(text, "Error:") == 1) {
+        puts("This is an error message");
+        
+        // Extract error details
+        let details = kraken_str_substring(text, 7, 21);
+        puts("Error details:");
+        puts(details);
+    }
+    
+    puts("");
+}
+
+fn main() -> int {
+    puts("String Processing Examples");
+    puts("==========================");
+    puts("");
+    
+    example_basic_operations();
+    example_string_searching();
+    example_case_conversion();
+    example_trimming();
+    example_replacement();
+    example_building_strings();
+    example_extracting_parts();
+    example_validation();
+    example_text_processing();
+    example_pattern_matching();
+    
+    puts("All examples completed!");
+    
+    return 0;
+}

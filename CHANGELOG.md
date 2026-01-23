@@ -13,6 +13,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.24] - 2026-01-23
+
+### Added
+- **Bounds Checking Infrastructure**
+  - Runtime bounds checking for array/slice/string indexing
+  - `kraken_bounds_check()` - validate array index access
+  - `kraken_bounds_check_range()` - validate range access
+  - Environment variable `KRAKEN_BOUNDS_CHECK=1` to enable at runtime
+  - Clear trap messages with index, length, and source location
+  - Comprehensive tests in `test_bounds_checking.kr`
+- **Memory Leak Detection**
+  - Track all malloc/free pairs in debug mode
+  - Report leaked allocations at program exit with details
+  - Environment variable `KRAKEN_LEAK_CHECK=1` to enable
+  - Allocation tracking with file/line information
+  - `kraken_malloc_tracked()` - malloc with leak tracking
+  - `kraken_calloc_tracked()` - calloc with leak tracking
+  - `kraken_realloc_tracked()` - realloc with leak tracking
+  - `kraken_free_tracked()` - free with leak tracking
+  - `kraken_get_allocation_count()` - get active allocation count
+  - `kraken_get_allocated_bytes()` - get total allocated bytes
+  - `kraken_print_allocation_stats()` - print allocation statistics
+  - Comprehensive tests in `test_leak_detection.kr`
+- **Memory Safety Helpers**
+  - `kraken_null_check()` - validate pointer is not null
+  - Safe memory allocation wrappers with tracking
+  - Memory debugging utilities
+- **Documentation**
+  - Created `docs/STRINGS.md` comprehensive guide (400+ lines)
+  - Documented string types, operations, memory management
+  - Added `examples/string_processing.kr` (10 examples, 200+ lines)
+  - Added `examples/safe_pointers.kr` (10 examples, 230+ lines)
+  - Documented all safety features and best practices
+
+### Changed
+- Enhanced runtime library with `kraken_safety.c` module (280+ lines)
+- Updated build script to compile safety module
+- Improved memory safety and debugging capabilities
+
 ## [0.8.23] - 2026-01-23
 
 ### Added

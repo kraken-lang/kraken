@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
-Current version: `v0.8.23`
+Current version: `v0.8.24`
 
 ## Language Features
 
@@ -74,6 +74,14 @@ Current version: `v0.8.23`
 - **Memory Functions**: 7 functions (calloc, aligned_alloc, realloc, free, memcpy, memset, memcmp)
 - **Union Keyword**: Foundation for C interop union types
 - **Total**: 57+ runtime library functions
+
+### Bounds Checking & Memory Safety (0.8.24)
+- **Bounds Checking**: Runtime validation for array/slice/string indexing
+- **Memory Leak Detection**: Track malloc/free pairs with detailed reporting
+- **Safety Helpers**: Null pointer checking, allocation tracking, debugging utilities
+- **Environment Variables**: `KRAKEN_BOUNDS_CHECK=1`, `KRAKEN_LEAK_CHECK=1`
+- **Documentation**: Comprehensive STRINGS.md guide, string_processing.kr, safe_pointers.kr examples
+- **Total**: 11 new safety functions + comprehensive documentation
 
 ### Core Features
 - **Static Typing**: Strong type system with type inference

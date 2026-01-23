@@ -1,0 +1,92 @@
+// Bounds Checking Tests for 0.8.24
+// Tests runtime bounds checking infrastructure
+
+// External declarations for bounds checking functions
+extern fn kraken_bounds_check(index: int, length: int, file: str, line: int) -> void;
+extern fn kraken_bounds_check_range(start: int, end: int, length: int, file: str, line: int) -> void;
+
+// Test valid array access
+fn test_valid_array_access() -> int {
+    let arr_len = 10;
+    let index = 5;
+    
+    // This should not trap
+    kraken_bounds_check(index, arr_len, "test_bounds_checking.kr", 13);
+    
+    puts("Valid array access test passed");
+    return 0;
+}
+
+// Test valid range access
+fn test_valid_range_access() -> int {
+    let arr_len = 10;
+    let start = 2;
+    let end = 7;
+    
+    // This should not trap
+    kraken_bounds_check_range(start, end, arr_len, "test_bounds_checking.kr", 26);
+    
+    puts("Valid range access test passed");
+    return 0;
+}
+
+// Test edge case: access at boundary
+fn test_boundary_access() -> int {
+    let arr_len = 10;
+    
+    // Access at index 0 (valid)
+    kraken_bounds_check(0, arr_len, "test_bounds_checking.kr", 37);
+    
+    // Access at index 9 (valid, last element)
+    kraken_bounds_check(9, arr_len, "test_bounds_checking.kr", 40);
+    
+    puts("Boundary access test passed");
+    return 0;
+}
+
+// Test edge case: empty range
+fn test_empty_range() -> int {
+    let arr_len = 10;
+    let start = 5;
+    let end = 5;
+    
+    // Empty range [5..5] should be valid
+    kraken_bounds_check_range(start, end, arr_len, "test_bounds_checking.kr", 53);
+    
+    puts("Empty range test passed");
+    return 0;
+}
+
+// Test edge case: full range
+fn test_full_range() -> int {
+    let arr_len = 10;
+    let start = 0;
+    let end = 10;
+    
+    // Full range [0..10] should be valid
+    kraken_bounds_check_range(start, end, arr_len, "test_bounds_checking.kr", 66);
+    
+    puts("Full range test passed");
+    return 0;
+}
+
+fn main() -> int {
+    let failures = 0;
+    
+    puts("Testing bounds checking infrastructure...");
+    puts("Note: Set KRAKEN_BOUNDS_CHECK=1 to enable runtime checks");
+    puts("");
+    
+    failures = failures + test_valid_array_access();
+    failures = failures + test_valid_range_access();
+    failures = failures + test_boundary_access();
+    failures = failures + test_empty_range();
+    failures = failures + test_full_range();
+    
+    puts("");
+    if (failures == 0) {
+        puts("All bounds checking tests passed!");
+    }
+    
+    return failures;
+}
