@@ -245,9 +245,7 @@ pub enum Expression {
     },
 
     /// Tuple literal expression: (1, "hello", true)
-    Tuple {
-        elements: Vec<Expression>,
-    },
+    Tuple { elements: Vec<Expression> },
 
     /// Tuple indexing: tuple.0, tuple.1
     TupleIndex {
@@ -256,9 +254,7 @@ pub enum Expression {
     },
 
     /// Try expression: expr? (for Result/Option error propagation)
-    Try {
-        expression: Box<Expression>,
-    },
+    Try { expression: Box<Expression> },
 
     /// Range expression: 0..10 or 0..=10
     Range {
@@ -298,7 +294,7 @@ impl Block {
 /// Function parameter.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Parameter {
-    pub pattern: Pattern,  // Changed from name: String to support destructuring
+    pub pattern: Pattern, // Changed from name: String to support destructuring
     pub param_type: Type,
     pub is_reference: bool,
 }
@@ -362,9 +358,7 @@ pub enum Pattern {
     },
 
     /// Tuple pattern: (x, y, z)
-    Tuple {
-        patterns: Vec<Pattern>,
-    },
+    Tuple { patterns: Vec<Pattern> },
 
     /// Range pattern: 0..10 or 0..=10
     Range {
@@ -374,9 +368,7 @@ pub enum Pattern {
     },
 
     /// Or pattern: 1 | 2 | 3
-    Or {
-        patterns: Vec<Pattern>,
-    },
+    Or { patterns: Vec<Pattern> },
 
     /// Struct pattern: Point { x, y } or Point { x, .. }
     Struct {

@@ -520,11 +520,7 @@ mod tests {
 
     #[tokio::test]
     async fn generics_vec_string_compile_and_run() -> Result<()> {
-        assert_program_exit_code(
-            PathBuf::from("../tests/programs/generics_vec_string.kr"),
-            0,
-        )
-        .await
+        assert_program_exit_code(PathBuf::from("../tests/programs/generics_vec_string.kr"), 0).await
     }
 
     #[tokio::test]
@@ -547,11 +543,7 @@ mod tests {
 
     #[tokio::test]
     async fn string_trim_test_compile_and_run() -> Result<()> {
-        assert_program_exit_code(
-            PathBuf::from("../tests/programs/string_trim_test.kr"),
-            0,
-        )
-        .await
+        assert_program_exit_code(PathBuf::from("../tests/programs/string_trim_test.kr"), 0).await
     }
 
     #[tokio::test]
@@ -574,11 +566,7 @@ mod tests {
 
     #[tokio::test]
     async fn string_utf8_test_compile_and_run() -> Result<()> {
-        assert_program_exit_code(
-            PathBuf::from("../tests/programs/string_utf8_test.kr"),
-            0,
-        )
-        .await
+        assert_program_exit_code(PathBuf::from("../tests/programs/string_utf8_test.kr"), 0).await
     }
 
     // TODO: Re-enable in 0.8.16 when C runtime library is implemented
@@ -603,11 +591,7 @@ mod tests {
 
     #[tokio::test]
     async fn string_replace_test_compile_and_run() -> Result<()> {
-        assert_program_exit_code(
-            PathBuf::from("../tests/programs/string_replace_test.kr"),
-            0,
-        )
-        .await
+        assert_program_exit_code(PathBuf::from("../tests/programs/string_replace_test.kr"), 0).await
     }
 
     #[tokio::test]

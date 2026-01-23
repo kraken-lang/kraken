@@ -2127,10 +2127,14 @@ impl TypeChecker {
                 Ok(())
             }
 
-            Statement::ForIn { variable, iterable, body } => {
+            Statement::ForIn {
+                variable,
+                iterable,
+                body,
+            } => {
                 // Check that iterable is a valid range expression
                 let iterable_type = self.check_expression(iterable)?;
-                
+
                 // For now, we only support ranges as iterables
                 // The iterable_type will be Int (from Range expression check)
                 if iterable_type != Type::Int {
@@ -2139,16 +2143,16 @@ impl TypeChecker {
                         format!("For-in loop requires range expression, found {iterable_type}"),
                     ));
                 }
-                
+
                 // Create a new scope for the loop body and define the loop variable
                 let child_env = self.env.child();
                 let saved_env = std::mem::replace(&mut self.env, child_env);
-                
+
                 // Loop variable is always int (from range)
                 self.env.define_variable(variable.clone(), Type::Int);
-                
+
                 self.check_block(body)?;
-                
+
                 // Restore environment
                 self.env = saved_env;
                 Ok(())
@@ -2232,7 +2236,7 @@ impl TypeChecker {
                                             fields.iter().map(|(_, ty)| ty.clone()).collect()
                                         }
                                     };
-                                    
+
                                     // Bind each variable to its corresponding payload type
                                     for (i, binding) in bindings.iter().enumerate() {
                                         let binding_type =
@@ -2249,7 +2253,11 @@ impl TypeChecker {
                             self.env = saved_env;
                             continue;
                         }
-                        Pattern::Range { start, end, inclusive: _ } => {
+                        Pattern::Range {
+                            start,
+                            end,
+                            inclusive: _,
+                        } => {
                             // Validate range bounds are int type
                             let start_type = self.check_expression(start)?;
                             let end_type = self.check_expression(end)?;
@@ -2263,7 +2271,9 @@ impl TypeChecker {
                             if expr_type != Type::Int {
                                 return Err(CompilerError::type_error(
                                     SourceLocation::new(self.file_path.clone(), 0, 0),
-                                    format!("Range pattern requires int expression, found {expr_type}"),
+                                    format!(
+                                        "Range pattern requires int expression, found {expr_type}"
+                                    ),
                                 ));
                             }
                         }
@@ -2288,7 +2298,11 @@ impl TypeChecker {
                                 }
                             }
                         }
-                        Pattern::Struct { struct_name, fields, partial } => {
+                        Pattern::Struct {
+                            struct_name,
+                            fields,
+                            partial,
+                        } => {
                             // Check struct pattern against struct type
                             if let Type::Custom(type_name) = &expr_type {
                                 if type_name != struct_name {
@@ -2297,17 +2311,23 @@ impl TypeChecker {
                                         format!("Struct pattern {struct_name} does not match type {type_name}"),
                                     ));
                                 }
-                                
+
                                 // Look up struct definition and validate fields
                                 if let Some(struct_def) = self.env.lookup_struct(struct_name) {
                                     // Create child env and bind pattern variables
                                     let mut arm_env = self.env.child();
                                     for (field_name, field_pattern) in fields {
-                                        if let Some(field_type) = struct_def.fields.iter()
+                                        if let Some(field_type) = struct_def
+                                            .fields
+                                            .iter()
                                             .find(|(name, _)| name.as_str() == field_name.as_str())
                                             .map(|(_, ty)| ty)
                                         {
-                                            self.bind_pattern_to_env(field_pattern, field_type, &mut arm_env)?;
+                                            self.bind_pattern_to_env(
+                                                field_pattern,
+                                                field_type,
+                                                &mut arm_env,
+                                            )?;
                                         } else {
                                             return Err(CompilerError::type_error(
                                                 SourceLocation::new(self.file_path.clone(), 0, 0),
@@ -2315,7 +2335,7 @@ impl TypeChecker {
                                             ));
                                         }
                                     }
-                                    
+
                                     // If not partial, ensure all fields are covered
                                     if !partial && fields.len() != struct_def.fields.len() {
                                         return Err(CompilerError::type_error(
@@ -2326,7 +2346,7 @@ impl TypeChecker {
                                             ),
                                         ));
                                     }
-                                    
+
                                     // Switch to arm env and check body
                                     let saved_env = std::mem::replace(&mut self.env, arm_env);
                                     self.check_block(&arm.body)?;
@@ -2375,7 +2395,7 @@ impl TypeChecker {
             Statement::Break | Statement::Continue => Ok(()),
 
             Statement::Defer { statement } => self.check_statement(statement),
-            
+
             Statement::TypeAlias { .. } | Statement::ImplBlock { .. } => {
                 // Type aliases and impl blocks are handled separately
                 // Type aliases are resolved during type resolution
@@ -2751,7 +2771,11 @@ impl TypeChecker {
                         } else {
                             Err(CompilerError::type_error(
                                 SourceLocation::new(self.file_path.clone(), 0, 0),
-                                format!("Tuple index {} out of bounds (tuple has {} elements)", index, element_types.len()),
+                                format!(
+                                    "Tuple index {} out of bounds (tuple has {} elements)",
+                                    index,
+                                    element_types.len()
+                                ),
                             ))
                         }
                     }
@@ -2762,10 +2786,14 @@ impl TypeChecker {
                 }
             }
 
-            Expression::Range { start, end, inclusive: _ } => {
+            Expression::Range {
+                start,
+                end,
+                inclusive: _,
+            } => {
                 let start_type = self.check_expression(start)?;
                 let end_type = self.check_expression(end)?;
-                
+
                 // Both start and end must be int type
                 if start_type != Type::Int {
                     return Err(CompilerError::type_error(
@@ -2779,7 +2807,7 @@ impl TypeChecker {
                         format!("Range end must be int, found {end_type}"),
                     ));
                 }
-                
+
                 // Range expressions don't have a specific type - they're used in for loops
                 // For now, we'll just validate them and return int (representing the iterator)
                 Ok(Type::Int)
@@ -2788,7 +2816,7 @@ impl TypeChecker {
             Expression::Try { expression } => {
                 // Type check the inner expression
                 let inner_type = self.check_expression(expression)?;
-                
+
                 // The ? operator works on Result<T, E> and Option<T>
                 // For Result<T, E>, it returns T and propagates E
                 // For Option<T>, it returns T and propagates None
@@ -2811,7 +2839,7 @@ impl TypeChecker {
                 for param in parameters {
                     let param_type = param.param_type.clone();
                     param_types.push(param_type.clone());
-                    
+
                     // Bind parameter pattern to environment
                     self.bind_pattern_to_env(&param.pattern, &param_type, &mut closure_env)?;
                 }
@@ -3047,7 +3075,11 @@ impl TypeChecker {
                 }
                 Ok(())
             }
-            Pattern::Struct { struct_name, fields, partial } => {
+            Pattern::Struct {
+                struct_name,
+                fields,
+                partial,
+            } => {
                 // Validate struct type and destructure fields
                 if let Type::Custom(type_name) = ty {
                     if type_name != struct_name {
@@ -3056,12 +3088,14 @@ impl TypeChecker {
                             format!("Struct pattern {struct_name} does not match type {type_name}"),
                         ));
                     }
-                    
+
                     // Look up struct definition
                     if let Some(struct_def) = self.env.lookup_struct(struct_name) {
                         // Validate all pattern fields exist in struct
                         for (field_name, field_pattern) in fields {
-                            if let Some(field_type) = struct_def.fields.iter()
+                            if let Some(field_type) = struct_def
+                                .fields
+                                .iter()
                                 .find(|(name, _)| name.as_str() == field_name.as_str())
                                 .map(|(_, ty)| ty)
                             {
@@ -3073,7 +3107,7 @@ impl TypeChecker {
                                 ));
                             }
                         }
-                        
+
                         // If not partial, ensure all fields are covered
                         if !partial && fields.len() != struct_def.fields.len() {
                             return Err(CompilerError::type_error(
@@ -3084,7 +3118,7 @@ impl TypeChecker {
                                 ),
                             ));
                         }
-                        
+
                         Ok(())
                     } else {
                         Err(CompilerError::type_error(
@@ -3103,7 +3137,12 @@ impl TypeChecker {
     }
 
     /// Bind a pattern to a type in a specific environment
-    fn bind_pattern_to_env(&self, pattern: &Pattern, ty: &Type, env: &mut TypeEnvironment) -> CompilerResult<()> {
+    fn bind_pattern_to_env(
+        &self,
+        pattern: &Pattern,
+        ty: &Type,
+        env: &mut TypeEnvironment,
+    ) -> CompilerResult<()> {
         match pattern {
             Pattern::Identifier(name) => {
                 env.define_variable(name.clone(), ty.clone());
@@ -3157,7 +3196,11 @@ impl TypeChecker {
                 }
                 Ok(())
             }
-            Pattern::Struct { struct_name, fields, partial: _ } => {
+            Pattern::Struct {
+                struct_name,
+                fields,
+                partial: _,
+            } => {
                 // Validate struct type and bind field patterns
                 if let Type::Custom(type_name) = ty {
                     if type_name != struct_name {
@@ -3166,12 +3209,14 @@ impl TypeChecker {
                             format!("Struct pattern {struct_name} does not match type {type_name}"),
                         ));
                     }
-                    
+
                     // Look up struct definition
                     if let Some(struct_def) = self.env.lookup_struct(struct_name) {
                         // Bind variables from field patterns
                         for (field_name, field_pattern) in fields {
-                            if let Some(field_type) = struct_def.fields.iter()
+                            if let Some(field_type) = struct_def
+                                .fields
+                                .iter()
                                 .find(|(name, _)| name.as_str() == field_name.as_str())
                                 .map(|(_, ty)| ty)
                             {
@@ -3278,7 +3323,11 @@ impl TypeChecker {
 
     /// Collect which enum variants are covered by a pattern.
     #[allow(clippy::only_used_in_recursion)]
-    fn collect_covered_variants(&self, pattern: &Pattern, covered: &mut std::collections::HashSet<String>) {
+    fn collect_covered_variants(
+        &self,
+        pattern: &Pattern,
+        covered: &mut std::collections::HashSet<String>,
+    ) {
         match pattern {
             Pattern::EnumVariant { variant_name, .. } => {
                 covered.insert(variant_name.clone());

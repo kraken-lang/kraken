@@ -1,5 +1,7 @@
 use crate::lexer::tokenizer::Tokenizer;
-use crate::parser::ast::{Block, ClosureBody, Expression, MatchArm, Pattern, Program, Statement, Type};
+use crate::parser::ast::{
+    Block, ClosureBody, Expression, MatchArm, Pattern, Program, Statement, Type,
+};
 use crate::parser::Parser;
 use anyhow::{Context, Result};
 use std::collections::hash_map::DefaultHasher;
@@ -491,7 +493,11 @@ fn rewrite_statement(
             body: rewrite_block(body, private_mangle)?,
         }),
 
-        Statement::ForIn { variable, iterable, body } => Ok(Statement::ForIn {
+        Statement::ForIn {
+            variable,
+            iterable,
+            body,
+        } => Ok(Statement::ForIn {
             variable,
             iterable: rewrite_expression(iterable, private_mangle),
             body: rewrite_block(body, private_mangle)?,
@@ -552,7 +558,11 @@ fn rewrite_pattern(pattern: Pattern, private_mangle: &HashMap<String, String>) -
                 .map(|p| rewrite_pattern(p, private_mangle))
                 .collect(),
         },
-        Pattern::Range { start, end, inclusive } => Pattern::Range {
+        Pattern::Range {
+            start,
+            end,
+            inclusive,
+        } => Pattern::Range {
             start: Box::new(rewrite_expression(*start, private_mangle)),
             end: Box::new(rewrite_expression(*end, private_mangle)),
             inclusive,
@@ -563,7 +573,11 @@ fn rewrite_pattern(pattern: Pattern, private_mangle: &HashMap<String, String>) -
                 .map(|p| rewrite_pattern(p, private_mangle))
                 .collect(),
         },
-        Pattern::Struct { struct_name, fields, partial } => Pattern::Struct {
+        Pattern::Struct {
+            struct_name,
+            fields,
+            partial,
+        } => Pattern::Struct {
             struct_name,
             fields: fields
                 .into_iter()
@@ -713,7 +727,11 @@ fn rewrite_expression(expr: Expression, private_mangle: &HashMap<String, String>
             index,
         },
 
-        Expression::Range { start, end, inclusive } => Expression::Range {
+        Expression::Range {
+            start,
+            end,
+            inclusive,
+        } => Expression::Range {
             start: Box::new(rewrite_expression(*start, private_mangle)),
             end: Box::new(rewrite_expression(*end, private_mangle)),
             inclusive,
@@ -736,7 +754,8 @@ fn rewrite_expression(expr: Expression, private_mangle: &HashMap<String, String>
                 ClosureBody::Block(block) => {
                     // Rewrite block statements directly
                     let dummy_path = Path::new("");
-                    let rewritten_statements: Vec<Statement> = block.statements
+                    let rewritten_statements: Vec<Statement> = block
+                        .statements
                         .into_iter()
                         .filter_map(|stmt| rewrite_statement(dummy_path, stmt, private_mangle).ok())
                         .collect();

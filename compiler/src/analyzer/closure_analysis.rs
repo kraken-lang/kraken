@@ -85,7 +85,7 @@ impl ClosureAnalyzer {
         is_move: bool,
     ) -> CompilerResult<ClosureEnvironment> {
         let mut env = ClosureEnvironment::new(is_move);
-        
+
         // Collect all referenced variables first
         let mut referenced_vars = HashSet::new();
         match body {
@@ -96,21 +96,23 @@ impl ClosureAnalyzer {
                 self.collect_block_referenced_vars(block, &mut referenced_vars);
             }
         }
-        
+
         // Now create closure scope with parameters
         self.push_scope();
         for param in parameters {
             self.add_pattern_bindings(&param.pattern);
         }
-        
+
         // Determine which referenced vars are captures
         // A variable is captured if it's referenced but not a closure parameter
         for var_name in referenced_vars {
             // Check if it's in the current closure scope (i.e., a parameter)
-            let is_param = self.local_vars.last()
+            let is_param = self
+                .local_vars
+                .last()
                 .map(|scope| scope.contains(&var_name))
                 .unwrap_or(false);
-            
+
             // If not a parameter, it's a capture
             if !is_param {
                 env.add_capture(CapturedVariable {
@@ -120,9 +122,9 @@ impl ClosureAnalyzer {
                 });
             }
         }
-        
+
         self.pop_scope();
-        
+
         Ok(env)
     }
 
@@ -167,7 +169,9 @@ impl ClosureAnalyzer {
             Expression::Unary { operand, .. } => {
                 self.collect_referenced_vars(operand, vars);
             }
-            Expression::Call { callee, arguments, .. } => {
+            Expression::Call {
+                callee, arguments, ..
+            } => {
                 self.collect_referenced_vars(callee, vars);
                 for arg in arguments {
                     self.collect_referenced_vars(arg, vars);
@@ -226,16 +230,14 @@ impl ClosureAnalyzer {
             Expression::Spawn { body } => {
                 self.collect_block_referenced_vars(body, vars);
             }
-            Expression::Closure { body, .. } => {
-                match body {
-                    ClosureBody::Expression(expr) => {
-                        self.collect_referenced_vars(expr, vars);
-                    }
-                    ClosureBody::Block(block) => {
-                        self.collect_block_referenced_vars(block, vars);
-                    }
+            Expression::Closure { body, .. } => match body {
+                ClosureBody::Expression(expr) => {
+                    self.collect_referenced_vars(expr, vars);
                 }
-            }
+                ClosureBody::Block(block) => {
+                    self.collect_block_referenced_vars(block, vars);
+                }
+            },
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)
             | Expression::StringLiteral(_)
@@ -269,7 +271,11 @@ impl ClosureAnalyzer {
                     self.collect_referenced_vars(val, vars);
                 }
             }
-            Statement::If { condition, then_branch, else_branch } => {
+            Statement::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
                 self.collect_referenced_vars(condition, vars);
                 self.collect_block_referenced_vars(then_branch, vars);
                 if let Some(else_blk) = else_branch {
@@ -280,7 +286,9 @@ impl ClosureAnalyzer {
                 self.collect_referenced_vars(condition, vars);
                 self.collect_block_referenced_vars(body, vars);
             }
-            Statement::For { condition, body, .. } => {
+            Statement::For {
+                condition, body, ..
+            } => {
                 if let Some(cond) = condition {
                     self.collect_referenced_vars(cond, vars);
                 }
@@ -308,7 +316,7 @@ impl ClosureAnalyzer {
             | Statement::Module { .. }
             | Statement::Import { .. }
             | Statement::TypeAlias { .. }
-            | Statement::ImplBlock { .. } => {},
+            | Statement::ImplBlock { .. } => {}
         }
     }
 }
@@ -321,18 +329,18 @@ mod tests {
     #[test]
     fn test_simple_capture() {
         let mut analyzer = ClosureAnalyzer::new();
-        
+
         // Simulate outer scope with variable 'x'
         // The initial scope is for the function, add 'x' there
         if let Some(scope) = analyzer.local_vars.first_mut() {
             scope.insert("x".to_string());
         }
-        
+
         let params = vec![];
         let body = ClosureBody::Expression(Box::new(Expression::Identifier("x".to_string())));
-        
+
         let env = analyzer.analyze_closure(&params, &body, false).unwrap();
-        
+
         assert_eq!(env.captured_vars.len(), 1);
         assert_eq!(env.captured_vars[0].name, "x");
         assert!(!env.captured_vars[0].capture_by_value);
@@ -341,17 +349,17 @@ mod tests {
     #[test]
     fn test_move_capture() {
         let mut analyzer = ClosureAnalyzer::new();
-        
+
         // Simulate outer scope with variable 'x'
         if let Some(scope) = analyzer.local_vars.first_mut() {
             scope.insert("x".to_string());
         }
-        
+
         let params = vec![];
         let body = ClosureBody::Expression(Box::new(Expression::Identifier("x".to_string())));
-        
+
         let env = analyzer.analyze_closure(&params, &body, true).unwrap();
-        
+
         assert_eq!(env.captured_vars.len(), 1);
         assert_eq!(env.captured_vars[0].name, "x");
         assert!(env.captured_vars[0].capture_by_value);
@@ -360,16 +368,16 @@ mod tests {
     #[test]
     fn test_no_capture_local_param() {
         let mut analyzer = ClosureAnalyzer::new();
-        
+
         let params = vec![Parameter {
             pattern: Pattern::Identifier("x".to_string()),
             param_type: Type::Int,
             is_reference: false,
         }];
         let body = ClosureBody::Expression(Box::new(Expression::Identifier("x".to_string())));
-        
+
         let env = analyzer.analyze_closure(&params, &body, false).unwrap();
-        
+
         assert_eq!(env.captured_vars.len(), 0);
     }
 }

@@ -1,12 +1,10 @@
 use crate::parser::ast::{
-    Block, Expression, FunctionSignature, MatchArm, Parameter, Pattern, Program, Statement,
-    StructField, Type, WhereConstraint, EnumVariantPayload, ClosureBody,
+    Block, ClosureBody, EnumVariantPayload, Expression, FunctionSignature, MatchArm, Parameter,
+    Pattern, Program, Statement, StructField, Type, WhereConstraint,
 };
 use crate::{
     error::{CompilerError, CompilerResult, SourceLocation},
-    lexer::{
-        token::{Keyword, Operator, Token, TokenKind},
-    },
+    lexer::token::{Keyword, Operator, Token, TokenKind},
 };
 use std::path::PathBuf;
 
@@ -105,7 +103,7 @@ impl Parser {
             // Tuple destructuring: let (x, y) = ...
             self.advance();
             let mut patterns = Vec::new();
-            
+
             if !self.check_token(TokenKind::RightParen) {
                 patterns.push(self.parse_destructuring_pattern()?);
                 while self.match_token(TokenKind::Comma) {
@@ -115,7 +113,7 @@ impl Parser {
                     patterns.push(self.parse_destructuring_pattern()?);
                 }
             }
-            
+
             self.expect_token(TokenKind::RightParen)?;
             Pattern::Tuple { patterns }
         } else {
@@ -151,7 +149,7 @@ impl Parser {
             // Nested tuple pattern
             self.advance();
             let mut patterns = Vec::new();
-            
+
             if !self.check_token(TokenKind::RightParen) {
                 patterns.push(self.parse_destructuring_pattern()?);
                 while self.match_token(TokenKind::Comma) {
@@ -161,7 +159,7 @@ impl Parser {
                     patterns.push(self.parse_destructuring_pattern()?);
                 }
             }
-            
+
             self.expect_token(TokenKind::RightParen)?;
             Ok(Pattern::Tuple { patterns })
         } else if self.check_token(TokenKind::Identifier) {
@@ -383,7 +381,7 @@ impl Parser {
                     self.expect_token(TokenKind::Colon)?;
                     let field_type = self.parse_type()?;
                     fields.push((field_name, field_type));
-                    
+
                     if !self.match_token(TokenKind::Comma) {
                         break;
                     }
@@ -502,7 +500,7 @@ impl Parser {
     /// Parse a type alias: type MyInt = int;
     fn parse_type_alias(&mut self, is_public: bool) -> CompilerResult<Statement> {
         let name = self.consume_identifier()?;
-        
+
         // Parse optional generic parameters: type Result<T> = ...
         let generic_params = if self.match_token(TokenKind::Operator(Operator::Less)) {
             let mut params = Vec::new();
@@ -515,11 +513,11 @@ impl Parser {
         } else {
             Vec::new()
         };
-        
+
         self.expect_token(TokenKind::Operator(Operator::Assign))?;
         let target_type = self.parse_type()?;
         self.consume_semicolon()?;
-        
+
         Ok(Statement::TypeAlias {
             name,
             generic_params,
@@ -527,7 +525,7 @@ impl Parser {
             is_public,
         })
     }
-    
+
     /// Parse an impl block: impl TypeName { ... }
     fn parse_impl_block(&mut self) -> CompilerResult<Statement> {
         // Parse optional generic parameters: impl<T> Vec<T> { ... }
@@ -542,9 +540,9 @@ impl Parser {
         } else {
             Vec::new()
         };
-        
+
         let type_name = self.consume_identifier()?;
-        
+
         // Skip generic type arguments if present: impl Vec<T> { ... }
         if self.match_token(TokenKind::Operator(Operator::Less)) {
             // Skip until we find the matching >
@@ -558,9 +556,9 @@ impl Parser {
                 self.advance();
             }
         }
-        
+
         self.expect_token(TokenKind::LeftBrace)?;
-        
+
         let mut methods = Vec::new();
         while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
             if self.match_keyword(Keyword::Fn) {
@@ -572,9 +570,9 @@ impl Parser {
                 return Err(self.error("Expected fn in impl block"));
             }
         }
-        
+
         self.expect_token(TokenKind::RightBrace)?;
-        
+
         Ok(Statement::ImplBlock {
             type_name,
             generic_params,
@@ -635,13 +633,13 @@ impl Parser {
         if self.check_token(TokenKind::Identifier) {
             let checkpoint = self.current;
             let var_name = self.consume_identifier()?;
-            
+
             if self.match_keyword(Keyword::In) {
                 // This is a for-in loop
                 let iterable = self.parse_expression()?;
                 self.expect_token(TokenKind::RightParen)?;
                 let body = self.parse_block()?;
-                
+
                 return Ok(Statement::ForIn {
                     variable: var_name,
                     iterable,
@@ -696,18 +694,22 @@ impl Parser {
 
         while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
             let pattern = self.parse_pattern()?;
-            
+
             // Check for guard clause: pattern if condition
             let guard = if self.match_keyword(Keyword::If) {
                 Some(self.parse_expression()?)
             } else {
                 None
             };
-            
+
             self.expect_token(TokenKind::Arrow)?;
             let body = self.parse_block()?;
 
-            arms.push(MatchArm { pattern, guard, body });
+            arms.push(MatchArm {
+                pattern,
+                guard,
+                body,
+            });
         }
 
         self.expect_token(TokenKind::RightBrace)?;
@@ -749,10 +751,10 @@ impl Parser {
         if !self.check_token(TokenKind::RightParen) {
             loop {
                 let is_reference = self.match_keyword(Keyword::Ref);
-                
+
                 // Parse pattern for parameter (supports destructuring)
                 let pattern = self.parse_pattern()?;
-                
+
                 self.expect_token(TokenKind::Colon)?;
                 let param_type = self.parse_type()?;
 
@@ -783,16 +785,16 @@ impl Parser {
         // Parse tuple types: (int, string, bool)
         if self.match_token(TokenKind::LeftParen) {
             let mut element_types = Vec::new();
-            
+
             // Empty tuple () is unit type
             if self.check_token(TokenKind::RightParen) {
                 self.advance();
                 return Ok(Type::Tuple { element_types });
             }
-            
+
             // Parse first type
             element_types.push(self.parse_type()?);
-            
+
             // Parse remaining types
             while self.match_token(TokenKind::Comma) {
                 // Allow trailing comma
@@ -801,7 +803,7 @@ impl Parser {
                 }
                 element_types.push(self.parse_type()?);
             }
-            
+
             self.expect_token(TokenKind::RightParen)?;
             return Ok(Type::Tuple { element_types });
         }
@@ -857,19 +859,19 @@ impl Parser {
     /// Parse a pattern for match expressions.
     fn parse_pattern(&mut self) -> CompilerResult<Pattern> {
         let pattern = self.parse_pattern_base()?;
-        
+
         // Check for or pattern: pattern | pattern | pattern
         if self.match_operator(Operator::BitOr) {
             let mut patterns = vec![pattern];
             patterns.push(self.parse_pattern_base()?);
-            
+
             while self.match_operator(Operator::BitOr) {
                 patterns.push(self.parse_pattern_base()?);
             }
-            
+
             return Ok(Pattern::Or { patterns });
         }
-        
+
         Ok(pattern)
     }
 
@@ -879,7 +881,7 @@ impl Parser {
             // Tuple pattern: (x, y, z) or (1, _, x)
             self.advance();
             let mut patterns = Vec::new();
-            
+
             if !self.check_token(TokenKind::RightParen) {
                 patterns.push(self.parse_pattern()?);
                 while self.match_token(TokenKind::Comma) {
@@ -889,7 +891,7 @@ impl Parser {
                     patterns.push(self.parse_pattern()?);
                 }
             }
-            
+
             self.expect_token(TokenKind::RightParen)?;
             Ok(Pattern::Tuple { patterns })
         } else if self.check_token(TokenKind::Identifier) {
@@ -922,7 +924,7 @@ impl Parser {
                 let struct_name = name;
                 let mut fields = Vec::new();
                 let mut partial = false;
-                
+
                 if !self.check_token(TokenKind::RightBrace) {
                     loop {
                         // Check for partial pattern (..)
@@ -930,7 +932,7 @@ impl Parser {
                             partial = true;
                             break;
                         }
-                        
+
                         // Parse field pattern: field or field: pattern
                         let field_name = self.consume_identifier()?;
                         let field_pattern = if self.match_token(TokenKind::Colon) {
@@ -939,20 +941,20 @@ impl Parser {
                             // Shorthand: field means field: field
                             Pattern::Identifier(field_name.clone())
                         };
-                        
+
                         fields.push((field_name, field_pattern));
-                        
+
                         if !self.match_token(TokenKind::Comma) {
                             break;
                         }
-                        
+
                         // Allow trailing comma before }
                         if self.check_token(TokenKind::RightBrace) {
                             break;
                         }
                     }
                 }
-                
+
                 self.expect_token(TokenKind::RightBrace)?;
                 Ok(Pattern::Struct {
                     struct_name,
@@ -965,7 +967,7 @@ impl Parser {
         } else {
             // Parse literal or range pattern
             let expr = self.parse_primary()?;
-            
+
             // Check if this is a range pattern
             if let Some(op) = self.match_operators(&[Operator::DotDot, Operator::DotDotEqual]) {
                 let inclusive = op == Operator::DotDotEqual;
@@ -976,7 +978,7 @@ impl Parser {
                     inclusive,
                 });
             }
-            
+
             Ok(Pattern::Literal(expr))
         }
     }
@@ -1335,7 +1337,8 @@ impl Parser {
                 // Check if this is tuple indexing (.0, .1, etc) or member access
                 if let TokenKind::IntLiteral = self.peek().kind {
                     let index_str = self.peek().lexeme.clone();
-                    let index = index_str.parse::<usize>()
+                    let index = index_str
+                        .parse::<usize>()
                         .map_err(|_| self.error("Invalid tuple index"))?;
                     self.advance();
                     expr = Expression::TupleIndex {
@@ -1452,21 +1455,23 @@ impl Parser {
             }
             TokenKind::LeftParen => {
                 self.advance();
-                
+
                 // Empty tuple ()
                 if self.check_token(TokenKind::RightParen) {
                     self.advance();
-                    return Ok(Expression::Tuple { elements: Vec::new() });
+                    return Ok(Expression::Tuple {
+                        elements: Vec::new(),
+                    });
                 }
-                
+
                 // Parse first expression
                 let first_expr = self.parse_expression()?;
-                
+
                 // Check if this is a tuple (has comma) or just a parenthesized expression
                 if self.match_token(TokenKind::Comma) {
                     // This is a tuple
                     let mut elements = vec![first_expr];
-                    
+
                     // Allow trailing comma
                     if !self.check_token(TokenKind::RightParen) {
                         elements.push(self.parse_expression()?);
@@ -1477,7 +1482,7 @@ impl Parser {
                             elements.push(self.parse_expression()?);
                         }
                     }
-                    
+
                     self.expect_token(TokenKind::RightParen)?;
                     Ok(Expression::Tuple { elements })
                 } else {

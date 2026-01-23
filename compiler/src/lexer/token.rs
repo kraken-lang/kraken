@@ -305,9 +305,9 @@ pub enum Operator {
 
     // Other
     #[allow(dead_code)]
-    Question,  // ? (for future ? operator desugaring)
-    Ampersand, // & (also used for references)
-    DotDot,    // .. (range)
+    Question, // ? (for future ? operator desugaring)
+    Ampersand,   // & (also used for references)
+    DotDot,      // .. (range)
     DotDotEqual, // ..= (inclusive range)
 }
 

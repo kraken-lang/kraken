@@ -4,7 +4,9 @@
 
 use crate::analyzer::closure_analysis::ClosureAnalyzer;
 use crate::error::{CompilerError, CompilerResult};
-use crate::ir::types::{IrBlock, IrFunction, IrInstruction, IrProgram, IrType, IrValue, ValueId, BlockId};
+use crate::ir::types::{
+    BlockId, IrBlock, IrFunction, IrInstruction, IrProgram, IrType, IrValue, ValueId,
+};
 use crate::parser::ast::{self, Block, Expression, Parameter, Pattern, Program, Statement, Type};
 
 use super::types::*;
@@ -34,8 +36,7 @@ impl IrLowering {
             Pattern::Identifier(name) => Some(name.clone()),
             Pattern::Tuple { patterns } => {
                 // For tuple patterns, use first identifier or generate name
-                patterns.iter()
-                    .find_map(Self::extract_pattern_name)
+                patterns.iter().find_map(Self::extract_pattern_name)
             }
             Pattern::Struct { fields, .. } => {
                 // For struct patterns, use first field name
@@ -164,8 +165,8 @@ impl IrLowering {
             .iter()
             .enumerate()
             .map(|(i, p)| {
-                let param_name = Self::extract_pattern_name(&p.pattern)
-                    .unwrap_or_else(|| format!("param_{i}"));
+                let param_name =
+                    Self::extract_pattern_name(&p.pattern).unwrap_or_else(|| format!("param_{i}"));
                 IrParam {
                     name: param_name,
                     ty: Self::lower_type(&p.param_type),
@@ -188,8 +189,8 @@ impl IrLowering {
 
         // Allocate parameters as local variables
         for (i, param) in parameters.iter().enumerate() {
-            let param_name = Self::extract_pattern_name(&param.pattern)
-                .unwrap_or_else(|| format!("param_{i}"));
+            let param_name =
+                Self::extract_pattern_name(&param.pattern).unwrap_or_else(|| format!("param_{i}"));
             let value_id = self.alloc_value();
             self.variables.insert(param_name.clone(), value_id);
             entry_block.instructions.push(IrInstruction::Alloca {
@@ -273,7 +274,7 @@ impl IrLowering {
                     // Tuple destructuring: let (x, y) = tuple_expr;
                     if let Some(init) = initializer {
                         let _tuple_value = self.lower_expression(init, ir_block)?;
-                        
+
                         // For now, treat tuple destructuring as individual variable assignments
                         // The LLVM backend will handle the actual tuple element extraction
                         // We just need to track that these variables exist
@@ -281,7 +282,7 @@ impl IrLowering {
                             if let Pattern::Identifier(name) = pat {
                                 let var_id = self.alloc_value();
                                 self.variables.insert(name.clone(), var_id);
-                                
+
                                 // Allocate variable (extraction happens at LLVM level)
                                 ir_block.instructions.push(IrInstruction::Alloca {
                                     dest: var_id,
@@ -290,7 +291,7 @@ impl IrLowering {
                                 });
                             }
                         }
-                        
+
                         // Store the tuple value for later extraction
                         // This is a simplified approach - full implementation would extract elements here
                     }
@@ -351,15 +352,24 @@ impl IrLowering {
                 }
             }
 
-            Statement::ForIn { variable, iterable, body } => {
+            Statement::ForIn {
+                variable,
+                iterable,
+                body,
+            } => {
                 // Desugar for-in loop to while loop
                 // for (i in start..end) { body }
                 // becomes:
                 // let i = start;
                 // while (i < end) { body; i = i + 1; }
-                
+
                 // Extract range start and end from iterable
-                if let Expression::Range { start, end, inclusive } = iterable {
+                if let Expression::Range {
+                    start,
+                    end,
+                    inclusive,
+                } = iterable
+                {
                     // Allocate variable for loop counter
                     let value_id = self.alloc_value();
                     self.variables.insert(variable.clone(), value_id);
@@ -368,19 +378,19 @@ impl IrLowering {
                         ty: IrType::Int,
                         name: variable.clone(),
                     });
-                    
+
                     // Initialize counter to start value
                     let start_val = self.lower_expression(start, ir_block)?;
                     ir_block.instructions.push(IrInstruction::Store {
                         value: start_val,
                         ptr: IrValue::Register(value_id),
                     });
-                    
+
                     // Lower the loop body (condition and increment handled by LLVM codegen)
                     // Store end value for comparison
                     let _end_val = self.lower_expression(end, ir_block)?;
                     let _inclusive = *inclusive;
-                    
+
                     // Lower body
                     self.lower_block(body, ir_block)?;
                 } else {
@@ -678,7 +688,7 @@ impl IrLowering {
                     .iter()
                     .map(|e| self.lower_expression(e, ir_block))
                     .collect::<CompilerResult<Vec<_>>>()?;
-                
+
                 // For now, create a tuple value (will be handled in codegen)
                 let dest = self.alloc_value();
                 ir_block.instructions.push(IrInstruction::Call {
@@ -693,7 +703,7 @@ impl IrLowering {
             Expression::TupleIndex { tuple, index } => {
                 let tuple_val = self.lower_expression(tuple, ir_block)?;
                 let dest = self.alloc_value();
-                
+
                 // Extract tuple element at index
                 ir_block.instructions.push(IrInstruction::Call {
                     dest: Some(dest),
@@ -711,7 +721,11 @@ impl IrLowering {
                 self.lower_expression(expression, ir_block)
             }
 
-            Expression::Range { start, end, inclusive: _ } => {
+            Expression::Range {
+                start,
+                end,
+                inclusive: _,
+            } => {
                 // Range expressions are only used in for-in loops
                 // They don't produce a value themselves, just validate the bounds
                 let _start_val = self.lower_expression(start, ir_block)?;
@@ -729,12 +743,12 @@ impl IrLowering {
                 // Perform capture analysis
                 let mut analyzer = ClosureAnalyzer::new();
                 let _env = analyzer.analyze_closure(parameters, body, *is_move)?;
-                
+
                 // Generate unique closure environment struct name
                 let closure_id = self.next_value_id;
                 self.next_value_id += 1;
                 let env_struct_name = format!("__closure_env_{closure_id}");
-                
+
                 // For now, create a placeholder value representing the closure
                 // Full implementation would:
                 // 1. Generate environment struct type with captured variable fields
@@ -742,19 +756,19 @@ impl IrLowering {
                 // 3. Initialize captured variables in the struct
                 // 4. Create function pointer with environment as context
                 // 5. Return closure value (function pointer + environment pointer)
-                
+
                 // Placeholder: return a constant representing the closure
                 // This allows the code to compile but closures can't be called yet
                 // Full implementation requires:
                 // - Environment struct allocation
                 // - Captured variable initialization
                 // - Function pointer creation
-                
+
                 // For now, return a placeholder value
                 // The closure environment info is tracked in `env` for future use
                 let _ = env_struct_name; // Suppress unused warning
                 let _ = return_type; // Suppress unused warning
-                
+
                 Ok(IrValue::ConstInt(0))
             }
         }

@@ -49,10 +49,15 @@ impl AstDesugar {
             Statement::FunctionDeclaration { body, .. } => {
                 self.desugar_block(body)?;
             }
-            Statement::VariableDeclaration { initializer: Some(expr), .. } => {
+            Statement::VariableDeclaration {
+                initializer: Some(expr),
+                ..
+            } => {
                 self.desugar_expression(expr)?;
             }
-            Statement::VariableDeclaration { initializer: None, .. } => {}
+            Statement::VariableDeclaration {
+                initializer: None, ..
+            } => {}
             Statement::Expression(expression) => {
                 self.desugar_expression(expression)?;
             }
@@ -134,7 +139,9 @@ impl AstDesugar {
             Expression::Unary { operand, .. } => {
                 self.desugar_expression(operand)?;
             }
-            Expression::Call { callee, arguments, .. } => {
+            Expression::Call {
+                callee, arguments, ..
+            } => {
                 self.desugar_expression(callee)?;
                 for arg in arguments {
                     self.desugar_expression(arg)?;
@@ -175,7 +182,10 @@ impl AstDesugar {
             Expression::Await { expression: inner } => {
                 self.desugar_expression(inner)?;
             }
-            Expression::EnumVariant { payload: Some(payload_exprs), .. } => {
+            Expression::EnumVariant {
+                payload: Some(payload_exprs),
+                ..
+            } => {
                 for expr in payload_exprs {
                     self.desugar_expression(expr)?;
                 }
@@ -206,9 +216,7 @@ mod tests {
     #[test]
     fn test_desugar_empty_program() {
         let mut desugar = AstDesugar::new();
-        let mut program = Program {
-            statements: vec![],
-        };
+        let mut program = Program { statements: vec![] };
         assert!(desugar.desugar_program(&mut program).is_ok());
     }
 }

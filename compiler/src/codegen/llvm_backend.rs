@@ -42,12 +42,8 @@ impl LLVMCodegen {
     fn extract_pattern_name(pattern: &Pattern) -> Option<String> {
         match pattern {
             Pattern::Identifier(name) => Some(name.clone()),
-            Pattern::Tuple { patterns } => {
-                patterns.iter().find_map(Self::extract_pattern_name)
-            }
-            Pattern::Struct { fields, .. } => {
-                fields.first().map(|(name, _)| name.clone())
-            }
+            Pattern::Tuple { patterns } => patterns.iter().find_map(Self::extract_pattern_name),
+            Pattern::Struct { fields, .. } => fields.first().map(|(name, _)| name.clone()),
             _ => None,
         }
     }
@@ -456,14 +452,13 @@ impl LLVMCodegen {
                 is_public: _,
             } => {
                 // Register enum variants with their tag values and payload types
-                let variants_with_tags: Vec<(String, u32, Option<EnumVariantPayload>)> =
-                    variants
-                        .iter()
-                        .enumerate()
-                        .map(|(i, (variant_name, payload))| {
-                            (variant_name.clone(), i as u32, payload.clone())
-                        })
-                        .collect();
+                let variants_with_tags: Vec<(String, u32, Option<EnumVariantPayload>)> = variants
+                    .iter()
+                    .enumerate()
+                    .map(|(i, (variant_name, payload))| {
+                        (variant_name.clone(), i as u32, payload.clone())
+                    })
+                    .collect();
                 self.enum_types.insert(name.clone(), variants_with_tags);
                 Ok(())
             }
@@ -497,7 +492,7 @@ impl LLVMCodegen {
                         if let Some(init_expr) = initializer {
                             // Generate the tuple value
                             let tuple_val = self.codegen_expression(init_expr)?;
-                            
+
                             // Extract each element and bind to variables
                             for (index, pat) in patterns.iter().enumerate() {
                                 if let Pattern::Identifier(name) = pat {
@@ -508,14 +503,14 @@ impl LLVMCodegen {
                                         index as u32,
                                         c"tuple_elem".as_ptr(),
                                     );
-                                    
+
                                     // Create alloca for the variable
                                     let elem_type = LLVMTypeOf(elem_val);
                                     let alloca = self.create_entry_block_alloca(elem_type, name)?;
-                                    
+
                                     // Store the extracted value
                                     LLVMBuildStore(self.builder, elem_val, alloca);
-                                    
+
                                     // Track the variable
                                     self.named_values.insert(name.clone(), alloca);
                                 }
@@ -524,7 +519,7 @@ impl LLVMCodegen {
                     }
                     return Ok(());
                 }
-                
+
                 // Handle simple identifier patterns
                 let name = match pattern {
                     Pattern::Identifier(n) => n.clone(),
@@ -871,28 +866,37 @@ impl LLVMCodegen {
                 Ok(())
             }
 
-            Statement::ForIn { variable, iterable, body } => {
+            Statement::ForIn {
+                variable,
+                iterable,
+                body,
+            } => {
                 unsafe {
                     let function = self.current_function.ok_or_else(|| {
                         CompilerError::codegen_error("No current function for for-in loop")
                     })?;
 
                     // Extract range bounds
-                    if let Expression::Range { start, end, inclusive } = iterable {
+                    if let Expression::Range {
+                        start,
+                        end,
+                        inclusive,
+                    } = iterable
+                    {
                         // Allocate loop variable
                         let var_type = LLVMInt64TypeInContext(self.context);
                         let var_alloca = self.create_entry_block_alloca(var_type, variable)?;
-                        
+
                         // Initialize loop variable to start value
                         let start_val = self.codegen_expression(start)?;
                         LLVMBuildStore(self.builder, start_val, var_alloca);
                         self.named_values.insert(variable.clone(), var_alloca);
-                        
+
                         // Evaluate end value once
                         let end_val = self.codegen_expression(end)?;
                         let end_alloca = self.create_entry_block_alloca(var_type, "__range_end")?;
                         LLVMBuildStore(self.builder, end_val, end_alloca);
-                        
+
                         // Create blocks
                         let cond_bb = LLVMAppendBasicBlockInContext(
                             self.context,
@@ -914,25 +918,39 @@ impl LLVMCodegen {
                             function,
                             c"for_in.end".as_ptr(),
                         );
-                        
+
                         // Push loop blocks for break/continue
                         self.loop_exit_blocks.push(after_bb);
                         self.loop_continue_blocks.push(inc_bb);
-                        
+
                         // Branch to condition
                         LLVMBuildBr(self.builder, cond_bb);
-                        
+
                         // Generate condition block: i < end or i <= end
                         LLVMPositionBuilderAtEnd(self.builder, cond_bb);
-                        let current_val = LLVMBuildLoad2(self.builder, var_type, var_alloca, c"".as_ptr());
-                        let end_loaded = LLVMBuildLoad2(self.builder, var_type, end_alloca, c"".as_ptr());
+                        let current_val =
+                            LLVMBuildLoad2(self.builder, var_type, var_alloca, c"".as_ptr());
+                        let end_loaded =
+                            LLVMBuildLoad2(self.builder, var_type, end_alloca, c"".as_ptr());
                         let cond_val = if *inclusive {
-                            LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntSLE, current_val, end_loaded, c"".as_ptr())
+                            LLVMBuildICmp(
+                                self.builder,
+                                llvm_sys::LLVMIntPredicate::LLVMIntSLE,
+                                current_val,
+                                end_loaded,
+                                c"".as_ptr(),
+                            )
                         } else {
-                            LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntSLT, current_val, end_loaded, c"".as_ptr())
+                            LLVMBuildICmp(
+                                self.builder,
+                                llvm_sys::LLVMIntPredicate::LLVMIntSLT,
+                                current_val,
+                                end_loaded,
+                                c"".as_ptr(),
+                            )
                         };
                         LLVMBuildCondBr(self.builder, cond_val, loop_bb, after_bb);
-                        
+
                         // Generate loop body
                         LLVMPositionBuilderAtEnd(self.builder, loop_bb);
                         for stmt in &body.statements {
@@ -946,23 +964,26 @@ impl LLVMCodegen {
                         if LLVMGetBasicBlockTerminator(current_bb).is_null() {
                             LLVMBuildBr(self.builder, inc_bb);
                         }
-                        
+
                         // Generate increment block: i = i + 1
                         LLVMPositionBuilderAtEnd(self.builder, inc_bb);
-                        let current_val = LLVMBuildLoad2(self.builder, var_type, var_alloca, c"".as_ptr());
+                        let current_val =
+                            LLVMBuildLoad2(self.builder, var_type, var_alloca, c"".as_ptr());
                         let one = LLVMConstInt(var_type, 1, 0);
                         let next_val = LLVMBuildAdd(self.builder, current_val, one, c"".as_ptr());
                         LLVMBuildStore(self.builder, next_val, var_alloca);
                         LLVMBuildBr(self.builder, cond_bb);
-                        
+
                         // Pop loop blocks
                         self.loop_exit_blocks.pop();
                         self.loop_continue_blocks.pop();
-                        
+
                         // Continue after loop
                         LLVMPositionBuilderAtEnd(self.builder, after_bb);
                     } else {
-                        return Err(CompilerError::codegen_error("For-in loop requires range expression"));
+                        return Err(CompilerError::codegen_error(
+                            "For-in loop requires range expression",
+                        ));
                     }
                 }
                 Ok(())
@@ -1059,7 +1080,7 @@ impl LLVMCodegen {
                             Pattern::Tuple { patterns } => {
                                 // Tuple patterns always match - extract elements and jump to arm
                                 // Builder is already positioned at the current check block
-                                
+
                                 // Extract each element from the tuple and bind to pattern variables
                                 for (index, pat) in patterns.iter().enumerate() {
                                     if let Pattern::Identifier(name) = pat {
@@ -1070,19 +1091,20 @@ impl LLVMCodegen {
                                             index as u32,
                                             c"match_tuple_elem".as_ptr(),
                                         );
-                                        
+
                                         // Create alloca for the variable
                                         let elem_type = LLVMTypeOf(elem_val);
-                                        let alloca = self.create_entry_block_alloca(elem_type, name)?;
-                                        
+                                        let alloca =
+                                            self.create_entry_block_alloca(elem_type, name)?;
+
                                         // Store the extracted value
                                         LLVMBuildStore(self.builder, elem_val, alloca);
-                                        
+
                                         // Track the variable for the arm body
                                         self.named_values.insert(name.clone(), alloca);
                                     }
                                 }
-                                
+
                                 // Jump to the arm block
                                 LLVMBuildBr(self.builder, arm_blocks[i]);
                             }
@@ -1130,11 +1152,15 @@ impl LLVMCodegen {
                                     LLVMBuildBr(self.builder, arm_blocks[i]);
                                 }
                             }
-                            Pattern::Range { start, end, inclusive } => {
+                            Pattern::Range {
+                                start,
+                                end,
+                                inclusive,
+                            } => {
                                 // Range pattern: check if match_val is within range
                                 let start_val = self.codegen_expression(start)?;
                                 let end_val = self.codegen_expression(end)?;
-                                
+
                                 // Check if match_val >= start
                                 let ge_cond = LLVMBuildICmp(
                                     self.builder,
@@ -1143,7 +1169,7 @@ impl LLVMCodegen {
                                     start_val,
                                     c"range.ge".as_ptr(),
                                 );
-                                
+
                                 // Check if match_val < end (or <= end if inclusive)
                                 let le_cond = if *inclusive {
                                     LLVMBuildICmp(
@@ -1162,18 +1188,28 @@ impl LLVMCodegen {
                                         c"range.lt".as_ptr(),
                                     )
                                 };
-                                
+
                                 // Combine conditions with AND
-                                let cond = LLVMBuildAnd(self.builder, ge_cond, le_cond, c"range.cond".as_ptr());
-                                
+                                let cond = LLVMBuildAnd(
+                                    self.builder,
+                                    ge_cond,
+                                    le_cond,
+                                    c"range.cond".as_ptr(),
+                                );
+
                                 // Branch to arm or next check
-                                LLVMBuildCondBr(self.builder, cond, arm_blocks[i], next_check_blocks[i]);
+                                LLVMBuildCondBr(
+                                    self.builder,
+                                    cond,
+                                    arm_blocks[i],
+                                    next_check_blocks[i],
+                                );
                             }
                             Pattern::Or { patterns } => {
                                 // Or pattern: check if match_val matches any of the alternatives
                                 // Build a chain of OR conditions
                                 let mut combined_cond = None;
-                                
+
                                 for pat in patterns {
                                     match pat {
                                         Pattern::Literal(lit_expr) => {
@@ -1185,12 +1221,18 @@ impl LLVMCodegen {
                                                 lit_val,
                                                 c"or.cmp".as_ptr(),
                                             );
-                                            
-                                            combined_cond = Some(if let Some(prev) = combined_cond {
-                                                LLVMBuildOr(self.builder, prev, cmp, c"or.combined".as_ptr())
-                                            } else {
-                                                cmp
-                                            });
+
+                                            combined_cond =
+                                                Some(if let Some(prev) = combined_cond {
+                                                    LLVMBuildOr(
+                                                        self.builder,
+                                                        prev,
+                                                        cmp,
+                                                        c"or.combined".as_ptr(),
+                                                    )
+                                                } else {
+                                                    cmp
+                                                });
                                         }
                                         _ => {
                                             // Other pattern types in or patterns would need more complex handling
@@ -1198,15 +1240,24 @@ impl LLVMCodegen {
                                         }
                                     }
                                 }
-                                
+
                                 if let Some(cond) = combined_cond {
-                                    LLVMBuildCondBr(self.builder, cond, arm_blocks[i], next_check_blocks[i]);
+                                    LLVMBuildCondBr(
+                                        self.builder,
+                                        cond,
+                                        arm_blocks[i],
+                                        next_check_blocks[i],
+                                    );
                                 } else {
                                     // No conditions, just branch to arm
                                     LLVMBuildBr(self.builder, arm_blocks[i]);
                                 }
                             }
-                            Pattern::Struct { struct_name: _, fields: _, partial: _ } => {
+                            Pattern::Struct {
+                                struct_name: _,
+                                fields: _,
+                                partial: _,
+                            } => {
                                 // Struct pattern: extract fields and bind to variables
                                 // For struct patterns, we always match (type checking ensures correctness)
                                 // The actual field extraction and binding will happen in the arm body
@@ -1220,10 +1271,10 @@ impl LLVMCodegen {
                             // Guard clauses require additional condition checking
                             // Position at the arm block and add guard check
                             LLVMPositionBuilderAtEnd(self.builder, arm_blocks[i]);
-                            
+
                             if let Some(guard_expr) = &arm.guard {
                                 let guard_val = self.codegen_expression(guard_expr)?;
-                                
+
                                 // Create blocks for guard success and failure
                                 let guard_success = LLVMAppendBasicBlockInContext(
                                     self.context,
@@ -1231,10 +1282,10 @@ impl LLVMCodegen {
                                     c"guard.success".as_ptr(),
                                 );
                                 let guard_fail = next_check_blocks[i];
-                                
+
                                 // Branch based on guard condition
                                 LLVMBuildCondBr(self.builder, guard_val, guard_success, guard_fail);
-                                
+
                                 // Position at guard success block for arm body
                                 LLVMPositionBuilderAtEnd(self.builder, guard_success);
                                 arm_blocks[i] = guard_success; // Update arm block to guard success
@@ -1391,26 +1442,28 @@ impl LLVMCodegen {
 
             // Kraken runtime functions
             // kraken_str_split: VecString* kraken_str_split(const char* s, const char* delim)
-            let kraken_str_split_type = LLVMFunctionType(
-                i8_ptr_type,
-                [i8_ptr_type, i8_ptr_type].as_mut_ptr(),
-                2,
-                0,
-            );
+            let kraken_str_split_type =
+                LLVMFunctionType(i8_ptr_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
             let kraken_str_split_name = CString::new("kraken_str_split").expect("CString failed");
-            let kraken_str_split_func = LLVMAddFunction(self.module, kraken_str_split_name.as_ptr(), kraken_str_split_type);
-            self.functions.insert("kraken_str_split".to_string(), kraken_str_split_func);
+            let kraken_str_split_func = LLVMAddFunction(
+                self.module,
+                kraken_str_split_name.as_ptr(),
+                kraken_str_split_type,
+            );
+            self.functions
+                .insert("kraken_str_split".to_string(), kraken_str_split_func);
 
             // kraken_str_join: char* kraken_str_join(VecString* vec, const char* sep)
-            let kraken_str_join_type = LLVMFunctionType(
-                i8_ptr_type,
-                [i8_ptr_type, i8_ptr_type].as_mut_ptr(),
-                2,
-                0,
-            );
+            let kraken_str_join_type =
+                LLVMFunctionType(i8_ptr_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
             let kraken_str_join_name = CString::new("kraken_str_join").expect("CString failed");
-            let kraken_str_join_func = LLVMAddFunction(self.module, kraken_str_join_name.as_ptr(), kraken_str_join_type);
-            self.functions.insert("kraken_str_join".to_string(), kraken_str_join_func);
+            let kraken_str_join_func = LLVMAddFunction(
+                self.module,
+                kraken_str_join_name.as_ptr(),
+                kraken_str_join_type,
+            );
+            self.functions
+                .insert("kraken_str_join".to_string(), kraken_str_join_func);
 
             // Memory functions
             // Core memory functions are declared via the shared stdlib table above.
@@ -1971,11 +2024,11 @@ impl LLVMCodegen {
             self.struct_variables.clear();
             for (i, param) in parameters.iter().enumerate() {
                 let param_val = LLVMGetParam(function, i as u32);
-                
+
                 // Extract parameter name from pattern
                 let param_name = Self::extract_pattern_name(&param.pattern)
                     .unwrap_or_else(|| format!("param_{i}"));
-                
+
                 let param_name_cstr = CString::new(param_name.as_str()).expect("CString failed");
                 LLVMSetValueName2(param_val, param_name_cstr.as_ptr(), param_name.len());
 
@@ -3392,14 +3445,16 @@ impl LLVMCodegen {
                             let i64_ty = LLVMInt64TypeInContext(self.context);
 
                             // Check if this variant has a payload
-                            if let (Some(payload_exprs), Some(payload_type)) = (payload, payload_types) {
+                            if let (Some(payload_exprs), Some(payload_type)) =
+                                (payload, payload_types)
+                            {
                                 let payload_types_vec = match payload_type {
                                     EnumVariantPayload::Tuple(types) => types.clone(),
                                     EnumVariantPayload::Struct(fields) => {
                                         fields.iter().map(|(_, ty)| ty.clone()).collect()
                                     }
                                 };
-                                
+
                                 if !payload_exprs.is_empty() && !payload_types_vec.is_empty() {
                                     // Create a tagged union: { tag: i64, payload_0: T0, payload_1: T1, ... }
                                     let mut field_types = vec![i64_ty];
@@ -3478,13 +3533,13 @@ impl LLVMCodegen {
                     // Create tuple as LLVM struct
                     let mut field_values = Vec::new();
                     let mut field_types = Vec::new();
-                    
+
                     for elem in elements {
                         let val = self.codegen_expression(elem)?;
                         field_values.push(val);
                         field_types.push(LLVMTypeOf(val));
                     }
-                    
+
                     // Create struct type for tuple
                     let struct_ty = LLVMStructTypeInContext(
                         self.context,
@@ -3492,10 +3547,10 @@ impl LLVMCodegen {
                         field_types.len() as u32,
                         0,
                     );
-                    
+
                     // Allocate space for tuple on stack
                     let alloc = LLVMBuildAlloca(self.builder, struct_ty, c"tuple".as_ptr());
-                    
+
                     // Store each field
                     for (i, val) in field_values.iter().enumerate() {
                         let field_ptr = LLVMBuildStructGEP2(
@@ -3507,15 +3562,20 @@ impl LLVMCodegen {
                         );
                         LLVMBuildStore(self.builder, *val, field_ptr);
                     }
-                    
+
                     // Load the complete tuple value
-                    Ok(LLVMBuildLoad2(self.builder, struct_ty, alloc, c"tuple_val".as_ptr()))
+                    Ok(LLVMBuildLoad2(
+                        self.builder,
+                        struct_ty,
+                        alloc,
+                        c"tuple_val".as_ptr(),
+                    ))
                 }
 
                 Expression::TupleIndex { tuple, index } => {
                     // Get the tuple value
                     let tuple_val = self.codegen_expression(tuple)?;
-                    
+
                     // Extract the field at the given index using extractvalue
                     Ok(LLVMBuildExtractValue(
                         self.builder,
@@ -3619,12 +3679,13 @@ impl LLVMCodegen {
                         0,
                     )
                 }
-                Type::Function { param_types, return_type } => {
+                Type::Function {
+                    param_types,
+                    return_type,
+                } => {
                     // Function type is represented as a function pointer
-                    let mut param_llvm_types: Vec<LLVMTypeRef> = param_types
-                        .iter()
-                        .map(|t| self.get_llvm_type(t))
-                        .collect();
+                    let mut param_llvm_types: Vec<LLVMTypeRef> =
+                        param_types.iter().map(|t| self.get_llvm_type(t)).collect();
                     let return_llvm_type = self.get_llvm_type(return_type);
                     let fn_type = LLVMFunctionType(
                         return_llvm_type,
@@ -7107,19 +7168,36 @@ impl LLVMCodegen {
                     let i64_ty = LLVMInt64TypeInContext(self.context);
 
                     // Get strlen
-                    let strlen_fn = *self.functions.get("strlen")
+                    let strlen_fn = *self
+                        .functions
+                        .get("strlen")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strlen"))?;
                     let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
-                    let len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn, 
-                        [s].as_mut_ptr(), 1, c"len".as_ptr());
+                    let len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [s].as_mut_ptr(),
+                        1,
+                        c"len".as_ptr(),
+                    );
 
                     // Find start (skip leading whitespace)
-                    let start_bb = LLVMAppendBasicBlockInContext(self.context, 
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"trim.start".as_ptr());
-                    let start_loop = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"trim.start.loop".as_ptr());
-                    let start_done = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"trim.start.done".as_ptr());
+                    let start_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"trim.start".as_ptr(),
+                    );
+                    let start_loop = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"trim.start.loop".as_ptr(),
+                    );
+                    let start_done = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"trim.start.done".as_ptr(),
+                    );
 
                     LLVMBuildBr(self.builder, start_bb);
                     LLVMPositionBuilderAtEnd(self.builder, start_bb);
@@ -7130,44 +7208,97 @@ impl LLVMCodegen {
                     let zero = LLVMConstInt(i64_ty, 0, 0);
                     LLVMAddIncoming(start_phi, [zero].as_mut_ptr(), [start_bb].as_mut_ptr(), 1);
 
-                    let char_ptr = LLVMBuildInBoundsGEP2(self.builder, i8_ty, s, 
-                        [start_phi].as_mut_ptr(), 1, c"char.ptr".as_ptr());
+                    let char_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        s,
+                        [start_phi].as_mut_ptr(),
+                        1,
+                        c"char.ptr".as_ptr(),
+                    );
                     let ch = LLVMBuildLoad2(self.builder, i8_ty, char_ptr, c"ch".as_ptr());
                     let ch_i64 = LLVMBuildZExt(self.builder, ch, i64_ty, c"ch.i64".as_ptr());
 
                     // Check if whitespace (space=32, tab=9, newline=10, return=13)
-                    let is_space = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        ch_i64, LLVMConstInt(i64_ty, 32, 0), c"is.space".as_ptr());
-                    let is_tab = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        ch_i64, LLVMConstInt(i64_ty, 9, 0), c"is.tab".as_ptr());
-                    let is_newline = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        ch_i64, LLVMConstInt(i64_ty, 10, 0), c"is.newline".as_ptr());
-                    let is_return = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        ch_i64, LLVMConstInt(i64_ty, 13, 0), c"is.return".as_ptr());
+                    let is_space = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        ch_i64,
+                        LLVMConstInt(i64_ty, 32, 0),
+                        c"is.space".as_ptr(),
+                    );
+                    let is_tab = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        ch_i64,
+                        LLVMConstInt(i64_ty, 9, 0),
+                        c"is.tab".as_ptr(),
+                    );
+                    let is_newline = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        ch_i64,
+                        LLVMConstInt(i64_ty, 10, 0),
+                        c"is.newline".as_ptr(),
+                    );
+                    let is_return = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        ch_i64,
+                        LLVMConstInt(i64_ty, 13, 0),
+                        c"is.return".as_ptr(),
+                    );
 
                     let ws1 = LLVMBuildOr(self.builder, is_space, is_tab, c"ws1".as_ptr());
                     let ws2 = LLVMBuildOr(self.builder, is_newline, is_return, c"ws2".as_ptr());
                     let is_ws = LLVMBuildOr(self.builder, ws1, ws2, c"is.ws".as_ptr());
 
-                    let at_end = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntUGE,
-                        start_phi, len, c"at.end".as_ptr());
-                    let should_continue = LLVMBuildAnd(self.builder, is_ws,
-                        LLVMBuildNot(self.builder, at_end, c"not.end".as_ptr()), c"continue".as_ptr());
+                    let at_end = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntUGE,
+                        start_phi,
+                        len,
+                        c"at.end".as_ptr(),
+                    );
+                    let should_continue = LLVMBuildAnd(
+                        self.builder,
+                        is_ws,
+                        LLVMBuildNot(self.builder, at_end, c"not.end".as_ptr()),
+                        c"continue".as_ptr(),
+                    );
 
-                    let next_start = LLVMBuildAdd(self.builder, start_phi, 
-                        LLVMConstInt(i64_ty, 1, 0), c"next.start".as_ptr());
-                    LLVMAddIncoming(start_phi, [next_start].as_mut_ptr(), [start_loop].as_mut_ptr(), 1);
+                    let next_start = LLVMBuildAdd(
+                        self.builder,
+                        start_phi,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"next.start".as_ptr(),
+                    );
+                    LLVMAddIncoming(
+                        start_phi,
+                        [next_start].as_mut_ptr(),
+                        [start_loop].as_mut_ptr(),
+                        1,
+                    );
 
                     LLVMBuildCondBr(self.builder, should_continue, start_loop, start_done);
                     LLVMPositionBuilderAtEnd(self.builder, start_done);
 
                     // Find end (skip trailing whitespace) - work backwards from len
-                    let end_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"trim.end".as_ptr());
-                    let end_loop = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"trim.end.loop".as_ptr());
-                    let end_done = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"trim.end.done".as_ptr());
+                    let end_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"trim.end".as_ptr(),
+                    );
+                    let end_loop = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"trim.end.loop".as_ptr(),
+                    );
+                    let end_done = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"trim.end.done".as_ptr(),
+                    );
 
                     LLVMBuildBr(self.builder, end_bb);
                     LLVMPositionBuilderAtEnd(self.builder, end_bb);
@@ -7177,58 +7308,136 @@ impl LLVMCodegen {
                     let end_phi = LLVMBuildPhi(self.builder, i64_ty, c"end.idx".as_ptr());
                     LLVMAddIncoming(end_phi, [len].as_mut_ptr(), [end_bb].as_mut_ptr(), 1);
 
-                    let is_at_start = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntULE,
-                        end_phi, start_phi, c"at.start".as_ptr());
+                    let is_at_start = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntULE,
+                        end_phi,
+                        start_phi,
+                        c"at.start".as_ptr(),
+                    );
 
-                    let prev_end = LLVMBuildSub(self.builder, end_phi,
-                        LLVMConstInt(i64_ty, 1, 0), c"prev.end".as_ptr());
-                    let end_char_ptr = LLVMBuildInBoundsGEP2(self.builder, i8_ty, s,
-                        [prev_end].as_mut_ptr(), 1, c"end.char.ptr".as_ptr());
-                    let end_ch = LLVMBuildLoad2(self.builder, i8_ty, end_char_ptr, c"end.ch".as_ptr());
-                    let end_ch_i64 = LLVMBuildZExt(self.builder, end_ch, i64_ty, c"end.ch.i64".as_ptr());
+                    let prev_end = LLVMBuildSub(
+                        self.builder,
+                        end_phi,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"prev.end".as_ptr(),
+                    );
+                    let end_char_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        s,
+                        [prev_end].as_mut_ptr(),
+                        1,
+                        c"end.char.ptr".as_ptr(),
+                    );
+                    let end_ch =
+                        LLVMBuildLoad2(self.builder, i8_ty, end_char_ptr, c"end.ch".as_ptr());
+                    let end_ch_i64 =
+                        LLVMBuildZExt(self.builder, end_ch, i64_ty, c"end.ch.i64".as_ptr());
 
-                    let end_is_space = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        end_ch_i64, LLVMConstInt(i64_ty, 32, 0), c"end.is.space".as_ptr());
-                    let end_is_tab = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        end_ch_i64, LLVMConstInt(i64_ty, 9, 0), c"end.is.tab".as_ptr());
-                    let end_is_newline = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        end_ch_i64, LLVMConstInt(i64_ty, 10, 0), c"end.is.newline".as_ptr());
-                    let end_is_return = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        end_ch_i64, LLVMConstInt(i64_ty, 13, 0), c"end.is.return".as_ptr());
+                    let end_is_space = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        end_ch_i64,
+                        LLVMConstInt(i64_ty, 32, 0),
+                        c"end.is.space".as_ptr(),
+                    );
+                    let end_is_tab = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        end_ch_i64,
+                        LLVMConstInt(i64_ty, 9, 0),
+                        c"end.is.tab".as_ptr(),
+                    );
+                    let end_is_newline = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        end_ch_i64,
+                        LLVMConstInt(i64_ty, 10, 0),
+                        c"end.is.newline".as_ptr(),
+                    );
+                    let end_is_return = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        end_ch_i64,
+                        LLVMConstInt(i64_ty, 13, 0),
+                        c"end.is.return".as_ptr(),
+                    );
 
-                    let end_ws1 = LLVMBuildOr(self.builder, end_is_space, end_is_tab, c"end.ws1".as_ptr());
-                    let end_ws2 = LLVMBuildOr(self.builder, end_is_newline, end_is_return, c"end.ws2".as_ptr());
-                    let end_is_ws = LLVMBuildOr(self.builder, end_ws1, end_ws2, c"end.is.ws".as_ptr());
+                    let end_ws1 =
+                        LLVMBuildOr(self.builder, end_is_space, end_is_tab, c"end.ws1".as_ptr());
+                    let end_ws2 = LLVMBuildOr(
+                        self.builder,
+                        end_is_newline,
+                        end_is_return,
+                        c"end.ws2".as_ptr(),
+                    );
+                    let end_is_ws =
+                        LLVMBuildOr(self.builder, end_ws1, end_ws2, c"end.is.ws".as_ptr());
 
-                    let end_should_continue = LLVMBuildAnd(self.builder, end_is_ws,
-                        LLVMBuildNot(self.builder, is_at_start, c"not.at.start".as_ptr()), c"end.continue".as_ptr());
+                    let end_should_continue = LLVMBuildAnd(
+                        self.builder,
+                        end_is_ws,
+                        LLVMBuildNot(self.builder, is_at_start, c"not.at.start".as_ptr()),
+                        c"end.continue".as_ptr(),
+                    );
 
                     LLVMAddIncoming(end_phi, [prev_end].as_mut_ptr(), [end_loop].as_mut_ptr(), 1);
                     LLVMBuildCondBr(self.builder, end_should_continue, end_loop, end_done);
                     LLVMPositionBuilderAtEnd(self.builder, end_done);
 
                     // Allocate new string and copy trimmed portion
-                    let trimmed_len = LLVMBuildSub(self.builder, end_phi, start_phi, c"trimmed.len".as_ptr());
+                    let trimmed_len =
+                        LLVMBuildSub(self.builder, end_phi, start_phi, c"trimmed.len".as_ptr());
                     let one = LLVMConstInt(i64_ty, 1, 0);
-                    let alloc_size = LLVMBuildAdd(self.builder, trimmed_len, one, c"alloc.size".as_ptr());
+                    let alloc_size =
+                        LLVMBuildAdd(self.builder, trimmed_len, one, c"alloc.size".as_ptr());
 
-                    let malloc_fn = *self.functions.get("malloc")
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
                         .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                     let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
-                    let new_str = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn,
-                        [alloc_size].as_mut_ptr(), 1, c"trimmed.ptr".as_ptr());
+                    let new_str = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [alloc_size].as_mut_ptr(),
+                        1,
+                        c"trimmed.ptr".as_ptr(),
+                    );
 
-                    let memcpy_fn = *self.functions.get("memcpy")
+                    let memcpy_fn = *self
+                        .functions
+                        .get("memcpy")
                         .ok_or_else(|| CompilerError::codegen_error("Missing memcpy"))?;
                     let memcpy_ty = LLVMGlobalGetValueType(memcpy_fn);
-                    let src_ptr = LLVMBuildInBoundsGEP2(self.builder, i8_ty, s,
-                        [start_phi].as_mut_ptr(), 1, c"src.ptr".as_ptr());
+                    let src_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        s,
+                        [start_phi].as_mut_ptr(),
+                        1,
+                        c"src.ptr".as_ptr(),
+                    );
 
-                    LLVMBuildCall2(self.builder, memcpy_ty, memcpy_fn,
-                        [new_str, src_ptr, trimmed_len].as_mut_ptr(), 3, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        memcpy_ty,
+                        memcpy_fn,
+                        [new_str, src_ptr, trimmed_len].as_mut_ptr(),
+                        3,
+                        c"".as_ptr(),
+                    );
 
-                    let null_pos = LLVMBuildInBoundsGEP2(self.builder, i8_ty, new_str,
-                        [trimmed_len].as_mut_ptr(), 1, c"null.pos".as_ptr());
+                    let null_pos = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        new_str,
+                        [trimmed_len].as_mut_ptr(),
+                        1,
+                        c"null.pos".as_ptr(),
+                    );
                     let zero_byte = LLVMConstInt(i8_ty, 0, 0);
                     LLVMBuildStore(self.builder, zero_byte, null_pos);
 
@@ -7242,16 +7451,30 @@ impl LLVMCodegen {
                     self.emit_null_check(haystack, "str_contains: null haystack")?;
                     self.emit_null_check(needle, "str_contains: null needle")?;
 
-                    let strstr_fn = *self.functions.get("strstr")
+                    let strstr_fn = *self
+                        .functions
+                        .get("strstr")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strstr"))?;
                     let strstr_ty = LLVMGlobalGetValueType(strstr_fn);
 
-                    let result_ptr = LLVMBuildCall2(self.builder, strstr_ty, strstr_fn,
-                        [haystack, needle].as_mut_ptr(), 2, c"strstr.result".as_ptr());
+                    let result_ptr = LLVMBuildCall2(
+                        self.builder,
+                        strstr_ty,
+                        strstr_fn,
+                        [haystack, needle].as_mut_ptr(),
+                        2,
+                        c"strstr.result".as_ptr(),
+                    );
 
-                    let null_ptr = LLVMConstNull(LLVMPointerType(LLVMInt8TypeInContext(self.context), 0));
-                    let is_not_null = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntNE,
-                        result_ptr, null_ptr, c"contains".as_ptr());
+                    let null_ptr =
+                        LLVMConstNull(LLVMPointerType(LLVMInt8TypeInContext(self.context), 0));
+                    let is_not_null = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntNE,
+                        result_ptr,
+                        null_ptr,
+                        c"contains".as_ptr(),
+                    );
 
                     Ok(Some(is_not_null))
                 }
@@ -7265,24 +7488,45 @@ impl LLVMCodegen {
 
                     let _i64_ty = LLVMInt64TypeInContext(self.context);
 
-                    let strlen_fn = *self.functions.get("strlen")
+                    let strlen_fn = *self
+                        .functions
+                        .get("strlen")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strlen"))?;
                     let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
-                    let prefix_len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [prefix].as_mut_ptr(), 1, c"prefix.len".as_ptr());
+                    let prefix_len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [prefix].as_mut_ptr(),
+                        1,
+                        c"prefix.len".as_ptr(),
+                    );
 
-                    let strncmp_fn = *self.functions.get("strncmp")
+                    let strncmp_fn = *self
+                        .functions
+                        .get("strncmp")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strncmp"))?;
                     let strncmp_ty = LLVMGlobalGetValueType(strncmp_fn);
 
-                    let cmp_result = LLVMBuildCall2(self.builder, strncmp_ty, strncmp_fn,
-                        [s, prefix, prefix_len].as_mut_ptr(), 3, c"strncmp".as_ptr());
+                    let cmp_result = LLVMBuildCall2(
+                        self.builder,
+                        strncmp_ty,
+                        strncmp_fn,
+                        [s, prefix, prefix_len].as_mut_ptr(),
+                        3,
+                        c"strncmp".as_ptr(),
+                    );
 
                     // strncmp is declared to return i64 in our LLVM module
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     let zero = LLVMConstInt(i64_ty, 0, 0);
-                    let starts_with = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        cmp_result, zero, c"starts.with".as_ptr());
+                    let starts_with = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        cmp_result,
+                        zero,
+                        c"starts.with".as_ptr(),
+                    );
 
                     Ok(Some(starts_with))
                 }
@@ -7297,44 +7541,91 @@ impl LLVMCodegen {
                     let i8_ty = LLVMInt8TypeInContext(self.context);
                     let _i64_ty = LLVMInt64TypeInContext(self.context);
 
-                    let strlen_fn = *self.functions.get("strlen")
+                    let strlen_fn = *self
+                        .functions
+                        .get("strlen")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strlen"))?;
                     let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
 
-                    let s_len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [s].as_mut_ptr(), 1, c"s.len".as_ptr());
-                    let suffix_len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [suffix].as_mut_ptr(), 1, c"suffix.len".as_ptr());
+                    let s_len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [s].as_mut_ptr(),
+                        1,
+                        c"s.len".as_ptr(),
+                    );
+                    let suffix_len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [suffix].as_mut_ptr(),
+                        1,
+                        c"suffix.len".as_ptr(),
+                    );
 
                     // Check if suffix is longer than string
-                    let suffix_too_long = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntUGT,
-                        suffix_len, s_len, c"suffix.too.long".as_ptr());
+                    let suffix_too_long = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntUGT,
+                        suffix_len,
+                        s_len,
+                        c"suffix.too.long".as_ptr(),
+                    );
 
-                    let check_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"check.suffix".as_ptr());
-                    let false_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"false.result".as_ptr());
-                    let merge_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"merge".as_ptr());
+                    let check_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"check.suffix".as_ptr(),
+                    );
+                    let false_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"false.result".as_ptr(),
+                    );
+                    let merge_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"merge".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, suffix_too_long, false_bb, check_bb);
 
                     // Check suffix
                     LLVMPositionBuilderAtEnd(self.builder, check_bb);
                     let offset = LLVMBuildSub(self.builder, s_len, suffix_len, c"offset".as_ptr());
-                    let suffix_start = LLVMBuildInBoundsGEP2(self.builder, i8_ty, s,
-                        [offset].as_mut_ptr(), 1, c"suffix.start".as_ptr());
+                    let suffix_start = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        s,
+                        [offset].as_mut_ptr(),
+                        1,
+                        c"suffix.start".as_ptr(),
+                    );
 
-                    let strcmp_fn = *self.functions.get("strcmp")
+                    let strcmp_fn = *self
+                        .functions
+                        .get("strcmp")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strcmp"))?;
                     let strcmp_ty = LLVMGlobalGetValueType(strcmp_fn);
 
-                    let cmp_result = LLVMBuildCall2(self.builder, strcmp_ty, strcmp_fn,
-                        [suffix_start, suffix].as_mut_ptr(), 2, c"strcmp".as_ptr());
+                    let cmp_result = LLVMBuildCall2(
+                        self.builder,
+                        strcmp_ty,
+                        strcmp_fn,
+                        [suffix_start, suffix].as_mut_ptr(),
+                        2,
+                        c"strcmp".as_ptr(),
+                    );
 
                     let zero = LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0);
-                    let ends_with = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        cmp_result, zero, c"ends.with".as_ptr());
+                    let ends_with = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        cmp_result,
+                        zero,
+                        c"ends.with".as_ptr(),
+                    );
 
                     LLVMBuildBr(self.builder, merge_bb);
 
@@ -7345,9 +7636,23 @@ impl LLVMCodegen {
 
                     // Merge
                     LLVMPositionBuilderAtEnd(self.builder, merge_bb);
-                    let result_phi = LLVMBuildPhi(self.builder, LLVMInt1TypeInContext(self.context), c"result".as_ptr());
-                    LLVMAddIncoming(result_phi, [ends_with].as_mut_ptr(), [check_bb].as_mut_ptr(), 1);
-                    LLVMAddIncoming(result_phi, [false_val].as_mut_ptr(), [false_bb].as_mut_ptr(), 1);
+                    let result_phi = LLVMBuildPhi(
+                        self.builder,
+                        LLVMInt1TypeInContext(self.context),
+                        c"result".as_ptr(),
+                    );
+                    LLVMAddIncoming(
+                        result_phi,
+                        [ends_with].as_mut_ptr(),
+                        [check_bb].as_mut_ptr(),
+                        1,
+                    );
+                    LLVMAddIncoming(
+                        result_phi,
+                        [false_val].as_mut_ptr(),
+                        [false_bb].as_mut_ptr(),
+                        1,
+                    );
 
                     Ok(Some(result_phi))
                 }
@@ -7359,20 +7664,37 @@ impl LLVMCodegen {
                     let i8_ty = LLVMInt8TypeInContext(self.context);
                     let i64_ty = LLVMInt64TypeInContext(self.context);
 
-                    let strlen_fn = *self.functions.get("strlen")
+                    let strlen_fn = *self
+                        .functions
+                        .get("strlen")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strlen"))?;
                     let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
-                    let len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [s].as_mut_ptr(), 1, c"len".as_ptr());
+                    let len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [s].as_mut_ptr(),
+                        1,
+                        c"len".as_ptr(),
+                    );
 
                     // Simple UTF-8 validation loop
                     let entry_bb = LLVMGetInsertBlock(self.builder);
-                    let loop_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(entry_bb), c"utf8.loop".as_ptr());
-                    let valid_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(entry_bb), c"utf8.valid".as_ptr());
-                    let invalid_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(entry_bb), c"utf8.invalid".as_ptr());
+                    let loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(entry_bb),
+                        c"utf8.loop".as_ptr(),
+                    );
+                    let valid_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(entry_bb),
+                        c"utf8.valid".as_ptr(),
+                    );
+                    let invalid_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(entry_bb),
+                        c"utf8.invalid".as_ptr(),
+                    );
 
                     LLVMBuildBr(self.builder, loop_bb);
                     LLVMPositionBuilderAtEnd(self.builder, loop_bb);
@@ -7382,48 +7704,94 @@ impl LLVMCodegen {
                     LLVMAddIncoming(idx_phi, [zero].as_mut_ptr(), [entry_bb].as_mut_ptr(), 1);
 
                     // Check if done
-                    let done = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntUGE,
-                        idx_phi, len, c"done".as_ptr());
+                    let done = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntUGE,
+                        idx_phi,
+                        len,
+                        c"done".as_ptr(),
+                    );
 
-                    let check_byte_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"check.byte".as_ptr());
+                    let check_byte_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"check.byte".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, done, valid_bb, check_byte_bb);
                     LLVMPositionBuilderAtEnd(self.builder, check_byte_bb);
 
                     // Load byte
-                    let byte_ptr = LLVMBuildInBoundsGEP2(self.builder, i8_ty, s,
-                        [idx_phi].as_mut_ptr(), 1, c"byte.ptr".as_ptr());
+                    let byte_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        s,
+                        [idx_phi].as_mut_ptr(),
+                        1,
+                        c"byte.ptr".as_ptr(),
+                    );
                     let byte = LLVMBuildLoad2(self.builder, i8_ty, byte_ptr, c"byte".as_ptr());
                     let byte_i64 = LLVMBuildZExt(self.builder, byte, i64_ty, c"byte.i64".as_ptr());
 
                     // Simple check: bytes must be < 128 (ASCII) or valid UTF-8 start bytes
                     // For simplicity, we'll just check that high bit patterns are valid
                     // This is a simplified check - full UTF-8 validation is more complex
-                    let is_ascii = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntULT,
-                        byte_i64, LLVMConstInt(i64_ty, 128, 0), c"is.ascii".as_ptr());
+                    let is_ascii = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntULT,
+                        byte_i64,
+                        LLVMConstInt(i64_ty, 128, 0),
+                        c"is.ascii".as_ptr(),
+                    );
 
                     // Check for invalid byte (0xC0, 0xC1, 0xF5-0xFF are invalid in UTF-8)
-                    let is_c0 = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        byte_i64, LLVMConstInt(i64_ty, 0xC0, 0), c"is.c0".as_ptr());
-                    let is_c1 = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        byte_i64, LLVMConstInt(i64_ty, 0xC1, 0), c"is.c1".as_ptr());
-                    let is_invalid = LLVMBuildOr(self.builder, is_c0, is_c1, c"is.invalid".as_ptr());
+                    let is_c0 = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        byte_i64,
+                        LLVMConstInt(i64_ty, 0xC0, 0),
+                        c"is.c0".as_ptr(),
+                    );
+                    let is_c1 = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        byte_i64,
+                        LLVMConstInt(i64_ty, 0xC1, 0),
+                        c"is.c1".as_ptr(),
+                    );
+                    let is_invalid =
+                        LLVMBuildOr(self.builder, is_c0, is_c1, c"is.invalid".as_ptr());
 
-                    let byte_valid = LLVMBuildOr(self.builder, is_ascii,
-                        LLVMBuildNot(self.builder, is_invalid, c"not.invalid".as_ptr()), c"byte.valid".as_ptr());
+                    let byte_valid = LLVMBuildOr(
+                        self.builder,
+                        is_ascii,
+                        LLVMBuildNot(self.builder, is_invalid, c"not.invalid".as_ptr()),
+                        c"byte.valid".as_ptr(),
+                    );
 
-                    let next_idx = LLVMBuildAdd(self.builder, idx_phi,
-                        LLVMConstInt(i64_ty, 1, 0), c"next.idx".as_ptr());
-                    LLVMAddIncoming(idx_phi, [next_idx].as_mut_ptr(), [check_byte_bb].as_mut_ptr(), 1);
+                    let next_idx = LLVMBuildAdd(
+                        self.builder,
+                        idx_phi,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"next.idx".as_ptr(),
+                    );
+                    LLVMAddIncoming(
+                        idx_phi,
+                        [next_idx].as_mut_ptr(),
+                        [check_byte_bb].as_mut_ptr(),
+                        1,
+                    );
 
                     LLVMBuildCondBr(self.builder, byte_valid, loop_bb, invalid_bb);
 
                     // Valid path
                     LLVMPositionBuilderAtEnd(self.builder, valid_bb);
                     let true_val = LLVMConstInt(LLVMInt1TypeInContext(self.context), 1, 0);
-                    let merge_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"merge".as_ptr());
+                    let merge_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"merge".as_ptr(),
+                    );
                     LLVMBuildBr(self.builder, merge_bb);
 
                     // Invalid path
@@ -7433,9 +7801,23 @@ impl LLVMCodegen {
 
                     // Merge
                     LLVMPositionBuilderAtEnd(self.builder, merge_bb);
-                    let result_phi = LLVMBuildPhi(self.builder, LLVMInt1TypeInContext(self.context), c"result".as_ptr());
-                    LLVMAddIncoming(result_phi, [true_val].as_mut_ptr(), [valid_bb].as_mut_ptr(), 1);
-                    LLVMAddIncoming(result_phi, [false_val].as_mut_ptr(), [invalid_bb].as_mut_ptr(), 1);
+                    let result_phi = LLVMBuildPhi(
+                        self.builder,
+                        LLVMInt1TypeInContext(self.context),
+                        c"result".as_ptr(),
+                    );
+                    LLVMAddIncoming(
+                        result_phi,
+                        [true_val].as_mut_ptr(),
+                        [valid_bb].as_mut_ptr(),
+                        1,
+                    );
+                    LLVMAddIncoming(
+                        result_phi,
+                        [false_val].as_mut_ptr(),
+                        [invalid_bb].as_mut_ptr(),
+                        1,
+                    );
 
                     Ok(Some(result_phi))
                 }
@@ -7447,27 +7829,49 @@ impl LLVMCodegen {
                     let i8_ty = LLVMInt8TypeInContext(self.context);
                     let i64_ty = LLVMInt64TypeInContext(self.context);
 
-                    let strlen_fn = *self.functions.get("strlen")
+                    let strlen_fn = *self
+                        .functions
+                        .get("strlen")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strlen"))?;
                     let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
-                    let len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [s].as_mut_ptr(), 1, c"len".as_ptr());
+                    let len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [s].as_mut_ptr(),
+                        1,
+                        c"len".as_ptr(),
+                    );
 
                     let one = LLVMConstInt(i64_ty, 1, 0);
                     let alloc_size = LLVMBuildAdd(self.builder, len, one, c"alloc.size".as_ptr());
 
-                    let malloc_fn = *self.functions.get("malloc")
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
                         .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                     let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
-                    let new_str = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn,
-                        [alloc_size].as_mut_ptr(), 1, c"upper.ptr".as_ptr());
+                    let new_str = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [alloc_size].as_mut_ptr(),
+                        1,
+                        c"upper.ptr".as_ptr(),
+                    );
 
                     // Loop through string converting to uppercase
                     let entry_bb = LLVMGetInsertBlock(self.builder);
-                    let loop_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(entry_bb), c"upper.loop".as_ptr());
-                    let done_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(entry_bb), c"upper.done".as_ptr());
+                    let loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(entry_bb),
+                        c"upper.loop".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(entry_bb),
+                        c"upper.done".as_ptr(),
+                    );
 
                     LLVMBuildBr(self.builder, loop_bb);
                     LLVMPositionBuilderAtEnd(self.builder, loop_bb);
@@ -7476,39 +7880,81 @@ impl LLVMCodegen {
                     let zero = LLVMConstInt(i64_ty, 0, 0);
                     LLVMAddIncoming(idx_phi, [zero].as_mut_ptr(), [entry_bb].as_mut_ptr(), 1);
 
-                    let done = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntUGE,
-                        idx_phi, len, c"done".as_ptr());
+                    let done = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntUGE,
+                        idx_phi,
+                        len,
+                        c"done".as_ptr(),
+                    );
 
-                    let body_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"upper.body".as_ptr());
+                    let body_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"upper.body".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, done, done_bb, body_bb);
                     LLVMPositionBuilderAtEnd(self.builder, body_bb);
 
                     // Load character
-                    let src_ptr = LLVMBuildInBoundsGEP2(self.builder, i8_ty, s,
-                        [idx_phi].as_mut_ptr(), 1, c"src.ptr".as_ptr());
+                    let src_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        s,
+                        [idx_phi].as_mut_ptr(),
+                        1,
+                        c"src.ptr".as_ptr(),
+                    );
                     let ch = LLVMBuildLoad2(self.builder, i8_ty, src_ptr, c"ch".as_ptr());
                     let ch_i64 = LLVMBuildZExt(self.builder, ch, i64_ty, c"ch.i64".as_ptr());
 
                     // Check if lowercase (a-z: 97-122)
-                    let is_lower = LLVMBuildAnd(self.builder,
-                        LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntUGE,
-                            ch_i64, LLVMConstInt(i64_ty, 97, 0), c"ge.a".as_ptr()),
-                        LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntULE,
-                            ch_i64, LLVMConstInt(i64_ty, 122, 0), c"le.z".as_ptr()),
-                        c"is.lower".as_ptr());
+                    let is_lower = LLVMBuildAnd(
+                        self.builder,
+                        LLVMBuildICmp(
+                            self.builder,
+                            llvm_sys::LLVMIntPredicate::LLVMIntUGE,
+                            ch_i64,
+                            LLVMConstInt(i64_ty, 97, 0),
+                            c"ge.a".as_ptr(),
+                        ),
+                        LLVMBuildICmp(
+                            self.builder,
+                            llvm_sys::LLVMIntPredicate::LLVMIntULE,
+                            ch_i64,
+                            LLVMConstInt(i64_ty, 122, 0),
+                            c"le.z".as_ptr(),
+                        ),
+                        c"is.lower".as_ptr(),
+                    );
 
                     // Convert to uppercase by subtracting 32
-                    let upper_ch_i64 = LLVMBuildSub(self.builder, ch_i64,
-                        LLVMConstInt(i64_ty, 32, 0), c"upper.ch.i64".as_ptr());
-                    let result_ch_i64 = LLVMBuildSelect(self.builder, is_lower,
-                        upper_ch_i64, ch_i64, c"result.ch.i64".as_ptr());
-                    let result_ch = LLVMBuildTrunc(self.builder, result_ch_i64, i8_ty, c"result.ch".as_ptr());
+                    let upper_ch_i64 = LLVMBuildSub(
+                        self.builder,
+                        ch_i64,
+                        LLVMConstInt(i64_ty, 32, 0),
+                        c"upper.ch.i64".as_ptr(),
+                    );
+                    let result_ch_i64 = LLVMBuildSelect(
+                        self.builder,
+                        is_lower,
+                        upper_ch_i64,
+                        ch_i64,
+                        c"result.ch.i64".as_ptr(),
+                    );
+                    let result_ch =
+                        LLVMBuildTrunc(self.builder, result_ch_i64, i8_ty, c"result.ch".as_ptr());
 
                     // Store character
-                    let dst_ptr = LLVMBuildInBoundsGEP2(self.builder, i8_ty, new_str,
-                        [idx_phi].as_mut_ptr(), 1, c"dst.ptr".as_ptr());
+                    let dst_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        new_str,
+                        [idx_phi].as_mut_ptr(),
+                        1,
+                        c"dst.ptr".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, result_ch, dst_ptr);
 
                     let next_idx = LLVMBuildAdd(self.builder, idx_phi, one, c"next.idx".as_ptr());
@@ -7517,8 +7963,14 @@ impl LLVMCodegen {
 
                     // Done - null terminate
                     LLVMPositionBuilderAtEnd(self.builder, done_bb);
-                    let null_pos = LLVMBuildInBoundsGEP2(self.builder, i8_ty, new_str,
-                        [len].as_mut_ptr(), 1, c"null.pos".as_ptr());
+                    let null_pos = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        new_str,
+                        [len].as_mut_ptr(),
+                        1,
+                        c"null.pos".as_ptr(),
+                    );
                     let zero_byte = LLVMConstInt(i8_ty, 0, 0);
                     LLVMBuildStore(self.builder, zero_byte, null_pos);
 
@@ -7532,27 +7984,49 @@ impl LLVMCodegen {
                     let i8_ty = LLVMInt8TypeInContext(self.context);
                     let i64_ty = LLVMInt64TypeInContext(self.context);
 
-                    let strlen_fn = *self.functions.get("strlen")
+                    let strlen_fn = *self
+                        .functions
+                        .get("strlen")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strlen"))?;
                     let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
-                    let len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [s].as_mut_ptr(), 1, c"len".as_ptr());
+                    let len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [s].as_mut_ptr(),
+                        1,
+                        c"len".as_ptr(),
+                    );
 
                     let one = LLVMConstInt(i64_ty, 1, 0);
                     let alloc_size = LLVMBuildAdd(self.builder, len, one, c"alloc.size".as_ptr());
 
-                    let malloc_fn = *self.functions.get("malloc")
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
                         .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                     let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
-                    let new_str = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn,
-                        [alloc_size].as_mut_ptr(), 1, c"lower.ptr".as_ptr());
+                    let new_str = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [alloc_size].as_mut_ptr(),
+                        1,
+                        c"lower.ptr".as_ptr(),
+                    );
 
                     // Loop through string converting to lowercase
                     let entry_bb = LLVMGetInsertBlock(self.builder);
-                    let loop_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(entry_bb), c"lower.loop".as_ptr());
-                    let done_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(entry_bb), c"lower.done".as_ptr());
+                    let loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(entry_bb),
+                        c"lower.loop".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(entry_bb),
+                        c"lower.done".as_ptr(),
+                    );
 
                     LLVMBuildBr(self.builder, loop_bb);
                     LLVMPositionBuilderAtEnd(self.builder, loop_bb);
@@ -7561,39 +8035,81 @@ impl LLVMCodegen {
                     let zero = LLVMConstInt(i64_ty, 0, 0);
                     LLVMAddIncoming(idx_phi, [zero].as_mut_ptr(), [entry_bb].as_mut_ptr(), 1);
 
-                    let done = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntUGE,
-                        idx_phi, len, c"done".as_ptr());
+                    let done = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntUGE,
+                        idx_phi,
+                        len,
+                        c"done".as_ptr(),
+                    );
 
-                    let body_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"lower.body".as_ptr());
+                    let body_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"lower.body".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, done, done_bb, body_bb);
                     LLVMPositionBuilderAtEnd(self.builder, body_bb);
 
                     // Load character
-                    let src_ptr = LLVMBuildInBoundsGEP2(self.builder, i8_ty, s,
-                        [idx_phi].as_mut_ptr(), 1, c"src.ptr".as_ptr());
+                    let src_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        s,
+                        [idx_phi].as_mut_ptr(),
+                        1,
+                        c"src.ptr".as_ptr(),
+                    );
                     let ch = LLVMBuildLoad2(self.builder, i8_ty, src_ptr, c"ch".as_ptr());
                     let ch_i64 = LLVMBuildZExt(self.builder, ch, i64_ty, c"ch.i64".as_ptr());
 
                     // Check if uppercase (A-Z: 65-90)
-                    let is_upper = LLVMBuildAnd(self.builder,
-                        LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntUGE,
-                            ch_i64, LLVMConstInt(i64_ty, 65, 0), c"ge.A".as_ptr()),
-                        LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntULE,
-                            ch_i64, LLVMConstInt(i64_ty, 90, 0), c"le.Z".as_ptr()),
-                        c"is.upper".as_ptr());
+                    let is_upper = LLVMBuildAnd(
+                        self.builder,
+                        LLVMBuildICmp(
+                            self.builder,
+                            llvm_sys::LLVMIntPredicate::LLVMIntUGE,
+                            ch_i64,
+                            LLVMConstInt(i64_ty, 65, 0),
+                            c"ge.A".as_ptr(),
+                        ),
+                        LLVMBuildICmp(
+                            self.builder,
+                            llvm_sys::LLVMIntPredicate::LLVMIntULE,
+                            ch_i64,
+                            LLVMConstInt(i64_ty, 90, 0),
+                            c"le.Z".as_ptr(),
+                        ),
+                        c"is.upper".as_ptr(),
+                    );
 
                     // Convert to lowercase by adding 32
-                    let lower_ch_i64 = LLVMBuildAdd(self.builder, ch_i64,
-                        LLVMConstInt(i64_ty, 32, 0), c"lower.ch.i64".as_ptr());
-                    let result_ch_i64 = LLVMBuildSelect(self.builder, is_upper,
-                        lower_ch_i64, ch_i64, c"result.ch.i64".as_ptr());
-                    let result_ch = LLVMBuildTrunc(self.builder, result_ch_i64, i8_ty, c"result.ch".as_ptr());
+                    let lower_ch_i64 = LLVMBuildAdd(
+                        self.builder,
+                        ch_i64,
+                        LLVMConstInt(i64_ty, 32, 0),
+                        c"lower.ch.i64".as_ptr(),
+                    );
+                    let result_ch_i64 = LLVMBuildSelect(
+                        self.builder,
+                        is_upper,
+                        lower_ch_i64,
+                        ch_i64,
+                        c"result.ch.i64".as_ptr(),
+                    );
+                    let result_ch =
+                        LLVMBuildTrunc(self.builder, result_ch_i64, i8_ty, c"result.ch".as_ptr());
 
                     // Store character
-                    let dst_ptr = LLVMBuildInBoundsGEP2(self.builder, i8_ty, new_str,
-                        [idx_phi].as_mut_ptr(), 1, c"dst.ptr".as_ptr());
+                    let dst_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        new_str,
+                        [idx_phi].as_mut_ptr(),
+                        1,
+                        c"dst.ptr".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, result_ch, dst_ptr);
 
                     let next_idx = LLVMBuildAdd(self.builder, idx_phi, one, c"next.idx".as_ptr());
@@ -7602,8 +8118,14 @@ impl LLVMCodegen {
 
                     // Done - null terminate
                     LLVMPositionBuilderAtEnd(self.builder, done_bb);
-                    let null_pos = LLVMBuildInBoundsGEP2(self.builder, i8_ty, new_str,
-                        [len].as_mut_ptr(), 1, c"null.pos".as_ptr());
+                    let null_pos = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        new_str,
+                        [len].as_mut_ptr(),
+                        1,
+                        c"null.pos".as_ptr(),
+                    );
                     let zero_byte = LLVMConstInt(i8_ty, 0, 0);
                     LLVMBuildStore(self.builder, zero_byte, null_pos);
 
@@ -7620,32 +8142,57 @@ impl LLVMCodegen {
                     let i8_ty = LLVMInt8TypeInContext(self.context);
                     let i64_ty = LLVMInt64TypeInContext(self.context);
 
-                    let strstr_fn = *self.functions.get("strstr")
+                    let strstr_fn = *self
+                        .functions
+                        .get("strstr")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strstr"))?;
                     let strstr_ty = LLVMGlobalGetValueType(strstr_fn);
 
-                    let result_ptr = LLVMBuildCall2(self.builder, strstr_ty, strstr_fn,
-                        [haystack, needle].as_mut_ptr(), 2, c"strstr.result".as_ptr());
+                    let result_ptr = LLVMBuildCall2(
+                        self.builder,
+                        strstr_ty,
+                        strstr_fn,
+                        [haystack, needle].as_mut_ptr(),
+                        2,
+                        c"strstr.result".as_ptr(),
+                    );
 
                     // Check if found
                     let null_ptr = LLVMConstNull(LLVMPointerType(i8_ty, 0));
-                    let found = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntNE,
-                        result_ptr, null_ptr, c"found".as_ptr());
+                    let found = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntNE,
+                        result_ptr,
+                        null_ptr,
+                        c"found".as_ptr(),
+                    );
 
-                    let calc_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"calc.index".as_ptr());
-                    let not_found_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"not.found".as_ptr());
-                    let merge_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"merge".as_ptr());
+                    let calc_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"calc.index".as_ptr(),
+                    );
+                    let not_found_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"not.found".as_ptr(),
+                    );
+                    let merge_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"merge".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, found, calc_bb, not_found_bb);
 
                     // Calculate index: result_ptr - haystack
                     LLVMPositionBuilderAtEnd(self.builder, calc_bb);
-                    let haystack_int = LLVMBuildPtrToInt(self.builder, haystack, i64_ty, c"haystack.int".as_ptr());
-                    let result_int = LLVMBuildPtrToInt(self.builder, result_ptr, i64_ty, c"result.int".as_ptr());
-                    let index = LLVMBuildSub(self.builder, result_int, haystack_int, c"index".as_ptr());
+                    let haystack_int =
+                        LLVMBuildPtrToInt(self.builder, haystack, i64_ty, c"haystack.int".as_ptr());
+                    let result_int =
+                        LLVMBuildPtrToInt(self.builder, result_ptr, i64_ty, c"result.int".as_ptr());
+                    let index =
+                        LLVMBuildSub(self.builder, result_int, haystack_int, c"index".as_ptr());
                     LLVMBuildBr(self.builder, merge_bb);
 
                     // Not found: return -1
@@ -7657,7 +8204,12 @@ impl LLVMCodegen {
                     LLVMPositionBuilderAtEnd(self.builder, merge_bb);
                     let result_phi = LLVMBuildPhi(self.builder, i64_ty, c"result".as_ptr());
                     LLVMAddIncoming(result_phi, [index].as_mut_ptr(), [calc_bb].as_mut_ptr(), 1);
-                    LLVMAddIncoming(result_phi, [neg_one].as_mut_ptr(), [not_found_bb].as_mut_ptr(), 1);
+                    LLVMAddIncoming(
+                        result_phi,
+                        [neg_one].as_mut_ptr(),
+                        [not_found_bb].as_mut_ptr(),
+                        1,
+                    );
 
                     Ok(Some(result_phi))
                 }
@@ -7669,18 +8221,32 @@ impl LLVMCodegen {
                     let i8_ty = LLVMInt8TypeInContext(self.context);
                     let i64_ty = LLVMInt64TypeInContext(self.context);
 
-                    let strlen_fn = *self.functions.get("strlen")
+                    let strlen_fn = *self
+                        .functions
+                        .get("strlen")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strlen"))?;
                     let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
-                    let byte_len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [s].as_mut_ptr(), 1, c"byte.len".as_ptr());
+                    let byte_len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [s].as_mut_ptr(),
+                        1,
+                        c"byte.len".as_ptr(),
+                    );
 
                     // Count UTF-8 characters by counting non-continuation bytes
                     let entry_bb = LLVMGetInsertBlock(self.builder);
-                    let loop_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(entry_bb), c"count.loop".as_ptr());
-                    let done_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(entry_bb), c"count.done".as_ptr());
+                    let loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(entry_bb),
+                        c"count.loop".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(entry_bb),
+                        c"count.done".as_ptr(),
+                    );
 
                     LLVMBuildBr(self.builder, loop_bb);
                     LLVMPositionBuilderAtEnd(self.builder, loop_bb);
@@ -7691,37 +8257,76 @@ impl LLVMCodegen {
                     LLVMAddIncoming(idx_phi, [zero].as_mut_ptr(), [entry_bb].as_mut_ptr(), 1);
                     LLVMAddIncoming(count_phi, [zero].as_mut_ptr(), [entry_bb].as_mut_ptr(), 1);
 
-                    let done = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntUGE,
-                        idx_phi, byte_len, c"done".as_ptr());
+                    let done = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntUGE,
+                        idx_phi,
+                        byte_len,
+                        c"done".as_ptr(),
+                    );
 
-                    let body_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"count.body".as_ptr());
+                    let body_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"count.body".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, done, done_bb, body_bb);
                     LLVMPositionBuilderAtEnd(self.builder, body_bb);
 
                     // Load byte
-                    let byte_ptr = LLVMBuildInBoundsGEP2(self.builder, i8_ty, s,
-                        [idx_phi].as_mut_ptr(), 1, c"byte.ptr".as_ptr());
+                    let byte_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        s,
+                        [idx_phi].as_mut_ptr(),
+                        1,
+                        c"byte.ptr".as_ptr(),
+                    );
                     let byte = LLVMBuildLoad2(self.builder, i8_ty, byte_ptr, c"byte".as_ptr());
                     let byte_i64 = LLVMBuildZExt(self.builder, byte, i64_ty, c"byte.i64".as_ptr());
 
                     // Check if NOT a continuation byte (continuation bytes start with 10xxxxxx = 0x80-0xBF)
-                    let is_continuation = LLVMBuildAnd(self.builder,
-                        LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntUGE,
-                            byte_i64, LLVMConstInt(i64_ty, 0x80, 0), c"ge.80".as_ptr()),
-                        LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntULE,
-                            byte_i64, LLVMConstInt(i64_ty, 0xBF, 0), c"le.BF".as_ptr()),
-                        c"is.cont".as_ptr());
+                    let is_continuation = LLVMBuildAnd(
+                        self.builder,
+                        LLVMBuildICmp(
+                            self.builder,
+                            llvm_sys::LLVMIntPredicate::LLVMIntUGE,
+                            byte_i64,
+                            LLVMConstInt(i64_ty, 0x80, 0),
+                            c"ge.80".as_ptr(),
+                        ),
+                        LLVMBuildICmp(
+                            self.builder,
+                            llvm_sys::LLVMIntPredicate::LLVMIntULE,
+                            byte_i64,
+                            LLVMConstInt(i64_ty, 0xBF, 0),
+                            c"le.BF".as_ptr(),
+                        ),
+                        c"is.cont".as_ptr(),
+                    );
 
-                    let is_char_start = LLVMBuildNot(self.builder, is_continuation, c"is.char.start".as_ptr());
+                    let is_char_start =
+                        LLVMBuildNot(self.builder, is_continuation, c"is.char.start".as_ptr());
                     let one = LLVMConstInt(i64_ty, 1, 0);
-                    let count_inc = LLVMBuildSelect(self.builder, is_char_start, one, zero, c"count.inc".as_ptr());
-                    let new_count = LLVMBuildAdd(self.builder, count_phi, count_inc, c"new.count".as_ptr());
+                    let count_inc = LLVMBuildSelect(
+                        self.builder,
+                        is_char_start,
+                        one,
+                        zero,
+                        c"count.inc".as_ptr(),
+                    );
+                    let new_count =
+                        LLVMBuildAdd(self.builder, count_phi, count_inc, c"new.count".as_ptr());
 
                     let next_idx = LLVMBuildAdd(self.builder, idx_phi, one, c"next.idx".as_ptr());
                     LLVMAddIncoming(idx_phi, [next_idx].as_mut_ptr(), [body_bb].as_mut_ptr(), 1);
-                    LLVMAddIncoming(count_phi, [new_count].as_mut_ptr(), [body_bb].as_mut_ptr(), 1);
+                    LLVMAddIncoming(
+                        count_phi,
+                        [new_count].as_mut_ptr(),
+                        [body_bb].as_mut_ptr(),
+                        1,
+                    );
                     LLVMBuildBr(self.builder, loop_bb);
 
                     LLVMPositionBuilderAtEnd(self.builder, done_bb);
@@ -7737,20 +8342,37 @@ impl LLVMCodegen {
                     let i8_ty = LLVMInt8TypeInContext(self.context);
                     let i64_ty = LLVMInt64TypeInContext(self.context);
 
-                    let strlen_fn = *self.functions.get("strlen")
+                    let strlen_fn = *self
+                        .functions
+                        .get("strlen")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strlen"))?;
                     let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
-                    let byte_len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [s].as_mut_ptr(), 1, c"byte.len".as_ptr());
+                    let byte_len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [s].as_mut_ptr(),
+                        1,
+                        c"byte.len".as_ptr(),
+                    );
 
                     // Find the byte offset of the nth UTF-8 character
                     let entry_bb = LLVMGetInsertBlock(self.builder);
-                    let loop_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(entry_bb), c"find.loop".as_ptr());
-                    let found_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(entry_bb), c"found".as_ptr());
-                    let not_found_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(entry_bb), c"not.found".as_ptr());
+                    let loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(entry_bb),
+                        c"find.loop".as_ptr(),
+                    );
+                    let found_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(entry_bb),
+                        c"found".as_ptr(),
+                    );
+                    let not_found_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(entry_bb),
+                        c"not.found".as_ptr(),
+                    );
 
                     LLVMBuildBr(self.builder, loop_bb);
                     LLVMPositionBuilderAtEnd(self.builder, loop_bb);
@@ -7758,61 +8380,139 @@ impl LLVMCodegen {
                     let byte_idx_phi = LLVMBuildPhi(self.builder, i64_ty, c"byte.idx".as_ptr());
                     let char_count_phi = LLVMBuildPhi(self.builder, i64_ty, c"char.count".as_ptr());
                     let zero = LLVMConstInt(i64_ty, 0, 0);
-                    LLVMAddIncoming(byte_idx_phi, [zero].as_mut_ptr(), [entry_bb].as_mut_ptr(), 1);
-                    LLVMAddIncoming(char_count_phi, [zero].as_mut_ptr(), [entry_bb].as_mut_ptr(), 1);
+                    LLVMAddIncoming(
+                        byte_idx_phi,
+                        [zero].as_mut_ptr(),
+                        [entry_bb].as_mut_ptr(),
+                        1,
+                    );
+                    LLVMAddIncoming(
+                        char_count_phi,
+                        [zero].as_mut_ptr(),
+                        [entry_bb].as_mut_ptr(),
+                        1,
+                    );
 
                     // Check if we've found the character
-                    let found_char = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        char_count_phi, char_idx, c"found.char".as_ptr());
+                    let found_char = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        char_count_phi,
+                        char_idx,
+                        c"found.char".as_ptr(),
+                    );
 
-                    let check_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"check".as_ptr());
+                    let check_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"check".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, found_char, found_bb, check_bb);
                     LLVMPositionBuilderAtEnd(self.builder, check_bb);
 
                     // Check if we've reached end of string
-                    let at_end = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntUGE,
-                        byte_idx_phi, byte_len, c"at.end".as_ptr());
+                    let at_end = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntUGE,
+                        byte_idx_phi,
+                        byte_len,
+                        c"at.end".as_ptr(),
+                    );
 
-                    let body_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"body".as_ptr());
+                    let body_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"body".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, at_end, not_found_bb, body_bb);
                     LLVMPositionBuilderAtEnd(self.builder, body_bb);
 
                     // Load byte and check if it's a character start
-                    let byte_ptr = LLVMBuildInBoundsGEP2(self.builder, i8_ty, s,
-                        [byte_idx_phi].as_mut_ptr(), 1, c"byte.ptr".as_ptr());
+                    let byte_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        s,
+                        [byte_idx_phi].as_mut_ptr(),
+                        1,
+                        c"byte.ptr".as_ptr(),
+                    );
                     let byte = LLVMBuildLoad2(self.builder, i8_ty, byte_ptr, c"byte".as_ptr());
                     let byte_i64 = LLVMBuildZExt(self.builder, byte, i64_ty, c"byte.i64".as_ptr());
 
-                    let is_continuation = LLVMBuildAnd(self.builder,
-                        LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntUGE,
-                            byte_i64, LLVMConstInt(i64_ty, 0x80, 0), c"ge.80".as_ptr()),
-                        LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntULE,
-                            byte_i64, LLVMConstInt(i64_ty, 0xBF, 0), c"le.BF".as_ptr()),
-                        c"is.cont".as_ptr());
+                    let is_continuation = LLVMBuildAnd(
+                        self.builder,
+                        LLVMBuildICmp(
+                            self.builder,
+                            llvm_sys::LLVMIntPredicate::LLVMIntUGE,
+                            byte_i64,
+                            LLVMConstInt(i64_ty, 0x80, 0),
+                            c"ge.80".as_ptr(),
+                        ),
+                        LLVMBuildICmp(
+                            self.builder,
+                            llvm_sys::LLVMIntPredicate::LLVMIntULE,
+                            byte_i64,
+                            LLVMConstInt(i64_ty, 0xBF, 0),
+                            c"le.BF".as_ptr(),
+                        ),
+                        c"is.cont".as_ptr(),
+                    );
 
-                    let is_char_start = LLVMBuildNot(self.builder, is_continuation, c"is.char.start".as_ptr());
+                    let is_char_start =
+                        LLVMBuildNot(self.builder, is_continuation, c"is.char.start".as_ptr());
                     let one = LLVMConstInt(i64_ty, 1, 0);
-                    let count_inc = LLVMBuildSelect(self.builder, is_char_start, one, zero, c"count.inc".as_ptr());
-                    let new_count = LLVMBuildAdd(self.builder, char_count_phi, count_inc, c"new.count".as_ptr());
+                    let count_inc = LLVMBuildSelect(
+                        self.builder,
+                        is_char_start,
+                        one,
+                        zero,
+                        c"count.inc".as_ptr(),
+                    );
+                    let new_count = LLVMBuildAdd(
+                        self.builder,
+                        char_count_phi,
+                        count_inc,
+                        c"new.count".as_ptr(),
+                    );
 
-                    let next_byte_idx = LLVMBuildAdd(self.builder, byte_idx_phi, one, c"next.byte.idx".as_ptr());
-                    LLVMAddIncoming(byte_idx_phi, [next_byte_idx].as_mut_ptr(), [body_bb].as_mut_ptr(), 1);
-                    LLVMAddIncoming(char_count_phi, [new_count].as_mut_ptr(), [body_bb].as_mut_ptr(), 1);
+                    let next_byte_idx =
+                        LLVMBuildAdd(self.builder, byte_idx_phi, one, c"next.byte.idx".as_ptr());
+                    LLVMAddIncoming(
+                        byte_idx_phi,
+                        [next_byte_idx].as_mut_ptr(),
+                        [body_bb].as_mut_ptr(),
+                        1,
+                    );
+                    LLVMAddIncoming(
+                        char_count_phi,
+                        [new_count].as_mut_ptr(),
+                        [body_bb].as_mut_ptr(),
+                        1,
+                    );
                     LLVMBuildBr(self.builder, loop_bb);
 
                     // Found: return the byte at byte_idx_phi
                     LLVMPositionBuilderAtEnd(self.builder, found_bb);
-                    let found_byte_ptr = LLVMBuildInBoundsGEP2(self.builder, i8_ty, s,
-                        [byte_idx_phi].as_mut_ptr(), 1, c"found.byte.ptr".as_ptr());
-                    let found_byte = LLVMBuildLoad2(self.builder, i8_ty, found_byte_ptr, c"found.byte".as_ptr());
-                    let found_result = LLVMBuildZExt(self.builder, found_byte, i64_ty, c"found.result".as_ptr());
+                    let found_byte_ptr = LLVMBuildInBoundsGEP2(
+                        self.builder,
+                        i8_ty,
+                        s,
+                        [byte_idx_phi].as_mut_ptr(),
+                        1,
+                        c"found.byte.ptr".as_ptr(),
+                    );
+                    let found_byte =
+                        LLVMBuildLoad2(self.builder, i8_ty, found_byte_ptr, c"found.byte".as_ptr());
+                    let found_result =
+                        LLVMBuildZExt(self.builder, found_byte, i64_ty, c"found.result".as_ptr());
 
-                    let merge_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"merge".as_ptr());
+                    let merge_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"merge".as_ptr(),
+                    );
                     LLVMBuildBr(self.builder, merge_bb);
 
                     // Not found: return 0
@@ -7822,8 +8522,18 @@ impl LLVMCodegen {
                     // Merge
                     LLVMPositionBuilderAtEnd(self.builder, merge_bb);
                     let result_phi = LLVMBuildPhi(self.builder, i64_ty, c"result".as_ptr());
-                    LLVMAddIncoming(result_phi, [found_result].as_mut_ptr(), [found_bb].as_mut_ptr(), 1);
-                    LLVMAddIncoming(result_phi, [zero].as_mut_ptr(), [not_found_bb].as_mut_ptr(), 1);
+                    LLVMAddIncoming(
+                        result_phi,
+                        [found_result].as_mut_ptr(),
+                        [found_bb].as_mut_ptr(),
+                        1,
+                    );
+                    LLVMAddIncoming(
+                        result_phi,
+                        [zero].as_mut_ptr(),
+                        [not_found_bb].as_mut_ptr(),
+                        1,
+                    );
 
                     Ok(Some(result_phi))
                 }
@@ -7836,11 +8546,19 @@ impl LLVMCodegen {
                     self.emit_null_check(delim, "str_split: null delimiter")?;
 
                     // Call C runtime function: VecString* kraken_str_split(const char* s, const char* delim)
-                    let kraken_str_split_fn = *self.functions.get("kraken_str_split")
+                    let kraken_str_split_fn = *self
+                        .functions
+                        .get("kraken_str_split")
                         .ok_or_else(|| CompilerError::codegen_error("Missing kraken_str_split"))?;
                     let kraken_str_split_ty = LLVMGlobalGetValueType(kraken_str_split_fn);
-                    let result = LLVMBuildCall2(self.builder, kraken_str_split_ty, kraken_str_split_fn,
-                        [s, delim].as_mut_ptr(), 2, c"result".as_ptr());
+                    let result = LLVMBuildCall2(
+                        self.builder,
+                        kraken_str_split_ty,
+                        kraken_str_split_fn,
+                        [s, delim].as_mut_ptr(),
+                        2,
+                        c"result".as_ptr(),
+                    );
 
                     Ok(Some(result))
                 }
@@ -7857,50 +8575,120 @@ impl LLVMCodegen {
                     let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
 
                     // Get delimiter length
-                    let strlen_fn = *self.functions.get("strlen")
+                    let strlen_fn = *self
+                        .functions
+                        .get("strlen")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strlen"))?;
                     let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
-                    let delim_len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [delim].as_mut_ptr(), 1, c"delim.len".as_ptr());
-                    let s_len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [s].as_mut_ptr(), 1, c"s.len".as_ptr());
+                    let delim_len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [delim].as_mut_ptr(),
+                        1,
+                        c"delim.len".as_ptr(),
+                    );
+                    let s_len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [s].as_mut_ptr(),
+                        1,
+                        c"s.len".as_ptr(),
+                    );
 
                     // Create new VecString using vec_string_new
-                    let malloc_fn = *self.functions.get("malloc")
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
                         .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                     let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
-                    
-                    let vec_struct = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn,
-                        [LLVMConstInt(i64_ty, 24, 0)].as_mut_ptr(), 1, c"vec".as_ptr());
-                    let array_ptr = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn,
-                        [LLVMConstInt(i64_ty, 32, 0)].as_mut_ptr(), 1, c"data".as_ptr());
-                    
+
+                    let vec_struct = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 24, 0)].as_mut_ptr(),
+                        1,
+                        c"vec".as_ptr(),
+                    );
+                    let array_ptr = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 32, 0)].as_mut_ptr(),
+                        1,
+                        c"data".as_ptr(),
+                    );
+
                     let str_ptr_ty = LLVMPointerType(i8_ptr_ty, 0);
-                    let array_typed = LLVMBuildBitCast(self.builder, array_ptr, str_ptr_ty, c"".as_ptr());
-                    let ptr_field = LLVMBuildBitCast(self.builder, vec_struct, LLVMPointerType(str_ptr_ty, 0), c"".as_ptr());
+                    let array_typed =
+                        LLVMBuildBitCast(self.builder, array_ptr, str_ptr_ty, c"".as_ptr());
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec_struct,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, array_typed, ptr_field);
-                    
-                    let len_addr = LLVMBuildGEP2(self.builder, i8_ptr_ty, vec_struct,
-                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(), 1, c"".as_ptr());
-                    let len_field = LLVMBuildBitCast(self.builder, len_addr, LLVMPointerType(i64_ty, 0), c"".as_ptr());
+
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_struct,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
-                    
-                    let cap_addr = LLVMBuildGEP2(self.builder, i8_ptr_ty, vec_struct,
-                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(), 1, c"".as_ptr());
-                    let cap_field = LLVMBuildBitCast(self.builder, cap_addr, LLVMPointerType(i64_ty, 0), c"".as_ptr());
+
+                    let cap_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec_struct,
+                        [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_field = LLVMBuildBitCast(
+                        self.builder,
+                        cap_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 4, 0), cap_field);
 
                     // Check if delimiter is empty
                     let zero = LLVMConstInt(i64_ty, 0, 0);
-                    let delim_empty = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        delim_len, zero, c"delim.empty".as_ptr());
+                    let delim_empty = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        delim_len,
+                        zero,
+                        c"delim.empty".as_ptr(),
+                    );
 
-                    let empty_delim_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"empty.delim".as_ptr());
-                    let normal_split_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"normal.split".as_ptr());
-                    let done_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"split.done".as_ptr());
+                    let empty_delim_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"empty.delim".as_ptr(),
+                    );
+                    let normal_split_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"normal.split".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"split.done".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, delim_empty, empty_delim_bb, normal_split_bb);
 
@@ -7908,102 +8696,226 @@ impl LLVMCodegen {
                     LLVMPositionBuilderAtEnd(self.builder, empty_delim_bb);
                     let one = LLVMConstInt(i64_ty, 1, 0);
                     let copy_size = LLVMBuildAdd(self.builder, s_len, one, c"copy.size".as_ptr());
-                    let str_copy = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn,
-                        [copy_size].as_mut_ptr(), 1, c"str.copy".as_ptr());
-                    let strcpy_fn = *self.functions.get("strcpy")
+                    let str_copy = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [copy_size].as_mut_ptr(),
+                        1,
+                        c"str.copy".as_ptr(),
+                    );
+                    let strcpy_fn = *self
+                        .functions
+                        .get("strcpy")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strcpy"))?;
                     let strcpy_ty = LLVMGlobalGetValueType(strcpy_fn);
-                    LLVMBuildCall2(self.builder, strcpy_ty, strcpy_fn,
-                        [str_copy, s].as_mut_ptr(), 2, c"".as_ptr());
-                    
-                    let data_ptr = LLVMBuildLoad2(self.builder, str_ptr_ty, ptr_field, c"data".as_ptr());
-                    let elem_ptr = LLVMBuildGEP2(self.builder, i8_ptr_ty, data_ptr,
-                        [zero].as_mut_ptr(), 1, c"elem".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        strcpy_ty,
+                        strcpy_fn,
+                        [str_copy, s].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, ptr_field, c"data".as_ptr());
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        data_ptr,
+                        [zero].as_mut_ptr(),
+                        1,
+                        c"elem".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, str_copy, elem_ptr);
                     LLVMBuildStore(self.builder, one, len_field);
                     LLVMBuildBr(self.builder, done_bb);
 
                     // Normal split: use strstr to find occurrences
                     LLVMPositionBuilderAtEnd(self.builder, normal_split_bb);
-                    let strstr_fn = *self.functions.get("strstr")
+                    let strstr_fn = *self
+                        .functions
+                        .get("strstr")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strstr"))?;
                     let strstr_ty = LLVMGlobalGetValueType(strstr_fn);
 
                     // Split loop - simplified implementation
                     let entry_bb = LLVMGetInsertBlock(self.builder);
-                    let split_loop_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(entry_bb), c"split.loop".as_ptr());
-                    
+                    let split_loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(entry_bb),
+                        c"split.loop".as_ptr(),
+                    );
+
                     LLVMBuildBr(self.builder, split_loop_bb);
                     LLVMPositionBuilderAtEnd(self.builder, split_loop_bb);
 
-                    let current_ptr_phi = LLVMBuildPhi(self.builder, i8_ptr_ty, c"current.ptr".as_ptr());
-                    LLVMAddIncoming(current_ptr_phi, [s].as_mut_ptr(), [entry_bb].as_mut_ptr(), 1);
+                    let current_ptr_phi =
+                        LLVMBuildPhi(self.builder, i8_ptr_ty, c"current.ptr".as_ptr());
+                    LLVMAddIncoming(
+                        current_ptr_phi,
+                        [s].as_mut_ptr(),
+                        [entry_bb].as_mut_ptr(),
+                        1,
+                    );
 
                     // Find next occurrence
-                    let found_ptr = LLVMBuildCall2(self.builder, strstr_ty, strstr_fn,
-                        [current_ptr_phi, delim].as_mut_ptr(), 2, c"found".as_ptr());
-                    
-                    let null_ptr = LLVMConstNull(i8_ptr_ty);
-                    let found = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntNE,
-                        found_ptr, null_ptr, c"found".as_ptr());
+                    let found_ptr = LLVMBuildCall2(
+                        self.builder,
+                        strstr_ty,
+                        strstr_fn,
+                        [current_ptr_phi, delim].as_mut_ptr(),
+                        2,
+                        c"found".as_ptr(),
+                    );
 
-                    let add_part_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"add.part".as_ptr());
-                    let add_final_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"add.final".as_ptr());
+                    let null_ptr = LLVMConstNull(i8_ptr_ty);
+                    let found = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntNE,
+                        found_ptr,
+                        null_ptr,
+                        c"found".as_ptr(),
+                    );
+
+                    let add_part_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"add.part".as_ptr(),
+                    );
+                    let add_final_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"add.final".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, found, add_part_bb, add_final_bb);
 
                     // Add part before delimiter
                     LLVMPositionBuilderAtEnd(self.builder, add_part_bb);
-                    let current_int = LLVMBuildPtrToInt(self.builder, current_ptr_phi, i64_ty, c"current.int".as_ptr());
-                    let found_int = LLVMBuildPtrToInt(self.builder, found_ptr, i64_ty, c"found.int".as_ptr());
-                    let part_len = LLVMBuildSub(self.builder, found_int, current_int, c"part.len".as_ptr());
-                    let part_size = LLVMBuildAdd(self.builder, part_len, one, c"part.size".as_ptr());
-                    let part_str = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn,
-                        [part_size].as_mut_ptr(), 1, c"part".as_ptr());
-                    
-                    let memcpy_fn = *self.functions.get("memcpy")
+                    let current_int = LLVMBuildPtrToInt(
+                        self.builder,
+                        current_ptr_phi,
+                        i64_ty,
+                        c"current.int".as_ptr(),
+                    );
+                    let found_int =
+                        LLVMBuildPtrToInt(self.builder, found_ptr, i64_ty, c"found.int".as_ptr());
+                    let part_len =
+                        LLVMBuildSub(self.builder, found_int, current_int, c"part.len".as_ptr());
+                    let part_size =
+                        LLVMBuildAdd(self.builder, part_len, one, c"part.size".as_ptr());
+                    let part_str = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [part_size].as_mut_ptr(),
+                        1,
+                        c"part".as_ptr(),
+                    );
+
+                    let memcpy_fn = *self
+                        .functions
+                        .get("memcpy")
                         .ok_or_else(|| CompilerError::codegen_error("Missing memcpy"))?;
                     let memcpy_ty = LLVMGlobalGetValueType(memcpy_fn);
-                    LLVMBuildCall2(self.builder, memcpy_ty, memcpy_fn,
-                        [part_str, current_ptr_phi, part_len].as_mut_ptr(), 3, c"".as_ptr());
-                    let null_term_ptr = LLVMBuildGEP2(self.builder, i8_ty, part_str,
-                        [part_len].as_mut_ptr(), 1, c"null.term".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        memcpy_ty,
+                        memcpy_fn,
+                        [part_str, current_ptr_phi, part_len].as_mut_ptr(),
+                        3,
+                        c"".as_ptr(),
+                    );
+                    let null_term_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ty,
+                        part_str,
+                        [part_len].as_mut_ptr(),
+                        1,
+                        c"null.term".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, LLVMConstInt(i8_ty, 0, 0), null_term_ptr);
 
                     // Add to vector (simplified - assumes capacity)
-                    let vec_len = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"vec.len".as_ptr());
-                    let data_ptr2 = LLVMBuildLoad2(self.builder, str_ptr_ty, ptr_field, c"data".as_ptr());
-                    let elem_ptr2 = LLVMBuildGEP2(self.builder, i8_ptr_ty, data_ptr2,
-                        [vec_len].as_mut_ptr(), 1, c"elem".as_ptr());
+                    let vec_len =
+                        LLVMBuildLoad2(self.builder, i64_ty, len_field, c"vec.len".as_ptr());
+                    let data_ptr2 =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, ptr_field, c"data".as_ptr());
+                    let elem_ptr2 = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        data_ptr2,
+                        [vec_len].as_mut_ptr(),
+                        1,
+                        c"elem".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, part_str, elem_ptr2);
                     let new_len = LLVMBuildAdd(self.builder, vec_len, one, c"new.len".as_ptr());
                     LLVMBuildStore(self.builder, new_len, len_field);
 
                     // Move past delimiter
-                    let next_ptr = LLVMBuildGEP2(self.builder, i8_ty, found_ptr,
-                        [delim_len].as_mut_ptr(), 1, c"next.ptr".as_ptr());
-                    LLVMAddIncoming(current_ptr_phi, [next_ptr].as_mut_ptr(), [add_part_bb].as_mut_ptr(), 1);
+                    let next_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ty,
+                        found_ptr,
+                        [delim_len].as_mut_ptr(),
+                        1,
+                        c"next.ptr".as_ptr(),
+                    );
+                    LLVMAddIncoming(
+                        current_ptr_phi,
+                        [next_ptr].as_mut_ptr(),
+                        [add_part_bb].as_mut_ptr(),
+                        1,
+                    );
                     LLVMBuildBr(self.builder, split_loop_bb);
 
                     // Add final part
                     LLVMPositionBuilderAtEnd(self.builder, add_final_bb);
-                    let final_len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [current_ptr_phi].as_mut_ptr(), 1, c"final.len".as_ptr());
-                    let final_size = LLVMBuildAdd(self.builder, final_len, one, c"final.size".as_ptr());
-                    let final_str = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn,
-                        [final_size].as_mut_ptr(), 1, c"final".as_ptr());
-                    LLVMBuildCall2(self.builder, strcpy_ty, strcpy_fn,
-                        [final_str, current_ptr_phi].as_mut_ptr(), 2, c"".as_ptr());
-                    
-                    let vec_len_final = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"vec.len".as_ptr());
-                    let data_ptr_final = LLVMBuildLoad2(self.builder, str_ptr_ty, ptr_field, c"data".as_ptr());
-                    let elem_ptr_final = LLVMBuildGEP2(self.builder, i8_ptr_ty, data_ptr_final,
-                        [vec_len_final].as_mut_ptr(), 1, c"elem".as_ptr());
+                    let final_len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [current_ptr_phi].as_mut_ptr(),
+                        1,
+                        c"final.len".as_ptr(),
+                    );
+                    let final_size =
+                        LLVMBuildAdd(self.builder, final_len, one, c"final.size".as_ptr());
+                    let final_str = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [final_size].as_mut_ptr(),
+                        1,
+                        c"final".as_ptr(),
+                    );
+                    LLVMBuildCall2(
+                        self.builder,
+                        strcpy_ty,
+                        strcpy_fn,
+                        [final_str, current_ptr_phi].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+
+                    let vec_len_final =
+                        LLVMBuildLoad2(self.builder, i64_ty, len_field, c"vec.len".as_ptr());
+                    let data_ptr_final =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, ptr_field, c"data".as_ptr());
+                    let elem_ptr_final = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        data_ptr_final,
+                        [vec_len_final].as_mut_ptr(),
+                        1,
+                        c"elem".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, final_str, elem_ptr_final);
-                    let new_len_final = LLVMBuildAdd(self.builder, vec_len_final, one, c"new.len".as_ptr());
+                    let new_len_final =
+                        LLVMBuildAdd(self.builder, vec_len_final, one, c"new.len".as_ptr());
                     LLVMBuildStore(self.builder, new_len_final, len_field);
                     LLVMBuildBr(self.builder, done_bb);
 
@@ -8019,11 +8931,19 @@ impl LLVMCodegen {
                     self.emit_null_check(sep, "str_join: null separator")?;
 
                     // Call C runtime function: char* kraken_str_join(VecString* vec, const char* sep)
-                    let kraken_str_join_fn = *self.functions.get("kraken_str_join")
+                    let kraken_str_join_fn = *self
+                        .functions
+                        .get("kraken_str_join")
                         .ok_or_else(|| CompilerError::codegen_error("Missing kraken_str_join"))?;
                     let kraken_str_join_ty = LLVMGlobalGetValueType(kraken_str_join_fn);
-                    let result = LLVMBuildCall2(self.builder, kraken_str_join_ty, kraken_str_join_fn,
-                        [vec, sep].as_mut_ptr(), 2, c"result".as_ptr());
+                    let result = LLVMBuildCall2(
+                        self.builder,
+                        kraken_str_join_ty,
+                        kraken_str_join_fn,
+                        [vec, sep].as_mut_ptr(),
+                        2,
+                        c"result".as_ptr(),
+                    );
 
                     Ok(Some(result))
                 }
@@ -8041,55 +8961,109 @@ impl LLVMCodegen {
                     let str_ptr_ty = LLVMPointerType(i8_ptr_ty, 0);
 
                     // Get vector length
-                    let len_addr = LLVMBuildGEP2(self.builder, i8_ptr_ty, vec,
-                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(), 1, c"".as_ptr());
-                    let len_field = LLVMBuildBitCast(self.builder, len_addr, LLVMPointerType(i64_ty, 0), c"".as_ptr());
-                    let vec_len = LLVMBuildLoad2(self.builder, i64_ty, len_field, c"vec.len".as_ptr());
+                    let len_addr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        vec,
+                        [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let len_field = LLVMBuildBitCast(
+                        self.builder,
+                        len_addr,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let vec_len =
+                        LLVMBuildLoad2(self.builder, i64_ty, len_field, c"vec.len".as_ptr());
 
                     // Get separator length
-                    let strlen_fn = *self.functions.get("strlen")
+                    let strlen_fn = *self
+                        .functions
+                        .get("strlen")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strlen"))?;
                     let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
-                    let sep_len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [sep].as_mut_ptr(), 1, c"sep.len".as_ptr());
+                    let sep_len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [sep].as_mut_ptr(),
+                        1,
+                        c"sep.len".as_ptr(),
+                    );
 
                     // Check if empty vector
                     let zero = LLVMConstInt(i64_ty, 0, 0);
-                    let vec_empty = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        vec_len, zero, c"vec.empty".as_ptr());
+                    let vec_empty = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        vec_len,
+                        zero,
+                        c"vec.empty".as_ptr(),
+                    );
 
-                    let empty_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"empty.vec".as_ptr());
-                    let join_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"join".as_ptr());
-                    let done_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"done".as_ptr());
+                    let empty_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"empty.vec".as_ptr(),
+                    );
+                    let join_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"join".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"done".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, vec_empty, empty_bb, join_bb);
 
                     // Empty vector: return empty string
                     LLVMPositionBuilderAtEnd(self.builder, empty_bb);
-                    let malloc_fn = *self.functions.get("malloc")
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
                         .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                     let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
-                    let empty_str = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn,
-                        [LLVMConstInt(i64_ty, 1, 0)].as_mut_ptr(), 1, c"empty".as_ptr());
+                    let empty_str = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [LLVMConstInt(i64_ty, 1, 0)].as_mut_ptr(),
+                        1,
+                        c"empty".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, LLVMConstInt(i8_ty, 0, 0), empty_str);
                     LLVMBuildBr(self.builder, done_bb);
 
                     // Join: calculate total size and build result
                     LLVMPositionBuilderAtEnd(self.builder, join_bb);
-                    
+
                     // Get data pointer
-                    let ptr_field = LLVMBuildBitCast(self.builder, vec, LLVMPointerType(str_ptr_ty, 0), c"".as_ptr());
-                    let data_ptr = LLVMBuildLoad2(self.builder, str_ptr_ty, ptr_field, c"data".as_ptr());
+                    let ptr_field = LLVMBuildBitCast(
+                        self.builder,
+                        vec,
+                        LLVMPointerType(str_ptr_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let data_ptr =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, ptr_field, c"data".as_ptr());
 
                     // Calculate total size (sum of all string lengths + separators)
                     let calc_entry = LLVMGetInsertBlock(self.builder);
-                    let calc_loop_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(calc_entry), c"calc.loop".as_ptr());
-                    let calc_done_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(calc_entry), c"calc.done".as_ptr());
+                    let calc_loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(calc_entry),
+                        c"calc.loop".as_ptr(),
+                    );
+                    let calc_done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(calc_entry),
+                        c"calc.done".as_ptr(),
+                    );
 
                     LLVMBuildBr(self.builder, calc_loop_bb);
                     LLVMPositionBuilderAtEnd(self.builder, calc_loop_bb);
@@ -8099,95 +9073,198 @@ impl LLVMCodegen {
                     LLVMAddIncoming(idx_phi, [zero].as_mut_ptr(), [calc_entry].as_mut_ptr(), 1);
                     LLVMAddIncoming(size_phi, [zero].as_mut_ptr(), [calc_entry].as_mut_ptr(), 1);
 
-                    let done_calc = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntUGE,
-                        idx_phi, vec_len, c"done.calc".as_ptr());
+                    let done_calc = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntUGE,
+                        idx_phi,
+                        vec_len,
+                        c"done.calc".as_ptr(),
+                    );
 
-                    let calc_body_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"calc.body".as_ptr());
+                    let calc_body_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"calc.body".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, done_calc, calc_done_bb, calc_body_bb);
                     LLVMPositionBuilderAtEnd(self.builder, calc_body_bb);
 
                     // Get string at index
-                    let elem_ptr = LLVMBuildGEP2(self.builder, i8_ptr_ty, data_ptr,
-                        [idx_phi].as_mut_ptr(), 1, c"elem".as_ptr());
-                    let str_at_idx = LLVMBuildLoad2(self.builder, i8_ptr_ty, elem_ptr, c"str".as_ptr());
-                    let str_len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [str_at_idx].as_mut_ptr(), 1, c"str.len".as_ptr());
-                    
-                    let new_size = LLVMBuildAdd(self.builder, size_phi, str_len, c"new.size".as_ptr());
-                    
+                    let elem_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        data_ptr,
+                        [idx_phi].as_mut_ptr(),
+                        1,
+                        c"elem".as_ptr(),
+                    );
+                    let str_at_idx =
+                        LLVMBuildLoad2(self.builder, i8_ptr_ty, elem_ptr, c"str".as_ptr());
+                    let str_len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [str_at_idx].as_mut_ptr(),
+                        1,
+                        c"str.len".as_ptr(),
+                    );
+
+                    let new_size =
+                        LLVMBuildAdd(self.builder, size_phi, str_len, c"new.size".as_ptr());
+
                     // Add separator length if not last element
                     let one = LLVMConstInt(i64_ty, 1, 0);
                     let next_idx = LLVMBuildAdd(self.builder, idx_phi, one, c"next.idx".as_ptr());
-                    let is_last = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        next_idx, vec_len, c"is.last".as_ptr());
-                    let sep_add = LLVMBuildSelect(self.builder, is_last, zero, sep_len, c"sep.add".as_ptr());
-                    let final_size = LLVMBuildAdd(self.builder, new_size, sep_add, c"final.size".as_ptr());
+                    let is_last = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        next_idx,
+                        vec_len,
+                        c"is.last".as_ptr(),
+                    );
+                    let sep_add =
+                        LLVMBuildSelect(self.builder, is_last, zero, sep_len, c"sep.add".as_ptr());
+                    let final_size =
+                        LLVMBuildAdd(self.builder, new_size, sep_add, c"final.size".as_ptr());
 
-                    LLVMAddIncoming(idx_phi, [next_idx].as_mut_ptr(), [calc_body_bb].as_mut_ptr(), 1);
-                    LLVMAddIncoming(size_phi, [final_size].as_mut_ptr(), [calc_body_bb].as_mut_ptr(), 1);
+                    LLVMAddIncoming(
+                        idx_phi,
+                        [next_idx].as_mut_ptr(),
+                        [calc_body_bb].as_mut_ptr(),
+                        1,
+                    );
+                    LLVMAddIncoming(
+                        size_phi,
+                        [final_size].as_mut_ptr(),
+                        [calc_body_bb].as_mut_ptr(),
+                        1,
+                    );
                     LLVMBuildBr(self.builder, calc_loop_bb);
 
                     // Allocate result buffer
                     LLVMPositionBuilderAtEnd(self.builder, calc_done_bb);
-                    let total_size = LLVMBuildAdd(self.builder, size_phi, one, c"total.size".as_ptr());
-                    let result = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn,
-                        [total_size].as_mut_ptr(), 1, c"result".as_ptr());
+                    let total_size =
+                        LLVMBuildAdd(self.builder, size_phi, one, c"total.size".as_ptr());
+                    let result = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [total_size].as_mut_ptr(),
+                        1,
+                        c"result".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, LLVMConstInt(i8_ty, 0, 0), result);
 
                     // Build result string
                     let build_entry = LLVMGetInsertBlock(self.builder);
-                    let build_loop_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(build_entry), c"build.loop".as_ptr());
-                    let build_done_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(build_entry), c"build.done".as_ptr());
+                    let build_loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(build_entry),
+                        c"build.loop".as_ptr(),
+                    );
+                    let build_done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(build_entry),
+                        c"build.done".as_ptr(),
+                    );
 
                     LLVMBuildBr(self.builder, build_loop_bb);
                     LLVMPositionBuilderAtEnd(self.builder, build_loop_bb);
 
                     let build_idx_phi = LLVMBuildPhi(self.builder, i64_ty, c"build.idx".as_ptr());
-                    LLVMAddIncoming(build_idx_phi, [zero].as_mut_ptr(), [build_entry].as_mut_ptr(), 1);
+                    LLVMAddIncoming(
+                        build_idx_phi,
+                        [zero].as_mut_ptr(),
+                        [build_entry].as_mut_ptr(),
+                        1,
+                    );
 
-                    let done_build = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntUGE,
-                        build_idx_phi, vec_len, c"done.build".as_ptr());
+                    let done_build = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntUGE,
+                        build_idx_phi,
+                        vec_len,
+                        c"done.build".as_ptr(),
+                    );
 
-                    let build_body_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"build.body".as_ptr());
+                    let build_body_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"build.body".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, done_build, build_done_bb, build_body_bb);
                     LLVMPositionBuilderAtEnd(self.builder, build_body_bb);
 
                     // Concatenate string
-                    let elem_ptr2 = LLVMBuildGEP2(self.builder, i8_ptr_ty, data_ptr,
-                        [build_idx_phi].as_mut_ptr(), 1, c"elem".as_ptr());
-                    let str_at_idx2 = LLVMBuildLoad2(self.builder, i8_ptr_ty, elem_ptr2, c"str".as_ptr());
-                    
-                    let strcat_fn = *self.functions.get("strcat")
+                    let elem_ptr2 = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ptr_ty,
+                        data_ptr,
+                        [build_idx_phi].as_mut_ptr(),
+                        1,
+                        c"elem".as_ptr(),
+                    );
+                    let str_at_idx2 =
+                        LLVMBuildLoad2(self.builder, i8_ptr_ty, elem_ptr2, c"str".as_ptr());
+
+                    let strcat_fn = *self
+                        .functions
+                        .get("strcat")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strcat"))?;
                     let strcat_ty = LLVMGlobalGetValueType(strcat_fn);
-                    LLVMBuildCall2(self.builder, strcat_ty, strcat_fn,
-                        [result, str_at_idx2].as_mut_ptr(), 2, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        strcat_ty,
+                        strcat_fn,
+                        [result, str_at_idx2].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
 
                     // Add separator if not last
-                    let next_build_idx = LLVMBuildAdd(self.builder, build_idx_phi, one, c"next.build.idx".as_ptr());
-                    let is_last2 = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        next_build_idx, vec_len, c"is.last2".as_ptr());
+                    let next_build_idx =
+                        LLVMBuildAdd(self.builder, build_idx_phi, one, c"next.build.idx".as_ptr());
+                    let is_last2 = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        next_build_idx,
+                        vec_len,
+                        c"is.last2".as_ptr(),
+                    );
 
-                    let add_sep_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"add.sep".as_ptr());
-                    let skip_sep_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"skip.sep".as_ptr());
+                    let add_sep_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"add.sep".as_ptr(),
+                    );
+                    let skip_sep_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"skip.sep".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, is_last2, skip_sep_bb, add_sep_bb);
 
                     LLVMPositionBuilderAtEnd(self.builder, add_sep_bb);
-                    LLVMBuildCall2(self.builder, strcat_ty, strcat_fn,
-                        [result, sep].as_mut_ptr(), 2, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        strcat_ty,
+                        strcat_fn,
+                        [result, sep].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
                     LLVMBuildBr(self.builder, skip_sep_bb);
 
                     LLVMPositionBuilderAtEnd(self.builder, skip_sep_bb);
-                    LLVMAddIncoming(build_idx_phi, [next_build_idx].as_mut_ptr(), [skip_sep_bb].as_mut_ptr(), 1);
+                    LLVMAddIncoming(
+                        build_idx_phi,
+                        [next_build_idx].as_mut_ptr(),
+                        [skip_sep_bb].as_mut_ptr(),
+                        1,
+                    );
                     LLVMBuildBr(self.builder, build_loop_bb);
 
                     LLVMPositionBuilderAtEnd(self.builder, build_done_bb);
@@ -8196,8 +9273,18 @@ impl LLVMCodegen {
                     // Merge
                     LLVMPositionBuilderAtEnd(self.builder, done_bb);
                     let result_phi = LLVMBuildPhi(self.builder, i8_ptr_ty, c"result".as_ptr());
-                    LLVMAddIncoming(result_phi, [empty_str].as_mut_ptr(), [empty_bb].as_mut_ptr(), 1);
-                    LLVMAddIncoming(result_phi, [result].as_mut_ptr(), [build_done_bb].as_mut_ptr(), 1);
+                    LLVMAddIncoming(
+                        result_phi,
+                        [empty_str].as_mut_ptr(),
+                        [empty_bb].as_mut_ptr(),
+                        1,
+                    );
+                    LLVMAddIncoming(
+                        result_phi,
+                        [result].as_mut_ptr(),
+                        [build_done_bb].as_mut_ptr(),
+                        1,
+                    );
 
                     Ok(Some(result_phi))
                 }
@@ -8215,131 +9302,285 @@ impl LLVMCodegen {
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
 
-                    let strlen_fn = *self.functions.get("strlen")
+                    let strlen_fn = *self
+                        .functions
+                        .get("strlen")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strlen"))?;
                     let strlen_ty = LLVMGlobalGetValueType(strlen_fn);
 
-                    let old_len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [old].as_mut_ptr(), 1, c"old.len".as_ptr());
-                    let new_len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [new].as_mut_ptr(), 1, c"new.len".as_ptr());
+                    let old_len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [old].as_mut_ptr(),
+                        1,
+                        c"old.len".as_ptr(),
+                    );
+                    let new_len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [new].as_mut_ptr(),
+                        1,
+                        c"new.len".as_ptr(),
+                    );
 
                     // If old is empty, return copy of original
                     let zero = LLVMConstInt(i64_ty, 0, 0);
-                    let old_empty = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                        old_len, zero, c"old.empty".as_ptr());
+                    let old_empty = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        old_len,
+                        zero,
+                        c"old.empty".as_ptr(),
+                    );
 
-                    let return_orig_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"return.orig".as_ptr());
-                    let do_replace_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"do.replace".as_ptr());
-                    let done_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"done".as_ptr());
+                    let return_orig_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"return.orig".as_ptr(),
+                    );
+                    let do_replace_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"do.replace".as_ptr(),
+                    );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"done".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, old_empty, return_orig_bb, do_replace_bb);
 
                     // Return copy of original
                     LLVMPositionBuilderAtEnd(self.builder, return_orig_bb);
-                    let s_len = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [s].as_mut_ptr(), 1, c"s.len".as_ptr());
+                    let s_len = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [s].as_mut_ptr(),
+                        1,
+                        c"s.len".as_ptr(),
+                    );
                     let one = LLVMConstInt(i64_ty, 1, 0);
                     let copy_size = LLVMBuildAdd(self.builder, s_len, one, c"copy.size".as_ptr());
-                    
-                    let malloc_fn = *self.functions.get("malloc")
+
+                    let malloc_fn = *self
+                        .functions
+                        .get("malloc")
                         .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
                     let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
-                    let orig_copy = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn,
-                        [copy_size].as_mut_ptr(), 1, c"orig.copy".as_ptr());
-                    
-                    let strcpy_fn = *self.functions.get("strcpy")
+                    let orig_copy = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [copy_size].as_mut_ptr(),
+                        1,
+                        c"orig.copy".as_ptr(),
+                    );
+
+                    let strcpy_fn = *self
+                        .functions
+                        .get("strcpy")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strcpy"))?;
                     let strcpy_ty = LLVMGlobalGetValueType(strcpy_fn);
-                    LLVMBuildCall2(self.builder, strcpy_ty, strcpy_fn,
-                        [orig_copy, s].as_mut_ptr(), 2, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        strcpy_ty,
+                        strcpy_fn,
+                        [orig_copy, s].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
                     LLVMBuildBr(self.builder, done_bb);
 
                     // Do replacement: allocate generous buffer and build result
                     LLVMPositionBuilderAtEnd(self.builder, do_replace_bb);
-                    let s_len2 = LLVMBuildCall2(self.builder, strlen_ty, strlen_fn,
-                        [s].as_mut_ptr(), 1, c"s.len2".as_ptr());
-                    
+                    let s_len2 = LLVMBuildCall2(
+                        self.builder,
+                        strlen_ty,
+                        strlen_fn,
+                        [s].as_mut_ptr(),
+                        1,
+                        c"s.len2".as_ptr(),
+                    );
+
                     // Allocate buffer: s_len * 2 + new_len * 10 (generous estimate)
-                    let buf_size = LLVMBuildMul(self.builder, s_len2, LLVMConstInt(i64_ty, 2, 0), c"".as_ptr());
-                    let new_contrib = LLVMBuildMul(self.builder, new_len, LLVMConstInt(i64_ty, 10, 0), c"".as_ptr());
+                    let buf_size = LLVMBuildMul(
+                        self.builder,
+                        s_len2,
+                        LLVMConstInt(i64_ty, 2, 0),
+                        c"".as_ptr(),
+                    );
+                    let new_contrib = LLVMBuildMul(
+                        self.builder,
+                        new_len,
+                        LLVMConstInt(i64_ty, 10, 0),
+                        c"".as_ptr(),
+                    );
                     let total_buf = LLVMBuildAdd(self.builder, buf_size, new_contrib, c"".as_ptr());
-                    let final_buf = LLVMBuildAdd(self.builder, total_buf, LLVMConstInt(i64_ty, 100, 0), c"final.buf".as_ptr());
-                    
-                    let result = LLVMBuildCall2(self.builder, malloc_ty, malloc_fn,
-                        [final_buf].as_mut_ptr(), 1, c"result".as_ptr());
+                    let final_buf = LLVMBuildAdd(
+                        self.builder,
+                        total_buf,
+                        LLVMConstInt(i64_ty, 100, 0),
+                        c"final.buf".as_ptr(),
+                    );
+
+                    let result = LLVMBuildCall2(
+                        self.builder,
+                        malloc_ty,
+                        malloc_fn,
+                        [final_buf].as_mut_ptr(),
+                        1,
+                        c"result".as_ptr(),
+                    );
                     LLVMBuildStore(self.builder, LLVMConstInt(i8_ty, 0, 0), result);
 
                     // Replace loop using strstr
-                    let strstr_fn = *self.functions.get("strstr")
+                    let strstr_fn = *self
+                        .functions
+                        .get("strstr")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strstr"))?;
                     let strstr_ty = LLVMGlobalGetValueType(strstr_fn);
-                    let strcat_fn = *self.functions.get("strcat")
+                    let strcat_fn = *self
+                        .functions
+                        .get("strcat")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strcat"))?;
                     let strcat_ty = LLVMGlobalGetValueType(strcat_fn);
-                    let strncat_fn = *self.functions.get("strncat")
+                    let strncat_fn = *self
+                        .functions
+                        .get("strncat")
                         .ok_or_else(|| CompilerError::codegen_error("Missing strncat"))?;
                     let strncat_ty = LLVMGlobalGetValueType(strncat_fn);
 
                     let replace_entry = LLVMGetInsertBlock(self.builder);
-                    let replace_loop_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(replace_entry), c"replace.loop".as_ptr());
-                    
+                    let replace_loop_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(replace_entry),
+                        c"replace.loop".as_ptr(),
+                    );
+
                     LLVMBuildBr(self.builder, replace_loop_bb);
                     LLVMPositionBuilderAtEnd(self.builder, replace_loop_bb);
 
                     let current_phi = LLVMBuildPhi(self.builder, i8_ptr_ty, c"current".as_ptr());
-                    LLVMAddIncoming(current_phi, [s].as_mut_ptr(), [replace_entry].as_mut_ptr(), 1);
+                    LLVMAddIncoming(
+                        current_phi,
+                        [s].as_mut_ptr(),
+                        [replace_entry].as_mut_ptr(),
+                        1,
+                    );
 
                     // Find next occurrence
-                    let found_ptr = LLVMBuildCall2(self.builder, strstr_ty, strstr_fn,
-                        [current_phi, old].as_mut_ptr(), 2, c"found".as_ptr());
-                    
-                    let null_ptr = LLVMConstNull(i8_ptr_ty);
-                    let found = LLVMBuildICmp(self.builder, llvm_sys::LLVMIntPredicate::LLVMIntNE,
-                        found_ptr, null_ptr, c"found".as_ptr());
+                    let found_ptr = LLVMBuildCall2(
+                        self.builder,
+                        strstr_ty,
+                        strstr_fn,
+                        [current_phi, old].as_mut_ptr(),
+                        2,
+                        c"found".as_ptr(),
+                    );
 
-                    let replace_part_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"replace.part".as_ptr());
-                    let replace_final_bb = LLVMAppendBasicBlockInContext(self.context,
-                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)), c"replace.final".as_ptr());
+                    let null_ptr = LLVMConstNull(i8_ptr_ty);
+                    let found = LLVMBuildICmp(
+                        self.builder,
+                        llvm_sys::LLVMIntPredicate::LLVMIntNE,
+                        found_ptr,
+                        null_ptr,
+                        c"found".as_ptr(),
+                    );
+
+                    let replace_part_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"replace.part".as_ptr(),
+                    );
+                    let replace_final_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        LLVMGetBasicBlockParent(LLVMGetInsertBlock(self.builder)),
+                        c"replace.final".as_ptr(),
+                    );
 
                     LLVMBuildCondBr(self.builder, found, replace_part_bb, replace_final_bb);
 
                     // Replace part
                     LLVMPositionBuilderAtEnd(self.builder, replace_part_bb);
-                    let current_int = LLVMBuildPtrToInt(self.builder, current_phi, i64_ty, c"current.int".as_ptr());
-                    let found_int = LLVMBuildPtrToInt(self.builder, found_ptr, i64_ty, c"found.int".as_ptr());
-                    let before_len = LLVMBuildSub(self.builder, found_int, current_int, c"before.len".as_ptr());
-                    
+                    let current_int = LLVMBuildPtrToInt(
+                        self.builder,
+                        current_phi,
+                        i64_ty,
+                        c"current.int".as_ptr(),
+                    );
+                    let found_int =
+                        LLVMBuildPtrToInt(self.builder, found_ptr, i64_ty, c"found.int".as_ptr());
+                    let before_len =
+                        LLVMBuildSub(self.builder, found_int, current_int, c"before.len".as_ptr());
+
                     // Append part before match
-                    LLVMBuildCall2(self.builder, strncat_ty, strncat_fn,
-                        [result, current_phi, before_len].as_mut_ptr(), 3, c"".as_ptr());
-                    
+                    LLVMBuildCall2(
+                        self.builder,
+                        strncat_ty,
+                        strncat_fn,
+                        [result, current_phi, before_len].as_mut_ptr(),
+                        3,
+                        c"".as_ptr(),
+                    );
+
                     // Append replacement
-                    LLVMBuildCall2(self.builder, strcat_ty, strcat_fn,
-                        [result, new].as_mut_ptr(), 2, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        strcat_ty,
+                        strcat_fn,
+                        [result, new].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
 
                     // Move past old string
-                    let next_ptr = LLVMBuildGEP2(self.builder, i8_ty, found_ptr,
-                        [old_len].as_mut_ptr(), 1, c"next.ptr".as_ptr());
-                    LLVMAddIncoming(current_phi, [next_ptr].as_mut_ptr(), [replace_part_bb].as_mut_ptr(), 1);
+                    let next_ptr = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ty,
+                        found_ptr,
+                        [old_len].as_mut_ptr(),
+                        1,
+                        c"next.ptr".as_ptr(),
+                    );
+                    LLVMAddIncoming(
+                        current_phi,
+                        [next_ptr].as_mut_ptr(),
+                        [replace_part_bb].as_mut_ptr(),
+                        1,
+                    );
                     LLVMBuildBr(self.builder, replace_loop_bb);
 
                     // Append final part
                     LLVMPositionBuilderAtEnd(self.builder, replace_final_bb);
-                    LLVMBuildCall2(self.builder, strcat_ty, strcat_fn,
-                        [result, current_phi].as_mut_ptr(), 2, c"".as_ptr());
+                    LLVMBuildCall2(
+                        self.builder,
+                        strcat_ty,
+                        strcat_fn,
+                        [result, current_phi].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
                     LLVMBuildBr(self.builder, done_bb);
 
                     // Merge
                     LLVMPositionBuilderAtEnd(self.builder, done_bb);
                     let result_phi = LLVMBuildPhi(self.builder, i8_ptr_ty, c"result".as_ptr());
-                    LLVMAddIncoming(result_phi, [orig_copy].as_mut_ptr(), [return_orig_bb].as_mut_ptr(), 1);
-                    LLVMAddIncoming(result_phi, [result].as_mut_ptr(), [replace_final_bb].as_mut_ptr(), 1);
+                    LLVMAddIncoming(
+                        result_phi,
+                        [orig_copy].as_mut_ptr(),
+                        [return_orig_bb].as_mut_ptr(),
+                        1,
+                    );
+                    LLVMAddIncoming(
+                        result_phi,
+                        [result].as_mut_ptr(),
+                        [replace_final_bb].as_mut_ptr(),
+                        1,
+                    );
 
                     Ok(Some(result_phi))
                 }

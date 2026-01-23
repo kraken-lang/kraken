@@ -1,5 +1,8 @@
 use crate::error::{CompilerError, CompilerResult, SourceLocation};
-use crate::parser::ast::{Block, ClosureBody, EnumVariantPayload, Expression, Parameter, Pattern, Program, Statement, Type, WhereConstraint};
+use crate::parser::ast::{
+    Block, ClosureBody, EnumVariantPayload, Expression, Parameter, Pattern, Program, Statement,
+    Type, WhereConstraint,
+};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
 
@@ -209,9 +212,7 @@ impl Monomorphizer {
             }
 
             Statement::FunctionDeclaration {
-                parameters,
-                body,
-                ..
+                parameters, body, ..
             } => {
                 let mut fn_env = env.clone();
                 for p in parameters {
@@ -261,7 +262,11 @@ impl Monomorphizer {
                 self.infer_block(body, &mut loop_env)
             }
 
-            Statement::ForIn { variable, iterable, body } => {
+            Statement::ForIn {
+                variable,
+                iterable,
+                body,
+            } => {
                 self.infer_expression(iterable, env)?;
                 let mut loop_env = env.clone();
                 loop_env.insert(variable.clone(), Type::Int);
@@ -301,7 +306,11 @@ impl Monomorphizer {
         }
     }
 
-    fn infer_block(&mut self, block: &mut Block, env: &mut HashMap<String, Type>) -> CompilerResult<()> {
+    fn infer_block(
+        &mut self,
+        block: &mut Block,
+        env: &mut HashMap<String, Type>,
+    ) -> CompilerResult<()> {
         let mut local = env.clone();
         for stmt in &mut block.statements {
             self.infer_statement(stmt, &mut local)?;
@@ -309,7 +318,11 @@ impl Monomorphizer {
         Ok(())
     }
 
-    fn infer_expression(&mut self, expr: &mut Expression, env: &mut HashMap<String, Type>) -> CompilerResult<()> {
+    fn infer_expression(
+        &mut self,
+        expr: &mut Expression,
+        env: &mut HashMap<String, Type>,
+    ) -> CompilerResult<()> {
         match expr {
             Expression::Call {
                 callee,
@@ -324,7 +337,8 @@ impl Monomorphizer {
                 if type_args.is_none() {
                     if let Expression::Identifier(name) = callee.as_ref() {
                         if let Some(template) = self.generic_fns.get(name).cloned() {
-                            let inferred = self.infer_generic_fn_call_args(&template, arguments, env)?;
+                            let inferred =
+                                self.infer_generic_fn_call_args(&template, arguments, env)?;
                             *type_args = Some(inferred);
                         }
                     }
@@ -345,9 +359,15 @@ impl Monomorphizer {
             }
 
             Expression::Unary { operand, .. }
-            | Expression::Reference { expression: operand }
-            | Expression::Dereference { expression: operand }
-            | Expression::Await { expression: operand } => self.infer_expression(operand, env),
+            | Expression::Reference {
+                expression: operand,
+            }
+            | Expression::Dereference {
+                expression: operand,
+            }
+            | Expression::Await {
+                expression: operand,
+            } => self.infer_expression(operand, env),
 
             Expression::Array { elements } => {
                 for e in elements.iter_mut() {
@@ -394,14 +414,23 @@ impl Monomorphizer {
 
             Expression::TupleIndex { tuple, .. } => self.infer_expression(tuple, env),
 
-            Expression::Range { start, end, inclusive: _ } => {
+            Expression::Range {
+                start,
+                end,
+                inclusive: _,
+            } => {
                 self.infer_expression(start, env)?;
                 self.infer_expression(end, env)
             }
 
             Expression::Try { expression } => self.infer_expression(expression, env),
 
-            Expression::Closure { parameters: _, return_type: _, body, is_move: _ } => {
+            Expression::Closure {
+                parameters: _,
+                return_type: _,
+                body,
+                is_move: _,
+            } => {
                 // Type check closure body
                 match body {
                     ClosureBody::Expression(expr) => self.infer_expression(expr, env),
@@ -596,9 +625,7 @@ impl Monomorphizer {
                         };
 
                         let subst = self.build_subst_map(name, generic_params, &args)?;
-                        let ret = return_type
-                            .clone()
-                            .unwrap_or(Type::Void);
+                        let ret = return_type.clone().unwrap_or(Type::Void);
                         let ret = self.rewrite_type_with_subst(ret, &subst);
                         return Ok(Some(ret));
                     }
@@ -952,7 +979,11 @@ impl Monomorphizer {
                 body: self.rewrite_block_with_subst(body, subst)?,
             }),
 
-            Statement::ForIn { variable, iterable, body } => Ok(Statement::ForIn {
+            Statement::ForIn {
+                variable,
+                iterable,
+                body,
+            } => Ok(Statement::ForIn {
                 variable,
                 iterable: self.rewrite_expression_with_subst(iterable, subst)?,
                 body: self.rewrite_block_with_subst(body, subst)?,
@@ -974,7 +1005,8 @@ impl Monomorphizer {
                 statement: Box::new(self.rewrite_statement_with_subst(*statement, subst)?),
             }),
 
-            Statement::Break | Statement::Continue
+            Statement::Break
+            | Statement::Continue
             | Statement::TypeAlias { .. }
             | Statement::ImplBlock { .. } => Ok(stmt),
         }
@@ -1158,7 +1190,11 @@ impl Monomorphizer {
                 index,
             }),
 
-            Expression::Range { start, end, inclusive } => Ok(Expression::Range {
+            Expression::Range {
+                start,
+                end,
+                inclusive,
+            } => Ok(Expression::Range {
                 start: Box::new(self.rewrite_expression_with_subst(*start, subst)?),
                 end: Box::new(self.rewrite_expression_with_subst(*end, subst)?),
                 inclusive,
@@ -1189,9 +1225,9 @@ impl Monomorphizer {
 
                 // Rewrite body
                 let rewritten_body = match body {
-                    ClosureBody::Expression(expr) => {
-                        ClosureBody::Expression(Box::new(self.rewrite_expression_with_subst(*expr, subst)?))
-                    }
+                    ClosureBody::Expression(expr) => ClosureBody::Expression(Box::new(
+                        self.rewrite_expression_with_subst(*expr, subst)?,
+                    )),
                     ClosureBody::Block(block) => {
                         ClosureBody::Block(self.rewrite_block_with_subst(block, subst)?)
                     }
@@ -1286,7 +1322,11 @@ impl Monomorphizer {
     }
 
     #[allow(clippy::only_used_in_recursion)]
-    fn rewrite_pattern_with_subst(&mut self, pattern: Pattern, subst: &HashMap<String, Type>) -> Pattern {
+    fn rewrite_pattern_with_subst(
+        &mut self,
+        pattern: Pattern,
+        subst: &HashMap<String, Type>,
+    ) -> Pattern {
         match pattern {
             Pattern::Tuple { patterns } => Pattern::Tuple {
                 patterns: patterns
@@ -1311,7 +1351,10 @@ impl Monomorphizer {
                     }
                 }
             }
-            Pattern::Wildcard | Pattern::Literal(_) | Pattern::EnumVariant { .. } | Pattern::Range { .. } => {
+            Pattern::Wildcard
+            | Pattern::Literal(_)
+            | Pattern::EnumVariant { .. }
+            | Pattern::Range { .. } => {
                 // These don't bind variables
             }
             Pattern::Or { patterns } => {
@@ -1320,7 +1363,11 @@ impl Monomorphizer {
                     self.bind_pattern_to_env(pat, ty.clone(), env);
                 }
             }
-            Pattern::Struct { struct_name: _, fields: _, partial: _ } => {
+            Pattern::Struct {
+                struct_name: _,
+                fields: _,
+                partial: _,
+            } => {
                 // Struct patterns: bind variables from field patterns
                 // Note: Type checking has already validated the struct type and fields
                 // For monomorphization, we don't need to do anything special here
@@ -1359,7 +1406,11 @@ impl Monomorphizer {
         Ok(())
     }
 
-    fn scan_statement_for_generics(&mut self, stmt: &Statement, _generics: &HashMap<String, Type>) -> CompilerResult<()> {
+    fn scan_statement_for_generics(
+        &mut self,
+        stmt: &Statement,
+        _generics: &HashMap<String, Type>,
+    ) -> CompilerResult<()> {
         match stmt {
             Statement::Module { .. } | Statement::Import { .. } => Ok(()),
 
@@ -1488,12 +1539,16 @@ impl Monomorphizer {
 
             Statement::Break | Statement::Continue => Ok(()),
 
-            Statement::ForIn { variable: _, iterable, body } => {
+            Statement::ForIn {
+                variable: _,
+                iterable,
+                body,
+            } => {
                 self.scan_expression(iterable)?;
                 self.scan_block(body)?;
                 Ok(())
             }
-            
+
             Statement::TypeAlias { .. } | Statement::ImplBlock { .. } => Ok(()),
         }
     }
@@ -1606,7 +1661,11 @@ impl Monomorphizer {
 
             Expression::TupleIndex { tuple, .. } => self.scan_expression(tuple),
 
-            Expression::Range { start, end, inclusive: _ } => {
+            Expression::Range {
+                start,
+                end,
+                inclusive: _,
+            } => {
                 self.scan_expression(start)?;
                 self.scan_expression(end)?;
                 Ok(())
@@ -1614,12 +1673,15 @@ impl Monomorphizer {
 
             Expression::Try { expression } => self.scan_expression(expression),
 
-            Expression::Closure { parameters: _, return_type: _, body, is_move: _ } => {
-                match body {
-                    ClosureBody::Expression(expr) => self.scan_expression(expr),
-                    ClosureBody::Block(block) => self.scan_block(block),
-                }
-            }
+            Expression::Closure {
+                parameters: _,
+                return_type: _,
+                body,
+                is_move: _,
+            } => match body {
+                ClosureBody::Expression(expr) => self.scan_expression(expr),
+                ClosureBody::Block(block) => self.scan_block(block),
+            },
 
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)
@@ -1633,7 +1695,10 @@ impl Monomorphizer {
     fn scan_type(&mut self, ty: &Type) -> CompilerResult<()> {
         match ty {
             Type::Generic { name, type_params } => {
-                if self.lower_builtin_generic_container(name, type_params).is_some() {
+                if self
+                    .lower_builtin_generic_container(name, type_params)
+                    .is_some()
+                {
                     // Builtin container shims (Vec<T>/Map<K,V>) are lowered later; they are not
                     // monomorphized as user-defined generic structs.
                     for p in type_params {

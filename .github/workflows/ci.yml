@@ -8,7 +8,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  LLVM_SYS_181_PREFIX: /opt/homebrew/opt/llvm@18
 
 jobs:
   test:
@@ -19,6 +18,9 @@ jobs:
 
       - name: Install LLVM 18
         run: brew install llvm@18
+
+      - name: Set LLVM environment
+        run: echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -47,6 +49,9 @@ jobs:
       - name: Install LLVM 18
         run: brew install llvm@18
 
+      - name: Set LLVM environment
+        run: echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
+
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -66,6 +71,9 @@ jobs:
 
       - name: Install LLVM 18
         run: brew install llvm@18
+
+      - name: Set LLVM environment
+        run: echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable

@@ -223,7 +223,10 @@ pub struct EnumType {
 
 impl EnumType {
     /// Create a new enum type.
-    pub fn new(name: String, variants: Vec<(String, Option<crate::parser::ast::EnumVariantPayload>)>) -> Self {
+    pub fn new(
+        name: String,
+        variants: Vec<(String, Option<crate::parser::ast::EnumVariantPayload>)>,
+    ) -> Self {
         let variants_with_tags: Vec<_> = variants
             .into_iter()
             .enumerate()
@@ -245,7 +248,10 @@ impl EnumType {
     }
 
     /// Get the payload types for a variant.
-    pub fn get_variant_payload(&self, variant_name: &str) -> Option<Option<crate::parser::ast::EnumVariantPayload>> {
+    pub fn get_variant_payload(
+        &self,
+        variant_name: &str,
+    ) -> Option<Option<crate::parser::ast::EnumVariantPayload>> {
         self.variants
             .iter()
             .find(|(name, _, _)| name == variant_name)
