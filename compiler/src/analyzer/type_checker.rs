@@ -2375,6 +2375,13 @@ impl TypeChecker {
             Statement::Break | Statement::Continue => Ok(()),
 
             Statement::Defer { statement } => self.check_statement(statement),
+            
+            Statement::TypeAlias { .. } | Statement::ImplBlock { .. } => {
+                // Type aliases and impl blocks are handled separately
+                // Type aliases are resolved during type resolution
+                // Impl blocks define methods which are type checked when called
+                Ok(())
+            }
         }
     }
 

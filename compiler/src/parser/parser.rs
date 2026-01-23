@@ -67,6 +67,10 @@ impl Parser {
             self.parse_struct_declaration(false)
         } else if self.match_keyword(Keyword::Enum) {
             self.parse_enum_declaration(false)
+        } else if self.match_keyword(Keyword::Type) {
+            self.parse_type_alias(false)
+        } else if self.match_keyword(Keyword::Impl) {
+            self.parse_impl_block()
         } else if self.match_keyword(Keyword::Class) {
             self.parse_class_declaration(false)
         } else if self.match_keyword(Keyword::Interface) {
@@ -273,6 +277,8 @@ impl Parser {
             self.parse_struct_declaration(true)
         } else if self.match_keyword(Keyword::Enum) {
             self.parse_enum_declaration(true)
+        } else if self.match_keyword(Keyword::Type) {
+            self.parse_type_alias(true)
         } else if self.match_keyword(Keyword::Class) {
             self.parse_class_declaration(true)
         } else {
@@ -491,6 +497,89 @@ impl Parser {
         self.expect_token(TokenKind::RightBrace)?;
 
         Ok(Statement::InterfaceDeclaration { name, methods })
+    }
+
+    /// Parse a type alias: type MyInt = int;
+    fn parse_type_alias(&mut self, is_public: bool) -> CompilerResult<Statement> {
+        let name = self.consume_identifier()?;
+        
+        // Parse optional generic parameters: type Result<T> = ...
+        let generic_params = if self.match_token(TokenKind::Operator(Operator::Less)) {
+            let mut params = Vec::new();
+            params.push(self.consume_identifier()?);
+            while self.match_token(TokenKind::Comma) {
+                params.push(self.consume_identifier()?);
+            }
+            self.expect_token(TokenKind::Operator(Operator::Greater))?;
+            params
+        } else {
+            Vec::new()
+        };
+        
+        self.expect_token(TokenKind::Operator(Operator::Assign))?;
+        let target_type = self.parse_type()?;
+        self.consume_semicolon()?;
+        
+        Ok(Statement::TypeAlias {
+            name,
+            generic_params,
+            target_type,
+            is_public,
+        })
+    }
+    
+    /// Parse an impl block: impl TypeName { ... }
+    fn parse_impl_block(&mut self) -> CompilerResult<Statement> {
+        // Parse optional generic parameters: impl<T> Vec<T> { ... }
+        let generic_params = if self.match_token(TokenKind::Operator(Operator::Less)) {
+            let mut params = Vec::new();
+            params.push(self.consume_identifier()?);
+            while self.match_token(TokenKind::Comma) {
+                params.push(self.consume_identifier()?);
+            }
+            self.expect_token(TokenKind::Operator(Operator::Greater))?;
+            params
+        } else {
+            Vec::new()
+        };
+        
+        let type_name = self.consume_identifier()?;
+        
+        // Skip generic type arguments if present: impl Vec<T> { ... }
+        if self.match_token(TokenKind::Operator(Operator::Less)) {
+            // Skip until we find the matching >
+            let mut depth = 1;
+            while depth > 0 && !self.is_at_end() {
+                if self.check_token(TokenKind::Operator(Operator::Less)) {
+                    depth += 1;
+                } else if self.check_token(TokenKind::Operator(Operator::Greater)) {
+                    depth -= 1;
+                }
+                self.advance();
+            }
+        }
+        
+        self.expect_token(TokenKind::LeftBrace)?;
+        
+        let mut methods = Vec::new();
+        while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
+            if self.match_keyword(Keyword::Fn) {
+                methods.push(self.parse_function_declaration(false, false)?);
+            } else if self.match_keyword(Keyword::Pub) {
+                self.expect_keyword(Keyword::Fn)?;
+                methods.push(self.parse_function_declaration(false, true)?);
+            } else {
+                return Err(self.error("Expected fn in impl block"));
+            }
+        }
+        
+        self.expect_token(TokenKind::RightBrace)?;
+        
+        Ok(Statement::ImplBlock {
+            type_name,
+            generic_params,
+            methods,
+        })
     }
 
     /// Parse a return statement.

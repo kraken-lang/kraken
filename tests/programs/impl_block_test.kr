@@ -1,0 +1,244 @@
+// Impl Block Test
+// Tests impl block declarations and method definitions
+
+// Basic impl block
+struct Point {
+    x: int;
+    y: int;
+}
+
+impl Point {
+    fn new(x: int, y: int) -> Point {
+        return Point { x: x, y: y };
+    }
+    
+    fn origin() -> Point {
+        return Point { x: 0, y: 0 };
+    }
+}
+
+fn test_associated_functions() {
+    let p1 = Point::new(10, 20);
+    let p2 = Point::origin();
+}
+
+// Impl block with methods (requires self parameter support)
+// impl Point {
+//     fn distance(&self) -> float {
+//         return sqrt((self.x * self.x + self.y * self.y) as float);
+//     }
+//     
+//     fn translate(&mut self, dx: int, dy: int) {
+//         self.x = self.x + dx;
+//         self.y = self.y + dy;
+//     }
+// }
+
+// Multiple impl blocks for same type
+struct Counter {
+    value: int;
+}
+
+impl Counter {
+    fn new() -> Counter {
+        return Counter { value: 0 };
+    }
+}
+
+impl Counter {
+    fn with_value(v: int) -> Counter {
+        return Counter { value: v };
+    }
+}
+
+fn test_multiple_impl_blocks() {
+    let c1 = Counter::new();
+    let c2 = Counter::with_value(42);
+}
+
+// Impl block with public and private methods
+struct Rectangle {
+    width: int;
+    height: int;
+}
+
+impl Rectangle {
+    pub fn new(w: int, h: int) -> Rectangle {
+        return Rectangle { width: w, height: h };
+    }
+    
+    fn area(w: int, h: int) -> int {
+        return w * h;
+    }
+}
+
+fn test_visibility() {
+    let r = Rectangle::new(10, 20);
+}
+
+// Generic impl block (if generics are supported)
+// struct Box<T> {
+//     value: T;
+// }
+// 
+// impl<T> Box<T> {
+//     fn new(v: T) -> Box<T> {
+//         return Box { value: v };
+//     }
+// }
+
+// Impl block for enum
+enum Option {
+    Some(int),
+    None,
+}
+
+impl Option {
+    fn some(value: int) -> Option {
+        return Option::Some(value);
+    }
+    
+    fn none() -> Option {
+        return Option::None;
+    }
+}
+
+fn test_enum_impl() {
+    let opt1 = Option::some(42);
+    let opt2 = Option::none();
+}
+
+// Impl block with multiple parameters
+struct Calculator {
+    result: int;
+}
+
+impl Calculator {
+    fn new() -> Calculator {
+        return Calculator { result: 0 };
+    }
+    
+    fn add(a: int, b: int) -> int {
+        return a + b;
+    }
+    
+    fn multiply(a: int, b: int, c: int) -> int {
+        return a * b * c;
+    }
+}
+
+fn test_multiple_params() {
+    let calc = Calculator::new();
+    let sum = Calculator::add(10, 32); // 42
+    let product = Calculator::multiply(2, 3, 7); // 42
+}
+
+// Impl block with complex return types
+struct Pair {
+    first: int;
+    second: int;
+}
+
+impl Pair {
+    fn create(a: int, b: int) -> Pair {
+        return Pair { first: a, second: b };
+    }
+    
+    fn swap(p: Pair) -> Pair {
+        return Pair { first: p.second, second: p.first };
+    }
+}
+
+fn test_complex_returns() {
+    let p1 = Pair::create(10, 20);
+    let p2 = Pair::swap(p1);
+}
+
+// Impl block with nested calls
+struct Math {
+    dummy: int;
+}
+
+impl Math {
+    fn double(x: int) -> int {
+        return x * 2;
+    }
+    
+    fn quadruple(x: int) -> int {
+        return Math::double(Math::double(x));
+    }
+}
+
+fn test_nested_calls() {
+    let result = Math::quadruple(10); // 40
+}
+
+// Impl block for tuple struct
+// struct Wrapper(int);
+// 
+// impl Wrapper {
+//     fn new(value: int) -> Wrapper {
+//         return Wrapper(value);
+//     }
+// }
+
+// Impl block with conditional logic
+struct Validator {
+    dummy: int;
+}
+
+impl Validator {
+    fn is_positive(x: int) -> bool {
+        if (x > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    fn max(a: int, b: int) -> int {
+        if (a > b) {
+            return a;
+        } else {
+            return b;
+        }
+    }
+}
+
+fn test_conditional_methods() {
+    let is_pos = Validator::is_positive(42); // true
+    let maximum = Validator::max(10, 20); // 20
+}
+
+// Impl block with loops
+struct ArrayHelper {
+    dummy: int;
+}
+
+impl ArrayHelper {
+    fn sum_range(start: int, end: int) -> int {
+        let total = 0;
+        let i = start;
+        while (i < end) {
+            total = total + i;
+            i = i + 1;
+        }
+        return total;
+    }
+}
+
+fn test_loop_methods() {
+    let sum = ArrayHelper::sum_range(1, 11); // 55
+}
+
+fn main() {
+    test_associated_functions();
+    test_multiple_impl_blocks();
+    test_visibility();
+    test_enum_impl();
+    test_multiple_params();
+    test_complex_returns();
+    test_nested_calls();
+    test_conditional_methods();
+    test_loop_methods();
+}

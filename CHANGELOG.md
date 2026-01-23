@@ -13,6 +13,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.20] - 2026-01-22
+
+### Added
+- **Type Aliases (Infrastructure Complete)**
+  - Added `Statement::TypeAlias` to AST for type alias declarations
+  - Added `Keyword::Type` for type alias syntax
+  - Added parser support for type aliases: `type MyInt = int;`
+  - Added parser support for generic type aliases: `type Result<T> = Result<T, Error>;`
+  - Added type alias visibility (pub/private)
+  - Added type alias support to all compiler passes (monomorphization, type checker, modules)
+  - Created comprehensive test file (`type_alias_test.kr` - 127 lines)
+- **Impl Blocks (Infrastructure Complete)**
+  - Added `Statement::ImplBlock` to AST for impl block declarations
+  - Added parser support for impl blocks: `impl TypeName { ... }`
+  - Added parser support for generic impl blocks: `impl<T> Vec<T> { ... }`
+  - Added impl block support to all compiler passes
+  - Methods can be defined in impl blocks with pub/private visibility
+  - Associated functions supported: `impl Point { fn new() -> Point }`
+  - Created comprehensive test file (`impl_block_test.kr` - 234 lines)
+
+### Fixed
+- Fixed all compiler match arms to handle TypeAlias and ImplBlock statements
+- Fixed unused variable warning in monomorphization
+
+### Changed
+- Reorganized milestone 0.8.20 to focus on achievable compiler features
+- Moved runtime-dependent features (slices, bounds checking) to milestone 0.8.23
+
+### Notes
+- **0.8.20 Infrastructure Complete**: Type alias and impl block syntax, parsing, and basic compiler support fully implemented
+- Advanced features deferred: self parameters, method call syntax (`.method()`), type resolution, LLVM method codegen
+- These features require additional type system work and will be implemented in future milestones
+
 ## [0.8.19] - 2026-01-22
 
 ### Added

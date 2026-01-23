@@ -80,6 +80,21 @@ pub enum Statement {
         is_public: bool,
     },
 
+    /// Type alias: type MyInt = int;
+    TypeAlias {
+        name: String,
+        generic_params: Vec<String>,
+        target_type: Type,
+        is_public: bool,
+    },
+
+    /// Impl block: impl TypeName { ... }
+    ImplBlock {
+        type_name: String,
+        generic_params: Vec<String>,
+        methods: Vec<Statement>, // FunctionDeclarations
+    },
+
     /// Return statement
     Return {
         value: Option<Expression>,

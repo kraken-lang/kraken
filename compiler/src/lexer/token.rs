@@ -93,6 +93,7 @@ pub enum Keyword {
     Class,
     Interface,
     Trait,
+    Type,
     Impl,
 
     // Modifiers
@@ -162,6 +163,7 @@ impl Keyword {
             "class" => Some(Self::Class),
             "interface" => Some(Self::Interface),
             "trait" => Some(Self::Trait),
+            "type" => Some(Self::Type),
             "impl" => Some(Self::Impl),
             "pub" => Some(Self::Pub),
             "priv" => Some(Self::Priv),
@@ -223,6 +225,7 @@ impl Keyword {
             Self::Class => "class",
             Self::Interface => "interface",
             Self::Trait => "trait",
+            Self::Type => "type",
             Self::Impl => "impl",
             Self::Pub => "pub",
             Self::Priv => "priv",

@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
-Current version: `v0.8.19`
+Current version: `v0.8.20`
 
 ## Language Features
 
@@ -44,7 +44,13 @@ Current version: `v0.8.19`
 - **Move Closures**: `move |x| ...` for capture by value
 - **Higher-Order Functions**: Functions accepting and returning closures
 - **Comprehensive Tests**: 1,027 lines of tests covering all scenarios
-- **Comprehensive Error Handling**: Manual match-based propagation with Result/Option types
+
+### Type Aliases & Impl Blocks (0.8.20)
+- **Type Aliases**: `type MyInt = int;` with generic support
+- **Impl Blocks**: `impl TypeName { ... }` for associated functions
+- **Generic Impl Blocks**: `impl<T> Vec<T> { ... }` syntax support
+- **Visibility Control**: Public and private type aliases and methods
+- **Infrastructure Complete**: Full parsing and compiler pass support
 
 ### Core Features
 - **Static Typing**: Strong type system with type inference

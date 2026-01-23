@@ -1,0 +1,136 @@
+// Type Alias Test
+// Tests type alias declarations and usage
+
+// Basic type aliases
+type MyInt = int;
+type MyFloat = float;
+type MyString = string;
+type MyBool = bool;
+
+fn test_basic_type_aliases() {
+    let x: MyInt = 42;
+    let y: MyFloat = 3.14;
+    let z: MyString = "hello";
+    let b: MyBool = true;
+}
+
+// Type alias for struct
+struct Point {
+    x: int;
+    y: int;
+}
+
+type Coordinate = Point;
+
+fn test_struct_alias() {
+    let p: Coordinate = Point { x: 10, y: 20 };
+}
+
+// Type alias for function type
+type IntFunction = fn(int) -> int;
+type BinaryOp = fn(int, int) -> int;
+
+fn test_function_type_alias() {
+    let double: IntFunction = |x| x * 2;
+    let add: BinaryOp = |a, b| a + b;
+    
+    let result1 = double(21); // 42
+    let result2 = add(10, 32); // 42
+}
+
+// Generic type alias (if generics are supported)
+// type Result<T> = Result<T, string>;
+// type Option<T> = Option<T>;
+
+// Type alias visibility
+pub type PublicInt = int;
+type PrivateInt = int;
+
+fn test_visibility() {
+    let x: PublicInt = 42;
+    let y: PrivateInt = 42;
+}
+
+// Nested type aliases
+type Level1 = int;
+type Level2 = Level1;
+type Level3 = Level2;
+
+fn test_nested_aliases() {
+    let x: Level3 = 42;
+}
+
+// Type alias for tuple
+type IntPair = (int, int);
+type IntTriple = (int, int, int);
+
+fn test_tuple_alias() {
+    let pair: IntPair = (10, 20);
+    let triple: IntTriple = (1, 2, 3);
+}
+
+// Type alias for array
+// type IntArray = [int];
+// type StringArray = [string];
+
+// fn test_array_alias() {
+//     let arr: IntArray = [1, 2, 3, 4, 5];
+// }
+
+// Type alias in function signatures
+fn process(x: MyInt) -> MyInt {
+    return x * 2;
+}
+
+fn test_alias_in_signature() {
+    let result = process(21); // 42
+}
+
+// Type alias for enum
+enum Color {
+    Red,
+    Green,
+    Blue,
+}
+
+type Hue = Color;
+
+fn test_enum_alias() {
+    let c: Hue = Color::Red;
+}
+
+// Multiple aliases for same type
+type Integer = int;
+type Number = int;
+type Count = int;
+
+fn test_multiple_aliases() {
+    let a: Integer = 1;
+    let b: Number = 2;
+    let c: Count = 3;
+    let sum = a + b + c; // 6
+}
+
+// Type alias with complex types
+struct Container {
+    value: int;
+}
+
+type Box = Container;
+
+fn test_complex_alias() {
+    let b: Box = Container { value: 42 };
+}
+
+fn main() {
+    test_basic_type_aliases();
+    test_struct_alias();
+    test_function_type_alias();
+    test_visibility();
+    test_nested_aliases();
+    test_tuple_alias();
+    test_alias_in_signature();
+    test_enum_alias();
+    test_multiple_aliases();
+    test_complex_alias();
+}

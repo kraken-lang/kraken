@@ -516,7 +516,9 @@ fn rewrite_statement(
         Statement::Break
         | Statement::Continue
         | Statement::InterfaceDeclaration { .. }
-        | Statement::EnumDeclaration { .. } => Ok(statement),
+        | Statement::EnumDeclaration { .. }
+        | Statement::TypeAlias { .. }
+        | Statement::ImplBlock { .. } => Ok(statement),
     }
 }
 

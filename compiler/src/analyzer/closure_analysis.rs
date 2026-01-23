@@ -306,7 +306,9 @@ impl ClosureAnalyzer {
             | Statement::ClassDeclaration { .. }
             | Statement::InterfaceDeclaration { .. }
             | Statement::Module { .. }
-            | Statement::Import { .. } => {}
+            | Statement::Import { .. }
+            | Statement::TypeAlias { .. }
+            | Statement::ImplBlock { .. } => {},
         }
     }
 }

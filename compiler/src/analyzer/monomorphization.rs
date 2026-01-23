@@ -295,7 +295,9 @@ impl Monomorphizer {
             | Statement::InterfaceDeclaration { .. }
             | Statement::EnumDeclaration { .. }
             | Statement::Break
-            | Statement::Continue => Ok(()),
+            | Statement::Continue
+            | Statement::TypeAlias { .. }
+            | Statement::ImplBlock { .. } => Ok(()),
         }
     }
 
@@ -972,7 +974,9 @@ impl Monomorphizer {
                 statement: Box::new(self.rewrite_statement_with_subst(*statement, subst)?),
             }),
 
-            Statement::Break | Statement::Continue => Ok(stmt),
+            Statement::Break | Statement::Continue
+            | Statement::TypeAlias { .. }
+            | Statement::ImplBlock { .. } => Ok(stmt),
         }
     }
 
@@ -1344,14 +1348,18 @@ impl Monomorphizer {
         self.queue.push_back(key);
     }
 
+    fn scan_statement(&mut self, stmt: &Statement) -> CompilerResult<()> {
+        self.scan_statement_for_generics(stmt, &HashMap::new())
+    }
+
     fn scan_block(&mut self, block: &Block) -> CompilerResult<()> {
         for stmt in &block.statements {
-            self.scan_statement(stmt)?;
+            self.scan_statement_for_generics(stmt, &HashMap::new())?;
         }
         Ok(())
     }
 
-    fn scan_statement(&mut self, stmt: &Statement) -> CompilerResult<()> {
+    fn scan_statement_for_generics(&mut self, stmt: &Statement, _generics: &HashMap<String, Type>) -> CompilerResult<()> {
         match stmt {
             Statement::Module { .. } | Statement::Import { .. } => Ok(()),
 
@@ -1485,6 +1493,8 @@ impl Monomorphizer {
                 self.scan_block(body)?;
                 Ok(())
             }
+            
+            Statement::TypeAlias { .. } | Statement::ImplBlock { .. } => Ok(()),
         }
     }
 
