@@ -76,6 +76,8 @@ impl Parser {
             self.parse_enum_declaration(false)
         } else if self.match_keyword(Keyword::Type) {
             self.parse_type_alias(false)
+        } else if self.match_keyword(Keyword::Trait) {
+            self.parse_trait_declaration(false)
         } else if self.match_keyword(Keyword::Impl) {
             self.parse_impl_block()
         } else if self.match_keyword(Keyword::Class) {
@@ -288,10 +290,12 @@ impl Parser {
             self.parse_enum_declaration(true)
         } else if self.match_keyword(Keyword::Type) {
             self.parse_type_alias(true)
+        } else if self.match_keyword(Keyword::Trait) {
+            self.parse_trait_declaration(true)
         } else if self.match_keyword(Keyword::Class) {
             self.parse_class_declaration(true)
         } else {
-            Err(self.error("Expected fn, struct, enum, or class after pub"))
+            Err(self.error("Expected fn, struct, enum, trait, or class after pub"))
         }
     }
 
@@ -537,7 +541,7 @@ impl Parser {
         })
     }
 
-    /// Parse an impl block: impl TypeName { ... }
+    /// Parse an impl block: impl TypeName { ... } or impl Trait for Type { ... }
     fn parse_impl_block(&mut self) -> CompilerResult<Statement> {
         // Parse optional generic parameters: impl<T> Vec<T> { ... }
         let generic_params = if self.match_token(TokenKind::Operator(Operator::Less)) {
@@ -552,11 +556,10 @@ impl Parser {
             Vec::new()
         };
 
-        let type_name = self.consume_identifier()?;
+        let first_name = self.consume_identifier()?;
 
-        // Skip generic type arguments if present: impl Vec<T> { ... }
+        // Skip generic type arguments if present
         if self.match_token(TokenKind::Operator(Operator::Less)) {
-            // Skip until we find the matching >
             let mut depth = 1;
             while depth > 0 && !self.is_at_end() {
                 if self.check_token(TokenKind::Operator(Operator::Less)) {
@@ -568,26 +571,214 @@ impl Parser {
             }
         }
 
+        // Check if this is a trait implementation: impl Trait for Type
+        if self.match_keyword(Keyword::For) {
+            let trait_name = first_name;
+            let type_name = self.consume_identifier()?;
+
+            // Skip generic type arguments on the type if present
+            if self.match_token(TokenKind::Operator(Operator::Less)) {
+                let mut depth = 1;
+                while depth > 0 && !self.is_at_end() {
+                    if self.check_token(TokenKind::Operator(Operator::Less)) {
+                        depth += 1;
+                    } else if self.check_token(TokenKind::Operator(Operator::Greater)) {
+                        depth -= 1;
+                    }
+                    self.advance();
+                }
+            }
+
+            // Parse optional where clause
+            let where_constraints = if self.match_keyword(Keyword::Where) {
+                self.parse_where_constraints()?
+            } else {
+                Vec::new()
+            };
+
+            self.expect_token(TokenKind::LeftBrace)?;
+
+            let mut methods = Vec::new();
+            while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
+                if self.match_keyword(Keyword::Fn) {
+                    methods.push(self.parse_function_declaration(false, false, false)?);
+                } else if self.match_keyword(Keyword::Pub) {
+                    self.expect_keyword(Keyword::Fn)?;
+                    methods.push(self.parse_function_declaration(false, false, true)?);
+                } else {
+                    return Err(self.error("Expected fn in trait impl block"));
+                }
+            }
+
+            self.expect_token(TokenKind::RightBrace)?;
+
+            Ok(Statement::TraitImpl {
+                trait_name,
+                type_name,
+                generic_params,
+                where_constraints,
+                methods,
+            })
+        } else {
+            // Regular impl block: impl TypeName { ... }
+            let type_name = first_name;
+
+            self.expect_token(TokenKind::LeftBrace)?;
+
+            let mut methods = Vec::new();
+            while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
+                if self.match_keyword(Keyword::Fn) {
+                    methods.push(self.parse_function_declaration(false, false, false)?);
+                } else if self.match_keyword(Keyword::Pub) {
+                    self.expect_keyword(Keyword::Fn)?;
+                    methods.push(self.parse_function_declaration(false, false, true)?);
+                } else {
+                    return Err(self.error("Expected fn in impl block"));
+                }
+            }
+
+            self.expect_token(TokenKind::RightBrace)?;
+
+            Ok(Statement::ImplBlock {
+                type_name,
+                generic_params,
+                methods,
+            })
+        }
+    }
+
+    /// Parse a trait declaration: trait Name { ... }
+    fn parse_trait_declaration(&mut self, is_public: bool) -> CompilerResult<Statement> {
+        use crate::parser::ast::{AssociatedType, TraitMethod};
+
+        let name = self.consume_identifier()?;
+
+        // Parse optional generic parameters: trait Trait<T> { ... }
+        let generic_params = if self.match_operator(Operator::Less) {
+            let mut params = Vec::new();
+            params.push(self.consume_identifier()?);
+            while self.match_token(TokenKind::Comma) {
+                params.push(self.consume_identifier()?);
+            }
+            self.expect_token(TokenKind::Operator(Operator::Greater))?;
+            params
+        } else {
+            Vec::new()
+        };
+
+        // Parse optional super traits: trait Sub: Super { ... }
+        let super_traits = if self.match_token(TokenKind::Colon) {
+            let mut traits = Vec::new();
+            traits.push(self.consume_identifier()?);
+            while self.match_operator(Operator::Plus) {
+                traits.push(self.consume_identifier()?);
+            }
+            traits
+        } else {
+            Vec::new()
+        };
+
         self.expect_token(TokenKind::LeftBrace)?;
 
         let mut methods = Vec::new();
+        let mut associated_types = Vec::new();
+
         while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
-            if self.match_keyword(Keyword::Fn) {
-                methods.push(self.parse_function_declaration(false, false, false)?);
-            } else if self.match_keyword(Keyword::Pub) {
+            if self.match_keyword(Keyword::Type) {
+                // Associated type: type Item;
+                let type_name = self.consume_identifier()?;
+                let bounds = if self.match_token(TokenKind::Colon) {
+                    let mut bounds_list = Vec::new();
+                    bounds_list.push(self.consume_identifier()?);
+                    while self.match_operator(Operator::Plus) {
+                        bounds_list.push(self.consume_identifier()?);
+                    }
+                    bounds_list
+                } else {
+                    Vec::new()
+                };
+                self.consume_semicolon()?;
+                associated_types.push(AssociatedType {
+                    name: type_name,
+                    bounds,
+                });
+            } else if self.match_keyword(Keyword::Async) {
+                // Async trait method
                 self.expect_keyword(Keyword::Fn)?;
-                methods.push(self.parse_function_declaration(false, false, true)?);
+                let is_async = true;
+
+                let method_name = self.consume_identifier()?;
+
+                self.expect_token(TokenKind::LeftParen)?;
+                let parameters = self.parse_parameter_list()?;
+                self.expect_token(TokenKind::RightParen)?;
+
+                let return_type = if self.match_token(TokenKind::Arrow) {
+                    Some(self.parse_type()?)
+                } else {
+                    None
+                };
+
+                // Check if method has a body (provided method) or just semicolon (required method)
+                let body = if self.check_token(TokenKind::LeftBrace) {
+                    Some(self.parse_block()?)
+                } else {
+                    self.consume_semicolon()?;
+                    None
+                };
+
+                methods.push(TraitMethod {
+                    name: method_name,
+                    parameters,
+                    return_type,
+                    body,
+                    is_async,
+                });
+            } else if self.match_keyword(Keyword::Fn) {
+                // Regular trait method
+                let is_async = false;
+
+                let method_name = self.consume_identifier()?;
+
+                self.expect_token(TokenKind::LeftParen)?;
+                let parameters = self.parse_parameter_list()?;
+                self.expect_token(TokenKind::RightParen)?;
+
+                let return_type = if self.match_token(TokenKind::Arrow) {
+                    Some(self.parse_type()?)
+                } else {
+                    None
+                };
+
+                // Check if method has a body (provided method) or just semicolon (required method)
+                let body = if self.check_token(TokenKind::LeftBrace) {
+                    Some(self.parse_block()?)
+                } else {
+                    self.consume_semicolon()?;
+                    None
+                };
+
+                methods.push(TraitMethod {
+                    name: method_name,
+                    parameters,
+                    return_type,
+                    body,
+                    is_async,
+                });
             } else {
-                return Err(self.error("Expected fn in impl block"));
+                return Err(self.error("Expected type, fn, or async fn in trait declaration"));
             }
         }
 
         self.expect_token(TokenKind::RightBrace)?;
 
-        Ok(Statement::ImplBlock {
-            type_name,
+        Ok(Statement::TraitDeclaration {
+            name,
             generic_params,
+            super_traits,
             methods,
+            associated_types,
+            is_public,
         })
     }
 

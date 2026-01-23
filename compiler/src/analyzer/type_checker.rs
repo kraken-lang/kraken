@@ -2410,6 +2410,12 @@ impl TypeChecker {
                 // Impl blocks define methods which are type checked when called
                 Ok(())
             }
+
+            Statement::TraitDeclaration { .. } | Statement::TraitImpl { .. } => {
+                // Trait declarations and implementations will be type checked
+                // when the trait system is fully implemented
+                Ok(())
+            }
         }
     }
 

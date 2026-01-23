@@ -530,7 +530,9 @@ fn rewrite_statement(
         | Statement::InterfaceDeclaration { .. }
         | Statement::EnumDeclaration { .. }
         | Statement::TypeAlias { .. }
-        | Statement::ImplBlock { .. } => Ok(statement),
+        | Statement::ImplBlock { .. }
+        | Statement::TraitDeclaration { .. }
+        | Statement::TraitImpl { .. } => Ok(statement),
     }
 }
 

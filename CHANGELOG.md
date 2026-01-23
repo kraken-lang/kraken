@@ -13,6 +13,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.26] - 2026-01-23
+
+### Added
+- **Trait System AST Foundation**
+  - Added `TraitDeclaration` AST node for trait definitions
+  - Added `TraitImpl` AST node for trait implementations
+  - Added `TraitMethod` type for trait method declarations
+  - Added `AssociatedType` type for associated types in traits
+  - Integrated trait AST nodes into closure analysis pass
+  - Integrated trait AST nodes into monomorphization pass
+  - Integrated trait AST nodes into type checker pass
+  - Integrated trait AST nodes into module loader pass
+- **Trait System Parser Implementation**
+  - Parser support for trait declarations: `trait Name { ... }`
+  - Parser support for generic traits: `trait Trait<T> { ... }`
+  - Parser support for trait inheritance: `trait Sub: Super { ... }`
+  - Parser support for required methods (no body)
+  - Parser support for provided methods (default implementations)
+  - Parser support for associated types in traits
+  - Parser support for async trait methods
+  - Parser support for trait implementations: `impl Trait for Type { ... }`
+  - Parser support for generic trait implementations: `impl<T> Trait for Vec<T> { ... }`
+  - Parser support for where clauses in trait implementations
+  - Parser support for public traits: `pub trait Name { ... }`
+
+### Changed
+- Updated compiler AST to support trait system infrastructure
+- All compiler passes now handle trait AST nodes
+- Enhanced impl block parsing to distinguish between regular impl and trait impl
+
 ## [0.8.25] - 2026-01-23
 
 ### Added

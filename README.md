@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
-Current version: `v0.8.25`
+Current version: `v0.8.26`
 
 ## Language Features
 
@@ -95,6 +95,16 @@ Current version: `v0.8.25`
 - **Iterator Traits**: Iterator, IntoIterator with adapter methods
 - **Usage Examples**: 400+ line trait_patterns.kr with 14 comprehensive examples
 - **Total**: 83+ runtime library functions
+
+### Trait System Foundation & Parser (0.8.26)
+- **AST Nodes**: TraitDeclaration, TraitImpl, TraitMethod, AssociatedType
+- **Parser Support**: Full trait syntax parsing (declarations, implementations, generic traits, trait inheritance)
+- **Trait Declarations**: `trait Name { ... }`, `trait Trait<T> { ... }`, `trait Sub: Super { ... }`
+- **Trait Implementations**: `impl Trait for Type { ... }`, generic implementations, where clauses
+- **Method Types**: Required methods, provided methods (default implementations), async methods
+- **Associated Types**: Full parser support for associated types in traits
+- **Compiler Integration**: All passes updated (closure analysis, monomorphization, type checker, module loader)
+- **All Tests Passing**: 105/105 tests passing with parser implementation
 
 ### Core Features
 - **Static Typing**: Strong type system with type inference

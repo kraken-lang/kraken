@@ -153,6 +153,27 @@ pub enum Statement {
     Unsafe {
         block: Block,
     },
+
+    /// Trait declaration: trait Name { ... }
+    #[allow(dead_code)]
+    TraitDeclaration {
+        name: String,
+        generic_params: Vec<String>,
+        super_traits: Vec<String>,
+        methods: Vec<TraitMethod>,
+        associated_types: Vec<AssociatedType>,
+        is_public: bool,
+    },
+
+    /// Trait implementation: impl TraitName for TypeName { ... }
+    #[allow(dead_code)]
+    TraitImpl {
+        trait_name: String,
+        type_name: String,
+        generic_params: Vec<String>,
+        where_constraints: Vec<WhereConstraint>,
+        methods: Vec<Statement>,
+    },
 }
 
 /// Expression types in Kraken.
@@ -569,6 +590,23 @@ impl std::fmt::Display for Type {
             }
         }
     }
+}
+
+/// Trait method declaration (can be required or provided)
+#[derive(Debug, Clone, PartialEq)]
+pub struct TraitMethod {
+    pub name: String,
+    pub parameters: Vec<Parameter>,
+    pub return_type: Option<Type>,
+    pub body: Option<Block>, // None for required methods, Some for provided methods
+    pub is_async: bool,
+}
+
+/// Associated type in a trait
+#[derive(Debug, Clone, PartialEq)]
+pub struct AssociatedType {
+    pub name: String,
+    pub bounds: Vec<String>, // Trait bounds on the associated type
 }
 
 #[cfg(test)]

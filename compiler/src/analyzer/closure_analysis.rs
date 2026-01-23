@@ -321,7 +321,9 @@ impl ClosureAnalyzer {
             | Statement::Module { .. }
             | Statement::Import { .. }
             | Statement::TypeAlias { .. }
-            | Statement::ImplBlock { .. } => {}
+            | Statement::ImplBlock { .. }
+            | Statement::TraitDeclaration { .. }
+            | Statement::TraitImpl { .. } => {}
         }
     }
 }

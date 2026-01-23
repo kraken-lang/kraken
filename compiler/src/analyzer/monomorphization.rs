@@ -310,7 +310,9 @@ impl Monomorphizer {
             | Statement::Break
             | Statement::Continue
             | Statement::TypeAlias { .. }
-            | Statement::ImplBlock { .. } => Ok(()),
+            | Statement::ImplBlock { .. }
+            | Statement::TraitDeclaration { .. }
+            | Statement::TraitImpl { .. } => Ok(()),
         }
     }
 
@@ -1030,7 +1032,9 @@ impl Monomorphizer {
             Statement::Break
             | Statement::Continue
             | Statement::TypeAlias { .. }
-            | Statement::ImplBlock { .. } => Ok(stmt),
+            | Statement::ImplBlock { .. }
+            | Statement::TraitDeclaration { .. }
+            | Statement::TraitImpl { .. } => Ok(stmt),
         }
     }
 
@@ -1578,7 +1582,10 @@ impl Monomorphizer {
                 Ok(())
             }
 
-            Statement::TypeAlias { .. } | Statement::ImplBlock { .. } => Ok(()),
+            Statement::TypeAlias { .. }
+            | Statement::ImplBlock { .. }
+            | Statement::TraitDeclaration { .. }
+            | Statement::TraitImpl { .. } => Ok(()),
         }
     }
 
