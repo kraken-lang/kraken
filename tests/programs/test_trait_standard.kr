@@ -1,0 +1,50 @@
+// Test standard traits
+
+// Clone trait
+trait Clone {
+    fn clone(self) -> Self;
+}
+
+// Default trait
+trait Default {
+    fn default() -> Self;
+}
+
+// Counter struct
+struct Counter {
+    count: int,
+}
+
+impl Clone for Counter {
+    fn clone(self) -> Counter {
+        return Counter { count: self.count };
+    }
+}
+
+impl Default for Counter {
+    fn default() -> Counter {
+        return Counter { count: 0 };
+    }
+}
+
+// Config struct
+struct Config {
+    enabled: bool,
+    value: int,
+}
+
+impl Default for Config {
+    fn default() -> Config {
+        return Config { enabled: true, value: 100 };
+    }
+}
+
+fn main() -> int {
+    let c1: Counter = Counter { count: 5 };
+    let c2: Counter = c1.clone();
+    
+    let c3: Counter = Counter::default();
+    let cfg: Config = Config::default();
+    
+    return 0;
+}

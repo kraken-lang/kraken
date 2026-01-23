@@ -1,0 +1,41 @@
+// Test conversion traits
+
+// Define From trait
+trait From<T> {
+    fn from(value: T) -> Self;
+}
+
+// Define Into trait
+trait Into<T> {
+    fn into(self) -> T;
+}
+
+// Wrapper struct
+struct Wrapper {
+    value: int,
+}
+
+// Implement From<int> for Wrapper
+impl From<int> for Wrapper {
+    fn from(value: int) -> Wrapper {
+        return Wrapper { value: value };
+    }
+}
+
+// Number struct
+struct Number {
+    n: int,
+}
+
+impl From<int> for Number {
+    fn from(value: int) -> Number {
+        return Number { n: value };
+    }
+}
+
+fn main() -> int {
+    let w: Wrapper = Wrapper::from(42);
+    let n: Number = Number::from(100);
+    
+    return 0;
+}

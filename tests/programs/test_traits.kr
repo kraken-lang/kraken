@@ -1,0 +1,61 @@
+// Test trait declarations and implementations
+
+// Basic trait declaration
+trait Display {
+    fn fmt(self) -> str;
+}
+
+// Struct to implement trait on
+struct Point {
+    x: int,
+    y: int,
+}
+
+// Trait implementation
+impl Display for Point {
+    fn fmt(self) -> str {
+        return "Point";
+    }
+}
+
+// Trait with provided method
+trait Greet {
+    fn name(self) -> str;
+    
+    fn greet(self) -> str {
+        return "Hello";
+    }
+}
+
+struct Person {
+    n: str,
+}
+
+impl Greet for Person {
+    fn name(self) -> str {
+        return self.n;
+    }
+}
+
+// Generic trait
+trait Container<T> {
+    fn get(self) -> T;
+}
+
+struct Box {
+    value: int,
+}
+
+impl Container<int> for Box {
+    fn get(self) -> int {
+        return self.value;
+    }
+}
+
+fn main() -> int {
+    let p: Point = Point { x: 10, y: 20 };
+    let person: Person = Person { n: "Alice" };
+    let b: Box = Box { value: 42 };
+    
+    return 0;
+}

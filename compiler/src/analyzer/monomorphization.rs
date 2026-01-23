@@ -75,6 +75,8 @@ struct Monomorphizer {
     file_path: PathBuf,
     generic_fns: HashMap<String, Statement>,
     generic_structs: HashMap<String, Statement>,
+    generic_traits: HashMap<String, Statement>,
+    trait_impls: Vec<Statement>,
     seen: HashSet<InstKey>,
     queue: VecDeque<InstKey>,
     inst_map: HashMap<InstKey, String>,
@@ -86,6 +88,8 @@ impl Monomorphizer {
             file_path,
             generic_fns: HashMap::new(),
             generic_structs: HashMap::new(),
+            generic_traits: HashMap::new(),
+            trait_impls: Vec::new(),
             seen: HashSet::new(),
             queue: VecDeque::new(),
             inst_map: HashMap::new(),
@@ -111,6 +115,16 @@ impl Monomorphizer {
                     ..
                 } if !generic_params.is_empty() => {
                     self.generic_structs.insert(name.clone(), stmt.clone());
+                }
+                Statement::TraitDeclaration {
+                    name,
+                    generic_params,
+                    ..
+                } if !generic_params.is_empty() => {
+                    self.generic_traits.insert(name.clone(), stmt.clone());
+                }
+                Statement::TraitImpl { .. } => {
+                    self.trait_impls.push(stmt.clone());
                 }
                 _ => {}
             }

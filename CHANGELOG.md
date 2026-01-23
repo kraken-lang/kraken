@@ -13,6 +13,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.27] - 2026-01-23
+
+### Added
+- **Trait System Type Checker**
+  - Type checking for trait declarations
+  - Type checking for trait implementations
+  - Trait bound validation in method signatures
+  - Super trait existence validation
+  - Method signature matching between trait and impl
+  - Required method implementation checking
+  - Provided method type checking
+  - TraitType and TraitImpl types in type environment
+  - Trait and trait implementation lookup in type environment
+  - Orphan rules (coherence checking) - prevents duplicate trait implementations
+  - Comprehensive trait test files
+- **Trait System Monomorphization**
+  - Generic trait collection in monomorphization pass
+  - Trait implementation tracking across monomorphization
+  - Support for trait bounds in generic functions
+- **Standard Library Trait Definitions** (`stdlib/traits.kr`)
+  - Iterator traits: `Iterator`, `IntoIterator`
+  - Arithmetic operator traits: `Add`, `Sub`, `Mul`, `Div`, `Rem`, `Neg`
+  - Bitwise operator traits: `BitAnd`, `BitOr`, `BitXor`, `Not`, `Shl`, `Shr`
+  - Comparison traits: `PartialEq`, `Eq`, `PartialOrd`, `Ord`
+  - Indexing traits: `Index`, `IndexMut`
+  - Dereference traits: `Deref`, `DerefMut`
+  - Function call traits: `Fn`, `FnMut`, `FnOnce`
+  - Conversion traits: `From`, `Into`, `TryFrom`, `TryInto`, `AsRef`, `AsMut`
+  - Standard traits: `Display`, `Debug`, `Clone`, `Copy`, `Drop`, `Default`, `Hash`
+  - Thread safety markers: `Send`, `Sync`
+  - Helper types: `Ordering` enum
+- **Trait Test Coverage**
+  - Basic trait declarations and implementations (`test_traits.kr`)
+  - Operator overloading trait tests (`test_trait_operators.kr`)
+  - Conversion trait tests (`test_trait_conversion.kr`)
+  - Standard trait tests (`test_trait_standard.kr`)
+
+### Changed
+- Enhanced TypeEnvironment with trait and trait implementation tracking
+- Added type_error helper method to TypeChecker
+- Added validate_type method for type well-formedness checking
+- Enhanced Monomorphizer with generic_traits and trait_impls tracking
+
 ## [0.8.26] - 2026-01-23
 
 ### Added

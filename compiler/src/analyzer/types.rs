@@ -1,4 +1,4 @@
-use crate::parser::ast::Type;
+use crate::parser::ast::{AssociatedType, TraitMethod, Type};
 use std::collections::HashMap;
 
 /// Type environment for tracking variable and function types.
@@ -13,6 +13,10 @@ pub struct TypeEnvironment {
     structs: HashMap<String, StructType>,
     /// Enum definitions
     enums: HashMap<String, EnumType>,
+    /// Trait definitions
+    traits: HashMap<String, TraitType>,
+    /// Trait implementations: (trait_name, type_name) -> impl
+    trait_impls: HashMap<(String, String), TraitImpl>,
     /// Parent scope for nested environments
     parent: Option<Box<TypeEnvironment>>,
 }
@@ -25,6 +29,8 @@ impl TypeEnvironment {
             functions: HashMap::new(),
             structs: HashMap::new(),
             enums: HashMap::new(),
+            traits: HashMap::new(),
+            trait_impls: HashMap::new(),
             parent: None,
         }
     }
@@ -36,6 +42,8 @@ impl TypeEnvironment {
             functions: self.functions.clone(),
             structs: self.structs.clone(),
             enums: self.enums.clone(),
+            traits: self.traits.clone(),
+            trait_impls: self.trait_impls.clone(),
             parent: Some(Box::new(self.clone())),
         }
     }
@@ -149,6 +157,46 @@ impl TypeEnvironment {
             None
         }
     }
+
+    /// Define a trait in the current scope.
+    pub fn define_trait(&mut self, name: String, trait_type: TraitType) {
+        self.traits.insert(name, trait_type);
+    }
+
+    /// Look up a trait definition.
+    pub fn lookup_trait(&self, name: &str) -> Option<TraitType> {
+        if let Some(trait_type) = self.traits.get(name) {
+            Some(trait_type.clone())
+        } else if let Some(parent) = &self.parent {
+            parent.lookup_trait(name)
+        } else {
+            None
+        }
+    }
+
+    /// Define a trait implementation.
+    pub fn define_trait_impl(&mut self, trait_name: String, type_name: String, impl_: TraitImpl) {
+        self.trait_impls.insert((trait_name, type_name), impl_);
+    }
+
+    /// Look up a trait implementation.
+    #[allow(dead_code)]
+    pub fn lookup_trait_impl(&self, trait_name: &str, type_name: &str) -> Option<TraitImpl> {
+        let key = (trait_name.to_string(), type_name.to_string());
+        if let Some(impl_) = self.trait_impls.get(&key) {
+            Some(impl_.clone())
+        } else if let Some(parent) = &self.parent {
+            parent.lookup_trait_impl(trait_name, type_name)
+        } else {
+            None
+        }
+    }
+
+    /// Check if a type implements a trait.
+    #[allow(dead_code)]
+    pub fn type_implements_trait(&self, type_name: &str, trait_name: &str) -> bool {
+        self.lookup_trait_impl(trait_name, type_name).is_some()
+    }
 }
 
 impl Default for TypeEnvironment {
@@ -164,6 +212,8 @@ impl Clone for TypeEnvironment {
             functions: self.functions.clone(),
             structs: self.structs.clone(),
             enums: self.enums.clone(),
+            traits: self.traits.clone(),
+            trait_impls: self.trait_impls.clone(),
             parent: self.parent.clone(),
         }
     }
@@ -263,6 +313,93 @@ impl EnumType {
         self.variants
             .iter()
             .any(|(name, _, _)| name == variant_name)
+    }
+}
+
+/// Trait type definition.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TraitType {
+    /// Trait name
+    pub name: String,
+    /// Generic parameters
+    pub generic_params: Vec<String>,
+    /// Super traits (trait inheritance)
+    pub super_traits: Vec<String>,
+    /// Trait methods
+    pub methods: Vec<TraitMethod>,
+    /// Associated types
+    pub associated_types: Vec<AssociatedType>,
+}
+
+impl TraitType {
+    /// Create a new trait type.
+    pub fn new(
+        name: String,
+        generic_params: Vec<String>,
+        super_traits: Vec<String>,
+        methods: Vec<TraitMethod>,
+        associated_types: Vec<AssociatedType>,
+    ) -> Self {
+        Self {
+            name,
+            generic_params,
+            super_traits,
+            methods,
+            associated_types,
+        }
+    }
+
+    /// Get a method by name.
+    pub fn get_method(&self, method_name: &str) -> Option<&TraitMethod> {
+        self.methods.iter().find(|m| m.name == method_name)
+    }
+
+    /// Check if a method exists.
+    #[allow(dead_code)]
+    pub fn has_method(&self, method_name: &str) -> bool {
+        self.methods.iter().any(|m| m.name == method_name)
+    }
+
+    /// Get an associated type by name.
+    #[allow(dead_code)]
+    pub fn get_associated_type(&self, type_name: &str) -> Option<&AssociatedType> {
+        self.associated_types.iter().find(|t| t.name == type_name)
+    }
+}
+
+/// Trait implementation.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TraitImpl {
+    /// Trait name
+    pub trait_name: String,
+    /// Type implementing the trait
+    pub type_name: String,
+    /// Generic parameters
+    pub generic_params: Vec<String>,
+    /// Method implementations
+    pub methods: HashMap<String, FunctionType>,
+}
+
+impl TraitImpl {
+    /// Create a new trait implementation.
+    pub fn new(
+        trait_name: String,
+        type_name: String,
+        generic_params: Vec<String>,
+        methods: HashMap<String, FunctionType>,
+    ) -> Self {
+        Self {
+            trait_name,
+            type_name,
+            generic_params,
+            methods,
+        }
+    }
+
+    /// Get a method implementation.
+    #[allow(dead_code)]
+    pub fn get_method(&self, method_name: &str) -> Option<&FunctionType> {
+        self.methods.get(method_name)
     }
 }
 

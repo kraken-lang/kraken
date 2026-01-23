@@ -2411,11 +2411,27 @@ impl TypeChecker {
                 Ok(())
             }
 
-            Statement::TraitDeclaration { .. } | Statement::TraitImpl { .. } => {
-                // Trait declarations and implementations will be type checked
-                // when the trait system is fully implemented
-                Ok(())
-            }
+            Statement::TraitDeclaration {
+                name,
+                generic_params,
+                super_traits,
+                methods,
+                associated_types,
+                is_public: _,
+            } => self.check_trait_declaration(
+                name,
+                generic_params,
+                super_traits,
+                methods,
+                associated_types,
+            ),
+            Statement::TraitImpl {
+                trait_name,
+                type_name,
+                generic_params,
+                where_constraints: _,
+                methods,
+            } => self.check_trait_impl(trait_name, type_name, generic_params, methods),
         }
     }
 
@@ -3392,6 +3408,208 @@ impl TypeChecker {
                 }
             }
             _ => {}
+        }
+    }
+
+    /// Create a type error.
+    fn type_error(&self, message: impl Into<String>) -> CompilerError {
+        CompilerError::type_error(SourceLocation::new(self.file_path.clone(), 0, 0), message)
+    }
+
+    /// Type check a trait declaration.
+    fn check_trait_declaration(
+        &mut self,
+        name: &str,
+        generic_params: &[String],
+        super_traits: &[String],
+        methods: &[crate::parser::ast::TraitMethod],
+        associated_types: &[crate::parser::ast::AssociatedType],
+    ) -> CompilerResult<()> {
+        use super::types::TraitType;
+
+        // Check that super traits exist
+        for super_trait in super_traits {
+            if self.env.lookup_trait(super_trait).is_none() {
+                return Err(self.type_error(format!("Super trait '{super_trait}' not found")));
+            }
+        }
+
+        // Validate method signatures
+        for method in methods {
+            // Check parameter types
+            for param in &method.parameters {
+                self.validate_type(&param.param_type)?;
+            }
+
+            // Check return type
+            if let Some(return_type) = &method.return_type {
+                self.validate_type(return_type)?;
+            }
+
+            // If method has a body (provided method), type check it
+            if let Some(body) = &method.body {
+                let saved_return_type = self.current_function_return_type.clone();
+                self.current_function_return_type = method.return_type.clone();
+
+                self.check_block(body)?;
+
+                self.current_function_return_type = saved_return_type;
+            }
+        }
+
+        // Register the trait in the environment
+        let trait_type = TraitType::new(
+            name.to_string(),
+            generic_params.to_vec(),
+            super_traits.to_vec(),
+            methods.to_vec(),
+            associated_types.to_vec(),
+        );
+        self.env.define_trait(name.to_string(), trait_type);
+
+        Ok(())
+    }
+
+    /// Type check a trait implementation.
+    fn check_trait_impl(
+        &mut self,
+        trait_name: &str,
+        type_name: &str,
+        generic_params: &[String],
+        methods: &[Statement],
+    ) -> CompilerResult<()> {
+        use super::types::{FunctionType, TraitImpl};
+        use std::collections::HashMap;
+
+        // Check that the trait exists
+        let trait_def = self
+            .env
+            .lookup_trait(trait_name)
+            .ok_or_else(|| self.type_error(format!("Trait '{trait_name}' not found")))?;
+
+        // Check that the type exists (struct or enum)
+        if self.env.lookup_struct(type_name).is_none() && self.env.lookup_enum(type_name).is_none()
+        {
+            return Err(self.type_error(format!("Type '{type_name}' not found")));
+        }
+
+        // Orphan rules (coherence checking): Check for duplicate implementations
+        // A trait can only be implemented once for a given type
+        if self.env.lookup_trait_impl(trait_name, type_name).is_some() {
+            return Err(self.type_error(format!(
+                "Trait '{trait_name}' is already implemented for type '{type_name}'"
+            )));
+        }
+
+        // Type check each method implementation
+        let mut impl_methods = HashMap::new();
+        for method_stmt in methods {
+            if let Statement::FunctionDeclaration {
+                name: method_name,
+                parameters,
+                return_type,
+                body,
+                ..
+            } = method_stmt
+            {
+                // Check that this method is required by the trait
+                let trait_method = trait_def.get_method(method_name).ok_or_else(|| {
+                    self.type_error(format!(
+                        "Method '{method_name}' is not part of trait '{trait_name}'"
+                    ))
+                })?;
+
+                // Verify method signature matches trait requirement
+                if parameters.len() != trait_method.parameters.len() {
+                    return Err(self.type_error(format!(
+                        "Method '{method_name}' has {} parameters, but trait requires {}",
+                        parameters.len(),
+                        trait_method.parameters.len()
+                    )));
+                }
+
+                // Check parameter types match
+                for (i, (impl_param, trait_param)) in
+                    parameters.iter().zip(&trait_method.parameters).enumerate()
+                {
+                    if !self.types_compatible(&impl_param.param_type, &trait_param.param_type) {
+                        return Err(self.type_error(format!(
+                            "Parameter {i} of method '{method_name}' has type {:?}, but trait requires {:?}",
+                            impl_param.param_type, trait_param.param_type
+                        )));
+                    }
+                }
+
+                // Check return type matches
+                let impl_return = return_type.clone().unwrap_or(Type::Void);
+                let trait_return = trait_method.return_type.clone().unwrap_or(Type::Void);
+                if !self.types_compatible(&impl_return, &trait_return) {
+                    return Err(self.type_error(format!(
+                        "Method '{method_name}' returns {impl_return:?}, but trait requires {trait_return:?}"
+                    )));
+                }
+
+                // Type check the method body
+                let saved_return_type = self.current_function_return_type.clone();
+                self.current_function_return_type = return_type.clone();
+
+                self.check_block(body)?;
+
+                self.current_function_return_type = saved_return_type;
+
+                // Store the method signature
+                let param_types = parameters.iter().map(|p| p.param_type.clone()).collect();
+                impl_methods.insert(
+                    method_name.clone(),
+                    FunctionType::new(param_types, impl_return, false),
+                );
+            }
+        }
+
+        // Check that all required methods are implemented
+        for trait_method in &trait_def.methods {
+            if trait_method.body.is_none() && !impl_methods.contains_key(&trait_method.name) {
+                return Err(self.type_error(format!(
+                    "Missing implementation for required method '{}' from trait '{trait_name}'",
+                    trait_method.name
+                )));
+            }
+        }
+
+        // Register the trait implementation
+        let trait_impl = TraitImpl::new(
+            trait_name.to_string(),
+            type_name.to_string(),
+            generic_params.to_vec(),
+            impl_methods,
+        );
+        self.env
+            .define_trait_impl(trait_name.to_string(), type_name.to_string(), trait_impl);
+
+        Ok(())
+    }
+
+    /// Validate that a type is well-formed.
+    fn validate_type(&self, ty: &Type) -> CompilerResult<()> {
+        match ty {
+            Type::Custom(name) => {
+                if self.env.lookup_struct(name).is_none()
+                    && self.env.lookup_enum(name).is_none()
+                    && !self.current_generic_params.contains(name)
+                {
+                    return Err(self.type_error(format!("Type '{name}' not found")));
+                }
+                Ok(())
+            }
+            Type::Array { element_type, .. } => self.validate_type(element_type),
+            Type::Reference { inner_type, .. } => self.validate_type(inner_type),
+            Type::Tuple { element_types } => {
+                for ty in element_types {
+                    self.validate_type(ty)?;
+                }
+                Ok(())
+            }
+            _ => Ok(()),
         }
     }
 }
