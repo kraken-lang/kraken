@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
-Current version: `v0.8.24`
+Current version: `v0.8.25`
 
 ## Language Features
 
@@ -82,6 +82,19 @@ Current version: `v0.8.24`
 - **Environment Variables**: `KRAKEN_BOUNDS_CHECK=1`, `KRAKEN_LEAK_CHECK=1`
 - **Documentation**: Comprehensive STRINGS.md guide, string_processing.kr, safe_pointers.kr examples
 - **Total**: 11 new safety functions + comprehensive documentation
+
+### Trait System Specification & Collection Helpers (0.8.25)
+- **Collection Helper Functions**: 15+ runtime functions for array operations, iterators, and utilities
+- **Array Operations**: map, filter, fold, any, all, find
+- **Range Iterator**: create, next, free for efficient iteration
+- **Utility Functions**: clone, compare, hash, default, conversion helpers
+- **Comprehensive Documentation**: 1,000+ line TRAITS.md guide with complete trait system specification
+- **Standard Traits**: Clone, Copy, Debug, Display, Default, Drop specifications
+- **Operator Traits**: Add, Sub, Mul, Div, comparison, bitwise, indexing, dereference
+- **Conversion Traits**: From, Into, TryFrom, TryInto, AsRef, AsMut
+- **Iterator Traits**: Iterator, IntoIterator with adapter methods
+- **Usage Examples**: 400+ line trait_patterns.kr with 14 comprehensive examples
+- **Total**: 83+ runtime library functions
 
 ### Core Features
 - **Static Typing**: Strong type system with type inference

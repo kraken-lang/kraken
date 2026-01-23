@@ -1,13 +1,14 @@
 # Kraken Language Features
 
-**Version:** 0.8.14  
+**Version:** 0.8.25  
 **Status:** Production-Ready Systems Programming Language
 
 ## Overview
 
 Kraken is a modern systems programming language with:
 - **LLVM-based compiler** for native performance
-- **80 standard library functions** for real-world applications
+- **68+ runtime library functions** for real-world applications
+- **Trait system** for polymorphism and code reuse (specification complete)
 - **Complete type system** with structs, arrays, and references
 - **Pattern matching** for expressive control flow
 - **Bitwise operations** for low-level programming

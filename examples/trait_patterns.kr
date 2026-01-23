@@ -1,0 +1,467 @@
+// Trait Pattern Examples for Kraken
+// Demonstrates trait usage patterns and best practices
+
+// Note: This file shows the intended trait syntax and patterns.
+// Full trait system implementation is in progress.
+
+// =============================================================================
+// EXAMPLE 1: Basic Trait Definition and Implementation
+// =============================================================================
+
+// Trait definition
+trait Drawable {
+    fn draw(self) -> void;
+}
+
+// Implementation for a struct
+struct Circle {
+    radius: float,
+}
+
+impl Drawable for Circle {
+    fn draw(self) -> void {
+        puts("Drawing a circle");
+    }
+}
+
+struct Rectangle {
+    width: float,
+    height: float,
+}
+
+impl Drawable for Rectangle {
+    fn draw(self) -> void {
+        puts("Drawing a rectangle");
+    }
+}
+
+// =============================================================================
+// EXAMPLE 2: Trait with Associated Types
+// =============================================================================
+
+trait Container {
+    type Item;
+    
+    fn get(self, index: int) -> Option<Self::Item>;
+    fn len(self) -> int;
+}
+
+impl Container for VecInt {
+    type Item = int;
+    
+    fn get(self, index: int) -> Option<int> {
+        // Implementation would check bounds and return Some(value) or None
+        return Some(0);
+    }
+    
+    fn len(self) -> int {
+        return 0;  // Would return actual length
+    }
+}
+
+// =============================================================================
+// EXAMPLE 3: Trait Bounds in Generic Functions
+// =============================================================================
+
+// Function requiring Clone trait
+fn duplicate<T: Clone>(value: T) -> T {
+    return value.clone();
+}
+
+// Function requiring multiple traits
+fn compare_and_print<T: Ord + Debug>(a: T, b: T) -> void {
+    if (a < b) {
+        puts("First is smaller");
+    }
+}
+
+// Function with where clause
+fn complex_operation<T, U>(t: T, u: U) -> void
+where
+    T: Clone + Debug,
+    U: Display
+{
+    let t_copy = t.clone();
+    // Use t_copy and u
+}
+
+// =============================================================================
+// EXAMPLE 4: Standard Trait Implementations
+// =============================================================================
+
+struct Point {
+    x: int,
+    y: int,
+}
+
+// Clone trait
+impl Clone for Point {
+    fn clone(self) -> Point {
+        return Point { x: self.x, y: self.y };
+    }
+}
+
+// Copy trait (marker)
+impl Copy for Point {}
+
+// Debug trait
+impl Debug for Point {
+    fn fmt(self, f: Formatter) -> Result<void, Error> {
+        return write(f, "Point {{ x: {}, y: {} }}", self.x, self.y);
+    }
+}
+
+// Display trait
+impl Display for Point {
+    fn fmt(self, f: Formatter) -> Result<void, Error> {
+        return write(f, "({}, {})", self.x, self.y);
+    }
+}
+
+// PartialEq trait
+impl PartialEq for Point {
+    fn eq(self, other: Point) -> bool {
+        return self.x == other.x && self.y == other.y;
+    }
+}
+
+// Eq trait (marker)
+impl Eq for Point {}
+
+// Default trait
+impl Default for Point {
+    fn default() -> Point {
+        return Point { x: 0, y: 0 };
+    }
+}
+
+// =============================================================================
+// EXAMPLE 5: Operator Overloading
+// =============================================================================
+
+// Add trait
+impl Add for Point {
+    type Output = Point;
+    
+    fn add(self, rhs: Point) -> Point {
+        return Point {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        };
+    }
+}
+
+// Sub trait
+impl Sub for Point {
+    type Output = Point;
+    
+    fn sub(self, rhs: Point) -> Point {
+        return Point {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        };
+    }
+}
+
+// Neg trait
+impl Neg for Point {
+    type Output = Point;
+    
+    fn neg(self) -> Point {
+        return Point {
+            x: -self.x,
+            y: -self.y,
+        };
+    }
+}
+
+// Usage example
+fn operator_example() -> void {
+    let p1 = Point { x: 10, y: 20 };
+    let p2 = Point { x: 5, y: 15 };
+    
+    let p3 = p1 + p2;  // Calls p1.add(p2)
+    let p4 = p1 - p2;  // Calls p1.sub(p2)
+    let p5 = -p1;      // Calls p1.neg()
+}
+
+// =============================================================================
+// EXAMPLE 6: Conversion Traits
+// =============================================================================
+
+struct Meters(int);
+struct Kilometers(int);
+
+// From trait
+impl From<Kilometers> for Meters {
+    fn from(km: Kilometers) -> Meters {
+        return Meters(km.0 * 1000);
+    }
+}
+
+// Into trait (automatically implemented from From)
+// let km = Kilometers(5);
+// let m: Meters = km.into();
+
+// TryFrom trait for fallible conversions
+struct PositiveInt(int);
+
+impl TryFrom<int> for PositiveInt {
+    type Error = str;
+    
+    fn try_from(value: int) -> Result<PositiveInt, str> {
+        if (value > 0) {
+            return Ok(PositiveInt(value));
+        } else {
+            return Err("Value must be positive");
+        }
+    }
+}
+
+// =============================================================================
+// EXAMPLE 7: Iterator Trait
+// =============================================================================
+
+struct Range {
+    start: int,
+    end: int,
+    current: int,
+}
+
+impl Iterator for Range {
+    type Item = int;
+    
+    fn next(mut self) -> Option<int> {
+        if (self.current < self.end) {
+            let value = self.current;
+            self.current = self.current + 1;
+            return Some(value);
+        } else {
+            return None;
+        }
+    }
+}
+
+// IntoIterator trait
+impl IntoIterator for Range {
+    type Item = int;
+    type IntoIter = Range;
+    
+    fn into_iter(self) -> Range {
+        return self;
+    }
+}
+
+// Usage with for-in loop
+fn iterator_example() -> void {
+    let range = Range { start: 0, end: 5, current: 0 };
+    
+    for i in range {
+        println(i);
+    }
+}
+
+// =============================================================================
+// EXAMPLE 8: Trait Inheritance
+// =============================================================================
+
+trait Animal {
+    fn make_sound(self) -> str;
+}
+
+trait Dog: Animal {
+    fn wag_tail(self) -> void;
+}
+
+struct GoldenRetriever {
+    name: str,
+}
+
+impl Animal for GoldenRetriever {
+    fn make_sound(self) -> str {
+        return "Woof!";
+    }
+}
+
+impl Dog for GoldenRetriever {
+    fn wag_tail(self) -> void {
+        puts("*wags tail happily*");
+    }
+}
+
+// =============================================================================
+// EXAMPLE 9: Default Trait Methods
+// =============================================================================
+
+trait Greet {
+    fn name(self) -> str;
+    
+    // Default implementation
+    fn greet(self) -> str {
+        return "Hello, " + self.name() + "!";
+    }
+    
+    // Can be overridden
+    fn formal_greet(self) -> str {
+        return "Good day, " + self.name() + ".";
+    }
+}
+
+struct Person {
+    name: str,
+}
+
+impl Greet for Person {
+    fn name(self) -> str {
+        return self.name;
+    }
+    
+    // Uses default greet() implementation
+    // Overrides formal_greet()
+    fn formal_greet(self) -> str {
+        return "Greetings, " + self.name + "!";
+    }
+}
+
+// =============================================================================
+// EXAMPLE 10: Drop Trait (RAII)
+// =============================================================================
+
+struct File {
+    handle: int,
+    path: str,
+}
+
+impl Drop for File {
+    fn drop(mut self) -> void {
+        puts("Closing file: " + self.path);
+        // close_file(self.handle);
+    }
+}
+
+fn raii_example() -> void {
+    {
+        let f = File { handle: 1, path: "data.txt" };
+        // Use file...
+    }  // f.drop() called automatically here
+    
+    puts("File has been closed");
+}
+
+// =============================================================================
+// EXAMPLE 11: Generic Trait Implementation
+// =============================================================================
+
+struct Box<T> {
+    value: T,
+}
+
+impl<T: Clone> Clone for Box<T> {
+    fn clone(self) -> Box<T> {
+        return Box { value: self.value.clone() };
+    }
+}
+
+impl<T: Debug> Debug for Box<T> {
+    fn fmt(self, f: Formatter) -> Result<void, Error> {
+        return write(f, "Box({:?})", self.value);
+    }
+}
+
+// =============================================================================
+// EXAMPLE 12: Vec Methods with Closures
+// =============================================================================
+
+fn vec_methods_example() -> void {
+    let numbers = vec![1, 2, 3, 4, 5];
+    
+    // Map: transform each element
+    let doubled = numbers.map(|x| x * 2);
+    // Result: [2, 4, 6, 8, 10]
+    
+    // Filter: keep elements matching predicate
+    let evens = numbers.filter(|x| x % 2 == 0);
+    // Result: [2, 4]
+    
+    // Fold: reduce to single value
+    let sum = numbers.fold(0, |acc, x| acc + x);
+    // Result: 15
+    
+    // For each: side effects
+    numbers.for_each(|x| println(x));
+}
+
+// =============================================================================
+// EXAMPLE 13: Option Methods with Closures
+// =============================================================================
+
+fn option_methods_example() -> void {
+    let some_value = Some(42);
+    let none_value: Option<int> = None;
+    
+    // Map: transform the value if present
+    let doubled = some_value.map(|x| x * 2);
+    // Result: Some(84)
+    
+    // And then: chain operations
+    let result = some_value.and_then(|x| {
+        if (x > 40) {
+            return Some(x + 10);
+        } else {
+            return None;
+        }
+    });
+    // Result: Some(52)
+    
+    // Filter: keep value if predicate matches
+    let filtered = some_value.filter(|x| x > 40);
+    // Result: Some(42)
+    
+    // Or else: provide alternative
+    let value = none_value.or_else(|| Some(0));
+    // Result: Some(0)
+}
+
+// =============================================================================
+// EXAMPLE 14: Result Methods with Closures
+// =============================================================================
+
+fn result_methods_example() -> void {
+    let ok_value: Result<int, str> = Ok(42);
+    let err_value: Result<int, str> = Err("error");
+    
+    // Map: transform the Ok value
+    let doubled = ok_value.map(|x| x * 2);
+    // Result: Ok(84)
+    
+    // Map err: transform the Err value
+    let mapped_err = err_value.map_err(|e| "Error: " + e);
+    // Result: Err("Error: error")
+    
+    // And then: chain operations
+    let result = ok_value.and_then(|x| {
+        if (x > 40) {
+            return Ok(x + 10);
+        } else {
+            return Err("too small");
+        }
+    });
+    // Result: Ok(52)
+}
+
+// =============================================================================
+// MAIN FUNCTION
+// =============================================================================
+
+fn main() -> int {
+    puts("Trait Pattern Examples");
+    puts("======================");
+    puts("");
+    puts("This file demonstrates trait usage patterns.");
+    puts("Full trait system implementation is in progress.");
+    puts("");
+    
+    // Examples would be called here when traits are fully implemented
+    
+    return 0;
+}

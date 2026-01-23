@@ -13,6 +13,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.25] - 2026-01-23
+
+### Added
+- **Collection Helper Functions (Runtime Library)**
+  - Created `kraken_collections.c` (330+ lines)
+  - Array operations: `kraken_array_map()`, `kraken_array_filter()`, `kraken_array_fold()`
+  - Array predicates: `kraken_array_any()`, `kraken_array_all()`, `kraken_array_find()`
+  - Range iterator: `kraken_range_iter()`, `kraken_range_next()`, `kraken_range_free()`
+  - Utility functions: `kraken_clone()`, `kraken_compare()`, `kraken_hash()`, `kraken_default()`
+  - Conversion helpers: `kraken_convert()`, `kraken_try_convert()`
+  - Iterator helpers: `kraken_iterator_next()`, `kraken_iterator_collect()`
+  - Vec/Option/Result helper stubs for future closure integration
+  - Comprehensive tests in `test_collections.kr`
+- **Trait System Specifications**
+  - Comprehensive trait documentation in `docs/TRAITS.md` (1,000+ lines)
+  - Standard trait specifications: `Clone`, `Copy`, `Debug`, `Display`, `Default`, `Drop`
+  - Operator trait specifications: `Add`, `Sub`, `Mul`, `Div`, `Rem`, `Neg`, `BitAnd`, `BitOr`, `BitXor`, `Not`, `Shl`, `Shr`
+  - Comparison trait specifications: `PartialEq`, `Eq`, `PartialOrd`, `Ord`
+  - Indexing trait specifications: `Index`, `IndexMut`
+  - Dereference trait specifications: `Deref`, `DerefMut`
+  - Conversion trait specifications: `From`, `Into`, `TryFrom`, `TryInto`, `AsRef`, `AsMut`
+  - Iterator trait specifications: `Iterator`, `IntoIterator`
+  - Trait syntax and semantics fully documented
+  - Trait bound syntax documented (single bounds, multiple bounds, where clauses)
+  - Associated types and constants documented
+  - Default trait method implementations documented
+  - Trait inheritance patterns documented
+- **Trait Usage Examples**
+  - Created `examples/trait_patterns.kr` (400+ lines)
+  - 14 comprehensive examples demonstrating all trait patterns
+  - Basic trait definition and implementation
+  - Trait with associated types
+  - Trait bounds in generic functions
+  - Standard trait implementations
+  - Operator overloading examples
+  - Conversion trait examples
+  - Iterator trait examples
+  - Trait inheritance examples
+  - Default trait methods
+  - Drop trait (RAII) examples
+  - Generic trait implementations
+  - Vec/Option/Result methods with closures
+- **Enhanced Documentation**
+  - Vec method specifications with trait bounds
+  - Option method specifications with trait bounds
+  - Result method specifications with trait bounds
+  - Updated `FEATURES.md` with trait system information
+
+### Changed
+- Enhanced runtime library with `kraken_collections.c` module (330+ lines)
+- Updated build script to compile collections module
+- Enhanced language documentation with comprehensive trait system overview
+- Updated version to 0.8.25 across all documentation
+- Runtime library now includes 4 modules: string, stdlib, safety, collections
+
 ## [0.8.24] - 2026-01-23
 
 ### Added

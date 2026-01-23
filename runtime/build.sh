@@ -11,8 +11,9 @@ echo "Building Kraken runtime library..."
 clang -c -O2 -fPIC kraken_string.c -o kraken_string.o
 clang -c -O2 -fPIC kraken_stdlib.c -o kraken_stdlib.o
 clang -c -O2 -fPIC kraken_safety.c -o kraken_safety.o
+clang -c -O2 -fPIC kraken_collections.c -o kraken_collections.o
 
 # Create static library
-ar rcs libkraken_runtime.a kraken_string.o kraken_stdlib.o kraken_safety.o
+ar rcs libkraken_runtime.a kraken_string.o kraken_stdlib.o kraken_safety.o kraken_collections.o
 
 echo "Runtime library built: libkraken_runtime.a"
