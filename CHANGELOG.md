@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added dynamic LLVM environment variable setup in all jobs
   - Set `LLVM_SYS_180_PREFIX` dynamically using `brew --prefix llvm@18`
   - Fixed LLVM not being found during build by setting environment before Rust setup
+  - Added `zstd` dependency installation to fix linker errors
+  - Set `LIBRARY_PATH` to include zstd library location
 
 ### Changed
 

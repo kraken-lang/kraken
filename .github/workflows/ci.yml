@@ -16,11 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install LLVM 18
-        run: brew install llvm@18
-
-      - name: Set LLVM environment
-        run: echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
+      - name: Install LLVM 18 and dependencies
+        run: |
+          brew install llvm@18 zstd
+          echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$(brew --prefix zstd)/lib:$LIBRARY_PATH" >> $GITHUB_ENV
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -46,11 +46,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install LLVM 18
-        run: brew install llvm@18
-
-      - name: Set LLVM environment
-        run: echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
+      - name: Install LLVM 18 and dependencies
+        run: |
+          brew install llvm@18 zstd
+          echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$(brew --prefix zstd)/lib:$LIBRARY_PATH" >> $GITHUB_ENV
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -69,11 +69,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install LLVM 18
-        run: brew install llvm@18
-
-      - name: Set LLVM environment
-        run: echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
+      - name: Install LLVM 18 and dependencies
+        run: |
+          brew install llvm@18 zstd
+          echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$(brew --prefix zstd)/lib:$LIBRARY_PATH" >> $GITHUB_ENV
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
