@@ -1,0 +1,52 @@
+// Test trait objects and dynamic dispatch
+
+// Define a trait
+trait Drawable {
+    fn draw(self) -> str;
+    fn area(self) -> int;
+}
+
+// Circle struct
+struct Circle {
+    radius: int,
+}
+
+// Implement Drawable for Circle
+impl Drawable for Circle {
+    fn draw(self) -> str {
+        return "Circle";
+    }
+    
+    fn area(self) -> int {
+        return self.radius * self.radius * 3;
+    }
+}
+
+// Rectangle struct
+struct Rectangle {
+    width: int,
+    height: int,
+}
+
+// Implement Drawable for Rectangle
+impl Drawable for Rectangle {
+    fn draw(self) -> str {
+        return "Rectangle";
+    }
+    
+    fn area(self) -> int {
+        return self.width * self.height;
+    }
+}
+
+// Function that accepts trait object
+fn print_drawable(shape: dyn Drawable) -> int {
+    return 0;
+}
+
+fn main() -> int {
+    let circle: Circle = Circle { radius: 5 };
+    let rect: Rectangle = Rectangle { width: 10, height: 20 };
+    
+    return 0;
+}

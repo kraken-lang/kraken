@@ -57,6 +57,14 @@ fn type_mangle_part(ty: &Type) -> String {
             out.push_str(&type_mangle_part(return_type));
             out
         }
+        Type::TraitObject { trait_name, bounds } => {
+            let mut out = format!("dyn_{trait_name}");
+            for bound in bounds {
+                out.push_str("__");
+                out.push_str(bound);
+            }
+            out
+        }
     }
 }
 
@@ -1356,6 +1364,8 @@ impl Monomorphizer {
                     .collect(),
                 return_type: Box::new(self.rewrite_type_with_subst(*return_type, subst)),
             },
+
+            Type::TraitObject { trait_name, bounds } => Type::TraitObject { trait_name, bounds },
 
             other => other,
         }

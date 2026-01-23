@@ -812,6 +812,12 @@ impl IrLowering {
                 // TODO: Implement proper function pointer representation
                 IrType::Pointer(Box::new(IrType::Void))
             }
+            Type::TraitObject { .. } => {
+                // Trait objects are represented as fat pointers (data ptr + vtable ptr)
+                // For now, represent as a pointer to void
+                // TODO: Implement proper fat pointer representation
+                IrType::Pointer(Box::new(IrType::Void))
+            }
         }
     }
 

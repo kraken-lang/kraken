@@ -473,6 +473,12 @@ pub enum Type {
         param_types: Vec<Type>,
         return_type: Box<Type>,
     },
+
+    /// Trait object type: dyn Trait or dyn Trait + Send + Sync
+    TraitObject {
+        trait_name: String,
+        bounds: Vec<String>,
+    },
 }
 
 impl Type {
@@ -587,6 +593,15 @@ impl std::fmt::Display for Type {
                     write!(f, "{ty}")?;
                 }
                 write!(f, ") -> {return_type}")
+            }
+            Type::TraitObject { trait_name, bounds } => {
+                write!(f, "dyn {trait_name}")?;
+                if !bounds.is_empty() {
+                    for bound in bounds {
+                        write!(f, " + {bound}")?;
+                    }
+                }
+                Ok(())
             }
         }
     }

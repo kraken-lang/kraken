@@ -13,6 +13,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.28] - 2026-01-23
+
+### Added
+- **Trait Object Type System**
+  - Added `Type::TraitObject` to AST for `dyn Trait` syntax
+  - Added `Dyn` keyword to lexer for trait object syntax
+  - Parser support for trait object types: `dyn Trait`, `dyn Trait + Send + Sync`
+  - Type checker support for trait object types
+  - Trait object type validation and bounds checking
+- **Vtable Infrastructure**
+  - Added vtable tracking data structures to LLVM codegen
+  - Added trait method tracking for vtable generation
+  - Fat pointer representation infrastructure (data ptr + vtable ptr)
+- **Compiler Pass Updates**
+  - Updated monomorphization to handle TraitObject types
+  - Updated IR lowering to represent trait objects as pointers
+  - Updated LLVM codegen to handle TraitObject type conversion
+  - Added TraitObject to type mangling for name generation
+- **Test Coverage**
+  - Created trait object test file (`test_trait_objects.kr`)
+  - Basic trait object syntax tests
+
+### Changed
+- Enhanced Type enum with TraitObject variant for dynamic dispatch support
+- Updated all compiler passes to handle trait object types
+
 ## [0.8.27] - 2026-01-23
 
 ### Added

@@ -977,6 +977,19 @@ impl Parser {
 
     /// Parse a type annotation.
     fn parse_type(&mut self) -> CompilerResult<Type> {
+        // Parse trait object types: dyn Trait or dyn Trait + Send + Sync
+        if self.match_keyword(Keyword::Dyn) {
+            let trait_name = self.consume_identifier()?;
+            let mut bounds = Vec::new();
+
+            // Parse additional bounds: dyn Trait + Send + Sync
+            while self.match_operator(Operator::Plus) {
+                bounds.push(self.consume_identifier()?);
+            }
+
+            return Ok(Type::TraitObject { trait_name, bounds });
+        }
+
         // Parse raw pointer types: *const T or *mut T
         if self.match_operator(Operator::Star) {
             let is_mutable = if self.match_keyword(Keyword::Const) {

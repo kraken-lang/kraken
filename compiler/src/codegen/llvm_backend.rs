@@ -35,6 +35,10 @@ pub struct LLVMCodegen {
     loop_continue_blocks: Vec<LLVMBasicBlockRef>,
     file_path: PathBuf,
     debug_bounds_checks: bool, // Enable bounds checking when KRAKEN_DEBUG_BOUNDS=1
+    #[allow(dead_code)]
+    vtables: HashMap<String, LLVMValueRef>, // (trait_name, type_name) -> vtable global
+    #[allow(dead_code)]
+    trait_methods: HashMap<String, Vec<String>>, // trait_name -> [method_names]
 }
 
 impl LLVMCodegen {
@@ -80,6 +84,8 @@ impl LLVMCodegen {
                 loop_continue_blocks: Vec::new(),
                 file_path,
                 debug_bounds_checks,
+                vtables: HashMap::new(),
+                trait_methods: HashMap::new(),
             }
         }
     }
@@ -3702,6 +3708,12 @@ impl LLVMCodegen {
                         0,
                     );
                     LLVMPointerType(fn_type, 0)
+                }
+                Type::TraitObject { .. } => {
+                    // Trait objects are represented as fat pointers (struct with data ptr + vtable ptr)
+                    // For now, represent as a simple pointer
+                    // TODO: Implement proper fat pointer struct representation
+                    LLVMPointerType(LLVMInt8TypeInContext(self.context), 0)
                 }
             }
         }

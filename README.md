@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
-Current version: `v0.8.27`
+Current version: `v0.8.28`
 
 ## Language Features
 
@@ -125,6 +125,14 @@ Current version: `v0.8.27`
   - Thread safety: Send, Sync
 - **Test Coverage**: 4 comprehensive test files covering all trait patterns
 - **All Tests Passing**: 105/105 tests passing with complete trait system
+
+### Trait Objects & Dynamic Dispatch Foundation (0.8.28)
+- **Trait Object Types**: `dyn Trait` syntax for dynamic dispatch
+- **Parser Support**: Parse trait object types with multiple bounds (`dyn Trait + Send + Sync`)
+- **Type System**: Full compiler pass support for TraitObject types
+- **Vtable Infrastructure**: Data structures for vtable generation and management
+- **Fat Pointers**: Infrastructure for fat pointer representation (data + vtable)
+- **Foundation Complete**: All infrastructure in place for future dynamic dispatch implementation
 
 ### Core Features
 - **Static Typing**: Strong type system with type inference

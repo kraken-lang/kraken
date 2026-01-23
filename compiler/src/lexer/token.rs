@@ -122,6 +122,7 @@ pub enum Keyword {
     Where,
     As,
     In,
+    Dyn,
 
     // Container types
     VecInt,
@@ -188,6 +189,7 @@ impl Keyword {
             "where" => Some(Self::Where),
             "as" => Some(Self::As),
             "in" => Some(Self::In),
+            "dyn" => Some(Self::Dyn),
             "VecInt" => Some(Self::VecInt),
             "VecString" => Some(Self::VecString),
             "VecBytes" => Some(Self::VecBytes),
@@ -252,6 +254,7 @@ impl Keyword {
             Self::Where => "where",
             Self::As => "as",
             Self::In => "in",
+            Self::Dyn => "dyn",
             Self::VecInt => "VecInt",
             Self::VecString => "VecString",
             Self::VecBytes => "VecBytes",
