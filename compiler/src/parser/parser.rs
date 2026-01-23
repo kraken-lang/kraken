@@ -775,6 +775,28 @@ impl Parser {
 
     /// Parse a type annotation.
     fn parse_type(&mut self) -> CompilerResult<Type> {
+        // Parse function types: fn(int, string) -> bool
+        if self.match_keyword(Keyword::Fn) {
+            self.expect_token(TokenKind::LeftParen)?;
+            
+            let mut param_types = Vec::new();
+            if !self.check_token(TokenKind::RightParen) {
+                param_types.push(self.parse_type()?);
+                while self.match_token(TokenKind::Comma) {
+                    param_types.push(self.parse_type()?);
+                }
+            }
+            
+            self.expect_token(TokenKind::RightParen)?;
+            self.expect_token(TokenKind::Arrow)?;
+            let return_type = Box::new(self.parse_type()?);
+            
+            return Ok(Type::Function {
+                param_types,
+                return_type,
+            });
+        }
+
         if let Some(keyword) = self.current_keyword() {
             if let Some(base_type) = Type::from_keyword(keyword) {
                 self.advance();
@@ -1238,6 +1260,64 @@ impl Parser {
         let mut expr = self.parse_primary()?;
 
         loop {
+            // Turbofish syntax: Identifier::<T>(...) - unambiguous
+            if matches!(self.peek().kind, TokenKind::ColonColon) {
+                if let Expression::Identifier(name) = &expr {
+                    self.advance(); // Consume '::'
+                    
+                    if !matches!(self.peek().kind, TokenKind::Operator(Operator::Less)) {
+                        return Err(self.error("Expected '<' after '::' in turbofish syntax"));
+                    }
+                    
+                    self.advance(); // Consume '<'
+                    
+                    let mut type_args = Vec::new();
+                    type_args.push(self.parse_type()?);
+                    while self.match_token(TokenKind::Comma) {
+                        type_args.push(self.parse_type()?);
+                    }
+                    self.expect_operator(Operator::Greater)?;
+
+                    // Must be followed by '(' for function call or '{' for struct literal
+                    if self.match_token(TokenKind::LeftParen) {
+                        let mut arguments = Vec::new();
+                        if !self.check_token(TokenKind::RightParen) {
+                            arguments.push(self.parse_expression()?);
+                            while self.match_token(TokenKind::Comma) {
+                                arguments.push(self.parse_expression()?);
+                            }
+                        }
+                        self.expect_token(TokenKind::RightParen)?;
+                        expr = Expression::Call {
+                            callee: Box::new(Expression::Identifier(name.clone())),
+                            type_args: Some(type_args),
+                            arguments,
+                        };
+                        continue;
+                    } else if self.match_token(TokenKind::LeftBrace) {
+                        let mut fields = Vec::new();
+                        while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
+                            let field_name = self.consume_identifier()?;
+                            self.expect_token(TokenKind::Colon)?;
+                            let field_value = self.parse_expression()?;
+                            fields.push((field_name, field_value));
+                            if !self.match_token(TokenKind::Comma) {
+                                break;
+                            }
+                        }
+                        self.expect_token(TokenKind::RightBrace)?;
+                        expr = Expression::StructLiteral {
+                            name: name.clone(),
+                            type_args: Some(type_args),
+                            fields,
+                        };
+                        continue;
+                    } else {
+                        return Err(self.error("Expected '(' or '{' after turbofish type arguments"));
+                    }
+                }
+            }
+            
             // Generic call/struct literal syntax:
             //   Identifier<T>(...) or Identifier<T> { ... }
             // Only attempted when the next token is '<' and the base expression is an identifier.

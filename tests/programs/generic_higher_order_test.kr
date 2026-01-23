@@ -1,0 +1,318 @@
+// Generic Higher-Order Functions Test
+// Tests for 0.8.21 - Generics & Advanced Type System
+
+// ============================================================================
+// Basic Generic Functions with Closures
+// ============================================================================
+
+// Generic map function that accepts a closure
+fn map<T, U>(arr: [T], f: fn(T) -> U) -> [U] {
+    let result: [U] = [];
+    for item in arr {
+        result.push(f(item));
+    }
+    return result;
+}
+
+// Test basic map with closure
+fn test_map_basic() {
+    let numbers = [1, 2, 3, 4, 5];
+    let doubled = map(numbers, |x| x * 2);
+    // doubled should be [2, 4, 6, 8, 10]
+}
+
+// Test map with type transformation
+fn test_map_transform() {
+    let numbers = [1, 2, 3];
+    let strings = map(numbers, |x| "Number: " + x.to_string());
+    // strings should be ["Number: 1", "Number: 2", "Number: 3"]
+}
+
+// ============================================================================
+// Generic Filter Function
+// ============================================================================
+
+fn filter<T>(arr: [T], predicate: fn(T) -> bool) -> [T] {
+    let result: [T] = [];
+    for item in arr {
+        if predicate(item) {
+            result.push(item);
+        }
+    }
+    return result;
+}
+
+fn test_filter_basic() {
+    let numbers = [1, 2, 3, 4, 5, 6];
+    let evens = filter(numbers, |x| x % 2 == 0);
+    // evens should be [2, 4, 6]
+}
+
+fn test_filter_strings() {
+    let words = ["hello", "world", "test", "hi"];
+    let long_words = filter(words, |w| w.len() > 3);
+    // long_words should be ["hello", "world", "test"]
+}
+
+// ============================================================================
+// Generic Fold/Reduce Function
+// ============================================================================
+
+fn fold<T, U>(arr: [T], init: U, f: fn(U, T) -> U) -> U {
+    let acc = init;
+    for item in arr {
+        acc = f(acc, item);
+    }
+    return acc;
+}
+
+fn test_fold_sum() {
+    let numbers = [1, 2, 3, 4, 5];
+    let sum = fold(numbers, 0, |acc, x| acc + x);
+    // sum should be 15
+}
+
+fn test_fold_product() {
+    let numbers = [1, 2, 3, 4];
+    let product = fold(numbers, 1, |acc, x| acc * x);
+    // product should be 24
+}
+
+fn test_fold_string_concat() {
+    let words = ["Hello", " ", "World"];
+    let sentence = fold(words, "", |acc, word| acc + word);
+    // sentence should be "Hello World"
+}
+
+// ============================================================================
+// Chaining Generic Higher-Order Functions
+// ============================================================================
+
+fn test_chain_map_filter() {
+    let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    
+    // Square all numbers, then filter evens
+    let squared = map(numbers, |x| x * x);
+    let even_squares = filter(squared, |x| x % 2 == 0);
+    // even_squares should be [4, 16, 36, 64, 100]
+}
+
+fn test_chain_filter_map_fold() {
+    let numbers = [1, 2, 3, 4, 5, 6];
+    
+    // Filter evens, double them, then sum
+    let evens = filter(numbers, |x| x % 2 == 0);
+    let doubled = map(evens, |x| x * 2);
+    let sum = fold(doubled, 0, |acc, x| acc + x);
+    // sum should be 24 (2*2 + 4*2 + 6*2 = 4 + 8 + 12 = 24)
+}
+
+// ============================================================================
+// Generic Functions with Multiple Type Parameters
+// ============================================================================
+
+fn zip<T, U>(arr1: [T], arr2: [U]) -> [(T, U)] {
+    let result: [(T, U)] = [];
+    let len = if arr1.len() < arr2.len() { arr1.len() } else { arr2.len() };
+    
+    for i in 0..len {
+        result.push((arr1[i], arr2[i]));
+    }
+    
+    return result;
+}
+
+fn test_zip_basic() {
+    let numbers = [1, 2, 3];
+    let letters = ["a", "b", "c"];
+    let pairs = zip(numbers, letters);
+    // pairs should be [(1, "a"), (2, "b"), (3, "c")]
+}
+
+// ============================================================================
+// Closures Capturing Generic Variables
+// ============================================================================
+
+fn test_closure_capture_generic() {
+    let multiplier = 3;
+    let numbers = [1, 2, 3, 4, 5];
+    
+    // Closure captures multiplier
+    let result = map(numbers, |x| x * multiplier);
+    // result should be [3, 6, 9, 12, 15]
+}
+
+fn test_closure_capture_multiple() {
+    let offset = 10;
+    let scale = 2;
+    let numbers = [1, 2, 3];
+    
+    // Closure captures both offset and scale
+    let result = map(numbers, |x| (x * scale) + offset);
+    // result should be [12, 14, 16]
+}
+
+// ============================================================================
+// Generic Functions Returning Closures
+// ============================================================================
+
+fn make_adder<T>(n: T) -> fn(T) -> T {
+    return |x| x + n;
+}
+
+fn test_make_adder() {
+    let add5 = make_adder(5);
+    let result = add5(10);
+    // result should be 15
+}
+
+fn test_make_adder_with_map() {
+    let add10 = make_adder(10);
+    let numbers = [1, 2, 3];
+    let result = map(numbers, add10);
+    // result should be [11, 12, 13]
+}
+
+// ============================================================================
+// Nested Generic Functions
+// ============================================================================
+
+fn flat_map<T, U>(arr: [T], f: fn(T) -> [U]) -> [U] {
+    let result: [U] = [];
+    for item in arr {
+        let mapped = f(item);
+        for elem in mapped {
+            result.push(elem);
+        }
+    }
+    return result;
+}
+
+fn test_flat_map() {
+    let numbers = [1, 2, 3];
+    let result = flat_map(numbers, |x| [x, x * 10]);
+    // result should be [1, 10, 2, 20, 3, 30]
+}
+
+// ============================================================================
+// Generic Functions with Complex Closures
+// ============================================================================
+
+fn partition<T>(arr: [T], predicate: fn(T) -> bool) -> ([T], [T]) {
+    let true_arr: [T] = [];
+    let false_arr: [T] = [];
+    
+    for item in arr {
+        if predicate(item) {
+            true_arr.push(item);
+        } else {
+            false_arr.push(item);
+        }
+    }
+    
+    return (true_arr, false_arr);
+}
+
+fn test_partition() {
+    let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    let (evens, odds) = partition(numbers, |x| x % 2 == 0);
+    // evens should be [2, 4, 6, 8, 10]
+    // odds should be [1, 3, 5, 7, 9]
+}
+
+// ============================================================================
+// Generic Functions with Move Closures
+// ============================================================================
+
+fn test_move_closure_generic() {
+    let data = [1, 2, 3];
+    let result = map(data, move |x| x * 2);
+    // result should be [2, 4, 6]
+    // data is moved into closure
+}
+
+// ============================================================================
+// Type Inference Edge Cases
+// ============================================================================
+
+fn test_inference_from_return() {
+    // Type should be inferred from return context
+    let numbers = [1, 2, 3];
+    let result: [int] = map(numbers, |x| x + 1);
+    // Compiler should infer T=int, U=int
+}
+
+fn test_inference_from_argument() {
+    // Type should be inferred from argument
+    let numbers: [int] = [1, 2, 3];
+    let result = map(numbers, |x| x * 2);
+    // Compiler should infer T=int from numbers
+}
+
+fn test_inference_nested() {
+    // Nested inference
+    let numbers = [1, 2, 3];
+    let result = map(map(numbers, |x| x * 2), |y| y + 1);
+    // Should infer all types correctly
+}
+
+// ============================================================================
+// Generic Functions with Constraints (Future)
+// ============================================================================
+
+// Note: These tests are for future constraint support
+// Currently commented out as constraints aren't implemented yet
+
+// fn sum_generic<T: Add>(arr: [T]) -> T {
+//     fold(arr, T::default(), |acc, x| acc + x)
+// }
+
+// fn test_sum_generic() {
+//     let ints = [1, 2, 3, 4, 5];
+//     let int_sum = sum_generic(ints);
+//     
+//     let floats = [1.5, 2.5, 3.5];
+//     let float_sum = sum_generic(floats);
+// }
+
+// ============================================================================
+// Main Test Runner
+// ============================================================================
+
+fn main() {
+    // Basic tests
+    test_map_basic();
+    test_map_transform();
+    test_filter_basic();
+    test_filter_strings();
+    test_fold_sum();
+    test_fold_product();
+    test_fold_string_concat();
+    
+    // Chaining tests
+    test_chain_map_filter();
+    test_chain_filter_map_fold();
+    
+    // Multi-type parameter tests
+    test_zip_basic();
+    
+    // Closure capture tests
+    test_closure_capture_generic();
+    test_closure_capture_multiple();
+    
+    // Higher-order closure tests
+    test_make_adder();
+    test_make_adder_with_map();
+    
+    // Advanced tests
+    test_flat_map();
+    test_partition();
+    test_move_closure_generic();
+    
+    // Type inference tests
+    test_inference_from_return();
+    test_inference_from_argument();
+    test_inference_nested();
+    
+    println("All generic higher-order function tests completed!");
+}

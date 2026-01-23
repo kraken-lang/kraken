@@ -2464,6 +2464,7 @@ impl TypeChecker {
                 }
                 // Check if it's a function call first (before checking as variable)
                 if let Expression::Identifier(func_name) = callee.as_ref() {
+                    // First check if it's a declared function
                     if let Some(func_type) = self.env.lookup_function(func_name) {
                         if arguments.len() != func_type.parameter_types.len() {
                             return Err(CompilerError::type_error(
@@ -2496,6 +2497,41 @@ impl TypeChecker {
                         }
 
                         return Ok(func_type.return_type.clone());
+                    }
+
+                    // Check if it's a variable with function type (higher-order function parameter)
+                    if let Some(Type::Function { param_types, return_type }) = self.env.lookup_variable(func_name) {
+                        if arguments.len() != param_types.len() {
+                            return Err(CompilerError::type_error(
+                                SourceLocation::new(self.file_path.clone(), 0, 0),
+                                format!(
+                                    "Function {} expects {} arguments, found {}",
+                                    func_name,
+                                    param_types.len(),
+                                    arguments.len()
+                                ),
+                            ));
+                        }
+
+                        for (i, arg) in arguments.iter().enumerate() {
+                            let arg_type = self.check_expression(arg)?;
+                            let expected_type = &param_types[i];
+
+                            if !self.types_compatible(expected_type, &arg_type) {
+                                return Err(CompilerError::type_error(
+                                    SourceLocation::new(self.file_path.clone(), 0, 0),
+                                    format!(
+                                        "Function {} argument {} type mismatch: expected {}, found {}",
+                                        func_name,
+                                        i + 1,
+                                        expected_type,
+                                        arg_type
+                                    ),
+                                ));
+                            }
+                        }
+
+                        return Ok(*return_type.clone());
                     }
 
                     return Err(CompilerError::type_error(

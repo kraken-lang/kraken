@@ -1,0 +1,64 @@
+// Turbofish Syntax Test for 0.8.21
+// Tests ::<T> syntax for unambiguous generic type arguments
+
+fn identity<T>(x: T) -> T {
+    return x;
+}
+
+fn pair<T, U>(first: T, second: U) -> (T, U) {
+    return (first, second);
+}
+
+fn test_turbofish_function_call() -> int {
+    // Turbofish syntax for function calls
+    let x = identity::<int>(42);
+    if (x != 42) {
+        return 1;
+    }
+    
+    let y = identity::<bool>(true);
+    if (!y) {
+        return 2;
+    }
+    
+    return 0;
+}
+
+fn test_turbofish_multiple_params() -> int {
+    // Turbofish with multiple type parameters
+    let p = pair::<int, bool>(42, true);
+    let (x, y) = p;
+    
+    if (x != 42) {
+        return 1;
+    }
+    if (!y) {
+        return 2;
+    }
+    
+    return 0;
+}
+
+fn test_regular_syntax_still_works() -> int {
+    // Regular <T> syntax should still work
+    let x = identity<int>(42);
+    if (x != 42) {
+        return 1;
+    }
+    
+    return 0;
+}
+
+fn main() -> int {
+    let failures = 0;
+    
+    failures = failures + test_turbofish_function_call();
+    failures = failures + test_turbofish_multiple_params();
+    failures = failures + test_regular_syntax_still_works();
+    
+    if (failures == 0) {
+        puts("All turbofish syntax tests passed!");
+    }
+    
+    return failures;
+}

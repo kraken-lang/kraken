@@ -484,7 +484,11 @@ impl Monomorphizer {
         for (param, arg_expr) in parameters.iter().zip(arguments.iter()) {
             let Some(arg_ty) = self.expression_type(arg_expr, env)? else {
                 return Err(self.type_error(format!(
-                    "Cannot infer generic call to '{name}': argument types must be known"
+                    "Cannot infer type arguments for generic function '{name}'.\n\
+                     Hint: Argument types must be known. Consider:\n\
+                     1. Adding explicit type annotations to variables\n\
+                     2. Using turbofish syntax: {name}::<T>(...)\n\
+                     3. Providing explicit type arguments: {name}<T>(...)"
                 )));
             };
             self.unify_generic_param_types(&param.param_type, &arg_ty, generic_params, &mut subst)?;
@@ -494,7 +498,9 @@ impl Monomorphizer {
         for gp in generic_params {
             let Some(bound) = subst.get(gp).cloned() else {
                 return Err(self.type_error(format!(
-                    "Cannot infer generic call to '{name}': missing type for '{gp}'"
+                    "Cannot infer type parameter '{gp}' for generic function '{name}'.\n\
+                     Hint: The type parameter could not be determined from the arguments.\n\
+                     Use explicit type arguments: {name}::<{gp}>(...) or {name}<{gp}>(...)"
                 )));
             };
             out.push(bound);

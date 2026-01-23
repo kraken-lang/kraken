@@ -1,0 +1,14 @@
+// Test Function Types in Parameters
+// Simple test for 0.8.21 function type support
+
+fn apply_int(x: int, f: fn(int) -> int) -> int {
+    return f(x);
+}
+
+fn main() -> int {
+    let result = apply_int(5, |x: int| x * 2);
+    if (result != 10) {
+        return 1;
+    }
+    return 0;
+}

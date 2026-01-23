@@ -1,0 +1,182 @@
+// Generic Closure Test for 0.8.21
+// Tests generic functions with closure parameters
+
+// ============================================================================
+// Basic Generic Function with Closure
+// ============================================================================
+
+fn apply<T, U>(value: T, transform: fn(T) -> U) -> U {
+    return transform(value);
+}
+
+fn test_apply_int_to_int() -> int {
+    let result = apply<int, int>(5, |x| x * 2);
+    if result != 10 {
+        return 1;
+    }
+    return 0;
+}
+
+fn test_apply_int_to_bool() -> int {
+    let result = apply<int, bool>(5, |x| x > 3);
+    if !result {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Generic Function with Closure Inference
+// ============================================================================
+
+fn test_apply_inference() -> int {
+    // Type inference should work from arguments
+    let result = apply(10, |x| x + 5);
+    if result != 15 {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Generic Function Returning Closure
+// ============================================================================
+
+fn make_multiplier<T>(factor: T) -> fn(T) -> T {
+    return |x| x * factor;
+}
+
+fn test_make_multiplier() -> int {
+    let times_three = make_multiplier<int>(3);
+    let result = times_three(7);
+    if result != 21 {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Closure Capturing Generic Variables
+// ============================================================================
+
+fn test_closure_capture_generic() -> int {
+    let multiplier: int = 4;
+    let result = apply<int, int>(5, |x| x * multiplier);
+    if result != 20 {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Multiple Generic Parameters with Closures
+// ============================================================================
+
+fn combine<T, U, V>(a: T, b: U, combiner: fn(T, U) -> V) -> V {
+    return combiner(a, b);
+}
+
+fn test_combine() -> int {
+    let result = combine<int, int, int>(3, 4, |x, y| x + y);
+    if result != 7 {
+        return 1;
+    }
+    return 0;
+}
+
+fn test_combine_different_types() -> int {
+    let result = combine<int, int, bool>(5, 3, |x, y| x > y);
+    if !result {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Nested Generic Closures
+// ============================================================================
+
+fn test_nested_closures() -> int {
+    let outer = apply<int, fn(int) -> int>(2, |x| {
+        return |y| x + y;
+    });
+    let result = outer(3);
+    if result != 5 {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Generic Function with Move Closure
+// ============================================================================
+
+fn apply_move<T, U>(value: T, transform: fn(T) -> U) -> U {
+    return transform(value);
+}
+
+fn test_move_closure() -> int {
+    let data: int = 10;
+    let result = apply_move<int, int>(5, move |x| x + data);
+    if result != 15 {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Chained Generic Function Calls
+// ============================================================================
+
+fn test_chained_generic() -> int {
+    let result = apply<int, int>(
+        apply<int, int>(2, |x| x * 3),
+        |y| y + 1
+    );
+    if result != 7 {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Generic Function with Complex Closure Body
+// ============================================================================
+
+fn process<T>(value: T, processor: fn(T) -> T) -> T {
+    return processor(value);
+}
+
+fn test_complex_closure() -> int {
+    let result = process<int>(10, |x| {
+        let temp = x * 2;
+        let temp2 = temp + 5;
+        return temp2;
+    });
+    if result != 25 {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Main Test Runner
+// ============================================================================
+
+fn main() -> int {
+    let failures: int = 0;
+    
+    failures = failures + test_apply_int_to_int();
+    failures = failures + test_apply_int_to_bool();
+    failures = failures + test_apply_inference();
+    failures = failures + test_make_multiplier();
+    failures = failures + test_closure_capture_generic();
+    failures = failures + test_combine();
+    failures = failures + test_combine_different_types();
+    failures = failures + test_nested_closures();
+    failures = failures + test_move_closure();
+    failures = failures + test_chained_generic();
+    failures = failures + test_complex_closure();
+    
+    return failures;
+}

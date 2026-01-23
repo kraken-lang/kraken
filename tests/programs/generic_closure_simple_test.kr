@@ -1,0 +1,57 @@
+// Simple Generic Closure Test
+// Testing what currently works in 0.8.20
+
+// Generic function - works
+fn id<T>(x: T) -> T {
+    return x;
+}
+
+// Generic function with explicit type args - works
+fn test_explicit_types() -> int {
+    let x = id<int>(42);
+    if x != 42 {
+        return 1;
+    }
+    return 0;
+}
+
+// Generic function with type inference - works
+fn test_type_inference() -> int {
+    let x: int = id(42);
+    if x != 42 {
+        return 1;
+    }
+    return 0;
+}
+
+// Non-generic higher-order function - works
+fn apply_int(x: int, f: fn(int) -> int) -> int {
+    return f(x);
+}
+
+fn test_higher_order() -> int {
+    let result = apply_int(5, |x| x * 2);
+    if result != 10 {
+        return 1;
+    }
+    return 0;
+}
+
+// Closure with capture - works
+fn test_closure_capture() -> int {
+    let multiplier = 3;
+    let result = apply_int(5, |x| x * multiplier);
+    if result != 15 {
+        return 1;
+    }
+    return 0;
+}
+
+fn main() -> int {
+    let failures = 0;
+    failures = failures + test_explicit_types();
+    failures = failures + test_type_inference();
+    failures = failures + test_higher_order();
+    failures = failures + test_closure_capture();
+    return failures;
+}

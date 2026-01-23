@@ -1000,7 +1000,7 @@ dependencies = [
 
 [[package]]
 name = "kraken"
-version = "0.8.20"
+version = "0.8.21"
 dependencies = [
  "anyhow",
  "clap",
@@ -1025,7 +1025,7 @@ dependencies = [
 
 [[package]]
 name = "kraken-runtime"
-version = "0.8.20"
+version = "0.8.21"
 dependencies = [
  "cycle",
  "serde",

@@ -10,6 +10,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Fixed
+
+### Changed
+
+## [0.8.21] - 2026-01-23
+
+### Added
+- **Turbofish Syntax**
+  - Implemented `::<T>` syntax for unambiguous generic type arguments
+  - Works with function calls: `identity::<int>(42)`
+  - Works with struct literals: `Container::<int> { value: 42 }`
+  - Provides clear alternative to `<T>` syntax when disambiguation needed
+- **Function Types in Parameters (Infrastructure)**
+  - Added parser support for function types: `fn(int, string) -> bool`
+  - Function types can now be used in parameter positions
+  - Type checker support for calling variables with function types
+  - Foundation for higher-order functions (codegen pending)
+- **Improved Type Inference Error Messages**
+  - Better error messages when type inference fails
+  - Contextual hints suggesting turbofish syntax or explicit type annotations
+  - Clear guidance on how to resolve type ambiguity
+
+### Fixed
 - **CI/CD Pipeline**
   - Fixed incorrect action name from `dtolnay/rust-action` to `dtolnay/rust-toolchain@stable`
   - Added dynamic LLVM environment variable setup in all jobs
@@ -17,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed LLVM not being found during build by setting environment before Rust setup
   - Added `zstd` dependency installation to fix linker errors
   - Set `LIBRARY_PATH` to include zstd library location
+- **Type Checker**
+  - Fixed collapsible match warning in function call type checking
 
 ### Changed
 

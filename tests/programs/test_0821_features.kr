@@ -1,0 +1,157 @@
+// Test 0.8.21 Features
+// Tests what currently works with generics and closures
+
+// ============================================================================
+// Generic Functions with Type Inference
+// ============================================================================
+
+fn id<T>(x: T) -> T {
+    return x;
+}
+
+fn test_inference_from_context() -> int {
+    // Type inferred from variable declaration
+    let x: int = id(42);
+    if (x != 42) {
+        return 1;
+    }
+    return 0;
+}
+
+fn test_explicit_type_args() -> int {
+    // Explicit type arguments
+    let x = id<int>(42);
+    if (x != 42) {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Higher-Order Functions (Non-Generic)
+// ============================================================================
+
+fn apply_int(x: int, f: fn(int) -> int) -> int {
+    return f(x);
+}
+
+fn test_higher_order_basic() -> int {
+    let result = apply_int(5, |x| x * 2);
+    if (result != 10) {
+        return 1;
+    }
+    return 0;
+}
+
+fn test_higher_order_capture() -> int {
+    let multiplier = 3;
+    let result = apply_int(5, |x| x * multiplier);
+    if (result != 15) {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Closure Composition
+// ============================================================================
+
+fn compose_int(f: fn(int) -> int, g: fn(int) -> int) -> fn(int) -> int {
+    return |x| f(g(x));
+}
+
+fn test_composition() -> int {
+    let double = |x: int| x * 2;
+    let add_one = |x: int| x + 1;
+    let composed = compose_int(double, add_one);
+    let result = composed(5);
+    // Should be (5 + 1) * 2 = 12
+    if (result != 12) {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Multiple Generic Parameters
+// ============================================================================
+
+fn pair<T, U>(first: T, second: U) -> (T, U) {
+    return (first, second);
+}
+
+fn test_multiple_generics() -> int {
+    let p = pair<int, bool>(42, true);
+    let (x, y) = p;
+    if (x != 42) {
+        return 1;
+    }
+    if (!y) {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Generic Struct with Methods
+// ============================================================================
+
+struct Box<T> {
+    value: T,
+}
+
+fn make_box<T>(v: T) -> Box<T> {
+    return Box<T> { value: v };
+}
+
+fn test_generic_struct() -> int {
+    let b = make_box<int>(42);
+    if (b.value != 42) {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Nested Generics
+// ============================================================================
+
+fn wrap<T>(x: T) -> Box<T> {
+    return Box<T> { value: x };
+}
+
+fn unwrap<T>(b: Box<T>) -> T {
+    return b.value;
+}
+
+fn test_nested_generics() -> int {
+    let wrapped = wrap<int>(42);
+    let unwrapped = unwrap<int>(wrapped);
+    if (unwrapped != 42) {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Main Test Runner
+// ============================================================================
+
+fn main() -> int {
+    let failures = 0;
+    
+    failures = failures + test_inference_from_context();
+    failures = failures + test_explicit_type_args();
+    failures = failures + test_higher_order_basic();
+    failures = failures + test_higher_order_capture();
+    failures = failures + test_composition();
+    failures = failures + test_multiple_generics();
+    failures = failures + test_generic_struct();
+    failures = failures + test_nested_generics();
+    
+    if (failures == 0) {
+        println("All 0.8.21 feature tests passed!");
+    }
+    
+    return failures;
+}

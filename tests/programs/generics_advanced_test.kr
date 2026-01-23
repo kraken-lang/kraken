@@ -1,0 +1,195 @@
+// Advanced Generics Test for 0.8.21
+// Tests current generic capabilities and type inference
+
+// ============================================================================
+// Generic Functions with Multiple Type Parameters
+// ============================================================================
+
+fn pair<T, U>(first: T, second: U) -> (T, U) {
+    return (first, second);
+}
+
+fn test_pair() -> int {
+    let p = pair<int, bool>(42, true);
+    let (x, y) = p;
+    if (x != 42) {
+        return 1;
+    }
+    if (!y) {
+        return 2;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Generic Functions with Type Inference
+// ============================================================================
+
+fn identity<T>(x: T) -> T {
+    return x;
+}
+
+fn test_inference_from_context() -> int {
+    // Type inferred from variable declaration
+    let x: int = identity(42);
+    if (x != 42) {
+        return 1;
+    }
+    
+    let y: bool = identity(true);
+    if (!y) {
+        return 2;
+    }
+    
+    return 0;
+}
+
+fn test_explicit_type_args() -> int {
+    // Explicit type arguments
+    let x = identity<int>(42);
+    if (x != 42) {
+        return 1;
+    }
+    
+    let y = identity<bool>(true);
+    if (!y) {
+        return 2;
+    }
+    
+    return 0;
+}
+
+// ============================================================================
+// Generic Structs
+// ============================================================================
+
+struct Container<T> {
+    value: T,
+}
+
+fn make_container<T>(v: T) -> Container<T> {
+    return Container<T> { value: v };
+}
+
+fn get_value<T>(c: Container<T>) -> T {
+    return c.value;
+}
+
+fn test_generic_struct() -> int {
+    let c = make_container<int>(42);
+    if (c.value != 42) {
+        return 1;
+    }
+    
+    let v = get_value<int>(c);
+    if (v != 42) {
+        return 2;
+    }
+    
+    return 0;
+}
+
+// ============================================================================
+// Nested Generic Types
+// ============================================================================
+
+fn wrap<T>(x: T) -> Container<T> {
+    return Container<T> { value: x };
+}
+
+fn unwrap<T>(c: Container<T>) -> T {
+    return c.value;
+}
+
+fn test_nested_generics() -> int {
+    let wrapped = wrap<int>(42);
+    let unwrapped = unwrap<int>(wrapped);
+    if (unwrapped != 42) {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Generic Functions with Tuples
+// ============================================================================
+
+fn swap<T, U>(p: (T, U)) -> (U, T) {
+    let (a, b) = p;
+    return (b, a);
+}
+
+fn test_swap() -> int {
+    let p1 = pair<int, bool>(42, true);
+    let p2 = swap<int, bool>(p1);
+    let (b, i) = p2;
+    
+    if (!b) {
+        return 1;
+    }
+    if (i != 42) {
+        return 2;
+    }
+    
+    return 0;
+}
+
+// ============================================================================
+// Generic Functions with Conditionals
+// ============================================================================
+
+fn max<T>(a: T, b: T, compare: fn(T, T) -> bool) -> T {
+    if (compare(a, b)) {
+        return a;
+    } else {
+        return b;
+    }
+}
+
+// Note: This requires function type codegen which isn't implemented yet
+// Commented out for now
+// fn test_max() -> int {
+//     let result = max<int>(5, 3, |x: int, y: int| x > y);
+//     if (result != 5) {
+//         return 1;
+//     }
+//     return 0;
+// }
+
+// ============================================================================
+// Chained Generic Calls
+// ============================================================================
+
+fn double<T>(x: T) -> T {
+    return x;
+}
+
+fn test_chained() -> int {
+    let result = identity<int>(identity<int>(42));
+    if (result != 42) {
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// Main Test Runner
+// ============================================================================
+
+fn main() -> int {
+    let failures = 0;
+    
+    failures = failures + test_pair();
+    failures = failures + test_inference_from_context();
+    failures = failures + test_explicit_type_args();
+    failures = failures + test_generic_struct();
+    failures = failures + test_nested_generics();
+    failures = failures + test_swap();
+    failures = failures + test_chained();
+    
+    if (failures == 0) {
+        println("All advanced generics tests passed!");
+    }
+    
+    return failures;
+}
