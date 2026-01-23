@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
-Current version: `v0.8.22`
+Current version: `v0.8.23`
 
 ## Language Features
 
@@ -63,6 +63,17 @@ Current version: `v0.8.22`
 - **Unsafe Functions**: `unsafe fn` declarations
 - **Raw Pointer Types**: `*const T` and `*mut T` for low-level memory access
 - **Full Syntax Support**: Parser, type checker, and codegen integration
+
+### Standard Library & Runtime Expansion (0.8.23)
+- **C Runtime Library**: 10 string utility functions
+- **String Operations**: len, concat, substring, contains, starts_with, ends_with
+- **String Transformations**: to_upper, to_lower, trim, replace
+- **File I/O**: 9 functions (fseek, ftell, rewind, feof, ferror, fopen, fclose, fread, fwrite)
+- **Math Functions**: 25 functions (trig, hyperbolic, exponential, log, power, rounding, etc.)
+- **Time Functions**: 6 functions (time, clock, difftime, strftime, localtime)
+- **Memory Functions**: 7 functions (calloc, aligned_alloc, realloc, free, memcpy, memset, memcmp)
+- **Union Keyword**: Foundation for C interop union types
+- **Total**: 57+ runtime library functions
 
 ### Core Features
 - **Static Typing**: Strong type system with type inference

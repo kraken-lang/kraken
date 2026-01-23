@@ -1,0 +1,138 @@
+// String Utilities Test for 0.8.23
+// Tests new runtime string functions
+
+// External declarations for runtime functions
+extern fn kraken_str_len(s: str) -> int;
+extern fn kraken_str_concat(s1: str, s2: str) -> str;
+extern fn kraken_str_substring(s: str, start: int, end: int) -> str;
+extern fn kraken_str_contains(s: str, substr: str) -> int;
+extern fn kraken_str_starts_with(s: str, prefix: str) -> int;
+extern fn kraken_str_ends_with(s: str, suffix: str) -> int;
+extern fn kraken_str_to_upper(s: str) -> str;
+extern fn kraken_str_to_lower(s: str) -> str;
+extern fn kraken_str_trim(s: str) -> str;
+extern fn kraken_str_replace(s: str, old: str, new: str) -> str;
+
+fn test_str_len() -> int {
+    let s = "hello";
+    let len = kraken_str_len(s);
+    if (len != 5) {
+        puts("FAIL: str_len");
+        return 1;
+    }
+    return 0;
+}
+
+fn test_str_concat() -> int {
+    let s1 = "hello";
+    let s2 = " world";
+    let result = kraken_str_concat(s1, s2);
+    puts(result);
+    return 0;
+}
+
+fn test_str_substring() -> int {
+    let s = "hello world";
+    let sub = kraken_str_substring(s, 0, 5);
+    puts(sub);
+    return 0;
+}
+
+fn test_str_contains() -> int {
+    let s = "hello world";
+    let has_world = kraken_str_contains(s, "world");
+    let has_foo = kraken_str_contains(s, "foo");
+    
+    if (has_world != 1) {
+        puts("FAIL: str_contains - should find 'world'");
+        return 1;
+    }
+    if (has_foo != 0) {
+        puts("FAIL: str_contains - should not find 'foo'");
+        return 1;
+    }
+    return 0;
+}
+
+fn test_str_starts_with() -> int {
+    let s = "hello world";
+    let starts_hello = kraken_str_starts_with(s, "hello");
+    let starts_world = kraken_str_starts_with(s, "world");
+    
+    if (starts_hello != 1) {
+        puts("FAIL: str_starts_with - should start with 'hello'");
+        return 1;
+    }
+    if (starts_world != 0) {
+        puts("FAIL: str_starts_with - should not start with 'world'");
+        return 1;
+    }
+    return 0;
+}
+
+fn test_str_ends_with() -> int {
+    let s = "hello world";
+    let ends_world = kraken_str_ends_with(s, "world");
+    let ends_hello = kraken_str_ends_with(s, "hello");
+    
+    if (ends_world != 1) {
+        puts("FAIL: str_ends_with - should end with 'world'");
+        return 1;
+    }
+    if (ends_hello != 0) {
+        puts("FAIL: str_ends_with - should not end with 'hello'");
+        return 1;
+    }
+    return 0;
+}
+
+fn test_str_to_upper() -> int {
+    let s = "hello";
+    let upper = kraken_str_to_upper(s);
+    puts(upper);
+    return 0;
+}
+
+fn test_str_to_lower() -> int {
+    let s = "HELLO";
+    let lower = kraken_str_to_lower(s);
+    puts(lower);
+    return 0;
+}
+
+fn test_str_trim() -> int {
+    let s = "  hello world  ";
+    let trimmed = kraken_str_trim(s);
+    puts(trimmed);
+    return 0;
+}
+
+fn test_str_replace() -> int {
+    let s = "hello world";
+    let replaced = kraken_str_replace(s, "world", "kraken");
+    puts(replaced);
+    return 0;
+}
+
+fn main() -> int {
+    let failures = 0;
+    
+    puts("Testing string utilities...");
+    
+    failures = failures + test_str_len();
+    failures = failures + test_str_concat();
+    failures = failures + test_str_substring();
+    failures = failures + test_str_contains();
+    failures = failures + test_str_starts_with();
+    failures = failures + test_str_ends_with();
+    failures = failures + test_str_to_upper();
+    failures = failures + test_str_to_lower();
+    failures = failures + test_str_trim();
+    failures = failures + test_str_replace();
+    
+    if (failures == 0) {
+        puts("All string utility tests passed!");
+    }
+    
+    return failures;
+}

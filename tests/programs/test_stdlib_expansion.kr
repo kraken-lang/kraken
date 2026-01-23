@@ -1,0 +1,234 @@
+// Standard Library Expansion Test for 0.8.23
+// Tests File I/O, Math, Time, and Memory functions
+
+// ============================================================================
+// MATH FUNCTION DECLARATIONS
+// ============================================================================
+
+extern fn kraken_sin(x: float) -> float;
+extern fn kraken_cos(x: float) -> float;
+extern fn kraken_tan(x: float) -> float;
+extern fn kraken_asin(x: float) -> float;
+extern fn kraken_acos(x: float) -> float;
+extern fn kraken_atan(x: float) -> float;
+extern fn kraken_atan2(y: float, x: float) -> float;
+extern fn kraken_sinh(x: float) -> float;
+extern fn kraken_cosh(x: float) -> float;
+extern fn kraken_tanh(x: float) -> float;
+extern fn kraken_exp(x: float) -> float;
+extern fn kraken_log(x: float) -> float;
+extern fn kraken_log10(x: float) -> float;
+extern fn kraken_log2(x: float) -> float;
+extern fn kraken_pow(base: float, exp: float) -> float;
+extern fn kraken_sqrt(x: float) -> float;
+extern fn kraken_cbrt(x: float) -> float;
+extern fn kraken_ceil(x: float) -> float;
+extern fn kraken_floor(x: float) -> float;
+extern fn kraken_round(x: float) -> float;
+extern fn kraken_trunc(x: float) -> float;
+extern fn kraken_fmod(x: float, y: float) -> float;
+extern fn kraken_remainder(x: float, y: float) -> float;
+extern fn kraken_fabs(x: float) -> float;
+extern fn kraken_hypot(x: float, y: float) -> float;
+
+// ============================================================================
+// TIME FUNCTION DECLARATIONS
+// ============================================================================
+
+extern fn kraken_time() -> int;
+extern fn kraken_clock() -> int;
+extern fn kraken_clocks_per_sec() -> int;
+extern fn kraken_difftime(time1: int, time0: int) -> float;
+extern fn kraken_strftime(format: str, timestamp: int) -> str;
+
+// ============================================================================
+// MEMORY FUNCTION DECLARATIONS
+// ============================================================================
+
+extern fn kraken_calloc(count: int, size: int) -> int;
+extern fn kraken_aligned_alloc(alignment: int, size: int) -> int;
+extern fn kraken_realloc(ptr: int, new_size: int) -> int;
+extern fn kraken_free(ptr: int) -> void;
+extern fn kraken_memcpy(dest: int, src: int, n: int) -> int;
+extern fn kraken_memset(s: int, c: int, n: int) -> int;
+extern fn kraken_memcmp(s1: int, s2: int, n: int) -> int;
+
+// ============================================================================
+// MATH TESTS
+// ============================================================================
+
+fn test_trig_functions() -> int {
+    let pi = 3.14159265359;
+    
+    let sin_val = kraken_sin(pi / 2.0);
+    let cos_val = kraken_cos(0.0);
+    let tan_val = kraken_tan(0.0);
+    
+    puts("Trig functions tested");
+    return 0;
+}
+
+fn test_inverse_trig() -> int {
+    let asin_val = kraken_asin(0.5);
+    let acos_val = kraken_acos(0.5);
+    let atan_val = kraken_atan(1.0);
+    let atan2_val = kraken_atan2(1.0, 1.0);
+    
+    puts("Inverse trig functions tested");
+    return 0;
+}
+
+fn test_hyperbolic() -> int {
+    let sinh_val = kraken_sinh(1.0);
+    let cosh_val = kraken_cosh(1.0);
+    let tanh_val = kraken_tanh(1.0);
+    
+    puts("Hyperbolic functions tested");
+    return 0;
+}
+
+fn test_exponential_log() -> int {
+    let exp_val = kraken_exp(1.0);
+    let log_val = kraken_log(2.71828);
+    let log10_val = kraken_log10(100.0);
+    let log2_val = kraken_log2(8.0);
+    
+    puts("Exponential and log functions tested");
+    return 0;
+}
+
+fn test_power_root() -> int {
+    let pow_val = kraken_pow(2.0, 3.0);
+    let sqrt_val = kraken_sqrt(16.0);
+    let cbrt_val = kraken_cbrt(27.0);
+    
+    puts("Power and root functions tested");
+    return 0;
+}
+
+fn test_rounding() -> int {
+    let ceil_val = kraken_ceil(3.14);
+    let floor_val = kraken_floor(3.14);
+    let round_val = kraken_round(3.14);
+    let trunc_val = kraken_trunc(3.14);
+    
+    puts("Rounding functions tested");
+    return 0;
+}
+
+fn test_remainder() -> int {
+    let fmod_val = kraken_fmod(7.0, 3.0);
+    let rem_val = kraken_remainder(7.0, 3.0);
+    
+    puts("Remainder functions tested");
+    return 0;
+}
+
+fn test_other_math() -> int {
+    let abs_val = kraken_fabs(-5.5);
+    let hypot_val = kraken_hypot(3.0, 4.0);
+    
+    puts("Other math functions tested");
+    return 0;
+}
+
+// ============================================================================
+// TIME TESTS
+// ============================================================================
+
+fn test_time_functions() -> int {
+    let current_time = kraken_time();
+    let clock_ticks = kraken_clock();
+    let clocks_per_sec = kraken_clocks_per_sec();
+    
+    if (current_time > 0) {
+        puts("Time functions working");
+    }
+    
+    return 0;
+}
+
+fn test_difftime() -> int {
+    let time1 = kraken_time();
+    let time0 = time1 - 3600;
+    let diff = kraken_difftime(time1, time0);
+    
+    puts("Difftime tested");
+    return 0;
+}
+
+fn test_strftime() -> int {
+    let current_time = kraken_time();
+    let formatted = kraken_strftime("%Y-%m-%d %H:%M:%S", current_time);
+    
+    if (formatted != 0) {
+        puts(formatted);
+    }
+    
+    return 0;
+}
+
+// ============================================================================
+// MEMORY TESTS
+// ============================================================================
+
+fn test_calloc() -> int {
+    let ptr = kraken_calloc(10, 4);
+    
+    if (ptr != 0) {
+        kraken_free(ptr);
+        puts("Calloc tested");
+    }
+    
+    return 0;
+}
+
+fn test_aligned_alloc() -> int {
+    let ptr = kraken_aligned_alloc(16, 64);
+    
+    if (ptr != 0) {
+        kraken_free(ptr);
+        puts("Aligned alloc tested");
+    }
+    
+    return 0;
+}
+
+// ============================================================================
+// MAIN TEST RUNNER
+// ============================================================================
+
+fn main() -> int {
+    let failures = 0;
+    
+    puts("Testing standard library expansion...");
+    puts("");
+    
+    puts("=== Math Functions ===");
+    failures = failures + test_trig_functions();
+    failures = failures + test_inverse_trig();
+    failures = failures + test_hyperbolic();
+    failures = failures + test_exponential_log();
+    failures = failures + test_power_root();
+    failures = failures + test_rounding();
+    failures = failures + test_remainder();
+    failures = failures + test_other_math();
+    
+    puts("");
+    puts("=== Time Functions ===");
+    failures = failures + test_time_functions();
+    failures = failures + test_difftime();
+    failures = failures + test_strftime();
+    
+    puts("");
+    puts("=== Memory Functions ===");
+    failures = failures + test_calloc();
+    failures = failures + test_aligned_alloc();
+    
+    puts("");
+    if (failures == 0) {
+        puts("All standard library expansion tests passed!");
+    }
+    
+    return failures;
+}

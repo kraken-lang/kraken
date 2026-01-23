@@ -119,3 +119,189 @@ char* kraken_str_join(VecString* vec, const char* sep) {
     
     return result;
 }
+
+// String length (safe wrapper)
+int64_t kraken_str_len(const char* s) {
+    if (!s) return 0;
+    return (int64_t)strlen(s);
+}
+
+// String concatenation
+char* kraken_str_concat(const char* s1, const char* s2) {
+    if (!s1 || !s2) return NULL;
+    
+    size_t len1 = strlen(s1);
+    size_t len2 = strlen(s2);
+    char* result = (char*)malloc(len1 + len2 + 1);
+    if (!result) return NULL;
+    
+    memcpy(result, s1, len1);
+    memcpy(result + len1, s2, len2);
+    result[len1 + len2] = '\0';
+    
+    return result;
+}
+
+// String substring
+char* kraken_str_substring(const char* s, int64_t start, int64_t end) {
+    if (!s) return NULL;
+    
+    int64_t len = (int64_t)strlen(s);
+    if (start < 0) start = 0;
+    if (end > len) end = len;
+    if (start >= end) {
+        char* empty = (char*)malloc(1);
+        empty[0] = '\0';
+        return empty;
+    }
+    
+    int64_t substr_len = end - start;
+    char* result = (char*)malloc(substr_len + 1);
+    if (!result) return NULL;
+    
+    memcpy(result, s + start, substr_len);
+    result[substr_len] = '\0';
+    
+    return result;
+}
+
+// String contains
+int64_t kraken_str_contains(const char* s, const char* substr) {
+    if (!s || !substr) return 0;
+    return strstr(s, substr) != NULL ? 1 : 0;
+}
+
+// String starts_with
+int64_t kraken_str_starts_with(const char* s, const char* prefix) {
+    if (!s || !prefix) return 0;
+    
+    size_t s_len = strlen(s);
+    size_t prefix_len = strlen(prefix);
+    
+    if (prefix_len > s_len) return 0;
+    return memcmp(s, prefix, prefix_len) == 0 ? 1 : 0;
+}
+
+// String ends_with
+int64_t kraken_str_ends_with(const char* s, const char* suffix) {
+    if (!s || !suffix) return 0;
+    
+    size_t s_len = strlen(s);
+    size_t suffix_len = strlen(suffix);
+    
+    if (suffix_len > s_len) return 0;
+    return memcmp(s + s_len - suffix_len, suffix, suffix_len) == 0 ? 1 : 0;
+}
+
+// String to uppercase
+char* kraken_str_to_upper(const char* s) {
+    if (!s) return NULL;
+    
+    size_t len = strlen(s);
+    char* result = (char*)malloc(len + 1);
+    if (!result) return NULL;
+    
+    for (size_t i = 0; i < len; i++) {
+        result[i] = (s[i] >= 'a' && s[i] <= 'z') ? s[i] - 32 : s[i];
+    }
+    result[len] = '\0';
+    
+    return result;
+}
+
+// String to lowercase
+char* kraken_str_to_lower(const char* s) {
+    if (!s) return NULL;
+    
+    size_t len = strlen(s);
+    char* result = (char*)malloc(len + 1);
+    if (!result) return NULL;
+    
+    for (size_t i = 0; i < len; i++) {
+        result[i] = (s[i] >= 'A' && s[i] <= 'Z') ? s[i] + 32 : s[i];
+    }
+    result[len] = '\0';
+    
+    return result;
+}
+
+// String trim (remove leading/trailing whitespace)
+char* kraken_str_trim(const char* s) {
+    if (!s) return NULL;
+    
+    // Find first non-whitespace
+    const char* start = s;
+    while (*start && (*start == ' ' || *start == '\t' || *start == '\n' || *start == '\r')) {
+        start++;
+    }
+    
+    // Find last non-whitespace
+    const char* end = s + strlen(s) - 1;
+    while (end > start && (*end == ' ' || *end == '\t' || *end == '\n' || *end == '\r')) {
+        end--;
+    }
+    
+    size_t len = end - start + 1;
+    char* result = (char*)malloc(len + 1);
+    if (!result) return NULL;
+    
+    memcpy(result, start, len);
+    result[len] = '\0';
+    
+    return result;
+}
+
+// String replace
+char* kraken_str_replace(const char* s, const char* old_str, const char* new_str) {
+    if (!s || !old_str || !new_str) return NULL;
+    
+    size_t old_len = strlen(old_str);
+    size_t new_len = strlen(new_str);
+    
+    if (old_len == 0) {
+        size_t s_len = strlen(s);
+        char* result = (char*)malloc(s_len + 1);
+        if (!result) return NULL;
+        memcpy(result, s, s_len + 1);
+        return result;
+    }
+    
+    // Count occurrences
+    int64_t count = 0;
+    const char* tmp = s;
+    while ((tmp = strstr(tmp, old_str)) != NULL) {
+        count++;
+        tmp += old_len;
+    }
+    
+    if (count == 0) {
+        size_t s_len = strlen(s);
+        char* result = (char*)malloc(s_len + 1);
+        if (!result) return NULL;
+        memcpy(result, s, s_len + 1);
+        return result;
+    }
+    
+    // Allocate result buffer
+    size_t result_len = strlen(s) + count * (new_len - old_len);
+    char* result = (char*)malloc(result_len + 1);
+    if (!result) return NULL;
+    
+    // Build result
+    char* dst = result;
+    const char* src = s;
+    const char* found;
+    
+    while ((found = strstr(src, old_str)) != NULL) {
+        size_t part_len = found - src;
+        memcpy(dst, src, part_len);
+        dst += part_len;
+        memcpy(dst, new_str, new_len);
+        dst += new_len;
+        src = found + old_len;
+    }
+    
+    strcpy(dst, src);
+    
+    return result;
+}

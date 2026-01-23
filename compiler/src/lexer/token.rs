@@ -95,6 +95,7 @@ pub enum Keyword {
     Trait,
     Type,
     Impl,
+    Union,
 
     // Modifiers
     Pub,
@@ -166,6 +167,7 @@ impl Keyword {
             "trait" => Some(Self::Trait),
             "type" => Some(Self::Type),
             "impl" => Some(Self::Impl),
+            "union" => Some(Self::Union),
             "pub" => Some(Self::Pub),
             "priv" => Some(Self::Priv),
             "static" => Some(Self::Static),
@@ -229,6 +231,7 @@ impl Keyword {
             Self::Trait => "trait",
             Self::Type => "type",
             Self::Impl => "impl",
+            Self::Union => "union",
             Self::Pub => "pub",
             Self::Priv => "priv",
             Self::Static => "static",

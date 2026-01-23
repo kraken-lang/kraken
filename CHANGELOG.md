@@ -13,6 +13,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.23] - 2026-01-23
+
+### Added
+- **C Runtime Library Expansion**
+  - Added `kraken_str_len()` - safe string length wrapper
+  - Added `kraken_str_concat()` - string concatenation
+  - Added `kraken_str_substring()` - substring extraction
+  - Added `kraken_str_contains()` - substring search
+  - Added `kraken_str_starts_with()` - prefix checking
+  - Added `kraken_str_ends_with()` - suffix checking
+  - Added `kraken_str_to_upper()` - uppercase conversion
+  - Added `kraken_str_to_lower()` - lowercase conversion
+  - Added `kraken_str_trim()` - whitespace trimming
+  - Added `kraken_str_replace()` - string replacement
+  - Rebuilt runtime library with all new functions
+- **File I/O Functions**
+  - Added `kraken_fseek()` - file position seeking
+  - Added `kraken_ftell()` - get file position
+  - Added `kraken_rewind()` - reset file position
+  - Added `kraken_feof()` - check end of file
+  - Added `kraken_ferror()` - check file errors
+  - Added `kraken_fopen()` - open file
+  - Added `kraken_fclose()` - close file
+  - Added `kraken_fread()` - read from file
+  - Added `kraken_fwrite()` - write to file
+- **Math Functions (25 functions)**
+  - Trigonometric: `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`
+  - Hyperbolic: `sinh`, `cosh`, `tanh`
+  - Exponential/Log: `exp`, `log`, `log10`, `log2`, `pow`, `sqrt`, `cbrt`
+  - Rounding: `ceil`, `floor`, `round`, `trunc`
+  - Remainder: `fmod`, `remainder`
+  - Other: `fabs`, `hypot`
+- **Time Functions**
+  - Added `kraken_time()` - get current timestamp
+  - Added `kraken_clock()` - get clock ticks
+  - Added `kraken_clocks_per_sec()` - get CLOCKS_PER_SEC constant
+  - Added `kraken_difftime()` - calculate time difference
+  - Added `kraken_strftime()` - format time string
+  - Added `kraken_localtime()` - convert timestamp to struct
+- **Memory Functions**
+  - Added `kraken_calloc()` - allocate zeroed memory
+  - Added `kraken_aligned_alloc()` - allocate aligned memory
+  - Added `kraken_realloc()` - reallocate memory
+  - Added `kraken_free()` - free memory
+  - Added `kraken_memcpy()` - copy memory
+  - Added `kraken_memset()` - set memory
+  - Added `kraken_memcmp()` - compare memory
+- **Union Keyword Support**
+  - Added `union` keyword to lexer
+  - Foundation for C interop union types
+  - Keyword available for future parser implementation
+- **Comprehensive Tests**
+  - Created `test_string_utilities.kr` with 10 test functions
+  - Created `test_stdlib_expansion.kr` with comprehensive tests
+  - Tests for math, time, and memory functions
+  - External function declarations for runtime integration
+
+### Changed
+- Enhanced runtime library from 122 to 308 lines (string utilities)
+- Added new `kraken_stdlib.c` with 240+ lines (file I/O, math, time, memory)
+- Updated build script to compile both runtime modules
+- Improved string manipulation capabilities
+- Better C FFI integration support
+- Comprehensive standard library coverage
+
 ## [0.8.22] - 2026-01-23
 
 ### Added
