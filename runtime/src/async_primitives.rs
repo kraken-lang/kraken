@@ -108,12 +108,12 @@ impl<T> AsyncMutex<T> {
     }
 
     /// Try to lock the mutex
-    pub fn try_lock(&self) -> Option<std::sync::MutexGuard<T>> {
+    pub fn try_lock(&self) -> Option<std::sync::MutexGuard<'_, T>> {
         self.inner.try_lock().ok()
     }
 
     /// Lock the mutex (blocking)
-    pub fn lock(&self) -> std::sync::MutexGuard<T> {
+    pub fn lock(&self) -> std::sync::MutexGuard<'_, T> {
         self.inner.lock().unwrap()
     }
 }

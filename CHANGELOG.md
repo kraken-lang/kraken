@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Fixed
+
+## [0.8.33] - 2026-01-24
+
+### Added
+- **Threading & Concurrency**
+  - Thread primitives: spawning, joining, thread IDs, thread names
+  - Thread builder for configuring threads (name, stack size)
+  - Thread-local storage with get/set/remove operations
+  - 6 unit tests for threading functionality
+- **Synchronization Primitives**
+  - Mutex for mutual exclusion
+  - RwLock for reader-writer locks
+  - Semaphore for counting semaphores
+  - Barrier for synchronization points
+  - Condition variables for thread coordination
+  - 7 unit tests for synchronization primitives
+- **Atomic Operations**
+  - Atomic types: AtomicBool, AtomicI32, AtomicI64, AtomicU32, AtomicU64, AtomicUsize, AtomicIsize
+  - Memory ordering semantics: Relaxed, Acquire, Release, AcqRel, SeqCst
+  - Compare-and-swap operations
+  - Fetch-and-add/sub operations
+  - 5 unit tests for atomic operations
+- **Concurrent Data Structures**
+  - Lock-free MPSC queue (Multiple Producer Single Consumer)
+  - Lock-free MPMC queue (Multiple Producer Multiple Consumer)
+  - Concurrent hash map with thread-safe operations
+  - Work-stealing deque for task scheduling
+  - Thread pool for parallel task execution
+  - 8 unit tests for concurrent data structures
+- **Thread Safety Utilities**
+  - Deadlock detector for monitoring lock acquisition patterns
+  - Performance monitor for tracking concurrent operations
+  - Performance metrics (lock acquisitions, contentions, wait times)
+  - Lock timeout utilities for preventing indefinite blocking
+  - 11 unit tests for thread safety features
+
 ## [0.8.32] - 2026-01-24
 
 ### Added
