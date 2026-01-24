@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.32] - 2026-01-24
+
+### Added
+- **Drop Trait and RAII**
+  - DropChecker module for tracking Drop trait implementations
+  - Automatic Drop call on scope exit
+  - Drop order guarantees (reverse declaration order)
+  - Scope-based variable tracking for cleanup
+  - Drop implementation registration and validation
+  - 6 unit tests for Drop checker functionality
+- **Smart Pointer Runtime**
+  - Box<T> runtime with heap allocation and automatic deallocation
+  - Rc<T> runtime with reference counting and Drop integration
+  - Arc<T> runtime with atomic reference counting for thread safety
+  - Thread-safe Send and Sync implementations for Arc<T>
+  - Smart pointer Drop implementations for automatic cleanup
+  - 7 unit tests for smart pointer memory management
+- **Future Trait Infrastructure**
+  - FutureTracker for tracking Future trait implementations
+  - Pin type for self-referential futures
+  - Waker and Context for task waking
+  - Future trait validation and output type tracking
+  - 7 unit tests for Future trait functionality
+- **Async Runtime**
+  - Single-threaded Executor with task spawning
+  - Task scheduler with work-stealing support
+  - Task queue and ready queue management
+  - Waker-based task notification system
+  - 5 unit tests for async runtime execution
+- **Async Primitives**
+  - Async channels: MPSC (Multiple Producer Single Consumer)
+  - Oneshot channels for single value transmission
+  - Async mutex for mutual exclusion
+  - Async semaphore for counting
+  - Async barrier for synchronization
+  - 5 unit tests for async primitives
+- **Async I/O and Standard Library**
+  - Async file operations (read, write, append)
+  - Async TCP listener and stream
+  - Async UDP socket
+  - Async timer with duration support
+  - Stream trait for async iteration
+  - 5 unit tests for async I/O operations
+- **Async/Await Language Features**
+  - Async function syntax with `async fn` keyword
+  - Await expression support with `await` keyword
+  - Async function parsing and AST support
+  - State machine transformation for async functions (IR support)
+  - Spawn expression for task spawning
+  - Test program for async/await functionality
+
+### Changed
+- Enhanced runtime library with comprehensive async execution capabilities
+- Improved memory management with smart pointer runtime support
+- Added async primitives for concurrent programming
+- Expanded async I/O support for file and network operations
+
 ## [0.8.31] - 2026-01-24
 
 ### Added

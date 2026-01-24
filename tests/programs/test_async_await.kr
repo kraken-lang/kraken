@@ -1,0 +1,24 @@
+// Test async/await functionality
+
+// Async function that returns a value
+async fn fetch_data() -> int {
+    return 42;
+}
+
+// Async function with await
+async fn process_data() -> int {
+    let data = await fetch_data();
+    return data + 10;
+}
+
+// Async function with multiple awaits
+async fn complex_async() -> int {
+    let a = await fetch_data();
+    let b = await process_data();
+    return a + b;
+}
+
+// Main function
+fn main() {
+    println("Async/await test");
+}

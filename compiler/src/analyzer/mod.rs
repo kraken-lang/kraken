@@ -3,6 +3,8 @@ pub mod closure_analysis;
 pub mod const_eval;
 pub mod derive_generator;
 pub mod desugar;
+pub mod drop_checker;
+pub mod future_trait;
 pub mod macro_expander;
 pub mod monomorphization;
 pub mod type_checker;
@@ -17,6 +19,10 @@ pub use closure_analysis::{CapturedVariable, ClosureAnalyzer, ClosureEnvironment
 pub use const_eval::{ConstEvaluator, ConstValue};
 #[allow(unused_imports)]
 pub use derive_generator::DeriveGenerator;
+#[allow(unused_imports)]
+pub use drop_checker::{DropChecker, DropImpl, VariableInfo};
+#[allow(unused_imports)]
+pub use future_trait::{Context, FutureTracker, Pin, Waker};
 #[allow(unused_imports)]
 pub use macro_expander::MacroExpander;
 pub use monomorphization::monomorphize_program;
