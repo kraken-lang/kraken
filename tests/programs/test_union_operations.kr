@@ -1,0 +1,32 @@
+// Test union operations and type safety
+
+union Value {
+    int_val: int,
+    float_val: float,
+    bool_val: bool,
+}
+
+union Pointer {
+    ptr: int,
+    data: int,
+}
+
+fn test_union_init() -> int {
+    let v1: Value = Value { int_val: 42 };
+    let v2: Value = Value { float_val: 3.14 };
+    let v3: Value = Value { bool_val: true };
+    
+    return 0;
+}
+
+fn test_union_assignment() -> int {
+    let v: Value = Value { int_val: 10 };
+    return 0;
+}
+
+fn main() -> int {
+    let result: int = test_union_init();
+    result = result + test_union_assignment();
+    
+    return result;
+}

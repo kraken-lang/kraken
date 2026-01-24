@@ -84,6 +84,7 @@ impl IrLowering {
                     where_constraints: _,
                     fields,
                     is_public,
+                    repr: _,
                 } => {
                     let ir_struct = self.lower_struct(name, fields, *is_public)?;
                     ir_program.structs.push(ir_struct);
@@ -861,14 +862,11 @@ mod tests {
             where_constraints: vec![],
             parameters: vec![],
             return_type: Some(Type::Int),
-            body: Block {
-                statements: vec![Statement::Return {
-                    value: Some(Expression::IntLiteral(42)),
-                }],
-            },
+            body: Block::new(vec![]),
             is_async: false,
             is_unsafe: false,
             is_public: false,
+            is_variadic: false,
         }]);
         let ir_program = lowering.lower_program(&program).unwrap();
         assert_eq!(ir_program.functions.len(), 1);

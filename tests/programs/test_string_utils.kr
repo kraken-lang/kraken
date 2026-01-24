@@ -1,0 +1,50 @@
+// Test string utility functions
+
+fn test_sprintf() -> int {
+    // Test sprintf functionality
+    // Note: This is a placeholder - actual sprintf implementation needs FFI
+    return 0;
+}
+
+fn test_snprintf() -> int {
+    // Test snprintf functionality
+    // Note: This is a placeholder - actual snprintf implementation needs FFI
+    return 0;
+}
+
+fn test_strtok() -> int {
+    // Test strtok functionality
+    // Note: This is a placeholder - actual strtok implementation needs FFI
+    return 0;
+}
+
+fn test_strdup() -> int {
+    // Test strdup functionality
+    // Note: This is a placeholder - actual strdup implementation needs FFI
+    return 0;
+}
+
+fn test_strchr() -> int {
+    // Test strchr functionality
+    // Note: This is a placeholder - actual strchr implementation needs FFI
+    return 0;
+}
+
+fn test_strrchr() -> int {
+    // Test strrchr functionality
+    // Note: This is a placeholder - actual strrchr implementation needs FFI
+    return 0;
+}
+
+fn main() -> int {
+    let result: int = 0;
+    
+    result = result + test_sprintf();
+    result = result + test_snprintf();
+    result = result + test_strtok();
+    result = result + test_strdup();
+    result = result + test_strchr();
+    result = result + test_strrchr();
+    
+    return result;
+}

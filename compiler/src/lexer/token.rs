@@ -52,6 +52,7 @@ pub enum TokenKind {
     Arrow,        // ->
     Question,     // ?
     Pipe,         // |
+    Hash,         // #
 
     // Special
     Eof,
@@ -90,9 +91,9 @@ pub enum Keyword {
     Import,
     Struct,
     Enum,
+    Trait,
     Class,
     Interface,
-    Trait,
     Type,
     Impl,
     Union,

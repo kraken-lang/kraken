@@ -1961,7 +1961,16 @@ impl TypeChecker {
                 is_async: _,
                 is_unsafe: _,
                 is_public: _,
+                is_variadic,
             } => {
+                // Validate variadic functions
+                if *is_variadic && parameters.is_empty() {
+                    return Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        "Variadic function must have at least one fixed parameter before '...'",
+                    ));
+                }
+
                 let ret_type = return_type.clone().unwrap_or(Type::Void);
 
                 let previous_return_type = self.current_function_return_type.clone();
@@ -1992,6 +2001,7 @@ impl TypeChecker {
                 where_constraints: _,
                 fields,
                 is_public: _,
+                repr: _,
             } => {
                 let mut field_map = HashMap::new();
                 for field in fields {
@@ -2036,6 +2046,17 @@ impl TypeChecker {
                 // Also register as custom type for type checking
                 self.env
                     .define_struct(name.clone(), StructType::new(HashMap::new()));
+                Ok(())
+            }
+
+            Statement::UnionDeclaration { name, fields, .. } => {
+                // Register union as a struct-like type
+                let mut field_types = HashMap::new();
+                for field in fields {
+                    field_types.insert(field.name.clone(), field.field_type.clone());
+                }
+                self.env
+                    .define_struct(name.clone(), StructType::new(field_types));
                 Ok(())
             }
 

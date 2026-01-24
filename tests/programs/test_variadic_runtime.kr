@@ -1,0 +1,15 @@
+// Test variadic function runtime support
+
+extern fn kraken_vprintf(format: str, ...) -> int;
+extern fn kraken_vsprintf(buffer: str, format: str, ...) -> int;
+
+fn test_variadic_printf() -> int {
+    // Test variadic printf wrapper
+    let result: int = kraken_vprintf("Test: %d %s\n", 42, "hello");
+    return result;
+}
+
+fn main() -> int {
+    let result: int = test_variadic_printf();
+    return 0;
+}

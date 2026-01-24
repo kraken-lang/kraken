@@ -1,0 +1,26 @@
+// Test struct representation attributes
+
+#[repr(C)]
+struct CCompatible {
+    x: int,
+    y: int,
+}
+
+#[repr(packed)]
+struct PackedStruct {
+    a: int,
+    b: int,
+}
+
+#[repr(align(16))]
+struct AlignedStruct {
+    data: int,
+}
+
+fn main() -> int {
+    let c: CCompatible = CCompatible { x: 10, y: 20 };
+    let p: PackedStruct = PackedStruct { a: 1, b: 2 };
+    let a: AlignedStruct = AlignedStruct { data: 42 };
+    
+    return c.x + p.a + a.data;
+}

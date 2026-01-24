@@ -1,0 +1,23 @@
+// Test variadic function parsing
+
+// Variadic function declaration
+fn printf(format: str, ...) -> int {
+    return 0;
+}
+
+// Variadic function with multiple parameters
+fn log(level: int, message: str, ...) -> void {
+    // Variadic implementation
+}
+
+// Regular function for comparison
+fn regular_func(a: int, b: str) -> int {
+    return a;
+}
+
+fn main() -> int {
+    // Test that variadic functions parse correctly
+    let result: int = printf("Hello %s", "world");
+    
+    return 0;
+}

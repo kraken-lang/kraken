@@ -101,6 +101,7 @@ impl Tokenizer {
             }
             '~' => TokenKind::Operator(Operator::BitNot),
             '?' => TokenKind::Question,
+            '#' => TokenKind::Hash,
 
             // Operators that may be multi-character
             '+' => {

@@ -329,6 +329,7 @@ impl Monomorphizer {
             | Statement::ClassDeclaration { .. }
             | Statement::InterfaceDeclaration { .. }
             | Statement::EnumDeclaration { .. }
+            | Statement::UnionDeclaration { .. }
             | Statement::Break
             | Statement::Continue
             | Statement::TypeAlias { .. }
@@ -721,6 +722,7 @@ impl Monomorphizer {
             is_async,
             is_unsafe,
             is_public,
+            is_variadic,
         } = template
         else {
             return Err(self.type_error("Invalid function template AST"));
@@ -751,6 +753,7 @@ impl Monomorphizer {
             is_async,
             is_unsafe,
             is_public,
+            is_variadic,
         })
     }
 
@@ -770,6 +773,7 @@ impl Monomorphizer {
             where_constraints,
             fields,
             is_public,
+            repr,
         } = template
         else {
             return Err(self.type_error("Invalid struct template AST"));
@@ -792,6 +796,7 @@ impl Monomorphizer {
             where_constraints: Vec::new(),
             fields,
             is_public,
+            repr,
         })
     }
 
@@ -899,6 +904,7 @@ impl Monomorphizer {
                 is_async,
                 is_unsafe,
                 is_public,
+                is_variadic,
             } => {
                 let parameters = parameters
                     .into_iter()
@@ -921,6 +927,7 @@ impl Monomorphizer {
                     is_async,
                     is_unsafe,
                     is_public,
+                    is_variadic,
                 })
             }
 
@@ -930,6 +937,7 @@ impl Monomorphizer {
                 where_constraints,
                 fields,
                 is_public,
+                repr,
             } => {
                 let fields = fields
                     .into_iter()
@@ -944,6 +952,7 @@ impl Monomorphizer {
                     where_constraints,
                     fields,
                     is_public,
+                    repr,
                 })
             }
 
@@ -972,7 +981,9 @@ impl Monomorphizer {
                 })
             }
 
-            Statement::InterfaceDeclaration { .. } | Statement::EnumDeclaration { .. } => Ok(stmt),
+            Statement::InterfaceDeclaration { .. } 
+            | Statement::EnumDeclaration { .. } 
+            | Statement::UnionDeclaration { .. } => Ok(stmt),
 
             Statement::Return { value } => Ok(Statement::Return {
                 value: value
@@ -1493,7 +1504,8 @@ impl Monomorphizer {
             Statement::FunctionDeclaration { body, .. } => self.scan_block(body),
 
             Statement::StructDeclaration { fields, .. }
-            | Statement::ClassDeclaration { fields, .. } => {
+            | Statement::ClassDeclaration { fields, .. }
+            | Statement::UnionDeclaration { fields, .. } => {
                 for f in fields {
                     self.scan_type(&f.field_type)?;
                 }

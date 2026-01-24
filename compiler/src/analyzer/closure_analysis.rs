@@ -316,6 +316,7 @@ impl ClosureAnalyzer {
             Statement::FunctionDeclaration { .. }
             | Statement::StructDeclaration { .. }
             | Statement::EnumDeclaration { .. }
+            | Statement::UnionDeclaration { .. }
             | Statement::ClassDeclaration { .. }
             | Statement::InterfaceDeclaration { .. }
             | Statement::Module { .. }

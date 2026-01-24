@@ -13,6 +13,110 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.8.29] - 2026-01-24
+
+### Added
+- **Variadic Function Support**
+  - Added `is_variadic` field to FunctionDeclaration AST
+  - Parser support for variadic parameters: `fn printf(format: str, ...)`
+  - Variadic parameter detection with `...` syntax
+  - Error handling for incomplete `...` syntax
+  - Type checking validation for variadic functions
+  - Validates at least one fixed parameter before `...`
+  - Updated all compiler passes to handle variadic functions
+  - Created test file: `test_variadic.kr`
+  - Foundation for printf-style variadic function implementation
+- **Union Type Support**
+  - Added `Union` keyword to lexer
+  - Added `UnionDeclaration` to AST for union type support
+  - Parser support for union declarations: `union Data { ... }`
+  - Public union support: `pub union Data { ... }`
+  - Type checker registers unions as struct-like types
+  - Updated all compiler passes to handle union types
+  - LLVM codegen for union types (simplified implementation)
+  - Unions treated as structs in codegen (all fields present)
+  - Created test file: `test_union.kr`
+  - Foundation for C-compatible union types
+- **String Utilities**
+  - Added `kraken_sprintf` - formatted string output
+  - Added `kraken_snprintf` - bounded formatted string output
+  - Added `kraken_strtok` - string tokenization
+  - Added `kraken_strdup` - string duplication
+  - Added `kraken_strchr` - find first occurrence of character
+  - Added `kraken_strrchr` - find last occurrence of character
+  - All utilities with proper null checking and error handling
+- **Struct Representation Attributes**
+  - Added `StructRepr` enum to AST for FFI compatibility
+  - Added `repr` field to `StructDeclaration` for layout control
+  - Added `Hash` token to lexer for attribute syntax
+  - Parser support for `#[repr(C)]` - C-compatible layout
+  - Parser support for `#[repr(packed)]` - Packed layout
+  - Parser support for `#[repr(align(N))]` - Alignment control
+  - Attribute validation and error handling
+  - LLVM codegen for packed structs (no padding)
+  - Updated all compiler passes to handle repr field
+  - Created test file: `test_repr_attributes.kr`
+- **FFI Type Safety Enhancements**
+  - Added `kraken_ffi_check_null` - null pointer checking with trap
+  - Added `kraken_ffi_validate_ptr` - pointer validation before FFI calls
+  - Added `kraken_ffi_validate_string` - string pointer validation
+  - Added `kraken_ffi_safe_malloc` - safe malloc with null check
+  - Added `kraken_ffi_safe_realloc` - safe realloc with null check
+  - Added `kraken_ffi_check_bounds` - buffer bounds checking
+  - Added `kraken_ffi_validate_type_size` - type size validation
+  - Added `kraken_ffi_validate_callback` - callback pointer validation
+  - All utilities with automatic error reporting and abort on failure
+- **Advanced Variadic Function Support**
+  - Added `kraken_vprintf` - variadic printf wrapper
+  - Added `kraken_vsprintf` - variadic sprintf wrapper
+  - Added `kraken_vsnprintf` - variadic snprintf wrapper
+  - Added `kraken_vfprintf` - variadic fprintf wrapper
+  - Added variadic context API (`kraken_va_init`, `kraken_va_get_int`, etc.)
+  - Support for va_list, va_start, va_end patterns
+  - Runtime argument count tracking and validation
+- **Runtime Union Tag Checking**
+  - Added `kraken_union_create` - create tagged union with runtime tag
+  - Added `kraken_union_set_tag` - set union tag on field assignment
+  - Added `kraken_union_check_tag` - validate tag before field access
+  - Added `kraken_union_get_tag` - get current union tag
+  - Added `kraken_union_free` - free tagged union
+  - Added `kraken_union_validate_size` - validate union size
+  - Full runtime type safety for union operations
+- **Advanced Struct Padding and Alignment**
+  - Added `kraken_type_alignment` - calculate type alignment
+  - Added `kraken_calculate_padding` - calculate padding bytes
+  - Added `kraken_align_offset` - align offset to boundary
+  - Added `kraken_calculate_struct_size` - calculate struct size with padding
+  - Added `kraken_calculate_field_offset` - calculate field offset in struct
+  - Added `kraken_validate_struct_alignment` - validate struct alignment
+  - Added `kraken_get_max_alignment` - get maximum field alignment
+  - Added `kraken_calculate_struct_padding` - calculate total padding
+  - Support for packed and aligned struct layouts
+- **Comprehensive Test Coverage**
+  - Created `test_variadic.kr` for variadic function parsing
+  - Created `test_variadic_edge_cases.kr` for variadic edge cases
+  - Created `test_union.kr` for union type parsing
+  - Created `test_union_operations.kr` for union operations
+  - Created `test_union_edge_cases.kr` for union edge cases
+  - Created `test_string_utils.kr` for string utilities
+  - Created `test_repr_attributes.kr` for repr attributes
+  - Created `test_repr_edge_cases.kr` for repr edge cases
+  - Created `test_ffi_integration.kr` for FFI integration testing
+  - Created `test_function_pointers.kr` for function pointer callbacks
+  - Created `test_ffi_null_safety.kr` for FFI null pointer safety
+  - Created `test_union_runtime_tags.kr` for runtime union tag checking
+  - Created `test_struct_padding.kr` for struct padding and alignment
+  - Created `test_variadic_runtime.kr` for variadic runtime support
+  - **14 comprehensive test programs** covering all new features
+
+### Changed
+- Enhanced AST with infrastructure for advanced FFI features
+- Updated all compiler passes to support variadic and union types
+- Parser now detects and handles variadic parameters in function declarations
+- Runtime library expanded from 68 to 104 functions (36 new functions)
+- StructDeclaration now includes repr field for layout attributes
+- Improved FFI safety with comprehensive null pointer checking and validation
+
 ## [0.8.28] - 2026-01-23
 
 ### Added

@@ -1,0 +1,50 @@
+// Test struct repr attribute edge cases
+
+// Test nested structs with different repr
+#[repr(C)]
+struct Outer {
+    x: int,
+    inner: Inner,
+}
+
+#[repr(packed)]
+struct Inner {
+    a: int,
+    b: int,
+}
+
+// Test repr(align) with various alignments
+#[repr(align(8))]
+struct Align8 {
+    data: int,
+}
+
+#[repr(align(16))]
+struct Align16 {
+    data: int,
+}
+
+#[repr(align(32))]
+struct Align32 {
+    data: int,
+}
+
+// Test empty struct with repr
+#[repr(C)]
+struct Empty {
+}
+
+fn main() -> int {
+    let outer: Outer = Outer { 
+        x: 10, 
+        inner: Inner { a: 1, b: 2 } 
+    };
+    
+    let a8: Align8 = Align8 { data: 8 };
+    let a16: Align16 = Align16 { data: 16 };
+    let a32: Align32 = Align32 { data: 32 };
+    
+    let empty: Empty = Empty {};
+    
+    return outer.x + a8.data + a16.data + a32.data;
+}

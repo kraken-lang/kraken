@@ -1,0 +1,29 @@
+// Test variadic function edge cases
+
+// Test variadic with single fixed parameter
+fn single_param(x: int, ...) -> int {
+    return x;
+}
+
+// Test variadic with multiple fixed parameters
+fn multi_param(a: int, b: int, c: str, ...) -> int {
+    return a + b;
+}
+
+// Test variadic with different types
+fn mixed_types(format: str, ...) -> int {
+    return 0;
+}
+
+fn main() -> int {
+    // Test with minimum args (only fixed params)
+    let r1: int = single_param(42);
+    
+    // Test with multiple fixed params
+    let r2: int = multi_param(10, 20, "test");
+    
+    // Test with mixed types
+    let r3: int = mixed_types("format");
+    
+    return r1 + r2 + r3;
+}

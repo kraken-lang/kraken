@@ -1,0 +1,51 @@
+// Test union edge cases
+
+// Test union with single field
+union Single {
+    value: int,
+}
+
+// Test union with many fields
+union Large {
+    i8: int,
+    i16: int,
+    i32: int,
+    i64: int,
+    f32: float,
+    f64: float,
+    b: bool,
+}
+
+// Test nested unions
+union Nested {
+    inner: Inner,
+    value: int,
+}
+
+union Inner {
+    a: int,
+    b: float,
+}
+
+// Test union with struct field
+struct Point {
+    x: int,
+    y: int,
+}
+
+union Mixed {
+    point: Point,
+    value: int,
+}
+
+fn main() -> int {
+    let s: Single = Single { value: 42 };
+    
+    let l: Large = Large { i8: 8 };
+    
+    let n: Nested = Nested { value: 100 };
+    
+    let m: Mixed = Mixed { value: 50 };
+    
+    return 0;
+}

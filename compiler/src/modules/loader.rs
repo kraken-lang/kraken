@@ -266,6 +266,9 @@ fn build_private_mangle_map(module_id: &str, program: &Program) -> HashMap<Strin
             }
             | Statement::ClassDeclaration {
                 name, is_public, ..
+            }
+            | Statement::UnionDeclaration {
+                name, is_public, ..
             } => {
                 if !*is_public {
                     map.insert(name.clone(), mangle_symbol(module_id, name));
@@ -316,6 +319,7 @@ fn rewrite_statement(
             is_async,
             is_unsafe,
             is_public,
+            is_variadic,
         } => {
             if is_public {
                 for p in &parameters {
@@ -357,6 +361,7 @@ fn rewrite_statement(
                 is_async,
                 is_unsafe,
                 is_public,
+                is_variadic,
             })
         }
 
@@ -366,6 +371,7 @@ fn rewrite_statement(
             where_constraints,
             fields,
             is_public,
+            repr,
         } => {
             if is_public {
                 for f in &fields {
@@ -391,6 +397,7 @@ fn rewrite_statement(
                 where_constraints,
                 fields: new_fields,
                 is_public,
+                repr: repr.clone(),
             })
         }
 
@@ -529,6 +536,7 @@ fn rewrite_statement(
         | Statement::Continue
         | Statement::InterfaceDeclaration { .. }
         | Statement::EnumDeclaration { .. }
+        | Statement::UnionDeclaration { .. }
         | Statement::TypeAlias { .. }
         | Statement::ImplBlock { .. }
         | Statement::TraitDeclaration { .. }

@@ -1,6 +1,6 @@
 use crate::parser::ast::{
     Block, ClosureBody, EnumVariantPayload, Expression, FunctionSignature, MatchArm, Parameter,
-    Pattern, Program, Statement, StructField, Type, WhereConstraint,
+    Pattern, Program, Statement, StructField, Type, WhereConstraint, StructRepr,
 };
 use crate::{
     error::{CompilerError, CompilerResult, SourceLocation},
@@ -42,6 +42,46 @@ impl Parser {
         Ok(Program::new(statements))
     }
 
+    /// Parse attributes like #[repr(C)]
+    fn parse_attributes(&mut self) -> CompilerResult<Option<StructRepr>> {
+        if !self.match_token(TokenKind::Hash) {
+            return Ok(None);
+        }
+
+        self.expect_token(TokenKind::LeftBracket)?;
+        let attr_name = self.consume_identifier()?;
+
+        if attr_name != "repr" {
+            return Err(self.error(&format!("Unknown attribute: {attr_name}")));
+        }
+
+        self.expect_token(TokenKind::LeftParen)?;
+        let repr_type = self.consume_identifier()?;
+        
+        let repr = match repr_type.as_str() {
+            "C" => StructRepr::C,
+            "packed" => StructRepr::Packed,
+            "align" => {
+                self.expect_token(TokenKind::LeftParen)?;
+                if let TokenKind::IntLiteral = self.peek().kind {
+                    let align_val = self.peek().lexeme.parse::<u32>()
+                        .map_err(|_| self.error("Invalid alignment value"))?;
+                    self.advance();
+                    self.expect_token(TokenKind::RightParen)?;
+                    StructRepr::Align(align_val)
+                } else {
+                    return Err(self.error("Expected integer literal for alignment"));
+                }
+            }
+            _ => return Err(self.error(&format!("Unknown repr type: {repr_type}"))),
+        };
+
+        self.expect_token(TokenKind::RightParen)?;
+        self.expect_token(TokenKind::RightBracket)?;
+
+        Ok(Some(repr))
+    }
+
     /// Parse a statement.
     fn parse_statement(&mut self) -> CompilerResult<Statement> {
         // Check for keywords that start statements
@@ -74,6 +114,8 @@ impl Parser {
             self.parse_struct_declaration(false)
         } else if self.match_keyword(Keyword::Enum) {
             self.parse_enum_declaration(false)
+        } else if self.match_keyword(Keyword::Union) {
+            self.parse_union_declaration(false)
         } else if self.match_keyword(Keyword::Type) {
             self.parse_type_alias(false)
         } else if self.match_keyword(Keyword::Trait) {
@@ -250,7 +292,7 @@ impl Parser {
         };
 
         self.expect_token(TokenKind::LeftParen)?;
-        let parameters = self.parse_parameter_list()?;
+        let (parameters, is_variadic) = self.parse_parameter_list()?;
         self.expect_token(TokenKind::RightParen)?;
 
         let return_type = if self.match_token(TokenKind::Arrow) {
@@ -277,6 +319,7 @@ impl Parser {
             is_async,
             is_unsafe,
             is_public,
+            is_variadic,
         })
     }
 
@@ -288,6 +331,8 @@ impl Parser {
             self.parse_struct_declaration(true)
         } else if self.match_keyword(Keyword::Enum) {
             self.parse_enum_declaration(true)
+        } else if self.match_keyword(Keyword::Union) {
+            self.parse_union_declaration(true)
         } else if self.match_keyword(Keyword::Type) {
             self.parse_type_alias(true)
         } else if self.match_keyword(Keyword::Trait) {
@@ -295,12 +340,15 @@ impl Parser {
         } else if self.match_keyword(Keyword::Class) {
             self.parse_class_declaration(true)
         } else {
-            Err(self.error("Expected fn, struct, enum, trait, or class after pub"))
+            Err(self.error("Expected fn, struct, enum, union, trait, or class after pub"))
         }
     }
 
     /// Parse a struct declaration.
     fn parse_struct_declaration(&mut self, is_public: bool) -> CompilerResult<Statement> {
+        // Parse optional #[repr(...)] attribute
+        let repr = self.parse_attributes()?;
+
         let name = self.consume_identifier()?;
 
         let generic_params = if self.match_operator(Operator::Less) {
@@ -331,6 +379,7 @@ impl Parser {
             where_constraints,
             fields,
             is_public,
+            repr,
         })
     }
 
@@ -365,6 +414,21 @@ impl Parser {
         Ok(Statement::EnumDeclaration {
             name,
             variants,
+            is_public,
+        })
+    }
+
+    /// Parse a union declaration.
+    fn parse_union_declaration(&mut self, is_public: bool) -> CompilerResult<Statement> {
+        let name = self.consume_identifier()?;
+
+        self.expect_token(TokenKind::LeftBrace)?;
+        let fields = self.parse_struct_fields()?;
+        self.expect_token(TokenKind::RightBrace)?;
+
+        Ok(Statement::UnionDeclaration {
+            name,
+            fields,
             is_public,
         })
     }
@@ -489,7 +553,7 @@ impl Parser {
             let method_name = self.consume_identifier()?;
 
             self.expect_token(TokenKind::LeftParen)?;
-            let parameters = self.parse_parameter_list()?;
+            let (parameters, _) = self.parse_parameter_list()?;
             self.expect_token(TokenKind::RightParen)?;
 
             let return_type = if self.match_token(TokenKind::Arrow) {
@@ -710,7 +774,7 @@ impl Parser {
                 let method_name = self.consume_identifier()?;
 
                 self.expect_token(TokenKind::LeftParen)?;
-                let parameters = self.parse_parameter_list()?;
+                let (parameters, _) = self.parse_parameter_list()?;
                 self.expect_token(TokenKind::RightParen)?;
 
                 let return_type = if self.match_token(TokenKind::Arrow) {
@@ -741,7 +805,7 @@ impl Parser {
                 let method_name = self.consume_identifier()?;
 
                 self.expect_token(TokenKind::LeftParen)?;
-                let parameters = self.parse_parameter_list()?;
+                let (parameters, _) = self.parse_parameter_list()?;
                 self.expect_token(TokenKind::RightParen)?;
 
                 let return_type = if self.match_token(TokenKind::Arrow) {
@@ -946,12 +1010,26 @@ impl Parser {
         Ok(Block::new(statements))
     }
 
-    /// Parse parameter list.
-    fn parse_parameter_list(&mut self) -> CompilerResult<Vec<Parameter>> {
+    /// Parse parameter list. Returns (parameters, is_variadic).
+    fn parse_parameter_list(&mut self) -> CompilerResult<(Vec<Parameter>, bool)> {
         let mut parameters = Vec::new();
+        let mut is_variadic = false;
 
         if !self.check_token(TokenKind::RightParen) {
             loop {
+                // Check for variadic parameter: ...
+                if self.match_token(TokenKind::Dot) {
+                    if self.match_token(TokenKind::Dot) && self.match_token(TokenKind::Dot) {
+                        is_variadic = true;
+                        break;
+                    } else {
+                        return Err(CompilerError::parser_error(
+                            SourceLocation::new(self.file_path.clone(), 0, 0),
+                            "Expected '...' for variadic parameter",
+                        ));
+                    }
+                }
+
                 let is_reference = self.match_keyword(Keyword::Ref);
 
                 // Parse pattern for parameter (supports destructuring)
@@ -972,7 +1050,7 @@ impl Parser {
             }
         }
 
-        Ok(parameters)
+        Ok((parameters, is_variadic))
     }
 
     /// Parse a type annotation.

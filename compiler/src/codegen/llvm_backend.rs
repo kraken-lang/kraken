@@ -273,7 +273,7 @@ impl LLVMCodegen {
             self.declare_stdlib_functions()?;
 
             for statement in &program.statements {
-                if matches!(statement, Statement::StructDeclaration { .. }) {
+                if matches!(statement, Statement::StructDeclaration { .. } | Statement::UnionDeclaration { .. }) {
                     self.codegen_statement(statement)?;
                 }
             }
@@ -406,6 +406,7 @@ impl LLVMCodegen {
                 is_async: _,
                 is_unsafe: _,
                 is_public: _,
+                is_variadic: _,
             } => {
                 self.codegen_function(
                     name,
@@ -422,6 +423,7 @@ impl LLVMCodegen {
                 where_constraints: _,
                 fields,
                 is_public: _,
+                repr,
             } => {
                 unsafe {
                     if self.struct_types.contains_key(name) {
@@ -441,17 +443,68 @@ impl LLVMCodegen {
                         field_names.push(field.name.clone());
                     }
 
-                    // Set struct body
+                    // Determine if struct should be packed based on repr attribute
+                    let is_packed = matches!(repr, Some(StructRepr::Packed));
+
+                    // Set struct body with packing flag
                     LLVMStructSetBody(
                         struct_type,
+                        field_types.as_mut_ptr(),
+                        field_types.len() as u32,
+                        if is_packed { 1 } else { 0 },
+                    );
+
+                    // TODO: Handle repr(C) and repr(align(N)) with LLVM alignment APIs
+                    // repr(C) ensures C-compatible layout (default in LLVM)
+                    // repr(align(N)) would require LLVMSetAlignment on allocations
+
+                    // Store struct type, field names, and field types
+                    self.struct_types
+                        .insert(name.clone(), (struct_type, field_names, field_types));
+                }
+                Ok(())
+            }
+
+            Statement::UnionDeclaration {
+                name,
+                fields,
+                is_public: _,
+            } => {
+                unsafe {
+                    if self.struct_types.contains_key(name) {
+                        return Ok(());
+                    }
+
+                    // For unions, we'll use a simple approach: create a struct with all fields
+                    // This is a simplified implementation - proper unions would need size calculation
+                    let union_name = CString::new(name.as_str()).expect("CString failed");
+                    let union_type = LLVMStructCreateNamed(self.context, union_name.as_ptr());
+                    
+                    let mut field_types: Vec<LLVMTypeRef> = Vec::new();
+                    let mut field_names: Vec<String> = Vec::new();
+
+                    // For now, treat union like a struct (all fields present)
+                    // TODO: Implement proper union semantics with size calculation
+                    for field in fields {
+                        field_types.push(self.get_llvm_type(&field.field_type));
+                        field_names.push(field.name.clone());
+                    }
+
+                    // If no fields, use a single byte
+                    if field_types.is_empty() {
+                        field_types.push(LLVMInt8TypeInContext(self.context));
+                    }
+
+                    LLVMStructSetBody(
+                        union_type,
                         field_types.as_mut_ptr(),
                         field_types.len() as u32,
                         0, // not packed
                     );
 
-                    // Store struct type, field names, and field types
+                    // Store union type
                     self.struct_types
-                        .insert(name.clone(), (struct_type, field_names, field_types));
+                        .insert(name.clone(), (union_type, field_names, field_types));
                 }
                 Ok(())
             }

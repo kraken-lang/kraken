@@ -1,0 +1,35 @@
+// Test function pointer callbacks
+
+// Simple callback function
+fn callback_add(a: int, b: int) -> int {
+    return a + b;
+}
+
+fn callback_multiply(a: int, b: int) -> int {
+    return a * b;
+}
+
+// Function that takes a function pointer
+fn apply_operation(a: int, b: int, op: fn(int, int) -> int) -> int {
+    return op(a, b);
+}
+
+// Test callback with no parameters
+fn callback_hello() -> int {
+    return 42;
+}
+
+fn call_simple_callback(cb: fn() -> int) -> int {
+    return cb();
+}
+
+fn main() -> int {
+    // Test function pointer with parameters
+    let result1: int = apply_operation(10, 20, callback_add);
+    let result2: int = apply_operation(10, 20, callback_multiply);
+    
+    // Test function pointer with no parameters
+    let result3: int = call_simple_callback(callback_hello);
+    
+    return result1 + result2 + result3;
+}

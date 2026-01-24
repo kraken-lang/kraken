@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdarg.h>
 
 // VecString structure (matches Kraken's layout)
 typedef struct {
@@ -304,4 +305,57 @@ char* kraken_str_replace(const char* s, const char* old_str, const char* new_str
     strcpy(dst, src);
     
     return result;
+}
+
+// sprintf wrapper - formatted string output
+int64_t kraken_sprintf(char* buffer, const char* format, ...) {
+    if (!buffer || !format) return -1;
+    
+    va_list args;
+    va_start(args, format);
+    int result = vsprintf(buffer, format, args);
+    va_end(args);
+    
+    return (int64_t)result;
+}
+
+// snprintf wrapper - bounded formatted string output
+int64_t kraken_snprintf(char* buffer, int64_t size, const char* format, ...) {
+    if (!buffer || !format || size <= 0) return -1;
+    
+    va_list args;
+    va_start(args, format);
+    int result = vsnprintf(buffer, (size_t)size, format, args);
+    va_end(args);
+    
+    return (int64_t)result;
+}
+
+// strtok wrapper - string tokenization
+char* kraken_strtok(char* str, const char* delim) {
+    return strtok(str, delim);
+}
+
+// strdup wrapper - string duplication
+char* kraken_strdup(const char* s) {
+    if (!s) return NULL;
+    
+    size_t len = strlen(s);
+    char* result = (char*)malloc(len + 1);
+    if (!result) return NULL;
+    
+    memcpy(result, s, len + 1);
+    return result;
+}
+
+// strchr wrapper - find first occurrence of character
+char* kraken_strchr(const char* s, int c) {
+    if (!s) return NULL;
+    return strchr(s, c);
+}
+
+// strrchr wrapper - find last occurrence of character
+char* kraken_strrchr(const char* s, int c) {
+    if (!s) return NULL;
+    return strrchr(s, c);
 }

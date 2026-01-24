@@ -1,0 +1,27 @@
+// Test union type parsing
+
+// Basic union declaration
+union Data {
+    int_value: int,
+    float_value: float,
+    ptr_value: *void,
+}
+
+// Public union declaration
+pub union Value {
+    i: int,
+    f: float,
+    b: bool,
+}
+
+// Union with different sized fields
+union Mixed {
+    byte_val: int,
+    long_val: int,
+    str_val: str,
+}
+
+fn main() -> int {
+    // Test that union types parse correctly
+    return 0;
+}

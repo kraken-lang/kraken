@@ -1,0 +1,31 @@
+// Test runtime union tag checking
+
+extern fn kraken_union_create(size: int, initial_tag: int) -> int;
+extern fn kraken_union_set_tag(u: int, tag: int) -> void;
+extern fn kraken_union_check_tag(u: int, expected_tag: int, field_name: str) -> int;
+extern fn kraken_union_get_tag(u: int) -> int;
+extern fn kraken_union_free(u: int) -> void;
+
+fn test_union_tag_operations() -> int {
+    // Create a tagged union with initial tag 0
+    let u: int = kraken_union_create(16, 0);
+    
+    // Get initial tag
+    let tag: int = kraken_union_get_tag(u);
+    
+    // Set new tag
+    kraken_union_set_tag(u, 1);
+    
+    // Check tag
+    let check: int = kraken_union_check_tag(u, 1, "field1");
+    
+    // Free union
+    kraken_union_free(u);
+    
+    return 0;
+}
+
+fn main() -> int {
+    let result: int = test_union_tag_operations();
+    return result;
+}

@@ -1,0 +1,42 @@
+// Comprehensive FFI integration test
+
+// Test variadic function declaration
+fn test_variadic(format: str, ...) -> int {
+    return 0;
+}
+
+// Test union type
+union IntOrFloat {
+    i: int,
+    f: float,
+}
+
+// Test repr(C) struct
+#[repr(C)]
+struct CStruct {
+    x: int,
+    y: int,
+}
+
+// Test repr(packed) struct
+#[repr(packed)]
+struct PackedData {
+    a: int,
+    b: int,
+}
+
+fn main() -> int {
+    // Test variadic function call
+    let result: int = test_variadic("test");
+    
+    // Test union initialization
+    let u: IntOrFloat = IntOrFloat { i: 42 };
+    
+    // Test C-compatible struct
+    let c: CStruct = CStruct { x: 10, y: 20 };
+    
+    // Test packed struct
+    let p: PackedData = PackedData { a: 1, b: 2 };
+    
+    return result + c.x + p.a;
+}

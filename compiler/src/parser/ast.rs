@@ -49,6 +49,7 @@ pub enum Statement {
         is_async: bool,
         is_unsafe: bool,
         is_public: bool,
+        is_variadic: bool,
     },
 
     /// Struct declaration
@@ -58,6 +59,7 @@ pub enum Statement {
         where_constraints: Vec<WhereConstraint>,
         fields: Vec<StructField>,
         is_public: bool,
+        repr: Option<StructRepr>,
     },
 
     /// Class declaration
@@ -78,6 +80,14 @@ pub enum Statement {
     EnumDeclaration {
         name: String,
         variants: Vec<(String, Option<EnumVariantPayload>)>, // (variant_name, optional_payload)
+        is_public: bool,
+    },
+
+    /// Union declaration
+    #[allow(dead_code)]
+    UnionDeclaration {
+        name: String,
+        fields: Vec<StructField>,
         is_public: bool,
     },
 
@@ -332,6 +342,18 @@ pub struct StructField {
     pub name: String,
     pub field_type: Type,
     pub is_public: bool,
+}
+
+/// Struct representation attribute for FFI compatibility
+#[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
+pub enum StructRepr {
+    /// #[repr(C)] - C-compatible layout
+    C,
+    /// #[repr(packed)] - Packed layout (no padding)
+    Packed,
+    /// #[repr(align(N))] - Specific alignment
+    Align(u32),
 }
 
 /// Enum variant payload type.

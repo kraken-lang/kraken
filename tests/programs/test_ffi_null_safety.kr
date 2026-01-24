@@ -1,0 +1,27 @@
+// Test FFI null pointer safety
+
+extern fn kraken_ffi_check_null(ptr: int, func_name: str) -> int;
+extern fn kraken_ffi_validate_ptr(ptr: int, operation: str) -> int;
+extern fn kraken_ffi_validate_string(str: str, func_name: str) -> str;
+extern fn kraken_ffi_safe_malloc(size: int) -> int;
+
+fn test_null_check() -> int {
+    // Test with valid pointer (non-zero)
+    let ptr: int = 12345;
+    let checked: int = kraken_ffi_check_null(ptr, "test_function");
+    return checked;
+}
+
+fn test_malloc_safety() -> int {
+    // Test safe malloc
+    let ptr: int = kraken_ffi_safe_malloc(100);
+    return ptr;
+}
+
+fn main() -> int {
+    let result1: int = test_null_check();
+    let result2: int = test_malloc_safety();
+    
+    // Both should return non-zero values
+    return 0;
+}

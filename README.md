@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
-Current version: `v0.8.28`
+Current version: `v0.8.29`
 
 ## Language Features
 
@@ -133,6 +133,12 @@ Current version: `v0.8.28`
 - **Vtable Infrastructure**: Data structures for vtable generation and management
 - **Fat Pointers**: Infrastructure for fat pointer representation (data + vtable)
 - **Foundation Complete**: All infrastructure in place for future dynamic dispatch implementation
+
+### Advanced FFI & C Interop Infrastructure (0.8.29)
+- **Variadic Functions**: Infrastructure for variadic function support (printf-style)
+- **Union Types**: Union keyword and AST support for C-compatible unions
+- **Compiler Support**: All compiler passes updated for variadic and union types
+- **Foundation Complete**: Infrastructure ready for full FFI implementation
 
 ### Core Features
 - **Static Typing**: Strong type system with type inference
