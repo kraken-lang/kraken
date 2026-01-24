@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.31] - 2026-01-24
+
+### Added
+- **Compiler Optimizations**
+  - LLVM optimization level support: -O0, -O1, -O2, -O3
+  - Optimizer module with optimization pass management
+  - Dead code elimination configuration
+  - Constant folding and propagation support
+  - Inlining control and heuristics
+  - Tail call optimization for aggressive mode
+  - Loop optimization support
+  - 4 unit tests for optimization levels and flags
+- **Smart Pointers Infrastructure**
+  - Smart pointer type definitions: Box<T>, Rc<T>, Arc<T>, Weak<T>
+  - Box<T> for heap allocation with ownership
+  - Rc<T> for reference counting and shared ownership
+  - Arc<T> for atomic reference counting and thread safety
+  - Weak<T> for weak references to break cycles
+  - Smart pointer operations module
+  - Thread safety tracking for Arc<T>
+  - 4 unit tests for smart pointer types
+- **Memory Management**
+  - Custom allocator trait for memory allocation strategies
+  - Pool allocator for efficient fixed-size allocations
+  - Arena allocator for bump allocation with reset capability
+  - Allocation profiler for tracking memory usage
+  - Memory pool management with block tracking
+  - Tag-based allocation tracking
+  - Peak memory usage monitoring
+  - 5 unit tests for memory management
+
+### Changed
+- Enhanced compiler infrastructure to support optimization passes
+- Improved memory management capabilities with custom allocators
+
 ## [0.8.30] - 2026-01-24
 
 ### Added
