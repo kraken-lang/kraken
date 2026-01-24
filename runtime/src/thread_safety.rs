@@ -229,7 +229,7 @@ impl Clone for PerformanceMonitor {
 pub fn try_lock_with_timeout<T>(
     mutex: &Mutex<T>,
     timeout: Duration,
-) -> Option<std::sync::MutexGuard<T>> {
+) -> Option<std::sync::MutexGuard<'_, T>> {
     let start = Instant::now();
 
     loop {
