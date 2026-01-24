@@ -7,11 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+## [0.8.30] - 2026-01-24
 
-### Fixed
+### Added
+- **Macro System**
+  - Added keywords: `Macro`, `MacroRules`, `Derive`, `Inline`, `NoMangle`, `Test`, `StaticAssert`
+  - Implemented `MacroExpander` for declarative macro expansion with pattern matching
+  - Macro invocation expansion with argument binding
+  - Hygienic name generation for macro hygiene
+  - Support for repetition patterns in macros
+  - AST nodes: `MacroDeclaration`, `MacroRule`, `MacroToken`
+  - Updated all compiler passes to handle macro AST nodes
+  - 3 unit tests for macro expansion
+- **Compile-Time Constant Evaluation**
+  - Implemented `ConstEvaluator` for compile-time expression evaluation
+  - Support for literals: int, float, bool, string
+  - Binary operators: arithmetic, comparison, bitwise, logical
+  - Unary operators: negation, logical not, bitwise not
+  - Const function calls with parameter binding and recursion support
+  - Static assertion validation with compile-time error reporting
+  - Division by zero detection at compile time
+  - AST nodes: `ConstFunctionDeclaration`, `StaticAssert`
+  - 3 unit tests for const evaluation
+- **Attribute System**
+  - Implemented `AttributeProcessor` for attribute management
+  - Function attributes: `#[inline]`, `#[no_mangle]`, `#[test]`
+  - Type attributes: `#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]`
+  - Attribute validation for known attributes and derive traits
+  - Infrastructure for custom attributes
+  - AST node: `Attribute`
+  - 5 unit tests for attribute processing
+- **Derive Macro Code Generation**
+  - Implemented `DeriveGenerator` for automatic trait implementations
+  - `#[derive(Clone)]` generates clone() method with field cloning
+  - `#[derive(Debug)]` generates debug() method
+  - `#[derive(PartialEq)]` generates eq() with field-by-field comparison
+  - `#[derive(Eq, PartialOrd, Ord, Hash)]` marker and comparison traits
+  - 4 unit tests for derive generation
+- **Test Programs**
+  - `test_const_functions.kr` for const function testing
+  - `test_static_assert.kr` for static assertion testing
+  - `test_attributes.kr` for attribute system testing
 
 ### Changed
+- Enhanced compiler infrastructure to support macros and compile-time evaluation
+- All compiler passes now handle macro and compile-time AST nodes
 
 ## [0.8.29] - 2026-01-24
 

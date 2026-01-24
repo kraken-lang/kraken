@@ -1,0 +1,15 @@
+// Test static assertions for compile-time checks
+
+static_assert!(true, "This should always pass");
+
+const fn is_power_of_two(n: int) -> bool {
+    return n > 0 && (n & (n - 1)) == 0;
+}
+
+fn main() -> int {
+    // Static assertions for compile-time validation
+    static_assert!(1 + 1 == 2, "Basic arithmetic failed");
+    static_assert!(10 > 5, "Comparison failed");
+    
+    return 0;
+}

@@ -335,7 +335,11 @@ impl Monomorphizer {
             | Statement::TypeAlias { .. }
             | Statement::ImplBlock { .. }
             | Statement::TraitDeclaration { .. }
-            | Statement::TraitImpl { .. } => Ok(()),
+            | Statement::TraitImpl { .. }
+            | Statement::MacroDeclaration { .. }
+            | Statement::ConstFunctionDeclaration { .. }
+            | Statement::StaticAssert { .. }
+            | Statement::Attribute { .. } => Ok(()),
         }
     }
 
@@ -983,7 +987,11 @@ impl Monomorphizer {
 
             Statement::InterfaceDeclaration { .. }
             | Statement::EnumDeclaration { .. }
-            | Statement::UnionDeclaration { .. } => Ok(stmt),
+            | Statement::UnionDeclaration { .. }
+            | Statement::MacroDeclaration { .. }
+            | Statement::ConstFunctionDeclaration { .. }
+            | Statement::StaticAssert { .. }
+            | Statement::Attribute { .. } => Ok(stmt),
 
             Statement::Return { value } => Ok(Statement::Return {
                 value: value
@@ -1621,7 +1629,11 @@ impl Monomorphizer {
             Statement::TypeAlias { .. }
             | Statement::ImplBlock { .. }
             | Statement::TraitDeclaration { .. }
-            | Statement::TraitImpl { .. } => Ok(()),
+            | Statement::TraitImpl { .. }
+            | Statement::MacroDeclaration { .. }
+            | Statement::ConstFunctionDeclaration { .. }
+            | Statement::StaticAssert { .. }
+            | Statement::Attribute { .. } => Ok(()),
         }
     }
 

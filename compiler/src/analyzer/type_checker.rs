@@ -2453,6 +2453,11 @@ impl TypeChecker {
                 where_constraints: _,
                 methods,
             } => self.check_trait_impl(trait_name, type_name, generic_params, methods),
+
+            Statement::MacroDeclaration { .. }
+            | Statement::ConstFunctionDeclaration { .. }
+            | Statement::StaticAssert { .. }
+            | Statement::Attribute { .. } => Ok(()),
         }
     }
 

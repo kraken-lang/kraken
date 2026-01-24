@@ -540,7 +540,11 @@ fn rewrite_statement(
         | Statement::TypeAlias { .. }
         | Statement::ImplBlock { .. }
         | Statement::TraitDeclaration { .. }
-        | Statement::TraitImpl { .. } => Ok(statement),
+        | Statement::TraitImpl { .. }
+        | Statement::MacroDeclaration { .. }
+        | Statement::ConstFunctionDeclaration { .. }
+        | Statement::StaticAssert { .. }
+        | Statement::Attribute { .. } => Ok(statement),
     }
 }
 

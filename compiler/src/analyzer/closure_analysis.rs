@@ -324,7 +324,11 @@ impl ClosureAnalyzer {
             | Statement::TypeAlias { .. }
             | Statement::ImplBlock { .. }
             | Statement::TraitDeclaration { .. }
-            | Statement::TraitImpl { .. } => {}
+            | Statement::TraitImpl { .. }
+            | Statement::MacroDeclaration { .. }
+            | Statement::ConstFunctionDeclaration { .. }
+            | Statement::StaticAssert { .. }
+            | Statement::Attribute { .. } => {}
         }
     }
 }

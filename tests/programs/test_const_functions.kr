@@ -1,0 +1,25 @@
+// Test const functions for compile-time evaluation
+
+const fn add(a: int, b: int) -> int {
+    return a + b;
+}
+
+const fn multiply(x: int, y: int) -> int {
+    return x * y;
+}
+
+const fn factorial(n: int) -> int {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+fn main() -> int {
+    // These should be evaluated at compile time
+    let sum: int = add(10, 20);
+    let product: int = multiply(5, 6);
+    let fact: int = factorial(5);
+    
+    return sum + product + fact;
+}

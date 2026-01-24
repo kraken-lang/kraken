@@ -184,6 +184,37 @@ pub enum Statement {
         where_constraints: Vec<WhereConstraint>,
         methods: Vec<Statement>,
     },
+
+    /// Macro declaration: macro_rules! name { ... }
+    #[allow(dead_code)]
+    MacroDeclaration {
+        name: String,
+        rules: Vec<MacroRule>,
+    },
+
+    /// Const function declaration: const fn name() -> T { ... }
+    #[allow(dead_code)]
+    ConstFunctionDeclaration {
+        name: String,
+        parameters: Vec<Parameter>,
+        return_type: Type,
+        body: Block,
+        is_public: bool,
+    },
+
+    /// Static assertion: static_assert!(condition, "message")
+    #[allow(dead_code)]
+    StaticAssert {
+        condition: Expression,
+        message: String,
+    },
+
+    /// Attribute: #[derive(Clone, Debug)]
+    #[allow(dead_code)]
+    Attribute {
+        name: String,
+        args: Vec<String>,
+    },
 }
 
 /// Expression types in Kraken.
@@ -644,6 +675,22 @@ pub struct TraitMethod {
 pub struct AssociatedType {
     pub name: String,
     pub bounds: Vec<String>, // Trait bounds on the associated type
+}
+
+/// Macro rule for declarative macros
+#[derive(Debug, Clone, PartialEq)]
+pub struct MacroRule {
+    pub pattern: Vec<MacroToken>,
+    pub expansion: Vec<MacroToken>,
+}
+
+/// Token in a macro pattern or expansion
+#[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
+pub enum MacroToken {
+    Literal(String),
+    Variable(String),
+    Repetition(Vec<MacroToken>),
 }
 
 #[cfg(test)]

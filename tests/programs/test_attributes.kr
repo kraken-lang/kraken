@@ -1,0 +1,31 @@
+// Test attribute system
+
+#[inline]
+fn fast_add(a: int, b: int) -> int {
+    return a + b;
+}
+
+#[no_mangle]
+fn exported_function(x: int) -> int {
+    return x * 2;
+}
+
+#[derive(Clone, Debug)]
+struct Point {
+    x: int,
+    y: int,
+}
+
+#[test]
+fn test_addition() -> int {
+    let result: int = fast_add(2, 3);
+    return result;
+}
+
+fn main() -> int {
+    let p: Point = Point { x: 10, y: 20 };
+    let result: int = fast_add(5, 10);
+    let exported: int = exported_function(7);
+    
+    return result + exported + p.x;
+}
