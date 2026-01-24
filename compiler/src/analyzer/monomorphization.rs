@@ -981,8 +981,8 @@ impl Monomorphizer {
                 })
             }
 
-            Statement::InterfaceDeclaration { .. } 
-            | Statement::EnumDeclaration { .. } 
+            Statement::InterfaceDeclaration { .. }
+            | Statement::EnumDeclaration { .. }
             | Statement::UnionDeclaration { .. } => Ok(stmt),
 
             Statement::Return { value } => Ok(Statement::Return {

@@ -1,6 +1,6 @@
 use crate::parser::ast::{
     Block, ClosureBody, EnumVariantPayload, Expression, FunctionSignature, MatchArm, Parameter,
-    Pattern, Program, Statement, StructField, Type, WhereConstraint, StructRepr,
+    Pattern, Program, Statement, StructField, StructRepr, Type, WhereConstraint,
 };
 use crate::{
     error::{CompilerError, CompilerResult, SourceLocation},
@@ -57,14 +57,17 @@ impl Parser {
 
         self.expect_token(TokenKind::LeftParen)?;
         let repr_type = self.consume_identifier()?;
-        
+
         let repr = match repr_type.as_str() {
             "C" => StructRepr::C,
             "packed" => StructRepr::Packed,
             "align" => {
                 self.expect_token(TokenKind::LeftParen)?;
                 if let TokenKind::IntLiteral = self.peek().kind {
-                    let align_val = self.peek().lexeme.parse::<u32>()
+                    let align_val = self
+                        .peek()
+                        .lexeme
+                        .parse::<u32>()
                         .map_err(|_| self.error("Invalid alignment value"))?;
                     self.advance();
                     self.expect_token(TokenKind::RightParen)?;

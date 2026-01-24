@@ -273,7 +273,10 @@ impl LLVMCodegen {
             self.declare_stdlib_functions()?;
 
             for statement in &program.statements {
-                if matches!(statement, Statement::StructDeclaration { .. } | Statement::UnionDeclaration { .. }) {
+                if matches!(
+                    statement,
+                    Statement::StructDeclaration { .. } | Statement::UnionDeclaration { .. }
+                ) {
                     self.codegen_statement(statement)?;
                 }
             }
@@ -479,7 +482,7 @@ impl LLVMCodegen {
                     // This is a simplified implementation - proper unions would need size calculation
                     let union_name = CString::new(name.as_str()).expect("CString failed");
                     let union_type = LLVMStructCreateNamed(self.context, union_name.as_ptr());
-                    
+
                     let mut field_types: Vec<LLVMTypeRef> = Vec::new();
                     let mut field_names: Vec<String> = Vec::new();
 
