@@ -17,11 +17,15 @@ pub mod gc;
 pub mod http;
 pub mod memory;
 pub mod networking;
+pub mod path_types;
 pub mod serialization;
 pub mod smart_pointers;
+pub mod string_format;
+pub mod string_types;
 pub mod sync;
 pub mod thread_safety;
 pub mod threading;
+pub mod time_types;
 
 pub use async_adapter::{get_runtime, AsyncRuntime, TokioRuntime};
 pub use async_io::{
@@ -43,11 +47,15 @@ pub use gc::GarbageCollector;
 pub use http::{HttpClient, HttpMethod, HttpRequest, HttpResponse, HttpServer};
 pub use memory::{Allocator, MemoryError, MemoryResult};
 pub use networking::{IpAddress, TcpListenerSocket, TcpSocket, UdpSocketWrapper};
+pub use path_types::{OsStringUtils, PathUtils};
 pub use serialization::{BinarySerializer, JsonSerializer, JsonValue};
 pub use smart_pointers::{ArcRuntime, BoxRuntime, RcRuntime};
+pub use string_format::{Alignment, StringFormatter, StringInterpolator};
+pub use string_types::{StringBuilder, StringUtils};
 pub use sync::{Barrier, ConditionVariable, Mutex, RwLock, Semaphore};
 pub use thread_safety::{DeadlockDetector, PerformanceMetrics, PerformanceMonitor};
 pub use threading::{
     current_thread_id, current_thread_name, sleep, spawn, yield_now, Thread, ThreadBuilder,
     ThreadLocal,
 };
+pub use time_types::{CStringUtils, DurationUtils, InstantUtils, SystemTimeUtils};

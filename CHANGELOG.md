@@ -13,6 +13,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.8.35] - 2026-01-28
+
+### Added
+- **Core Types & String Utilities**
+  - String builder for efficient string concatenation
+  - Comprehensive string utilities (case conversion, trim, split, join, pad, reverse)
+  - String operations (contains, replace, repeat, substring, count occurrences)
+  - 24 unit tests for string utilities
+- **Path Types**
+  - Path utilities for filesystem operations (join, parent, file name, extension)
+  - Path component extraction and validation
+  - OsString utilities for platform strings
+  - 12 unit tests for path operations
+- **Time Types**
+  - Duration utilities with arithmetic operations
+  - Instant utilities for time measurements
+  - SystemTime utilities for wall-clock time
+  - CString utilities for C FFI strings
+  - 15 unit tests for time and CString operations
+- **String Formatting & Interpolation**
+  - String formatting with positional and named arguments
+  - Format padding with alignment (left, right, center)
+  - Number formatting with precision
+  - Hexadecimal, binary, and octal formatting
+  - String interpolation with variable substitution
+  - Expression interpolation with custom evaluators
+  - 14 unit tests for formatting and interpolation
+
 ## [0.8.34] - 2026-01-24
 
 ### Added
