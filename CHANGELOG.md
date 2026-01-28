@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
-- Fixed CI/CD workflow Windows LLVM installation to use C:\LLVM path (no spaces) - llvm-sys fails with paths containing spaces
+- Fixed CI/CD workflow Windows LLVM installation to use vovkos pre-built package with development files (official installer lacks llvm-config.exe)
 - Fixed CI/CD workflow Linux LLVM installation to include libpolly-18-dev package for Polly library support
 - Temporarily ignored generics_map_string_int test on Linux due to platform-specific behavior requiring investigation
 - Removed unused cycle dependency that caused Windows build failures due to invalid path in git repository

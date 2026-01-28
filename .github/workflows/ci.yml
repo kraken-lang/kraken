@@ -20,7 +20,7 @@ jobs:
           - os: macos-latest
             llvm_path: /opt/homebrew/opt/llvm@18
           - os: windows-latest
-            llvm_path: C:\LLVM
+            llvm_path: C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt
     runs-on: ${{ matrix.os }}
     env:
       LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
@@ -45,49 +45,34 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          Write-Host "Downloading LLVM 18.1.8..."
-          $llvmUrl = "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe"
-          $llvmInstaller = "$env:TEMP\LLVM-18.1.8-win64.exe"
-          Invoke-WebRequest -Uri $llvmUrl -OutFile $llvmInstaller
+          Write-Host "Downloading LLVM 18.1.8 pre-built package with dev files..."
+          $llvmUrl = "https://github.com/vovkos/llvm-package-windows/releases/download/llvm-18.1.8/llvm-18.1.8-windows-amd64-msvc17-msvcrt.7z"
+          $llvmArchive = "$env:TEMP\llvm-18.1.8.7z"
+          Invoke-WebRequest -Uri $llvmUrl -OutFile $llvmArchive
           
-          Write-Host "Installing LLVM to C:\LLVM (path without spaces)..."
-          Start-Process -FilePath $llvmInstaller -ArgumentList "/S","/D=C:\LLVM" -Wait -NoNewWindow
+          Write-Host "Extracting LLVM to C:\..."
+          7z x $llvmArchive -oC:\ -y
           
           Write-Host "Verifying LLVM installation..."
-          $possiblePaths = @(
-            "C:\LLVM"
-          )
-          
-          $llvmPath = $null
-          foreach ($path in $possiblePaths) {
-            if (Test-Path $path) {
-              $llvmPath = $path
-              Write-Host "LLVM found at: $llvmPath"
-              break
+          if (Test-Path "C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt") {
+            Write-Host "LLVM extracted successfully"
+            
+            Write-Host "Checking for llvm-config.exe..."
+            if (Test-Path "C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt\bin\llvm-config.exe") {
+              Write-Host "✓ llvm-config.exe found"
+            } else {
+              Write-Host "ERROR: llvm-config.exe not found"
+              exit 1
             }
-          }
-          
-          if (-not $llvmPath) {
-            Write-Host "ERROR: LLVM installation not found"
-            exit 1
-          }
-          
-          Write-Host "Setting LLVM_SYS_180_PREFIX to $llvmPath"
-          echo "LLVM_SYS_180_PREFIX=$llvmPath" >> $env:GITHUB_ENV
-          
-          Write-Host "Adding LLVM to PATH"
-          echo "$llvmPath\bin" >> $env:GITHUB_PATH
-
-      - name: Verify LLVM environment (Windows)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          Write-Host "LLVM_SYS_180_PREFIX = $env:LLVM_SYS_180_PREFIX"
-          Write-Host "Checking if llvm-config exists..."
-          if (Test-Path "$env:LLVM_SYS_180_PREFIX\bin\llvm-config.exe") {
-            Write-Host "llvm-config.exe found"
+            
+            Write-Host "Setting LLVM_SYS_180_PREFIX"
+            echo "LLVM_SYS_180_PREFIX=C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt" >> $env:GITHUB_ENV
+            
+            Write-Host "Adding LLVM to PATH"
+            echo "C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt\bin" >> $env:GITHUB_PATH
           } else {
-            Write-Host "llvm-config.exe NOT found"
+            Write-Host "ERROR: LLVM extraction failed"
+            exit 1
           }
 
       - name: Set up Rust
@@ -147,7 +132,7 @@ jobs:
           - os: macos-latest
             llvm_path: /opt/homebrew/opt/llvm@18
           - os: windows-latest
-            llvm_path: C:\LLVM
+            llvm_path: C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt
     runs-on: ${{ matrix.os }}
     env:
       LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
@@ -172,49 +157,34 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          Write-Host "Downloading LLVM 18.1.8..."
-          $llvmUrl = "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe"
-          $llvmInstaller = "$env:TEMP\LLVM-18.1.8-win64.exe"
-          Invoke-WebRequest -Uri $llvmUrl -OutFile $llvmInstaller
+          Write-Host "Downloading LLVM 18.1.8 pre-built package with dev files..."
+          $llvmUrl = "https://github.com/vovkos/llvm-package-windows/releases/download/llvm-18.1.8/llvm-18.1.8-windows-amd64-msvc17-msvcrt.7z"
+          $llvmArchive = "$env:TEMP\llvm-18.1.8.7z"
+          Invoke-WebRequest -Uri $llvmUrl -OutFile $llvmArchive
           
-          Write-Host "Installing LLVM to C:\LLVM (path without spaces)..."
-          Start-Process -FilePath $llvmInstaller -ArgumentList "/S","/D=C:\LLVM" -Wait -NoNewWindow
+          Write-Host "Extracting LLVM to C:\..."
+          7z x $llvmArchive -oC:\ -y
           
           Write-Host "Verifying LLVM installation..."
-          $possiblePaths = @(
-            "C:\LLVM"
-          )
-          
-          $llvmPath = $null
-          foreach ($path in $possiblePaths) {
-            if (Test-Path $path) {
-              $llvmPath = $path
-              Write-Host "LLVM found at: $llvmPath"
-              break
+          if (Test-Path "C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt") {
+            Write-Host "LLVM extracted successfully"
+            
+            Write-Host "Checking for llvm-config.exe..."
+            if (Test-Path "C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt\bin\llvm-config.exe") {
+              Write-Host "✓ llvm-config.exe found"
+            } else {
+              Write-Host "ERROR: llvm-config.exe not found"
+              exit 1
             }
-          }
-          
-          if (-not $llvmPath) {
-            Write-Host "ERROR: LLVM installation not found"
-            exit 1
-          }
-          
-          Write-Host "Setting LLVM_SYS_180_PREFIX to $llvmPath"
-          echo "LLVM_SYS_180_PREFIX=$llvmPath" >> $env:GITHUB_ENV
-          
-          Write-Host "Adding LLVM to PATH"
-          echo "$llvmPath\bin" >> $env:GITHUB_PATH
-
-      - name: Verify LLVM environment (Windows)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          Write-Host "LLVM_SYS_180_PREFIX = $env:LLVM_SYS_180_PREFIX"
-          Write-Host "Checking if llvm-config exists..."
-          if (Test-Path "$env:LLVM_SYS_180_PREFIX\bin\llvm-config.exe") {
-            Write-Host "llvm-config.exe found"
+            
+            Write-Host "Setting LLVM_SYS_180_PREFIX"
+            echo "LLVM_SYS_180_PREFIX=C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt" >> $env:GITHUB_ENV
+            
+            Write-Host "Adding LLVM to PATH"
+            echo "C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt\bin" >> $env:GITHUB_PATH
           } else {
-            Write-Host "llvm-config.exe NOT found"
+            Write-Host "ERROR: LLVM extraction failed"
+            exit 1
           }
 
       - name: Set up Rust
