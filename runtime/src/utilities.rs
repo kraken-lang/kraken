@@ -424,10 +424,7 @@ mod tests {
             0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc,
             0xde, 0xf0,
         ]);
-        assert_eq!(
-            uuid.as_hyphenated(),
-            "12345678-9abc-def0-1234-56789abcdef0"
-        );
+        assert_eq!(uuid.as_hyphenated(), "12345678-9abc-def0-1234-56789abcdef0");
     }
 
     #[test]

@@ -24,8 +24,11 @@ pub mod math;
 pub mod memory;
 pub mod networking;
 pub mod path_types;
+pub mod platform;
 pub mod random;
+pub mod registry;
 pub mod serialization;
+pub mod signals;
 pub mod smart_pointers;
 pub mod string_format;
 pub mod string_types;
@@ -35,6 +38,8 @@ pub mod thread_safety;
 pub mod threading;
 pub mod time_types;
 pub mod utilities;
+pub mod win32;
+pub mod windows_service;
 
 pub use async_adapter::{get_runtime, AsyncRuntime, TokioRuntime};
 pub use async_io::{
@@ -55,8 +60,10 @@ pub use collections::{
 };
 pub use concurrent::{ConcurrentHashMap, MpmcQueue, MpscQueue, ThreadPool, WorkStealingDeque};
 pub use connection_pool::{ConnectionPool, PoolStats, PooledHttpClient};
-pub use crypto::{Aes256, Base64, ChaCha20Poly1305, Ed25519, Hmac, Pbkdf2, Sha256, Sha512, constant_time_compare};
-pub use datetime::{Date, DateTime, Time, UtcOffset};
+pub use crypto::{
+    constant_time_compare, Aes256, Base64, ChaCha20Poly1305, Ed25519, Hmac, Pbkdf2, Sha256, Sha512,
+};
+pub use datetime::{Date, DateTime, Time, TimeZone, UtcOffset};
 pub use enhanced_serialization::{
     CborSerializer, IniSerializer, MessagePackSerializer, TomlSerializer, YamlSerializer,
 };
@@ -67,12 +74,14 @@ pub use http::{HttpClient, HttpMethod, HttpRequest, HttpResponse, HttpServer};
 pub use math::{Mat2, Mat3, Mat4, Quaternion, Statistics, Trigonometry, Vec2, Vec3, Vec4};
 pub use memory::{Allocator, MemoryError, MemoryResult};
 pub use networking::{IpAddress, TcpListenerSocket, TcpSocket, UdpSocketWrapper};
-pub use path_types::{OsStringUtils, PathUtils};
+pub use path_types::{OsStringUtils, PathUtils as PathTypesUtils};
+pub use platform::{execute, execute_shell, PathUtils, Platform, Process, ProcessBuilder};
 pub use random::{
-    ChaCha20Rng, Distributions, PcgRng, RandomNumberGenerator, SeedableRng, XorshiftRng,
-    thread_rng,
+    thread_rng, ChaCha20Rng, Distributions, PcgRng, RandomNumberGenerator, SeedableRng, XorshiftRng,
 };
+pub use registry::{Registry, RegistryHive};
 pub use serialization::{BinarySerializer, JsonSerializer, JsonValue};
+pub use signals::{ignore_signal, raise_signal, register_ctrl_c_handler, Signal, SignalHandler};
 pub use smart_pointers::{ArcRuntime, BoxRuntime, RcRuntime};
 pub use string_format::{Alignment, StringFormatter, StringInterpolator};
 pub use string_types::{StringBuilder, StringUtils};
@@ -87,3 +96,5 @@ pub use threading::{
 };
 pub use time_types::{CStringUtils, DurationUtils, InstantUtils, SystemTimeUtils};
 pub use utilities::{CliParser, Compression, EnvVars, LogLevel, Logger, Uuid};
+pub use win32::{MessageBoxResult, MessageBoxType, Win32};
+pub use windows_service::{ServiceStartType, ServiceState, WindowsService};

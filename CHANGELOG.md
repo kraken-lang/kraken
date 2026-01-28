@@ -13,6 +13,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.8.39] - 2026-01-28
+
+### Added
+- **Timezone Database Integration**
+  - IANA timezone database support via chrono-tz
+  - Named timezone handling (e.g., "America/New_York", "Europe/London")
+  - DST (Daylight Saving Time) transition support
+  - Timezone offset calculation at specific dates
+  - DST detection for any datetime
+  - Timezone abbreviation lookup (e.g., "EST", "PDT")
+  - TimeZone type with parse, convert, and query methods
+- **Platform Abstraction**
+  - Platform detection (Windows, Linux, macOS, FreeBSD)
+  - Cross-platform path utilities (normalize, join, absolute, parent, filename, extension)
+  - Platform-specific path separators and conventions
+  - Unified path manipulation API
+  - Path existence and type checking (file, directory, absolute, relative)
+- **Process Management**
+  - Process spawning with arguments and environment variables
+  - Process builder pattern for flexible configuration
+  - Piped I/O support (stdin, stdout, stderr)
+  - Process control (wait, try_wait, kill)
+  - Process output capture
+  - Shell command execution (cross-platform)
+  - Working directory configuration
+  - 12 comprehensive unit tests for platform features
+- **Signal Handling**
+  - Unix signal handling (SIGINT, SIGTERM, SIGQUIT, SIGHUP, SIGALRM, SIGUSR1, SIGUSR2)
+  - Windows signal support (SIGINT, SIGTERM)
+  - Cross-platform Ctrl+C handler registration
+  - Signal handler with wait and try_recv methods
+  - Signal ignoring and raising
+  - Shutdown flag support for graceful termination
+  - 5 comprehensive unit tests for signal handling
+- **Windows Registry Access**
+  - Read and write string and u32 values
+  - Registry hive support (HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, etc.)
+  - Key and value existence checking
+  - List subkeys and values
+  - Delete keys and values
+  - Cross-platform API (returns error on non-Windows platforms)
+  - 2 comprehensive unit tests for registry operations
+- **Win32 API Bindings**
+  - MessageBox with multiple button types (Ok, OkCancel, YesNo, YesNoCancel)
+  - System information functions (GetComputerName, GetSystemDirectory, GetWindowsDirectory)
+  - Path functions (GetTempPath, GetCurrentDirectory, SetCurrentDirectory)
+  - Cross-platform API (returns error on non-Windows platforms)
+  - 2 comprehensive unit tests for Win32 operations
+- **Windows Services Support**
+  - Service installation and uninstallation
+  - Service control (start, stop, query status)
+  - Service configuration (auto, manual, disabled start types)
+  - Service state management (running, stopped, pending states)
+  - Cross-platform API (returns error on non-Windows platforms)
+  - 4 comprehensive unit tests for service operations
+- **CI/CD Enhancements**
+  - Multi-platform GitHub Actions workflow (Linux, macOS, Windows)
+  - Automated testing across all platforms
+  - Clippy linting and formatting checks
+  - Release build verification
+  - No-regressions gate
+
+### Changed
+- Added chrono and chrono-tz dependencies for timezone support
+- Added signal-hook, ctrlc, and libc dependencies for signal handling
+- Added winreg dependency for Windows registry access
+- Enhanced datetime module with timezone database integration
+- Updated runtime library exports to include Platform, Process, ProcessBuilder, TimeZone, Signal, SignalHandler, Registry, RegistryHive, Win32, and WindowsService
+- Enhanced CI/CD workflow to support Linux, macOS, and Windows platforms
+
+### Fixed
+
 ## [0.8.38] - 2026-01-28
 
 ### Added

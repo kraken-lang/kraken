@@ -12,15 +12,34 @@ env:
 jobs:
   test:
     name: Test Suite
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install LLVM 18 and dependencies
+      - name: Install LLVM 18 and dependencies (macOS)
+        if: runner.os == 'macOS'
         run: |
           brew install llvm@18 zstd
           echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
           echo "LIBRARY_PATH=$(brew --prefix zstd)/lib:$LIBRARY_PATH" >> $GITHUB_ENV
+
+      - name: Install LLVM 18 and dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 18
+          sudo apt-get install -y libzstd-dev
+          echo "LLVM_SYS_180_PREFIX=/usr/lib/llvm-18" >> $GITHUB_ENV
+
+      - name: Install LLVM 18 and dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install llvm --version=18.1.8 -y
+          echo "LLVM_SYS_180_PREFIX=C:\Program Files\LLVM" >> $env:GITHUB_ENV
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -42,15 +61,17 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install LLVM 18 and dependencies
         run: |
-          brew install llvm@18 zstd
-          echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
-          echo "LIBRARY_PATH=$(brew --prefix zstd)/lib:$LIBRARY_PATH" >> $GITHUB_ENV
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 18
+          sudo apt-get install -y libzstd-dev
+          echo "LLVM_SYS_180_PREFIX=/usr/lib/llvm-18" >> $GITHUB_ENV
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -65,15 +86,34 @@ jobs:
 
   build-release:
     name: Release Build
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install LLVM 18 and dependencies
+      - name: Install LLVM 18 and dependencies (macOS)
+        if: runner.os == 'macOS'
         run: |
           brew install llvm@18 zstd
           echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
           echo "LIBRARY_PATH=$(brew --prefix zstd)/lib:$LIBRARY_PATH" >> $GITHUB_ENV
+
+      - name: Install LLVM 18 and dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 18
+          sudo apt-get install -y libzstd-dev
+          echo "LLVM_SYS_180_PREFIX=/usr/lib/llvm-18" >> $GITHUB_ENV
+
+      - name: Install LLVM 18 and dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install llvm --version=18.1.8 -y
+          echo "LLVM_SYS_180_PREFIX=C:\Program Files\LLVM" >> $env:GITHUB_ENV
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable

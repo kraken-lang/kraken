@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
-Current version: `v0.8.38`
+Current version: `v0.8.39`
 
 ## Language Features
 

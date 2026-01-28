@@ -1,3 +1,5 @@
+use chrono::{Offset, TimeZone as ChronoTimeZone, Utc};
+use chrono_tz::Tz;
 use std::fmt;
 use std::ops::{Add, Sub};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -161,9 +163,7 @@ impl Time {
     }
 
     pub fn now() -> Self {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap();
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         let secs = now.as_secs();
         let nanos = now.subsec_nanos();
         let total_secs = secs % 86400;
@@ -314,7 +314,11 @@ impl DateTime {
 
     pub fn format_iso8601(&self) -> String {
         if self.offset_seconds == 0 {
-            format!("{}T{}Z", self.date.format_iso8601(), self.time.format_iso8601())
+            format!(
+                "{}T{}Z",
+                self.date.format_iso8601(),
+                self.time.format_iso8601()
+            )
         } else {
             let offset_hours = self.offset_seconds / 3600;
             let offset_mins = (self.offset_seconds.abs() % 3600) / 60;
@@ -439,6 +443,104 @@ impl UtcOffset {
 
     pub fn minutes(&self) -> i8 {
         ((self.seconds % 3600) / 60) as i8
+    }
+}
+
+pub struct TimeZone {
+    tz: Tz,
+}
+
+impl TimeZone {
+    pub fn parse(name: &str) -> Result<Self, String> {
+        name.parse::<Tz>()
+            .map(|tz| TimeZone { tz })
+            .map_err(|_| format!("Invalid timezone: {name}"))
+    }
+
+    pub fn utc() -> Self {
+        TimeZone { tz: Tz::UTC }
+    }
+
+    pub fn local() -> Self {
+        TimeZone {
+            tz: Tz::UTC, // Default to UTC, actual local detection would need platform-specific code
+        }
+    }
+
+    pub fn name(&self) -> String {
+        self.tz.name().to_string()
+    }
+
+    pub fn convert_datetime(&self, dt: &DateTime) -> DateTime {
+        let timestamp = dt.to_unix_timestamp();
+        let chrono_dt = Utc.timestamp_opt(timestamp, 0).unwrap();
+        let converted = chrono_dt.with_timezone(&self.tz);
+
+        let offset_seconds = converted
+            .timezone()
+            .offset_from_utc_datetime(&converted.naive_utc())
+            .fix()
+            .local_minus_utc();
+        DateTime::from_unix_timestamp(timestamp).with_offset(offset_seconds)
+    }
+
+    pub fn offset_at(&self, dt: &DateTime) -> i32 {
+        let timestamp = dt.to_unix_timestamp();
+        let chrono_dt = Utc.timestamp_opt(timestamp, 0).unwrap();
+        let converted = chrono_dt.with_timezone(&self.tz);
+        converted
+            .timezone()
+            .offset_from_utc_datetime(&converted.naive_utc())
+            .fix()
+            .local_minus_utc()
+    }
+
+    pub fn is_dst_at(&self, dt: &DateTime) -> bool {
+        let timestamp = dt.to_unix_timestamp();
+        let chrono_dt = Utc.timestamp_opt(timestamp, 0).unwrap();
+        let converted = chrono_dt.with_timezone(&self.tz);
+
+        // Check if DST is active by comparing standard offset
+        let jan_dt = self
+            .tz
+            .with_ymd_and_hms(dt.date.year, 1, 1, 12, 0, 0)
+            .unwrap();
+        let jul_dt = self
+            .tz
+            .with_ymd_and_hms(dt.date.year, 7, 1, 12, 0, 0)
+            .unwrap();
+
+        let jan_offset = jan_dt
+            .timezone()
+            .offset_from_utc_datetime(&jan_dt.naive_utc())
+            .fix()
+            .local_minus_utc();
+        let jul_offset = jul_dt
+            .timezone()
+            .offset_from_utc_datetime(&jul_dt.naive_utc())
+            .fix()
+            .local_minus_utc();
+        let current_offset = converted
+            .timezone()
+            .offset_from_utc_datetime(&converted.naive_utc())
+            .fix()
+            .local_minus_utc();
+
+        // DST is active if current offset differs from standard offset
+        current_offset != jan_offset.min(jul_offset)
+    }
+
+    pub fn abbreviation_at(&self, dt: &DateTime) -> String {
+        let timestamp = dt.to_unix_timestamp();
+        let chrono_dt = Utc.timestamp_opt(timestamp, 0).unwrap();
+        let converted = chrono_dt.with_timezone(&self.tz);
+        format!("{}", converted.format("%Z"))
+    }
+}
+
+impl fmt::Display for TimeZone {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.tz.name())
     }
 }
 
