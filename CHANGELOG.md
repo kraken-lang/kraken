@@ -5,7 +5,7 @@ All notable changes to the Kraken Language compiler will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [unreleased]
 
 ### Added
 
@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed CI/CD workflow Windows LLVM installation to use vovkos pre-built package with development files (official installer lacks llvm-config.exe)
+- Fixed CI/CD workflow Windows PowerShell path escaping by doubling backslashes in YAML
 - Fixed CI/CD workflow Linux LLVM installation to include libpolly-18-dev package for Polly library support
 - Temporarily ignored generics_map_string_int test on Linux due to platform-specific behavior requiring investigation
 - Removed unused cycle dependency that caused Windows build failures due to invalid path in git repository
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made SignalHandler export conditional on Unix platform in lib.rs
 - Fixed missing Ordering import in signals.rs test module
 - Fixed test_compile_empty_program to use platform-agnostic temp directory instead of Unix-specific /tmp path
+- Made trap/signal termination tests Unix-only (Windows uses exit codes instead of signals)
 - Removed unused imports in windows_service.rs module
 - Suppressed dead code warnings for Windows-only internal helper functions
 

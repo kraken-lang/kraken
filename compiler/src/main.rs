@@ -623,6 +623,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(unix)]
     async fn ffi_setenv_getenv_compile_and_run() -> Result<()> {
         assert_program_exit_code(
             PathBuf::from("../tests/programs/simple_setenv_getenv.kr"),
@@ -652,24 +653,28 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(unix)]
     async fn ffi_negative_fopen_null_traps() -> Result<()> {
         assert_program_terminated_by_signal(PathBuf::from("../tests/programs/neg_fopen_null.kr"))
             .await
     }
 
     #[tokio::test]
+    #[cfg(unix)]
     async fn ffi_negative_realloc_null_traps() -> Result<()> {
         assert_program_terminated_by_signal(PathBuf::from("../tests/programs/neg_realloc_null.kr"))
             .await
     }
 
     #[tokio::test]
+    #[cfg(unix)]
     async fn ffi_negative_malloc_null_traps() -> Result<()> {
         assert_program_terminated_by_signal(PathBuf::from("../tests/programs/neg_malloc_null.kr"))
             .await
     }
 
     #[tokio::test]
+    #[cfg(unix)]
     async fn ffi_negative_from_cstr_null_traps() -> Result<()> {
         assert_program_terminated_by_signal(PathBuf::from(
             "../tests/programs/neg_from_cstr_null.kr",
@@ -678,6 +683,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(unix)]
     async fn vec_int_pop_empty_traps() -> Result<()> {
         assert_program_terminated_by_signal(PathBuf::from(
             "../tests/programs/neg_vec_int_pop_empty.kr",
@@ -865,6 +871,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(unix)]
     async fn ir_snapshot_hello() -> Result<()> {
         assert_ir_snapshot(
             PathBuf::from("../tests/ir_snapshots/hello.kr"),
@@ -874,6 +881,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(unix)]
     async fn ir_snapshot_arithmetic() -> Result<()> {
         assert_ir_snapshot(
             PathBuf::from("../tests/ir_snapshots/arithmetic.kr"),
@@ -883,6 +891,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(unix)]
     async fn ir_snapshot_if_else() -> Result<()> {
         assert_ir_snapshot(
             PathBuf::from("../tests/ir_snapshots/if_else.kr"),
