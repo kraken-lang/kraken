@@ -10,9 +10,14 @@ pub mod async_primitives;
 pub mod async_runtime;
 pub mod atomic;
 pub mod concurrent;
+pub mod connection_pool;
 pub mod ffi;
+pub mod file_io;
 pub mod gc;
+pub mod http;
 pub mod memory;
+pub mod networking;
+pub mod serialization;
 pub mod smart_pointers;
 pub mod sync;
 pub mod thread_safety;
@@ -32,8 +37,13 @@ pub use atomic::{
     AtomicU64Wrapper, AtomicUsizeWrapper, Ordering,
 };
 pub use concurrent::{ConcurrentHashMap, MpmcQueue, MpscQueue, ThreadPool, WorkStealingDeque};
+pub use connection_pool::{ConnectionPool, PoolStats, PooledHttpClient};
+pub use file_io::{DirectoryEntry, DirectoryTraversal, FileUtils, MemoryMappedFile};
 pub use gc::GarbageCollector;
+pub use http::{HttpClient, HttpMethod, HttpRequest, HttpResponse, HttpServer};
 pub use memory::{Allocator, MemoryError, MemoryResult};
+pub use networking::{IpAddress, TcpListenerSocket, TcpSocket, UdpSocketWrapper};
+pub use serialization::{BinarySerializer, JsonSerializer, JsonValue};
 pub use smart_pointers::{ArcRuntime, BoxRuntime, RcRuntime};
 pub use sync::{Barrier, ConditionVariable, Mutex, RwLock, Semaphore};
 pub use thread_safety::{DeadlockDetector, PerformanceMetrics, PerformanceMonitor};

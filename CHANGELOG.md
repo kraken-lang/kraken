@@ -13,6 +13,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.8.34] - 2026-01-24
+
+### Added
+- **Networking & I/O**
+  - Comprehensive TCP socket API with IPv4/IPv6 support
+  - UDP socket API with multicast support
+  - Socket configuration (timeouts, non-blocking, keepalive, nodelay)
+  - IP address utilities and parsing
+  - 10 unit tests for networking primitives
+- **HTTP Client/Server**
+  - HTTP/1.1 client and server implementation
+  - HTTP request/response parsing
+  - HTTP method support (GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH)
+  - Header management and body handling
+  - 10 unit tests for HTTP functionality
+- **Serialization Support**
+  - JSON serialization and deserialization
+  - JSON value types (null, bool, number, string, array, object)
+  - Binary serialization for primitive types
+  - Little-endian encoding/decoding
+  - 11 unit tests for serialization
+- **Connection Pooling**
+  - HTTP connection pooling with keep-alive support
+  - Configurable pool size and idle timeout
+  - Automatic connection reuse and expiration
+  - Pool statistics and monitoring
+  - 5 unit tests for connection pooling
+- **File I/O Enhancements**
+  - Memory-mapped file support for efficient I/O
+  - Directory traversal utilities (recursive and non-recursive)
+  - File search and pattern matching
+  - Directory size calculation
+  - Comprehensive file utilities (copy, move, delete, create)
+  - 8 unit tests for file I/O operations
+
 ## [0.8.33] - 2026-01-24
 
 ### Added
