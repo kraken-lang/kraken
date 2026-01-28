@@ -20,7 +20,7 @@ jobs:
           - os: macos-latest
             llvm_path: /opt/homebrew/opt/llvm@18
           - os: windows-latest
-            llvm_path: C:\Program Files\LLVM
+            llvm_path: C:\LLVM
     runs-on: ${{ matrix.os }}
     env:
       LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
@@ -50,13 +50,12 @@ jobs:
           $llvmInstaller = "$env:TEMP\LLVM-18.1.8-win64.exe"
           Invoke-WebRequest -Uri $llvmUrl -OutFile $llvmInstaller
           
-          Write-Host "Installing LLVM..."
-          Start-Process -FilePath $llvmInstaller -ArgumentList "/S" -Wait -NoNewWindow
+          Write-Host "Installing LLVM to C:\LLVM (path without spaces)..."
+          Start-Process -FilePath $llvmInstaller -ArgumentList "/S","/D=C:\LLVM" -Wait -NoNewWindow
           
           Write-Host "Verifying LLVM installation..."
           $possiblePaths = @(
-            "C:\Program Files\LLVM",
-            "C:\Program Files (x86)\LLVM"
+            "C:\LLVM"
           )
           
           $llvmPath = $null
@@ -144,7 +143,7 @@ jobs:
           - os: macos-latest
             llvm_path: /opt/homebrew/opt/llvm@18
           - os: windows-latest
-            llvm_path: C:\Program Files\LLVM
+            llvm_path: C:\LLVM
     runs-on: ${{ matrix.os }}
     env:
       LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
@@ -174,13 +173,12 @@ jobs:
           $llvmInstaller = "$env:TEMP\LLVM-18.1.8-win64.exe"
           Invoke-WebRequest -Uri $llvmUrl -OutFile $llvmInstaller
           
-          Write-Host "Installing LLVM..."
-          Start-Process -FilePath $llvmInstaller -ArgumentList "/S" -Wait -NoNewWindow
+          Write-Host "Installing LLVM to C:\LLVM (path without spaces)..."
+          Start-Process -FilePath $llvmInstaller -ArgumentList "/S","/D=C:\LLVM" -Wait -NoNewWindow
           
           Write-Host "Verifying LLVM installation..."
           $possiblePaths = @(
-            "C:\Program Files\LLVM",
-            "C:\Program Files (x86)\LLVM"
+            "C:\LLVM"
           )
           
           $llvmPath = $null
