@@ -14,7 +14,13 @@ jobs:
     name: Test Suite
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            llvm_path: /usr/lib/llvm-18
+          - os: macos-latest
+            llvm_path: /opt/homebrew/opt/llvm@18
+          - os: windows-latest
+            llvm_path: C:\Program Files\LLVM
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -60,12 +66,12 @@ jobs:
       - name: Build
         run: cargo build --workspace --all-targets
         env:
-          LLVM_SYS_180_PREFIX: C:\Program Files\LLVM
+          LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
 
       - name: Run tests
         run: cargo test --workspace
         env:
-          LLVM_SYS_180_PREFIX: C:\Program Files\LLVM
+          LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
 
   lint:
     name: Lint
@@ -96,7 +102,13 @@ jobs:
     name: Release Build
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            llvm_path: /usr/lib/llvm-18
+          - os: macos-latest
+            llvm_path: /opt/homebrew/opt/llvm@18
+          - os: windows-latest
+            llvm_path: C:\Program Files\LLVM
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -133,7 +145,7 @@ jobs:
       - name: Build release
         run: cargo build --workspace --release
         env:
-          LLVM_SYS_180_PREFIX: C:\Program Files\LLVM
+          LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
 
   no-regressions:
     name: No Regressions Gate
