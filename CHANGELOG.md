@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made SignalHandler struct and implementation Unix-only (Windows uses register_ctrl_c_handler instead)
 - Made SignalHandler export conditional on Unix platform in lib.rs
 - Fixed missing Ordering import in signals.rs test module
+- Fixed test_compile_empty_program to use platform-agnostic temp directory instead of Unix-specific /tmp path
 - Removed unused imports in windows_service.rs module
 - Suppressed dead code warnings for Windows-only internal helper functions
 

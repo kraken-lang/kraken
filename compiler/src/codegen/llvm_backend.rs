@@ -12484,7 +12484,7 @@ mod tests {
     fn test_compile_empty_program() {
         let mut codegen = LLVMCodegen::new("test".to_string(), PathBuf::from("test.kr"));
         let program = Program::new(vec![]);
-        let output = PathBuf::from("/tmp/test.o");
+        let output = std::env::temp_dir().join("test.o");
 
         let result = codegen.compile(&program, &output);
         assert!(result.is_ok());
