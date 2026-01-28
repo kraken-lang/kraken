@@ -62,11 +62,13 @@ impl Signal {
     }
 }
 
+#[cfg(unix)]
 pub struct SignalHandler {
     signals: Signals,
     shutdown: Arc<AtomicBool>,
 }
 
+#[cfg(unix)]
 impl SignalHandler {
     pub fn new(signals: &[Signal]) -> std::io::Result<Self> {
         let signal_numbers: Vec<i32> = signals.iter().map(|s| s.to_signal_number()).collect();
@@ -161,6 +163,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn test_signal_handler_creation() {
         let signals = vec![Signal::Interrupt, Signal::Terminate];
         let handler = SignalHandler::new(&signals);
@@ -168,6 +171,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn test_shutdown_flag() {
         let signals = vec![Signal::Interrupt];
         let handler = SignalHandler::new(&signals).unwrap();

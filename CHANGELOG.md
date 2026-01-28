@@ -16,8 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed CI/CD workflow Linux LLVM installation to include libpolly-18-dev package for Polly library support
 - Temporarily ignored generics_map_string_int test on Linux due to platform-specific behavior requiring investigation
 - Removed unused cycle dependency that caused Windows build failures due to invalid path in git repository
-- Fixed Windows LLVM environment variable setup to use proper PowerShell Out-File syntax
+- Fixed Windows LLVM environment variable setup to use Add-Content cmdlet for reliable GitHub Actions integration
 - Fixed signal_hook iterator import to only be used on Unix platforms (not available on Windows)
+- Made SignalHandler struct and implementation Unix-only (Windows uses register_ctrl_c_handler instead)
 - Removed unused imports in windows_service.rs module
 
 ## [0.8.39] - 2026-01-28
