@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- Fixed clippy warning in math library median calculation to use `is_multiple_of(2)` instead of manual modulo check
 
 ## [0.8.37] - 2026-01-28
 
