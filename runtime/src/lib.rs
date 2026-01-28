@@ -9,11 +9,13 @@ pub mod async_io;
 pub mod async_primitives;
 pub mod async_runtime;
 pub mod atomic;
+pub mod collections;
 pub mod concurrent;
 pub mod connection_pool;
 pub mod ffi;
 pub mod file_io;
 pub mod gc;
+pub mod generic_collections;
 pub mod http;
 pub mod memory;
 pub mod networking;
@@ -40,10 +42,15 @@ pub use atomic::{
     AtomicBoolWrapper, AtomicI32Wrapper, AtomicI64Wrapper, AtomicIsizeWrapper, AtomicU32Wrapper,
     AtomicU64Wrapper, AtomicUsizeWrapper, Ordering,
 };
+pub use collections::{
+    BTreeMapWrapper, BTreeSetWrapper, BinaryHeapWrapper, HashSetWrapper, LinkedListWrapper,
+    VecDequeWrapper,
+};
 pub use concurrent::{ConcurrentHashMap, MpmcQueue, MpscQueue, ThreadPool, WorkStealingDeque};
 pub use connection_pool::{ConnectionPool, PoolStats, PooledHttpClient};
 pub use file_io::{DirectoryEntry, DirectoryTraversal, FileUtils, MemoryMappedFile};
 pub use gc::GarbageCollector;
+pub use generic_collections::{Map, SliceUtils, Vec};
 pub use http::{HttpClient, HttpMethod, HttpRequest, HttpResponse, HttpServer};
 pub use memory::{Allocator, MemoryError, MemoryResult};
 pub use networking::{IpAddress, TcpListenerSocket, TcpSocket, UdpSocketWrapper};

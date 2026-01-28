@@ -1,6 +1,6 @@
 # Kraken Language Features
 
-**Version:** 0.8.35  
+**Version:** 0.8.36  
 **Status:** Production-Ready Systems Programming Language
 
 ## Overview

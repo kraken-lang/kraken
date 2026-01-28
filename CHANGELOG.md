@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.8.36] - 2026-01-28
+
+### Added
+- **Collections & Generic Containers**
+  - HashSet<T> for hash-based set operations
+  - BTreeMap<K,V> and BTreeSet<T> for ordered collections
+  - LinkedList<T> for doubly-linked list operations
+  - VecDeque<T> for double-ended queue operations
+  - BinaryHeap<T> for priority queue operations
+  - 30 unit tests for additional collections
+  - Generic Vec<T> with full vector operations
+  - Generic HashMap<K,V> (Map<K,V>) with generic hashing
+  - Generic slice utilities (SliceUtils) for all slice operations
+  - 24 unit tests for generic collections
+
 ## [0.8.35] - 2026-01-28
 
 ### Added
