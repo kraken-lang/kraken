@@ -51,25 +51,25 @@ jobs:
           Invoke-WebRequest -Uri $llvmUrl -OutFile $llvmArchive
           
           Write-Host "Extracting LLVM to C:\..."
-          7z x $llvmArchive -oC:\ -y
+          7z x $llvmArchive -oC:\\ -y
           
           Write-Host "Verifying LLVM installation..."
-          if (Test-Path "C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt") {
+          if (Test-Path "C:\\llvm-18.1.8-windows-amd64-msvc17-msvcrt") {
             Write-Host "LLVM extracted successfully"
             
             Write-Host "Checking for llvm-config.exe..."
-            if (Test-Path "C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt\bin\llvm-config.exe") {
-              Write-Host "✓ llvm-config.exe found"
+            if (Test-Path "C:\\llvm-18.1.8-windows-amd64-msvc17-msvcrt\\bin\\llvm-config.exe") {
+              Write-Host "llvm-config.exe found"
             } else {
               Write-Host "ERROR: llvm-config.exe not found"
               exit 1
             }
             
             Write-Host "Setting LLVM_SYS_180_PREFIX"
-            echo "LLVM_SYS_180_PREFIX=C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt" >> $env:GITHUB_ENV
+            echo "LLVM_SYS_180_PREFIX=C:\\llvm-18.1.8-windows-amd64-msvc17-msvcrt" >> $env:GITHUB_ENV
             
             Write-Host "Adding LLVM to PATH"
-            echo "C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt\bin" >> $env:GITHUB_PATH
+            echo "C:\\llvm-18.1.8-windows-amd64-msvc17-msvcrt\\bin" >> $env:GITHUB_PATH
           } else {
             Write-Host "ERROR: LLVM extraction failed"
             exit 1
@@ -163,25 +163,25 @@ jobs:
           Invoke-WebRequest -Uri $llvmUrl -OutFile $llvmArchive
           
           Write-Host "Extracting LLVM to C:\..."
-          7z x $llvmArchive -oC:\ -y
+          7z x $llvmArchive -oC:\\ -y
           
           Write-Host "Verifying LLVM installation..."
-          if (Test-Path "C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt") {
+          if (Test-Path "C:\\llvm-18.1.8-windows-amd64-msvc17-msvcrt") {
             Write-Host "LLVM extracted successfully"
             
             Write-Host "Checking for llvm-config.exe..."
-            if (Test-Path "C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt\bin\llvm-config.exe") {
-              Write-Host "✓ llvm-config.exe found"
+            if (Test-Path "C:\\llvm-18.1.8-windows-amd64-msvc17-msvcrt\\bin\\llvm-config.exe") {
+              Write-Host "llvm-config.exe found"
             } else {
               Write-Host "ERROR: llvm-config.exe not found"
               exit 1
             }
             
             Write-Host "Setting LLVM_SYS_180_PREFIX"
-            echo "LLVM_SYS_180_PREFIX=C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt" >> $env:GITHUB_ENV
+            echo "LLVM_SYS_180_PREFIX=C:\\llvm-18.1.8-windows-amd64-msvc17-msvcrt" >> $env:GITHUB_ENV
             
             Write-Host "Adding LLVM to PATH"
-            echo "C:\llvm-18.1.8-windows-amd64-msvc17-msvcrt\bin" >> $env:GITHUB_PATH
+            echo "C:\\llvm-18.1.8-windows-amd64-msvc17-msvcrt\\bin" >> $env:GITHUB_PATH
           } else {
             Write-Host "ERROR: LLVM extraction failed"
             exit 1
