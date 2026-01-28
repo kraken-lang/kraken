@@ -38,7 +38,7 @@ jobs:
       - name: Install LLVM 18 and dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
-          choco install llvm --version=18.1.8 -y
+          choco install llvm --version=18.1.8 --force -y
           echo "LLVM_SYS_180_PREFIX=C:\Program Files\LLVM" >> $env:GITHUB_ENV
 
       - name: Set up Rust
@@ -112,7 +112,7 @@ jobs:
       - name: Install LLVM 18 and dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
-          choco install llvm --version=18.1.8 -y
+          choco install llvm --version=18.1.8 --force -y
           echo "LLVM_SYS_180_PREFIX=C:\Program Files\LLVM" >> $env:GITHUB_ENV
 
       - name: Set up Rust
