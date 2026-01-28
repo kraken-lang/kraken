@@ -81,7 +81,9 @@ pub use random::{
 };
 pub use registry::{Registry, RegistryHive};
 pub use serialization::{BinarySerializer, JsonSerializer, JsonValue};
-pub use signals::{ignore_signal, raise_signal, register_ctrl_c_handler, Signal, SignalHandler};
+#[cfg(unix)]
+pub use signals::SignalHandler;
+pub use signals::{ignore_signal, raise_signal, register_ctrl_c_handler, Signal};
 pub use smart_pointers::{ArcRuntime, BoxRuntime, RcRuntime};
 pub use string_format::{Alignment, StringFormatter, StringInterpolator};
 pub use string_types::{StringBuilder, StringUtils};

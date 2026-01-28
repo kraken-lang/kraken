@@ -39,7 +39,11 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           choco install llvm --version=18.1.8 --force -y
-          Add-Content $env:GITHUB_ENV "LLVM_SYS_180_PREFIX=C:\Program Files\LLVM"
+          echo "LLVM installed, checking path..."
+          if (Test-Path "C:\Program Files\LLVM") { echo "LLVM found at C:\Program Files\LLVM" } else { echo "LLVM not found at expected path" }
+          $llvmPath = "C:\Program Files\LLVM"
+          echo "LLVM_SYS_180_PREFIX=$llvmPath" >> $env:GITHUB_ENV
+          echo "Setting LLVM_SYS_180_PREFIX to $llvmPath"
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -55,9 +59,13 @@ jobs:
 
       - name: Build
         run: cargo build --workspace --all-targets
+        env:
+          LLVM_SYS_180_PREFIX: C:\Program Files\LLVM
 
       - name: Run tests
         run: cargo test --workspace
+        env:
+          LLVM_SYS_180_PREFIX: C:\Program Files\LLVM
 
   lint:
     name: Lint
@@ -113,13 +121,19 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           choco install llvm --version=18.1.8 --force -y
-          Add-Content $env:GITHUB_ENV "LLVM_SYS_180_PREFIX=C:\Program Files\LLVM"
+          echo "LLVM installed, checking path..."
+          if (Test-Path "C:\Program Files\LLVM") { echo "LLVM found at C:\Program Files\LLVM" } else { echo "LLVM not found at expected path" }
+          $llvmPath = "C:\Program Files\LLVM"
+          echo "LLVM_SYS_180_PREFIX=$llvmPath" >> $env:GITHUB_ENV
+          echo "Setting LLVM_SYS_180_PREFIX to $llvmPath"
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build release
         run: cargo build --workspace --release
+        env:
+          LLVM_SYS_180_PREFIX: C:\Program Files\LLVM
 
   no-regressions:
     name: No Regressions Gate
