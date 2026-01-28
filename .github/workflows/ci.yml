@@ -32,7 +32,7 @@ jobs:
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 18
-          sudo apt-get install -y libzstd-dev
+          sudo apt-get install -y libzstd-dev libpolly-18-dev
           echo "LLVM_SYS_180_PREFIX=/usr/lib/llvm-18" >> $GITHUB_ENV
 
       - name: Install LLVM 18 and dependencies (Windows)
@@ -70,7 +70,7 @@ jobs:
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 18
-          sudo apt-get install -y libzstd-dev
+          sudo apt-get install -y libzstd-dev libpolly-18-dev
           echo "LLVM_SYS_180_PREFIX=/usr/lib/llvm-18" >> $GITHUB_ENV
 
       - name: Set up Rust
@@ -106,7 +106,7 @@ jobs:
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 18
-          sudo apt-get install -y libzstd-dev
+          sudo apt-get install -y libzstd-dev libpolly-18-dev
           echo "LLVM_SYS_180_PREFIX=/usr/lib/llvm-18" >> $GITHUB_ENV
 
       - name: Install LLVM 18 and dependencies (Windows)
