@@ -12,7 +12,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
-- Fixed clippy warning in math library median calculation to use `is_multiple_of(2)` instead of manual modulo check
+
+## [0.8.38] - 2026-01-28
+
+### Added
+- **Time and Date**
+  - Date type with year, month, day support and leap year handling
+  - Time type with hour, minute, second, nanosecond precision
+  - DateTime type with timezone offset support
+  - ISO 8601 and RFC 3339 formatting and parsing
+  - Unix timestamp conversion
+  - UtcOffset for timezone representation
+  - 20 comprehensive unit tests covering edge cases
+- **Random Number Generation**
+  - PCG (Permuted Congruential Generator) deterministic RNG
+  - Xorshift deterministic RNG for fast pseudo-random generation
+  - ChaCha20 cryptographically secure RNG
+  - Distribution utilities: uniform, normal, exponential, Bernoulli, and Poisson
+  - Thread-local RNG for convenient random number generation
+  - Seedable RNG trait for reproducible random sequences
+  - 18 comprehensive unit tests
+- **Cryptography**
+  - SHA-256 and SHA-512 hash functions with incremental hashing support
+  - HMAC-SHA256 for message authentication codes
+  - PBKDF2 key derivation function for password hashing
+  - AES-256 encryption with CBC mode
+  - ChaCha20-Poly1305 authenticated encryption with associated data (AEAD)
+  - Ed25519 digital signatures using ed25519-dalek (production-grade implementation)
+  - Base64 encoding and decoding
+  - Constant-time comparison for security-sensitive operations
+  - 26 comprehensive unit tests for cryptographic operations
+- **Utilities**
+  - Logging framework with six log levels (Trace, Debug, Info, Warn, Error, Fatal)
+  - UUID v4 generation and parsing with RFC 4122 compliance
+  - Command-line argument parser supporting options and positional arguments
+  - Environment variable utilities for reading and setting
+  - Gzip compression and decompression with CRC32 checksums
+  - 16 comprehensive unit tests
+
+### Changed
+- Updated runtime library exports to include all new cryptography types
+- Integrated ed25519-dalek library for production-grade Ed25519 digital signatures
+- Added rand dependency for cryptographic random number generation
+
+### Fixed
+- Fixed clippy warnings across all new modules
+- Resolved borrow checker issues in AES key expansion
+- Fixed type conversion issues in Ed25519 signature verification
 
 ## [0.8.37] - 2026-01-28
 
