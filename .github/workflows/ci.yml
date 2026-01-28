@@ -104,9 +104,13 @@ jobs:
 
       - name: Build
         run: cargo build --workspace --all-targets
+        env:
+          LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
 
       - name: Run tests
         run: cargo test --workspace
+        env:
+          LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
 
   lint:
     name: Lint
@@ -218,6 +222,8 @@ jobs:
 
       - name: Build release
         run: cargo build --workspace --release
+        env:
+          LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
 
   no-regressions:
     name: No Regressions Gate
