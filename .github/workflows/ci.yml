@@ -43,14 +43,33 @@ jobs:
 
       - name: Install LLVM 18 and dependencies (Windows)
         if: runner.os == 'Windows'
+        shell: powershell
         run: |
-          choco install llvm --version=18.1.8 --force -y
+          Write-Host "Downloading LLVM 18.1.8..."
+          $llvmUrl = "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe"
+          $llvmInstaller = "$env:TEMP\LLVM-18.1.8-win64.exe"
+          Invoke-WebRequest -Uri $llvmUrl -OutFile $llvmInstaller
+          
+          Write-Host "Installing LLVM..."
+          Start-Process -FilePath $llvmInstaller -ArgumentList "/S" -Wait -NoNewWindow
+          
           Write-Host "Verifying LLVM installation..."
-          if (Test-Path "$env:LLVM_SYS_180_PREFIX") {
-            Write-Host "LLVM found at $env:LLVM_SYS_180_PREFIX"
-            Get-ChildItem "$env:LLVM_SYS_180_PREFIX" | Select-Object -First 5
-          } else {
-            Write-Host "ERROR: LLVM not found at $env:LLVM_SYS_180_PREFIX"
+          $possiblePaths = @(
+            "C:\Program Files\LLVM",
+            "C:\Program Files (x86)\LLVM"
+          )
+          
+          $llvmPath = $null
+          foreach ($path in $possiblePaths) {
+            if (Test-Path $path) {
+              $llvmPath = $path
+              Write-Host "LLVM found at: $llvmPath"
+              break
+            }
+          }
+          
+          if (-not $llvmPath) {
+            Write-Host "ERROR: LLVM installation not found"
             exit 1
           }
 
@@ -130,14 +149,33 @@ jobs:
 
       - name: Install LLVM 18 and dependencies (Windows)
         if: runner.os == 'Windows'
+        shell: powershell
         run: |
-          choco install llvm --version=18.1.8 --force -y
+          Write-Host "Downloading LLVM 18.1.8..."
+          $llvmUrl = "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe"
+          $llvmInstaller = "$env:TEMP\LLVM-18.1.8-win64.exe"
+          Invoke-WebRequest -Uri $llvmUrl -OutFile $llvmInstaller
+          
+          Write-Host "Installing LLVM..."
+          Start-Process -FilePath $llvmInstaller -ArgumentList "/S" -Wait -NoNewWindow
+          
           Write-Host "Verifying LLVM installation..."
-          if (Test-Path "$env:LLVM_SYS_180_PREFIX") {
-            Write-Host "LLVM found at $env:LLVM_SYS_180_PREFIX"
-            Get-ChildItem "$env:LLVM_SYS_180_PREFIX" | Select-Object -First 5
-          } else {
-            Write-Host "ERROR: LLVM not found at $env:LLVM_SYS_180_PREFIX"
+          $possiblePaths = @(
+            "C:\Program Files\LLVM",
+            "C:\Program Files (x86)\LLVM"
+          )
+          
+          $llvmPath = $null
+          foreach ($path in $possiblePaths) {
+            if (Test-Path $path) {
+              $llvmPath = $path
+              Write-Host "LLVM found at: $llvmPath"
+              break
+            }
+          }
+          
+          if (-not $llvmPath) {
+            Write-Host "ERROR: LLVM installation not found"
             exit 1
           }
 
