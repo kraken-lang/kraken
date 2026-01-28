@@ -72,65 +72,12 @@ impl AsyncRuntime for TokioRuntime {
     }
 }
 
-/// Cycle runtime implementation (feature-gated).
+/// Get the default async runtime
 ///
-/// Provides async execution using the Cycle runtime, a high-performance
-/// alternative to Tokio designed for maximum throughput and minimal overhead.
-#[cfg(feature = "cycle")]
-pub struct CycleRuntime {
-    // Placeholder for Cycle runtime integration
-    // Will be implemented when Cycle API is stable
-    _marker: std::marker::PhantomData<()>,
-}
-
-#[cfg(feature = "cycle")]
-impl CycleRuntime {
-    /// Create a new CycleRuntime.
-    ///
-    /// # Note
-    /// This is a placeholder implementation until Cycle API stabilizes.
-    pub fn new() -> Self {
-        Self {
-            _marker: std::marker::PhantomData,
-        }
-    }
-}
-
-#[cfg(feature = "cycle")]
-impl Default for CycleRuntime {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[cfg(feature = "cycle")]
-impl AsyncRuntime for CycleRuntime {
-    fn spawn(&self, _future: Pin<Box<dyn Future<Output = ()> + Send + 'static>>) {
-        // Placeholder: Will integrate with Cycle's spawn API
-        unimplemented!("Cycle runtime integration pending API stabilization")
-    }
-
-    fn block_on(&self, _future: Pin<Box<dyn Future<Output = ()> + Send>>) {
-        // Placeholder: Will integrate with Cycle's block_on API
-        unimplemented!("Cycle runtime integration pending API stabilization")
-    }
-}
-
-/// Get the default runtime based on active feature flags.
-///
-/// Returns a Cycle runtime if the "cycle" feature is enabled,
-/// otherwise returns a Tokio runtime (default).
+/// Returns TokioRuntime as the default async runtime.
 ///
 /// # Returns
 /// A boxed trait object implementing AsyncRuntime
 pub fn get_runtime() -> Box<dyn AsyncRuntime> {
-    #[cfg(feature = "cycle")]
-    {
-        Box::new(CycleRuntime::new())
-    }
-
-    #[cfg(not(feature = "cycle"))]
-    {
-        Box::new(TokioRuntime::new())
-    }
+    Box::new(TokioRuntime::new())
 }

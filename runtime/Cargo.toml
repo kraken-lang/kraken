@@ -12,14 +12,12 @@ publish = false
 default = ["tokio"]
 # ========================
 tokio = ["dep:tokio"]
-cycle = ["dep:cycle"]
 # ========================
 
 
 [dependencies]
 #####################################################
 tokio = { workspace = true, optional = true }
-cycle = { git = "https://github.com/jamesgober/cycle", optional = true }
 serde = { workspace = true }
 regex = "1.10"
 unicode-normalization = "0.1"
