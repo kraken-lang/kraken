@@ -13,6 +13,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.8.37] - 2026-01-28
+
+### Added
+- **Math Library**
+  - Vector math with Vec2, Vec3, and Vec4 types supporting dot product, cross product, length calculation, normalization, and distance operations
+  - Matrix operations with Mat2, Mat3, and Mat4 types including multiplication, transpose, determinant calculation, and matrix inversion
+  - Quaternion support for 3D rotations with axis-angle conversion, normalization, conjugate, and inverse operations
+  - Statistical functions including mean, median, variance, standard deviation, min, max, sum, and product
+  - Advanced trigonometry functions covering standard trig (sin, cos, tan), inverse trig (asin, acos, atan, atan2), hyperbolic functions (sinh, cosh, tanh), and inverse hyperbolic functions (asinh, acosh, atanh)
+  - Angle conversion utilities between degrees and radians
+  - Comprehensive test coverage with 26 unit tests
+- **Text Processing**
+  - Regular expression support with PCRE-compatible pattern matching, including find, replace, split, and capture group operations
+  - Unicode normalization supporting NFC, NFD, NFKC, and NFKD forms
+  - Unicode segmentation for grapheme clusters, words, and sentences with counting utilities
+  - Case mapping operations including uppercase, lowercase, titlecase, and case folding for case-insensitive comparisons
+  - Advanced string utilities for text wrapping, truncation with ellipsis, indentation, dedentation, and centering
+  - Comprehensive test coverage with 25 unit tests
+- **Enhanced Serialization**
+  - MessagePack binary serialization supporting strings, integers, booleans, floats, and null values
+  - CBOR (Concise Binary Object Representation) for compact binary encoding
+  - TOML configuration file format with section support and simple parsing
+  - YAML serialization with nested structure support and basic parsing
+  - INI file format with multi-section support and parsing
+  - Comprehensive test coverage with 20 unit tests
+
+### Dependencies
+- Added regex 1.10 for regular expression support
+- Added unicode-normalization 0.1 for Unicode normalization
+- Added unicode-segmentation 1.11 for Unicode segmentation
+
 ## [0.8.36] - 2026-01-28
 
 ### Added

@@ -21,3 +21,6 @@ cycle = ["dep:cycle"]
 tokio = { workspace = true, optional = true }
 cycle = { git = "https://github.com/jamesgober/cycle", optional = true }
 serde = { workspace = true }
+regex = "1.10"
+unicode-normalization = "0.1"
+unicode-segmentation = "1.11"

@@ -12,11 +12,13 @@ pub mod atomic;
 pub mod collections;
 pub mod concurrent;
 pub mod connection_pool;
+pub mod enhanced_serialization;
 pub mod ffi;
 pub mod file_io;
 pub mod gc;
 pub mod generic_collections;
 pub mod http;
+pub mod math;
 pub mod memory;
 pub mod networking;
 pub mod path_types;
@@ -25,6 +27,7 @@ pub mod smart_pointers;
 pub mod string_format;
 pub mod string_types;
 pub mod sync;
+pub mod text_processing;
 pub mod thread_safety;
 pub mod threading;
 pub mod time_types;
@@ -48,10 +51,14 @@ pub use collections::{
 };
 pub use concurrent::{ConcurrentHashMap, MpmcQueue, MpscQueue, ThreadPool, WorkStealingDeque};
 pub use connection_pool::{ConnectionPool, PoolStats, PooledHttpClient};
+pub use enhanced_serialization::{
+    CborSerializer, IniSerializer, MessagePackSerializer, TomlSerializer, YamlSerializer,
+};
 pub use file_io::{DirectoryEntry, DirectoryTraversal, FileUtils, MemoryMappedFile};
 pub use gc::GarbageCollector;
 pub use generic_collections::{Map, SliceUtils, Vec};
 pub use http::{HttpClient, HttpMethod, HttpRequest, HttpResponse, HttpServer};
+pub use math::{Mat2, Mat3, Mat4, Quaternion, Statistics, Trigonometry, Vec2, Vec3, Vec4};
 pub use memory::{Allocator, MemoryError, MemoryResult};
 pub use networking::{IpAddress, TcpListenerSocket, TcpSocket, UdpSocketWrapper};
 pub use path_types::{OsStringUtils, PathUtils};
@@ -60,6 +67,9 @@ pub use smart_pointers::{ArcRuntime, BoxRuntime, RcRuntime};
 pub use string_format::{Alignment, StringFormatter, StringInterpolator};
 pub use string_types::{StringBuilder, StringUtils};
 pub use sync::{Barrier, ConditionVariable, Mutex, RwLock, Semaphore};
+pub use text_processing::{
+    AdvancedStringUtils, CaseMapper, RegexWrapper, UnicodeNormalizer, UnicodeSegmenter,
+};
 pub use thread_safety::{DeadlockDetector, PerformanceMetrics, PerformanceMonitor};
 pub use threading::{
     current_thread_id, current_thread_name, sleep, spawn, yield_now, Thread, ThreadBuilder,
