@@ -1,11 +1,4 @@
 #[cfg(windows)]
-use std::ffi::OsStr;
-#[cfg(windows)]
-use std::os::windows::ffi::OsStrExt;
-#[cfg(windows)]
-use std::ptr;
-
-#[cfg(windows)]
 #[repr(C)]
 struct ServiceStatus {
     service_type: u32,

@@ -1,4 +1,5 @@
 use signal_hook::consts::signal::*;
+#[cfg(unix)]
 use signal_hook::iterator::Signals;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
