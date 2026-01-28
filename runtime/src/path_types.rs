@@ -155,13 +155,19 @@ mod tests {
 
     #[test]
     fn test_path_is_absolute() {
+        #[cfg(unix)]
         assert!(PathUtils::is_absolute("/tmp/test.txt"));
+        #[cfg(windows)]
+        assert!(PathUtils::is_absolute("C:\\temp\\test.txt"));
         assert!(!PathUtils::is_absolute("test.txt"));
     }
 
     #[test]
     fn test_path_is_relative() {
+        #[cfg(unix)]
         assert!(!PathUtils::is_relative("/tmp/test.txt"));
+        #[cfg(windows)]
+        assert!(!PathUtils::is_relative("C:\\temp\\test.txt"));
         assert!(PathUtils::is_relative("test.txt"));
     }
 

@@ -421,8 +421,16 @@ mod tests {
 
     #[test]
     fn test_path_is_absolute() {
-        assert!(PathUtils::is_absolute("/absolute/path"));
-        assert!(!PathUtils::is_relative("/absolute/path"));
+        #[cfg(unix)]
+        {
+            assert!(PathUtils::is_absolute("/absolute/path"));
+            assert!(!PathUtils::is_relative("/absolute/path"));
+        }
+        #[cfg(windows)]
+        {
+            assert!(PathUtils::is_absolute("C:\\absolute\\path"));
+            assert!(!PathUtils::is_relative("C:\\absolute\\path"));
+        }
     }
 
     #[test]

@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed missing Ordering import in signals.rs test module
 - Fixed test_compile_empty_program to use platform-agnostic temp directory instead of Unix-specific /tmp path
 - Made trap/signal termination tests Unix-only (Windows uses exit codes instead of signals)
+- Made IR snapshot test helper Unix-only to suppress dead code warnings on Windows
+- Fixed path absolute/relative tests to use platform-appropriate paths (C:\ on Windows, / on Unix)
 - Removed unused imports in windows_service.rs module
 - Suppressed dead code warnings for Windows-only internal helper functions
 

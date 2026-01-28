@@ -798,6 +798,7 @@ mod tests {
         Ok(())
     }
 
+    #[cfg(unix)]
     async fn assert_program_terminated_by_signal(program: PathBuf) -> Result<()> {
         let executable = compile_file(&program)
             .await
@@ -847,6 +848,7 @@ mod tests {
     }
 
     /// Assert that the generated IR matches the golden file.
+    #[cfg(unix)]
     async fn assert_ir_snapshot(source: PathBuf, golden: PathBuf) -> Result<()> {
         let program = modules::loader::load_program(&source).await?;
         let mut lowering = ir::IrLowering::new();
