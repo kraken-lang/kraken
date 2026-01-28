@@ -55,6 +55,7 @@ impl Signal {
     }
 
     #[cfg(windows)]
+    #[allow(dead_code)]
     fn from_signal_number(sig: i32) -> Option<Self> {
         match sig {
             SIGINT => Some(Signal::Interrupt),

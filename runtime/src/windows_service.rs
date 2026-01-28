@@ -1,5 +1,6 @@
 #[cfg(windows)]
 #[repr(C)]
+#[allow(dead_code)]
 struct ServiceStatus {
     service_type: u32,
     current_state: u32,
@@ -23,6 +24,7 @@ pub enum ServiceState {
 
 #[cfg(windows)]
 impl ServiceState {
+    #[allow(dead_code)]
     fn to_code(self) -> u32 {
         match self {
             ServiceState::Stopped => 0x00000001,
@@ -35,6 +37,7 @@ impl ServiceState {
         }
     }
 
+    #[allow(dead_code)]
     fn from_code(code: u32) -> Option<Self> {
         match code {
             0x00000001 => Some(ServiceState::Stopped),
@@ -58,6 +61,7 @@ pub enum ServiceStartType {
 
 #[cfg(windows)]
 impl ServiceStartType {
+    #[allow(dead_code)]
     fn to_code(self) -> u32 {
         match self {
             ServiceStartType::Auto => 0x00000002,

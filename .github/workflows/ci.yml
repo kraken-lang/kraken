@@ -22,6 +22,8 @@ jobs:
           - os: windows-latest
             llvm_path: C:\Program Files\LLVM
     runs-on: ${{ matrix.os }}
+    env:
+      LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
     steps:
       - uses: actions/checkout@v4
 
@@ -29,7 +31,6 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew install llvm@18 zstd
-          echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
           echo "LIBRARY_PATH=$(brew --prefix zstd)/lib:$LIBRARY_PATH" >> $GITHUB_ENV
 
       - name: Install LLVM 18 and dependencies (Linux)
@@ -39,17 +40,19 @@ jobs:
           chmod +x llvm.sh
           sudo ./llvm.sh 18
           sudo apt-get install -y libzstd-dev libpolly-18-dev
-          echo "LLVM_SYS_180_PREFIX=/usr/lib/llvm-18" >> $GITHUB_ENV
 
       - name: Install LLVM 18 and dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
           choco install llvm --version=18.1.8 --force -y
-          echo "LLVM installed, checking path..."
-          if (Test-Path "C:\Program Files\LLVM") { echo "LLVM found at C:\Program Files\LLVM" } else { echo "LLVM not found at expected path" }
-          $llvmPath = "C:\Program Files\LLVM"
-          echo "LLVM_SYS_180_PREFIX=$llvmPath" >> $env:GITHUB_ENV
-          echo "Setting LLVM_SYS_180_PREFIX to $llvmPath"
+          Write-Host "Verifying LLVM installation..."
+          if (Test-Path "$env:LLVM_SYS_180_PREFIX") {
+            Write-Host "LLVM found at $env:LLVM_SYS_180_PREFIX"
+            Get-ChildItem "$env:LLVM_SYS_180_PREFIX" | Select-Object -First 5
+          } else {
+            Write-Host "ERROR: LLVM not found at $env:LLVM_SYS_180_PREFIX"
+            exit 1
+          }
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -65,13 +68,9 @@ jobs:
 
       - name: Build
         run: cargo build --workspace --all-targets
-        env:
-          LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
 
       - name: Run tests
         run: cargo test --workspace
-        env:
-          LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
 
   lint:
     name: Lint
@@ -110,6 +109,8 @@ jobs:
           - os: windows-latest
             llvm_path: C:\Program Files\LLVM
     runs-on: ${{ matrix.os }}
+    env:
+      LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
     steps:
       - uses: actions/checkout@v4
 
@@ -117,7 +118,6 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew install llvm@18 zstd
-          echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
           echo "LIBRARY_PATH=$(brew --prefix zstd)/lib:$LIBRARY_PATH" >> $GITHUB_ENV
 
       - name: Install LLVM 18 and dependencies (Linux)
@@ -127,25 +127,25 @@ jobs:
           chmod +x llvm.sh
           sudo ./llvm.sh 18
           sudo apt-get install -y libzstd-dev libpolly-18-dev
-          echo "LLVM_SYS_180_PREFIX=/usr/lib/llvm-18" >> $GITHUB_ENV
 
       - name: Install LLVM 18 and dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
           choco install llvm --version=18.1.8 --force -y
-          echo "LLVM installed, checking path..."
-          if (Test-Path "C:\Program Files\LLVM") { echo "LLVM found at C:\Program Files\LLVM" } else { echo "LLVM not found at expected path" }
-          $llvmPath = "C:\Program Files\LLVM"
-          echo "LLVM_SYS_180_PREFIX=$llvmPath" >> $env:GITHUB_ENV
-          echo "Setting LLVM_SYS_180_PREFIX to $llvmPath"
+          Write-Host "Verifying LLVM installation..."
+          if (Test-Path "$env:LLVM_SYS_180_PREFIX") {
+            Write-Host "LLVM found at $env:LLVM_SYS_180_PREFIX"
+            Get-ChildItem "$env:LLVM_SYS_180_PREFIX" | Select-Object -First 5
+          } else {
+            Write-Host "ERROR: LLVM not found at $env:LLVM_SYS_180_PREFIX"
+            exit 1
+          }
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build release
         run: cargo build --workspace --release
-        env:
-          LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
 
   no-regressions:
     name: No Regressions Gate
