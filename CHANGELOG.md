@@ -12,11 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
-- Fixed CI/CD workflow Windows LLVM installation to use official LLVM installer instead of Chocolatey
+- Fixed CI/CD workflow Windows LLVM installation to use official LLVM installer with GITHUB_ENV and PATH setup
 - Fixed CI/CD workflow Linux LLVM installation to include libpolly-18-dev package for Polly library support
 - Temporarily ignored generics_map_string_int test on Linux due to platform-specific behavior requiring investigation
 - Removed unused cycle dependency that caused Windows build failures due to invalid path in git repository
-- Fixed LLVM environment variable to use job-level matrix configuration for all platforms
+- Fixed LLVM environment variable to use job-level matrix configuration with GITHUB_ENV fallback for all platforms
 - Fixed signal_hook iterator import to only be used on Unix platforms (not available on Windows)
 - Made SignalHandler struct and implementation Unix-only (Windows uses register_ctrl_c_handler instead)
 - Made SignalHandler export conditional on Unix platform in lib.rs

@@ -72,6 +72,24 @@ jobs:
             Write-Host "ERROR: LLVM installation not found"
             exit 1
           }
+          
+          Write-Host "Setting LLVM_SYS_180_PREFIX to $llvmPath"
+          echo "LLVM_SYS_180_PREFIX=$llvmPath" >> $env:GITHUB_ENV
+          
+          Write-Host "Adding LLVM to PATH"
+          echo "$llvmPath\bin" >> $env:GITHUB_PATH
+
+      - name: Verify LLVM environment (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          Write-Host "LLVM_SYS_180_PREFIX = $env:LLVM_SYS_180_PREFIX"
+          Write-Host "Checking if llvm-config exists..."
+          if (Test-Path "$env:LLVM_SYS_180_PREFIX\bin\llvm-config.exe") {
+            Write-Host "llvm-config.exe found"
+          } else {
+            Write-Host "llvm-config.exe NOT found"
+          }
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -177,6 +195,24 @@ jobs:
           if (-not $llvmPath) {
             Write-Host "ERROR: LLVM installation not found"
             exit 1
+          }
+          
+          Write-Host "Setting LLVM_SYS_180_PREFIX to $llvmPath"
+          echo "LLVM_SYS_180_PREFIX=$llvmPath" >> $env:GITHUB_ENV
+          
+          Write-Host "Adding LLVM to PATH"
+          echo "$llvmPath\bin" >> $env:GITHUB_PATH
+
+      - name: Verify LLVM environment (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          Write-Host "LLVM_SYS_180_PREFIX = $env:LLVM_SYS_180_PREFIX"
+          Write-Host "Checking if llvm-config exists..."
+          if (Test-Path "$env:LLVM_SYS_180_PREFIX\bin\llvm-config.exe") {
+            Write-Host "llvm-config.exe found"
+          } else {
+            Write-Host "llvm-config.exe NOT found"
           }
 
       - name: Set up Rust
