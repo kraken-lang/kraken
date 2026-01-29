@@ -4,53 +4,86 @@ use thiserror::Error;
 /// Compiler result type.
 pub type CompilerResult<T> = Result<T, CompilerError>;
 
+/// Error codes for categorization and documentation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
+pub enum ErrorCode {
+    E0001, // Unexpected character in lexer
+    E0002, // Unterminated string literal
+    E0003, // Invalid number format
+    E0004, // Unexpected token in parser
+    E0005, // Expected token not found
+    E0006, // Invalid syntax
+    E0007, // Type mismatch
+    E0008, // Undefined variable
+    E0009, // Undefined function
+    E0010, // Undefined type
+    E0011, // Arity mismatch
+    E0012, // Invalid operation
+    E0013, // Codegen failure
+    E0014, // File not found
+    E0015, // Invalid file extension
+    E0016, // I/O error
+    E0017, // Internal compiler error
+    E0018, // Multiple errors
+}
+
+impl std::fmt::Display for ErrorCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
 /// Comprehensive compiler error types.
 #[derive(Error, Debug)]
 #[allow(dead_code)]
 pub enum CompilerError {
     /// Lexer errors
-    #[error("Lexer error at {location}: {message}")]
+    #[error("[{code}] Lexer error at {location}: {message}")]
     LexerError {
+        code: ErrorCode,
         location: SourceLocation,
         message: String,
     },
 
     /// Parser errors
-    #[error("Parser error at {location}: {message}")]
+    #[error("[{code}] Parser error at {location}: {message}")]
     ParserError {
+        code: ErrorCode,
         location: SourceLocation,
         message: String,
     },
 
     /// Type checking errors
-    #[error("Type error at {location}: {message}")]
+    #[error("[{code}] Type error at {location}: {message}")]
     TypeError {
+        code: ErrorCode,
         location: SourceLocation,
         message: String,
     },
 
     /// Code generation errors
-    #[error("Code generation error: {0}")]
-    CodegenError(String),
+    #[error("[{code}] Code generation error: {message}")]
+    CodegenError { code: ErrorCode, message: String },
 
     /// File I/O errors
-    #[error("I/O error: {0}")]
+    #[error("[E0016] I/O error: {0}")]
     IoError(#[from] std::io::Error),
 
     /// File not found
-    #[error("File not found: {0}")]
+    #[error("[E0014] File not found: {0}")]
     FileNotFound(PathBuf),
 
     /// Invalid file extension
-    #[error("Invalid file extension: expected .kr or .krak, found {0}")]
+    #[error("[E0015] Invalid file extension: expected .kr or .krak, found {0}")]
     InvalidExtension(String),
 
     /// Multiple errors
-    #[error("Multiple compilation errors occurred")]
+    #[error("[E0018] Multiple compilation errors occurred")]
     MultipleErrors(Vec<CompilerError>),
 
     /// Internal compiler error
-    #[error("Internal compiler error: {0}")]
+    #[error("[E0017] Internal compiler error: {0}")]
     InternalError(String),
 }
 
@@ -298,6 +331,7 @@ impl CompilerError {
     /// Create a lexer error.
     pub fn lexer_error(location: SourceLocation, message: impl Into<String>) -> Self {
         Self::LexerError {
+            code: ErrorCode::E0001,
             location,
             message: message.into(),
         }
@@ -306,6 +340,7 @@ impl CompilerError {
     /// Create a parser error.
     pub fn parser_error(location: SourceLocation, message: impl Into<String>) -> Self {
         Self::ParserError {
+            code: ErrorCode::E0004,
             location,
             message: message.into(),
         }
@@ -314,6 +349,7 @@ impl CompilerError {
     /// Create a type error.
     pub fn type_error(location: SourceLocation, message: impl Into<String>) -> Self {
         Self::TypeError {
+            code: ErrorCode::E0007,
             location,
             message: message.into(),
         }
@@ -321,13 +357,32 @@ impl CompilerError {
 
     /// Create a codegen error.
     pub fn codegen_error(message: impl Into<String>) -> Self {
-        Self::CodegenError(message.into())
+        Self::CodegenError {
+            code: ErrorCode::E0013,
+            message: message.into(),
+        }
     }
 
     /// Create an internal error.
     #[allow(dead_code)]
     pub fn internal_error(message: impl Into<String>) -> Self {
         Self::InternalError(message.into())
+    }
+
+    /// Get the error code for this error.
+    #[allow(dead_code)]
+    pub fn code(&self) -> ErrorCode {
+        match self {
+            Self::LexerError { code, .. } => *code,
+            Self::ParserError { code, .. } => *code,
+            Self::TypeError { code, .. } => *code,
+            Self::CodegenError { code, .. } => *code,
+            Self::IoError(_) => ErrorCode::E0016,
+            Self::FileNotFound(_) => ErrorCode::E0014,
+            Self::InvalidExtension(_) => ErrorCode::E0015,
+            Self::MultipleErrors(_) => ErrorCode::E0018,
+            Self::InternalError(_) => ErrorCode::E0017,
+        }
     }
 }
 

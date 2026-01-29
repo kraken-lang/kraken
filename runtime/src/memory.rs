@@ -71,6 +71,7 @@ impl Allocator {
             return Err(MemoryError::InvalidLayout);
         }
 
+        // SAFETY: alloc is safe to call with a valid layout. We verify the layout is non-zero above.
         let ptr = unsafe { alloc(layout) as *mut T };
 
         if ptr.is_null() {
@@ -82,6 +83,7 @@ impl Allocator {
                 .fetch_add(layout.size(), std::sync::atomic::Ordering::Relaxed);
         }
 
+        // SAFETY: We checked that ptr is not null above, so new_unchecked is safe.
         Ok(unsafe { NonNull::new_unchecked(ptr) })
     }
 
@@ -103,6 +105,7 @@ impl Allocator {
 
         let layout = Layout::array::<T>(count).map_err(|_| MemoryError::InvalidLayout)?;
 
+        // SAFETY: alloc is safe to call with a valid layout. Layout::array validates the layout.
         let ptr = unsafe { alloc(layout) as *mut T };
 
         if ptr.is_null() {
@@ -114,6 +117,7 @@ impl Allocator {
                 .fetch_add(layout.size(), std::sync::atomic::Ordering::Relaxed);
         }
 
+        // SAFETY: We checked that ptr is not null above, so new_unchecked is safe.
         Ok(unsafe { NonNull::new_unchecked(ptr) })
     }
 
@@ -132,6 +136,7 @@ impl Allocator {
                 .fetch_add(layout.size(), std::sync::atomic::Ordering::Relaxed);
         }
 
+        // SAFETY: Caller guarantees ptr was allocated by this allocator with matching layout.
         dealloc(ptr.as_ptr() as *mut u8, layout);
     }
 
@@ -151,6 +156,7 @@ impl Allocator {
                     .fetch_add(layout.size(), std::sync::atomic::Ordering::Relaxed);
             }
 
+            // SAFETY: Caller guarantees ptr was allocated by this allocator with matching layout and count.
             dealloc(ptr.as_ptr() as *mut u8, layout);
         }
     }

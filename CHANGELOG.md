@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **0.8.41 Compiler Quality & Polish**
+  - **Enhanced Error Messages**
+    - Added error codes (E0001-E0018) for categorization and documentation
+    - Error codes now displayed in all error messages for easy reference
+    - Added `code()` method to retrieve error code from any CompilerError
+    - Improved error message formatting with consistent error code prefixes
   - **Iterator Support** - Comprehensive iterator module implementation
     - Added standard trait re-exports (Iterator, IntoIterator, FromIterator)
     - Implemented Range iterator for i64 and usize types with proper size hints
@@ -18,11 +23,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added Filter iterator adapter for selecting elements
     - Full test coverage with 13 comprehensive tests
     - Fills 5% stdlib gap identified in 0.8.40 analysis
+  - **Safety Documentation**
+    - Added SAFETY comments to all unsafe blocks in memory allocator
+    - Documented safety invariants for allocation and deallocation operations
+    - Clarified preconditions and guarantees for unsafe operations
+    - Improved code maintainability and audit trail
   - **Code Quality Improvements**
     - Fixed all clippy warnings (0 warnings with strict lints)
     - All 412 tests passing across compiler and runtime
     - Improved code clarity and idiomatic Rust patterns
     - Enhanced iterator implementations following clippy suggestions
+    - Better documentation for public APIs
 
 ## [0.8.40] - 2026-01-29
 
