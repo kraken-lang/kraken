@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.40] - 2026-01-29
+
 ### Added
-- **0.8.40 Comprehensive Quality Improvements** (Complete Language & Project Finalization Review)
+- **Comprehensive Quality Improvements** (Complete Language & Project Finalization Review)
   - Added 10 comprehensive edge case tests for lexer (empty input, whitespace-only, unicode identifiers, large integers, escape sequences, block comments, consecutive integers, long identifiers, mixed literals)
   - Added 15 comprehensive edge case tests for runtime collections (Vec, Map, Slice - empty operations, single element, boundary conditions, large capacity, many insertions, overwrite behavior)
   - Enhanced test coverage for tokenizer module with boundary conditions
