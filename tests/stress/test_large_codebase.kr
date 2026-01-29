@@ -1,0 +1,66 @@
+// Stress test: Large codebase simulation
+// Tests compiler's ability to handle many functions, structs, and traits
+
+struct Point { x: int, y: int }
+struct Line { start: Point, end: Point }
+struct Rectangle { top_left: Point, bottom_right: Point }
+struct Circle { center: Point, radius: int }
+struct Triangle { a: Point, b: Point, c: Point }
+
+trait Shape {
+    fn area(self) -> int;
+}
+
+impl Shape for Rectangle {
+    fn area(self) -> int {
+        let width = self.bottom_right.x - self.top_left.x;
+        let height = self.bottom_right.y - self.top_left.y;
+        return width * height;
+    }
+}
+
+fn helper1() -> int { return 1; }
+fn helper2() -> int { return 2; }
+fn helper3() -> int { return 3; }
+fn helper4() -> int { return 4; }
+fn helper5() -> int { return 5; }
+fn helper6() -> int { return 6; }
+fn helper7() -> int { return 7; }
+fn helper8() -> int { return 8; }
+fn helper9() -> int { return 9; }
+fn helper10() -> int { return 10; }
+
+fn utility1(x: int) -> int { return x + 1; }
+fn utility2(x: int) -> int { return x + 2; }
+fn utility3(x: int) -> int { return x + 3; }
+fn utility4(x: int) -> int { return x + 4; }
+fn utility5(x: int) -> int { return x + 5; }
+fn utility6(x: int) -> int { return x + 6; }
+fn utility7(x: int) -> int { return x + 7; }
+fn utility8(x: int) -> int { return x + 8; }
+fn utility9(x: int) -> int { return x + 9; }
+fn utility10(x: int) -> int { return x + 10; }
+
+fn compute1(a: int, b: int) -> int { return a + b; }
+fn compute2(a: int, b: int) -> int { return a - b; }
+fn compute3(a: int, b: int) -> int { return a * b; }
+fn compute4(a: int, b: int) -> int { return a / b; }
+fn compute5(a: int, b: int) -> int { return a % b; }
+
+fn process_data(x: int) -> int {
+    let result = helper1() + helper2() + helper3();
+    result = result + utility1(x) + utility2(x);
+    result = result + compute1(x, 10);
+    return result;
+}
+
+fn main() -> int {
+    let p1 = Point { x: 0, y: 0 };
+    let p2 = Point { x: 10, y: 10 };
+    let rect = Rectangle { top_left: p1, bottom_right: p2 };
+    
+    let result = process_data(42);
+    
+    puts("Large codebase stress test passed");
+    return 0;
+}

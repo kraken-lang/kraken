@@ -1,0 +1,47 @@
+// Stress test: Complex generic types
+// Tests compiler's ability to handle deeply nested and complex generic types
+
+trait Container<T> {
+    fn get(self) -> T;
+}
+
+struct Box<T> {
+    value: T,
+}
+
+impl<T> Container<T> for Box<T> {
+    fn get(self) -> T {
+        return self.value;
+    }
+}
+
+struct Pair<A, B> {
+    first: A,
+    second: B,
+}
+
+struct Triple<A, B, C> {
+    first: A,
+    second: B,
+    third: C,
+}
+
+// Nested generic types
+fn create_nested() -> Box<Pair<int, int>> {
+    let pair = Pair { first: 10, second: 20 };
+    let boxed = Box { value: pair };
+    return boxed;
+}
+
+fn main() -> int {
+    // Test complex generic instantiation
+    let simple_box: Box<int> = Box { value: 42 };
+    let pair: Pair<int, int> = Pair { first: 1, second: 2 };
+    let triple: Triple<int, int, int> = Triple { first: 1, second: 2, third: 3 };
+    
+    // Test nested generics
+    let nested = create_nested();
+    
+    puts("Complex generics stress test passed");
+    return 0;
+}

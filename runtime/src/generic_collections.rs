@@ -581,4 +581,151 @@ mod tests {
         SliceUtils::rotate_right(&mut arr2, 2);
         assert_eq!(arr2, [4, 5, 1, 2, 3]);
     }
+
+    // Edge case tests for Vec
+    #[test]
+    fn test_vec_empty_operations() {
+        let mut vec: Vec<i32> = Vec::new();
+        assert_eq!(vec.pop(), None);
+        assert_eq!(vec.get(0), None);
+        assert_eq!(vec.first(), None);
+        assert_eq!(vec.last(), None);
+        assert!(vec.is_empty());
+    }
+
+    #[test]
+    fn test_vec_single_element() {
+        let mut vec = Vec::new();
+        vec.push(42);
+        assert_eq!(vec.len(), 1);
+        assert_eq!(vec.first(), Some(&42));
+        assert_eq!(vec.last(), Some(&42));
+        assert_eq!(vec.pop(), Some(42));
+        assert!(vec.is_empty());
+    }
+
+    #[test]
+    fn test_vec_large_capacity() {
+        let vec: Vec<i32> = Vec::with_capacity(1000);
+        assert!(vec.capacity() >= 1000);
+        assert_eq!(vec.len(), 0);
+    }
+
+    #[test]
+    fn test_vec_push_pop_sequence() {
+        let mut vec = Vec::new();
+        for i in 0..100 {
+            vec.push(i);
+        }
+        assert_eq!(vec.len(), 100);
+        for i in (0..100).rev() {
+            assert_eq!(vec.pop(), Some(i));
+        }
+        assert!(vec.is_empty());
+    }
+
+    #[test]
+    fn test_vec_truncate_to_zero() {
+        let mut vec = Vec::new();
+        vec.push(1);
+        vec.push(2);
+        vec.push(3);
+        vec.truncate(0);
+        assert!(vec.is_empty());
+    }
+
+    #[test]
+    fn test_vec_insert_remove_boundary() {
+        let mut vec = Vec::new();
+        vec.push(1);
+        vec.push(2);
+        vec.push(3);
+        vec.insert(0, 0);
+        assert_eq!(vec.get(0), Some(&0));
+        vec.remove(0);
+        assert_eq!(vec.get(0), Some(&1));
+    }
+
+    // Edge case tests for Map
+    #[test]
+    fn test_map_empty_operations() {
+        let map: Map<i32, String> = Map::new();
+        assert_eq!(map.get(&1), None);
+        assert!(!map.contains_key(&1));
+        assert!(map.is_empty());
+    }
+
+    #[test]
+    fn test_map_single_entry() {
+        let mut map = Map::new();
+        map.insert(1, "one");
+        assert_eq!(map.len(), 1);
+        assert_eq!(map.get(&1), Some(&"one"));
+        map.remove(&1);
+        assert!(map.is_empty());
+    }
+
+    #[test]
+    fn test_map_overwrite_value() {
+        let mut map = Map::new();
+        map.insert(1, "one");
+        map.insert(1, "ONE");
+        assert_eq!(map.len(), 1);
+        assert_eq!(map.get(&1), Some(&"ONE"));
+    }
+
+    #[test]
+    fn test_map_large_capacity() {
+        let map: Map<i32, String> = Map::with_capacity(1000);
+        assert!(map.capacity() >= 1000);
+        assert_eq!(map.len(), 0);
+    }
+
+    #[test]
+    fn test_map_many_insertions() {
+        let mut map = Map::new();
+        for i in 0..100 {
+            map.insert(i, i.to_string());
+        }
+        assert_eq!(map.len(), 100);
+        for i in 0..100 {
+            assert_eq!(map.get(&i), Some(&i.to_string()));
+        }
+    }
+
+    // Edge case tests for Slice
+    #[test]
+    fn test_slice_empty_operations() {
+        let arr: [i32; 0] = [];
+        assert_eq!(SliceUtils::len(&arr), 0);
+        assert!(SliceUtils::is_empty(&arr));
+        assert_eq!(SliceUtils::first(&arr), None);
+        assert_eq!(SliceUtils::last(&arr), None);
+    }
+
+    #[test]
+    fn test_slice_single_element() {
+        let arr = [42];
+        assert_eq!(SliceUtils::len(&arr), 1);
+        assert_eq!(SliceUtils::first(&arr), Some(&42));
+        assert_eq!(SliceUtils::last(&arr), Some(&42));
+    }
+
+    #[test]
+    fn test_slice_binary_search_empty() {
+        let arr: [i32; 0] = [];
+        assert!(SliceUtils::binary_search(&arr, &1).is_err());
+    }
+
+    #[test]
+    fn test_slice_split_at_boundaries() {
+        let arr = [1, 2, 3];
+        let (left, right) = SliceUtils::split_at(&arr, 0);
+        assert_eq!(left, &[]);
+        assert_eq!(right, &[1, 2, 3]);
+        
+        let (left, right) = SliceUtils::split_at(&arr, 3);
+        assert_eq!(left, &[1, 2, 3]);
+        assert_eq!(right, &[]);
+    }
 }
