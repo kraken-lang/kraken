@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **0.8.41 Compiler Quality & Polish**
+  - **Iterator Support** - Comprehensive iterator module implementation
+    - Added standard trait re-exports (Iterator, IntoIterator, FromIterator)
+    - Implemented Range iterator for i64 and usize types with proper size hints
+    - Added Empty iterator utility for zero-element sequences
+    - Added Once iterator utility for single-element sequences
+    - Added Map iterator adapter for transforming elements
+    - Added Filter iterator adapter for selecting elements
+    - Full test coverage with 13 comprehensive tests
+    - Fills 5% stdlib gap identified in 0.8.40 analysis
+  - **Code Quality Improvements**
+    - Fixed all clippy warnings (0 warnings with strict lints)
+    - All 412 tests passing across compiler and runtime
+    - Improved code clarity and idiomatic Rust patterns
+    - Enhanced iterator implementations following clippy suggestions
+
 ## [0.8.40] - 2026-01-29
 
 ### Added

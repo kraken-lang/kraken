@@ -20,6 +20,7 @@ pub mod file_io;
 pub mod gc;
 pub mod generic_collections;
 pub mod http;
+pub mod iterators;
 pub mod math;
 pub mod memory;
 pub mod networking;
