@@ -6,9 +6,11 @@
 pub mod analyzer;
 pub mod codegen;
 pub mod error;
+pub mod error_helpers;
 pub mod ffi;
 pub mod ir;
 pub mod lexer;
+pub mod optimizer;
 pub mod parser;
 
 pub use error::{CompilerError, CompilerResult};

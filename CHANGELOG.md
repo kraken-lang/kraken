@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Error codes now displayed in all error messages for easy reference
     - Added `code()` method to retrieve error code from any CompilerError
     - Improved error message formatting with consistent error code prefixes
+    - Added error helper functions with "did you mean" suggestions
+    - Implemented Levenshtein distance algorithm for smart suggestions
+    - Added `undefined_variable_error()` with similar name suggestions
+    - Added `undefined_function_error()` with similar name suggestions
+    - Added `type_mismatch_error()` with clear expected vs actual types
+    - Added `find_similar_names()` utility for fuzzy name matching
   - **Iterator Support** - Comprehensive iterator module implementation
     - Added standard trait re-exports (Iterator, IntoIterator, FromIterator)
     - Implemented Range iterator for i64 and usize types with proper size hints
@@ -23,6 +29,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added Filter iterator adapter for selecting elements
     - Full test coverage with 13 comprehensive tests
     - Fills 5% stdlib gap identified in 0.8.40 analysis
+  - **Thread-Local Storage (TLS)**
+    - Added comprehensive TLS support with `TlsKey` type
+    - Implemented `tls_set()`, `tls_get()`, `tls_remove()` operations
+    - Added `tls_contains()` and `tls_clear()` utilities
+    - Thread-safe storage with proper isolation between threads
+    - Full test coverage with 5 tests including thread isolation
+  - **String Manipulation Utilities**
+    - Added 18 string utility functions for common operations
+    - `split_string()`, `join_strings()`, `trim_string()`
+    - `to_uppercase()`, `to_lowercase()`
+    - `starts_with()`, `ends_with()`, `contains_substring()`
+    - `replace_all()`, `repeat_string()`, `reverse_string()`
+    - `substring()`, `pad_left()`, `pad_right()`
+    - `count_occurrences()`, `is_blank()`
+    - Full test coverage with 14 comprehensive tests
+  - **API Ergonomics Improvements**
+    - Added collection extension traits for Vec and HashMap
+    - `VecExt` trait with convenience methods: `extend_from()`, `retain_if()`, `remove_first()`, `all()`, `any()`, `partition()`, `slice()`, `chunks()`
+    - `HashMapExt` trait with convenience methods: `get_or_insert()`, `get_or_insert_with()`, `update()`, `merge()`, `filter()`
+    - Full test coverage with 10 comprehensive tests
+  - **Context Propagation Utilities**
+    - Added `Context` type for propagating values across async boundaries
+    - `ContextKey` for type-safe context storage
+    - Operations: `set()`, `get()`, `remove()`, `contains()`, `clear()`
+    - `child()` method for creating inherited contexts
+    - `merge()` method for combining contexts
+    - `ContextBuilder` for fluent context creation
+    - Thread-safe with Arc and RwLock
+    - Full test coverage with 8 tests including thread safety
+  - **Compiler Optimizations**
+    - Added `ConstantFolder` for constant folding optimization
+    - Fold binary operations: +, -, *, /, %, &, |, ^, <<, >>
+    - Fold comparison operations: ==, !=, <, <=, >, >=
+    - Fold unary operations: -, ~
+    - Optimize algebraic identities (x+0=x, x*1=x, x*0=0, etc.)
+    - Added `DeadCodeEliminator` for removing unused code
+    - Added `LoopOptimizer` for loop optimization passes
+    - Added `MemoryOptimizer` for allocation optimization
+    - Full test coverage with 10 comprehensive tests
   - **Safety Documentation**
     - Added SAFETY comments to all unsafe blocks in memory allocator
     - Documented safety invariants for allocation and deallocation operations
@@ -30,7 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Improved code maintainability and audit trail
   - **Code Quality Improvements**
     - Fixed all clippy warnings (0 warnings with strict lints)
-    - All 412 tests passing across compiler and runtime
+    - All 449 tests passing across compiler and runtime (+37 new tests from 412)
     - Improved code clarity and idiomatic Rust patterns
     - Enhanced iterator implementations following clippy suggestions
     - Better documentation for public APIs
