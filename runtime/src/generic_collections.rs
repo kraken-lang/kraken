@@ -723,7 +723,7 @@ mod tests {
         let (left, right) = SliceUtils::split_at(&arr, 0);
         assert_eq!(left, &[]);
         assert_eq!(right, &[1, 2, 3]);
-        
+
         let (left, right) = SliceUtils::split_at(&arr, 3);
         assert_eq!(left, &[1, 2, 3]);
         assert_eq!(right, &[]);

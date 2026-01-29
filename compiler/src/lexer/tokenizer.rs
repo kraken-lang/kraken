@@ -550,7 +550,7 @@ mod tests {
         let source = "".to_string();
         let mut tokenizer = Tokenizer::new(source, PathBuf::from("test.kr"));
         let tokens = tokenizer.tokenize().expect("tokenization failed");
-        
+
         assert_eq!(tokens.len(), 1);
         assert!(matches!(tokens[0].kind, TokenKind::Eof));
     }
@@ -560,7 +560,7 @@ mod tests {
         let source = "   \n\t\r\n  ".to_string();
         let mut tokenizer = Tokenizer::new(source, PathBuf::from("test.kr"));
         let tokens = tokenizer.tokenize().expect("tokenization failed");
-        
+
         assert_eq!(tokens.len(), 1);
         assert!(matches!(tokens[0].kind, TokenKind::Eof));
     }
@@ -570,7 +570,7 @@ mod tests {
         let source = "let café = 42;".to_string();
         let mut tokenizer = Tokenizer::new(source, PathBuf::from("test.kr"));
         let tokens = tokenizer.tokenize().expect("tokenization failed");
-        
+
         assert!(matches!(tokens[1].kind, TokenKind::Identifier));
         assert_eq!(tokens[1].lexeme, "café");
     }
@@ -580,7 +580,7 @@ mod tests {
         let source = "9223372036854775807".to_string(); // i64::MAX
         let mut tokenizer = Tokenizer::new(source, PathBuf::from("test.kr"));
         let tokens = tokenizer.tokenize().expect("tokenization failed");
-        
+
         assert!(matches!(tokens[0].kind, TokenKind::IntLiteral));
         assert_eq!(tokens[0].lexeme, "9223372036854775807");
     }
@@ -590,7 +590,7 @@ mod tests {
         let source = r#""hello\nworld\t\"quoted\"""#.to_string();
         let mut tokenizer = Tokenizer::new(source, PathBuf::from("test.kr"));
         let tokens = tokenizer.tokenize().expect("tokenization failed");
-        
+
         assert!(matches!(tokens[0].kind, TokenKind::StringLiteral));
     }
 
@@ -599,7 +599,7 @@ mod tests {
         let source = "/* simple block comment */ let x = 1;".to_string();
         let mut tokenizer = Tokenizer::new(source, PathBuf::from("test.kr"));
         let tokens = tokenizer.tokenize().expect("tokenization failed");
-        
+
         // Comment filtered out, code remains
         assert!(matches!(tokens[0].kind, TokenKind::Keyword(Keyword::Let)));
     }
@@ -609,7 +609,7 @@ mod tests {
         let source = "<<= >>= && || ++ --".to_string();
         let mut tokenizer = Tokenizer::new(source, PathBuf::from("test.kr"));
         let tokens = tokenizer.tokenize().expect("tokenization failed");
-        
+
         // Should tokenize compound operators
         assert!(tokens.len() > 1);
     }
@@ -619,7 +619,7 @@ mod tests {
         let source = "123 456 789".to_string();
         let mut tokenizer = Tokenizer::new(source, PathBuf::from("test.kr"));
         let tokens = tokenizer.tokenize().expect("tokenization failed");
-        
+
         assert!(matches!(tokens[0].kind, TokenKind::IntLiteral));
         assert_eq!(tokens[0].lexeme, "123");
         assert!(matches!(tokens[1].kind, TokenKind::IntLiteral));
@@ -633,7 +633,7 @@ mod tests {
         let source = "42 3.14 \"hello\"".to_string();
         let mut tokenizer = Tokenizer::new(source, PathBuf::from("test.kr"));
         let tokens = tokenizer.tokenize().expect("tokenization failed");
-        
+
         assert!(matches!(tokens[0].kind, TokenKind::IntLiteral));
         assert_eq!(tokens[0].lexeme, "42");
         assert!(matches!(tokens[1].kind, TokenKind::FloatLiteral));
@@ -647,8 +647,11 @@ mod tests {
         let source = "very_long_identifier_name_with_underscores_123".to_string();
         let mut tokenizer = Tokenizer::new(source, PathBuf::from("test.kr"));
         let tokens = tokenizer.tokenize().expect("tokenization failed");
-        
+
         assert!(matches!(tokens[0].kind, TokenKind::Identifier));
-        assert_eq!(tokens[0].lexeme, "very_long_identifier_name_with_underscores_123");
+        assert_eq!(
+            tokens[0].lexeme,
+            "very_long_identifier_name_with_underscores_123"
+        );
     }
 }
