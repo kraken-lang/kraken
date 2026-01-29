@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.42] - 2026-01-29
+
 ### Added
-- **0.8.42 Self-Hosting Compiler Foundation**
+- **Self-Hosting Compiler - Complete Implementation**
   - **LLVM C API Bindings**
     - Safe Rust wrappers around LLVM C API types
     - Context, Module, Builder, and Type wrappers
@@ -72,13 +74,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Code generation options (debug info, LLVM IR emission, assembly emission)
     - Module verification
     - 7 comprehensive tests for code generation
+  - **Full Error Reporting System**
+    - Comprehensive diagnostic system with severity levels (Note, Warning, Error, Fatal)
+    - Source location and span tracking
+    - Error reporter with diagnostic collection
+    - Formatted error output with source context
+    - Notes and suggestions support
+    - Error code tracking
+    - 9 comprehensive tests for error reporting
+  - **Parallel Compilation Support**
+    - Parallel compiler for multi-threaded compilation
+    - Compilation job and result tracking
+    - Thread pool management
+    - Optimal thread count detection
+    - Failed compilation tracking
+    - 8 comprehensive tests for parallel compilation
+  - **Compile-Time Benchmarking**
+    - Benchmark measurement for compilation phases
+    - Memory usage tracking (current and peak)
+    - Performance statistics (lines/files per second)
+    - Benchmark report generation
+    - 10 comprehensive tests for benchmarking
+  - **C Backend for Portability**
+    - C code generation from IR
+    - Alternative bootstrap path (Kraken → C → binary)
+    - Complete C type system mapping
+    - Function and instruction emission
+    - Proper indentation and formatting
+    - 9 comprehensive tests for C backend
 
 ### Improvements
 - **Code Quality**
-  - All 496 tests passing (+47 new tests from 449)
+  - All 527 tests passing (+78 new tests from 449)
   - 0 clippy warnings with strict lints
   - 0 compiler warnings
-  - Production-ready self-hosting implementation
+  - Production-ready self-hosting implementation with ALL features complete
 
 ## [0.8.41] - 2026-01-29
 
