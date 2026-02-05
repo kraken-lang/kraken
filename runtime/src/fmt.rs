@@ -445,19 +445,19 @@ mod tests {
     #[test]
     fn test_format_float_basic() {
         let spec = FormatSpec::default();
-        assert_eq!(format_float(3.14159265, &spec), "3.141593");
+        assert_eq!(format_float(2.71828, &spec), "2.718280");
     }
 
     #[test]
     fn test_format_float_precision() {
         let spec = FormatSpec::new().with_precision(2);
-        assert_eq!(format_float(3.14159265, &spec), "3.14");
+        assert_eq!(format_float(2.71828, &spec), "2.72");
     }
 
     #[test]
     fn test_format_float_width() {
         let spec = FormatSpec::new().with_width(10).with_precision(2);
-        assert_eq!(format_float(3.1416, &spec), "      3.14");
+        assert_eq!(format_float(2.718, &spec), "      2.72");
     }
 
     #[test]
