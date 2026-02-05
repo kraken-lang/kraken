@@ -10,6 +10,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.45] - 2026-02-05
+
+### Added
+- **String Encoding Module** (`runtime/src/string_encoding.rs`)
+  - UTF-16 encoding/decoding (little-endian and big-endian)
+  - UTF-32 encoding/decoding (little-endian and big-endian)
+  - ASCII conversion with lossy and strict modes
+  - Character count and UTF-8 byte length utilities
+  - 18 comprehensive tests covering all encoding formats and edge cases
+- **Enhanced Regex Module** (`runtime/src/text_processing.rs`)
+  - Case-insensitive regex matching with `new_case_insensitive()`
+  - Custom flags support (multiline, dot-matches-newline) with `new_with_flags()`
+  - Position tracking with `find_with_position()` and `find_all_with_positions()`
+  - Limited splitting with `splitn()`
+  - Capture all matches with `captures_all()`
+  - Named capture groups with `named_capture()`
+  - Capture group introspection with `captures_len()` and `capture_names()`
+  - 9 additional tests for new regex features
+- **File Metadata Module** (`runtime/src/file_metadata.rs`)
+  - Enhanced metadata with permissions, timestamps, and file types
+  - Unix permission checking (owner/group/others read/write/execute)
+  - Octal permission representation and conversion
+  - Human-readable file size formatting
+  - Inode, UID, GID support on Unix systems
+  - Symlink metadata support with `symlink_metadata()`
+  - 10 comprehensive tests including platform-specific features
+- **Symlinks Module** (`runtime/src/symlinks.rs`)
+  - Cross-platform symlink creation for files and directories
+  - Auto-detection of file vs directory symlinks
+  - Symlink target resolution with `read_link()` and `canonicalize()`
+  - Broken symlink detection
+  - Symlink chain resolution with circular reference detection
+  - Safe symlink removal
+  - 7 comprehensive tests with platform-specific handling
+- **Temporary Files Module** (`runtime/src/tempfile.rs`)
+  - TempFile with auto-cleanup on drop
+  - TempDir with recursive auto-cleanup on drop
+  - Customizable prefix and suffix for temp files
+  - Keep/persist functionality to prevent auto-deletion
+  - Atomic temp file/directory creation with collision avoidance
+  - Helper utilities for creating temp files with content
+  - 17 comprehensive tests covering all temp file operations
+- **Glob Pattern Matching Module** (`runtime/src/glob.rs`)
+  - Wildcard pattern matching with `*` and `?` support
+  - Recursive and shallow directory searching
+  - Case-insensitive matching with GlobBuilder
+  - Symlink following control
+  - Multiple pattern matching with deduplication
+  - Extension-based file finding
+  - Pattern escaping utilities
+  - 10 comprehensive tests for all glob operations
+
+### Changed
+- Unicode normalization (NFC, NFD, NFKC, NFKD) - already implemented, verified working
+- Unicode segmentation (grapheme clusters, word boundaries) - already implemented, verified working
+
+### Fixed
+- Clippy warning: manual implementation of `.is_multiple_of()` in `encoding.rs`
+- Clippy warning: unhandled read amount in `buffered_io.rs`
+- Clippy warning: field reassignment with default in `fmt.rs`
+- Clippy warning: approximate mathematical constants in `fmt.rs` tests
+- Clippy warning: uninlined format args in `tempfile.rs`
+
+### Tests
+- Total: 692 tests passing (+102 new tests)
+- All tests pass with 0 warnings
+- Clippy clean with `-D warnings`
+
 ## [0.8.44] - 2026-02-05
 
 ### Added

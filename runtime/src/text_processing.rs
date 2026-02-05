@@ -19,6 +19,32 @@ impl RegexWrapper {
             .map_err(|e| e.to_string())
     }
 
+    /// Create a new case-insensitive regex from a pattern
+    pub fn new_case_insensitive(pattern: &str) -> Result<Self, String> {
+        let pattern = format!("(?i){pattern}");
+        Regex::new(&pattern)
+            .map(|inner| Self { inner })
+            .map_err(|e| e.to_string())
+    }
+
+    /// Create a new regex with custom flags
+    pub fn new_with_flags(pattern: &str, case_insensitive: bool, multiline: bool, dot_matches_newline: bool) -> Result<Self, String> {
+        let mut flags = String::new();
+        if case_insensitive {
+            flags.push_str("(?i)");
+        }
+        if multiline {
+            flags.push_str("(?m)");
+        }
+        if dot_matches_newline {
+            flags.push_str("(?s)");
+        }
+        let pattern = format!("{flags}{pattern}");
+        Regex::new(&pattern)
+            .map(|inner| Self { inner })
+            .map_err(|e| e.to_string())
+    }
+
     /// Check if the regex matches the text
     pub fn is_match(&self, text: &str) -> bool {
         self.inner.is_match(text)
@@ -29,11 +55,24 @@ impl RegexWrapper {
         self.inner.find(text).map(|m| m.as_str().to_string())
     }
 
+    /// Find the first match and return its position
+    pub fn find_with_position(&self, text: &str) -> Option<(usize, usize, String)> {
+        self.inner.find(text).map(|m| (m.start(), m.end(), m.as_str().to_string()))
+    }
+
     /// Find all matches in the text
     pub fn find_all(&self, text: &str) -> Vec<String> {
         self.inner
             .find_iter(text)
             .map(|m| m.as_str().to_string())
+            .collect()
+    }
+
+    /// Find all matches with their positions
+    pub fn find_all_with_positions(&self, text: &str) -> Vec<(usize, usize, String)> {
+        self.inner
+            .find_iter(text)
+            .map(|m| (m.start(), m.end(), m.as_str().to_string()))
             .collect()
     }
 
@@ -52,6 +91,11 @@ impl RegexWrapper {
         self.inner.split(text).map(|s| s.to_string()).collect()
     }
 
+    /// Split text by the regex pattern with a limit
+    pub fn splitn(&self, text: &str, limit: usize) -> Vec<String> {
+        self.inner.splitn(text, limit).map(|s| s.to_string()).collect()
+    }
+
     /// Capture groups from the first match
     pub fn captures(&self, text: &str) -> Option<Vec<String>> {
         self.inner.captures(text).map(|caps| {
@@ -59,6 +103,39 @@ impl RegexWrapper {
                 .filter_map(|m| m.map(|m| m.as_str().to_string()))
                 .collect()
         })
+    }
+
+    /// Capture all groups from all matches
+    pub fn captures_all(&self, text: &str) -> Vec<Vec<String>> {
+        self.inner
+            .captures_iter(text)
+            .map(|caps| {
+                caps.iter()
+                    .filter_map(|m| m.map(|m| m.as_str().to_string()))
+                    .collect()
+            })
+            .collect()
+    }
+
+    /// Get named capture group from the first match
+    pub fn named_capture(&self, text: &str, name: &str) -> Option<String> {
+        self.inner
+            .captures(text)
+            .and_then(|caps| caps.name(name))
+            .map(|m| m.as_str().to_string())
+    }
+
+    /// Get the number of capture groups
+    pub fn captures_len(&self) -> usize {
+        self.inner.captures_len()
+    }
+
+    /// Get all capture group names
+    pub fn capture_names(&self) -> Vec<Option<String>> {
+        self.inner
+            .capture_names()
+            .map(|name| name.map(|s| s.to_string()))
+            .collect()
     }
 }
 
@@ -305,6 +382,67 @@ mod tests {
         assert_eq!(caps[1], "2024");
         assert_eq!(caps[2], "01");
         assert_eq!(caps[3], "28");
+    }
+
+    #[test]
+    fn test_regex_case_insensitive() {
+        let re = RegexWrapper::new_case_insensitive("hello").unwrap();
+        assert!(re.is_match("HELLO"));
+        assert!(re.is_match("Hello"));
+        assert!(re.is_match("hello"));
+    }
+
+    #[test]
+    fn test_regex_with_flags() {
+        let re = RegexWrapper::new_with_flags("^hello", false, true, false).unwrap();
+        assert!(re.is_match("line1\nhello"));
+    }
+
+    #[test]
+    fn test_regex_find_with_position() {
+        let re = RegexWrapper::new(r"\d+").unwrap();
+        let result = re.find_with_position("abc123def").unwrap();
+        assert_eq!(result, (3, 6, "123".to_string()));
+    }
+
+    #[test]
+    fn test_regex_find_all_with_positions() {
+        let re = RegexWrapper::new(r"\d+").unwrap();
+        let results = re.find_all_with_positions("abc123def456");
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0], (3, 6, "123".to_string()));
+        assert_eq!(results[1], (9, 12, "456".to_string()));
+    }
+
+    #[test]
+    fn test_regex_splitn() {
+        let re = RegexWrapper::new(r"\s+").unwrap();
+        let parts = re.splitn("a b c d e", 3);
+        assert_eq!(parts, vec!["a", "b", "c d e"]);
+    }
+
+    #[test]
+    fn test_regex_captures_all() {
+        let re = RegexWrapper::new(r"(\d+)").unwrap();
+        let all_caps = re.captures_all("a123b456c789");
+        assert_eq!(all_caps.len(), 3);
+        assert_eq!(all_caps[0], vec!["123", "123"]);
+        assert_eq!(all_caps[1], vec!["456", "456"]);
+        assert_eq!(all_caps[2], vec!["789", "789"]);
+    }
+
+    #[test]
+    fn test_regex_named_capture() {
+        let re = RegexWrapper::new(r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})").unwrap();
+        assert_eq!(re.named_capture("2024-01-28", "year"), Some("2024".to_string()));
+        assert_eq!(re.named_capture("2024-01-28", "month"), Some("01".to_string()));
+        assert_eq!(re.named_capture("2024-01-28", "day"), Some("28".to_string()));
+    }
+
+    #[test]
+    fn test_regex_captures_len() {
+        let re = RegexWrapper::new(r"(\d{4})-(\d{2})-(\d{2})").unwrap();
+        assert_eq!(re.captures_len(), 4);
     }
 
     #[test]

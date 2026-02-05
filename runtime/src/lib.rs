@@ -28,7 +28,9 @@ pub mod enhanced_serialization;
 pub mod error_reporting;
 pub mod ffi;
 pub mod file_io;
+pub mod file_metadata;
 pub mod fmt;
+pub mod glob;
 pub mod fuzzing;
 pub mod gc;
 pub mod generic_collections;
@@ -50,10 +52,13 @@ pub mod serialization;
 pub mod signals;
 pub mod smart_pointers;
 pub mod stdio;
+pub mod string_encoding;
 pub mod string_format;
 pub mod string_types;
 pub mod string_utils;
+pub mod symlinks;
 pub mod sync;
+pub mod tempfile;
 pub mod text_processing;
 pub mod thread_safety;
 pub mod threading;
@@ -91,7 +96,9 @@ pub use enhanced_serialization::{
     CborSerializer, IniSerializer, MessagePackSerializer, TomlSerializer, YamlSerializer,
 };
 pub use file_io::{DirectoryEntry, DirectoryTraversal, FileUtils, MemoryMappedFile};
+pub use file_metadata::{EnhancedMetadata, FileMetadataUtils, FilePermissions, FileType};
 pub use gc::GarbageCollector;
+pub use glob::{GlobBuilder, GlobPattern, GlobUtils};
 pub use generic_collections::{Map, SliceUtils, Vec};
 pub use http::{HttpClient, HttpMethod, HttpRequest, HttpResponse, HttpServer};
 pub use math::{Mat2, Mat3, Mat4, Quaternion, Statistics, Trigonometry, Vec2, Vec3, Vec4};
@@ -108,9 +115,12 @@ pub use serialization::{BinarySerializer, JsonSerializer, JsonValue};
 pub use signals::SignalHandler;
 pub use signals::{ignore_signal, raise_signal, register_ctrl_c_handler, Signal};
 pub use smart_pointers::{ArcRuntime, BoxRuntime, RcRuntime};
+pub use string_encoding::StringEncoder;
 pub use string_format::{Alignment, StringFormatter, StringInterpolator};
 pub use string_types::{StringBuilder, StringUtils};
+pub use symlinks::SymlinkUtils;
 pub use sync::{Barrier, ConditionVariable, Mutex, RwLock, Semaphore};
+pub use tempfile::{TempDir, TempFile, TempFileUtils};
 pub use text_processing::{
     AdvancedStringUtils, CaseMapper, RegexWrapper, UnicodeNormalizer, UnicodeSegmenter,
 };
