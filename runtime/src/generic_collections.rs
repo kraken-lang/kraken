@@ -721,11 +721,11 @@ mod tests {
     fn test_slice_split_at_boundaries() {
         let arr = [1, 2, 3];
         let (left, right) = SliceUtils::split_at(&arr, 0);
-        assert_eq!(left, &[]);
+        assert_eq!(left, &[] as &[i32]);
         assert_eq!(right, &[1, 2, 3]);
 
         let (left, right) = SliceUtils::split_at(&arr, 3);
         assert_eq!(left, &[1, 2, 3]);
-        assert_eq!(right, &[]);
+        assert_eq!(right, &[] as &[i32]);
     }
 }

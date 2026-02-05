@@ -10,6 +10,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.44] - 2026-02-05
+
+### Added
+- LICENSE file (Apache-2.0)
+- **Buffered I/O Module** (`runtime/src/buffered_io.rs`)
+  - BufferedReader with configurable capacity and Read/BufRead/Seek trait implementations
+  - BufferedWriter with automatic flushing and Write/Seek trait implementations
+  - Helper functions for opening files with buffering
+  - 10 comprehensive tests covering basic operations, capacity control, and edge cases
+- **Standard Streams Module** (`runtime/src/stdio.rs`)
+  - Stdin, Stdout, Stderr abstractions with thread-safe Arc<Mutex<>> wrappers
+  - Buffered by default for improved performance
+  - Lock mechanisms for exclusive access
+  - Clone support for all stream types
+  - 10 comprehensive tests
+- **Comprehensive Formatting Module** (`runtime/src/fmt.rs`)
+  - FormatSpec with alignment (Left, Right, Center), padding, width, and precision
+  - format_int with support for hex, binary, octal, and decimal formats
+  - format_float with configurable precision
+  - format_string with truncation and padding
+  - Formatter type with pad() method for custom formatting
+  - 20 comprehensive tests covering all format types and options
+- **Encoding Utilities** (`runtime/src/encoding.rs`)
+  - Base64 encoding/decoding with proper padding
+  - Hexadecimal encoding/decoding (lowercase and uppercase)
+  - URL encoding/decoding with percent encoding
+  - Comprehensive error handling with EncodingError type
+  - 22 comprehensive tests with roundtrip validation
+- **Enhanced CLI Argument Parsing** (`runtime/src/utilities.rs`)
+  - program_name() method to get executable name
+  - get_option_as<T>() for type-safe option parsing
+  - require_option() for mandatory arguments with error messages
+  - count() method for positional argument count
+- **Enhanced Environment Variables** (`runtime/src/utilities.rs`)
+  - get_as<T>() for type-safe environment variable parsing
+  - require() for mandatory environment variables with error messages
+  - is_set_to() for checking specific values
+  - keys() to list all environment variable names
+  - filter_prefix() to get all variables with a specific prefix
+- **Documentation Metadata Generator** (`runtime/src/docgen.rs`)
+  - Complete DocGraph v1 schema implementation with serde support
+  - Node types: Module, Symbol, Type, Trait, Const, Macro, Keyword, Operator, Attribute, Diagnostic, Concept, Tooling
+  - Stability tracking: Stable, Experimental, Deprecated, Internal
+  - Source span tracking with file, line, column, and byte positions
+  - Comprehensive type signatures with generics and trait bounds
+  - Search index with tokenization and boost support
+  - Page generation with markdown sections and node references
+  - JSON export (pretty and compact formats)
+  - 8 comprehensive tests covering all functionality
+
+### Improvements
+- **Test Coverage**
+  - 626 tests passing (+70 new tests from 556)
+  - All new modules include comprehensive edge case coverage
+  - Test coverage maintained above 85%
+- **Code Quality**
+  - 0 clippy warnings with strict lints
+  - 0 compiler warnings
+  - All format strings use inline variable syntax
+  - Consistent error handling patterns throughout new modules
+
 ## [0.8.43] - 2026-02-05
 
 ### Added
@@ -2218,7 +2279,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
-[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.43...HEAD
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.44...HEAD
+[0.8.44]: https://github.com/kraken-lang/kraken/compare/v0.8.43...v0.8.44
 [0.8.43]: https://github.com/kraken-lang/kraken/compare/v0.8.42...v0.8.43
 [0.8.42]: https://github.com/kraken-lang/kraken/compare/v0.8.41...v0.8.42
 [0.8.41]: https://github.com/kraken-lang/kraken/compare/v0.8.40...v0.8.41

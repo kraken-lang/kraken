@@ -178,14 +178,17 @@ pub struct CliParser {
     args: Vec<String>,
     options: HashMap<String, Option<String>>,
     positional: Vec<String>,
+    program_name: String,
 }
 
 impl CliParser {
     pub fn new(args: Vec<String>) -> Self {
+        let program_name = args.first().cloned().unwrap_or_default();
         let mut parser = CliParser {
             args: args.clone(),
             options: HashMap::new(),
             positional: Vec::new(),
+            program_name,
         };
         parser.parse();
         parser
@@ -193,6 +196,26 @@ impl CliParser {
 
     pub fn from_env() -> Self {
         Self::new(std::env::args().collect())
+    }
+
+    pub fn program_name(&self) -> &str {
+        &self.program_name
+    }
+
+    pub fn get_option_as<T>(&self, name: &str) -> Option<T>
+    where
+        T: std::str::FromStr,
+    {
+        self.get_option(name)?.parse().ok()
+    }
+
+    pub fn require_option(&self, name: &str) -> Result<&String, String> {
+        self.get_option(name)
+            .ok_or_else(|| format!("Required option --{name} not provided"))
+    }
+
+    pub fn count(&self) -> usize {
+        self.positional.len()
     }
 
     fn parse(&mut self) {
@@ -262,6 +285,17 @@ impl EnvVars {
         std::env::var(key).unwrap_or_else(|_| default.to_string())
     }
 
+    pub fn get_as<T>(key: &str) -> Option<T>
+    where
+        T: std::str::FromStr,
+    {
+        Self::get(key)?.parse().ok()
+    }
+
+    pub fn require(key: &str) -> Result<String, String> {
+        Self::get(key).ok_or_else(|| format!("Required environment variable {key} not set"))
+    }
+
     pub fn set(key: &str, value: &str) {
         std::env::set_var(key, value);
     }
@@ -276,6 +310,20 @@ impl EnvVars {
 
     pub fn exists(key: &str) -> bool {
         std::env::var(key).is_ok()
+    }
+
+    pub fn is_set_to(&self, key: &str, value: &str) -> bool {
+        Self::get(key).as_deref() == Some(value)
+    }
+
+    pub fn keys() -> Vec<String> {
+        std::env::vars().map(|(k, _)| k).collect()
+    }
+
+    pub fn filter_prefix(prefix: &str) -> HashMap<String, String> {
+        std::env::vars()
+            .filter(|(k, _)| k.starts_with(prefix))
+            .collect()
     }
 }
 

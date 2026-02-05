@@ -190,6 +190,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-link",
 ]
@@ -1192,7 +1193,7 @@ dependencies = [
 
 [[package]]
 name = "kraken"
-version = "0.8.43"
+version = "0.8.44"
 dependencies = [
  "anyhow",
  "clap",
@@ -1217,7 +1218,7 @@ dependencies = [
 
 [[package]]
 name = "kraken-runtime"
-version = "0.8.43"
+version = "0.8.44"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -1227,6 +1228,8 @@ dependencies = [
  "rand",
  "regex",
  "serde",
+ "serde_json",
+ "serde_urlencoded",
  "signal-hook",
  "tokio",
  "unicode-normalization",
