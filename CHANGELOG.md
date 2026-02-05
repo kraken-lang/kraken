@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.46] - 2026-02-05
+
 ### Added
 - **Process Management Module** (`runtime/src/process.rs`)
   - ProcessBuilder with fluent API for process configuration
