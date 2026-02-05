@@ -379,6 +379,7 @@ impl CompilerError {
     }
 
     /// Create a new error with a diagnostic code.
+    #[allow(dead_code)]
     pub fn from_code(code: DiagnosticCode, message: impl Into<String>) -> Self {
         Self::DiagnosticError {
             diagnostic: NewDiagnostic::new(code, message),
@@ -387,6 +388,7 @@ impl CompilerError {
     }
 
     /// Create a new error with a diagnostic code and location.
+    #[allow(dead_code)]
     pub fn from_code_with_location(
         code: DiagnosticCode,
         message: impl Into<String>,

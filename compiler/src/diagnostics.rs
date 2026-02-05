@@ -3,6 +3,8 @@
 //! This module provides a structured diagnostic system with unique error codes,
 //! severity levels, categories, and detailed error messages with suggestions.
 
+#![allow(dead_code)]
+
 use std::fmt;
 
 /// Diagnostic severity levels.

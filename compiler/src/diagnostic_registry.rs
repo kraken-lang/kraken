@@ -3,6 +3,8 @@
 //! This module provides a registry of all diagnostic codes with their
 //! descriptions, examples, and suggestions for fixing errors.
 
+#![allow(dead_code)]
+
 use crate::diagnostics::DiagnosticCode;
 use std::collections::HashMap;
 
