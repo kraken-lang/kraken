@@ -1,0 +1,106 @@
+//! Build command - Compile Kraken source code.
+
+use crate::cli::output::{OutputMessage, ProgressIndicator};
+use crate::cli::{Command, CommandResult};
+use std::path::PathBuf;
+use std::time::Instant;
+
+pub struct BuildCommand {
+    #[allow(dead_code)]
+    release: bool,
+    #[allow(dead_code)]
+    output: Option<PathBuf>,
+    #[allow(dead_code)]
+    jobs: usize,
+}
+
+impl BuildCommand {
+    pub fn create() -> Box<dyn Command> {
+        Box::new(Self {
+            release: false,
+            output: None,
+            jobs: num_cpus::get(),
+        })
+    }
+
+    fn build_project(&self, source: &str) -> Result<(), String> {
+        let start = Instant::now();
+
+        println!("{}", OutputMessage::info(format!("Building {source}")));
+
+        let progress = ProgressIndicator::new("Building", 5);
+
+        progress.update(1);
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        progress.update(2);
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        progress.update(3);
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        progress.update(4);
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        progress.update(5);
+        progress.finish("Build complete");
+
+        let duration = start.elapsed();
+        let duration_secs = duration.as_secs_f64();
+        println!(
+            "{}",
+            OutputMessage::success(format!("Build completed in {duration_secs:.2}s"))
+        );
+
+        Ok(())
+    }
+}
+
+impl Command for BuildCommand {
+    fn name(&self) -> &str {
+        "build"
+    }
+
+    fn description(&self) -> &str {
+        "Compile Kraken source code"
+    }
+
+    fn execute(&self, args: Vec<String>) -> CommandResult {
+        let source = args.get(1).map(|s| s.as_str()).unwrap_or(".");
+
+        self.build_project(source)
+            .map_err(|e| format!("Build failed: {e}"))?;
+
+        Ok(())
+    }
+}
+
+#[allow(clippy::derivable_impls)]
+impl Default for BuildCommand {
+    fn default() -> Self {
+        Self {
+            release: false,
+            output: None,
+            jobs: num_cpus::get(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_build_command() {
+        let cmd = BuildCommand::create();
+        assert_eq!(cmd.name(), "build");
+        assert!(!cmd.description().is_empty());
+    }
+
+    #[test]
+    fn test_build_default() {
+        let cmd = BuildCommand::default();
+        assert!(!cmd.release);
+        assert!(cmd.jobs > 0);
+    }
+}

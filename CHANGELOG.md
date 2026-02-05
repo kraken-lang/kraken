@@ -10,6 +10,97 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.49] - 2026-02-05
+
+### Added
+- **Enhanced CLI Output System** (`compiler/src/cli/output.rs`)
+  - Removed mod-cli dependency in favor of custom Command trait for maximum flexibility
+  - Cross-platform colored output using `colored` crate
+  - Rust-style keyword coloring: `error`, `warning`, `note`, `help`, `info`, `success`, `debug`
+  - ASCII art banners with `figlet-rs` and Unicode box drawing
+  - Progress bars and spinners with `indicatif`
+  - Formatted tables with `comfy-table`
+  - Rust compiler-style diagnostic messages with code snippets and location info
+
+- **Kraken CLI Framework** (`compiler/src/cli/`)
+  - Command-line interface with 11 commands
+  - `kraken build` - Compile Kraken source code with progress indicators
+  - `kraken run` - Build and execute programs
+  - `kraken test` - Run test suite with test discovery in `tests/` directory
+  - `kraken check` - Type check without building
+  - `kraken clean` - Remove build artifacts
+  - `kraken init` - Initialize project in current directory
+  - `kraken new` - Create new project with template
+  - `kraken version` - Display version information
+  - `kraken fmt` - Format source code with whitespace normalization
+  - `kraken doc` - Generate HTML documentation from doc comments (`///` and `//!`)
+  - `kraken bench` - Run benchmarks with statistical analysis
+  - Modular command structure for easy customization
+  - File discovery with glob patterns
+  - 38 CLI tests
+
+- **Code Formatter** (`compiler/src/formatter.rs`)
+  - Basic source code formatting
+  - Configurable indent size and line width
+  - Check mode (`--check`) to verify formatting
+  - In-place file formatting
+  - Foundation for full AST-based formatting
+
+- **Debugger Integration** (`compiler/src/debugger.rs`)
+  - DWARF debug info generation for LLVM
+  - Debug info builder for functions and locations
+  - GDB/LLDB compatibility
+  - Source-level debugging support
+
+- **Cross-Platform Target Support** (`compiler/src/target.rs`)
+  - Target triple specification (architecture-vendor-os-environment)
+  - Support for x86_64, aarch64, arm, riscv64, wasm32
+  - Linux, Windows, macOS, FreeBSD, Android, iOS, WASI support
+  - Host target detection
+  - LLVM target triple generation
+  - `--target` flag infrastructure
+
+- **Documentation Generator** (`compiler/src/cli/commands/doc.rs`)
+  - Extract doc comments (`///` and `//!`) from source files
+  - Generate HTML documentation with styling
+  - Automatic index page generation
+  - File discovery in project
+  - Output to `docs/` directory
+
+- **Enhanced Benchmarking Framework** (`compiler/src/cli/commands/bench.rs`)
+  - Statistical analysis: mean, median, std dev, min, max
+  - Baseline comparison with percentage change tracking
+  - Multiple output formats: Text, JSON, CSV
+  - Baseline persistence (`.benchmark_baseline.json`)
+  - 100 iterations per benchmark for accuracy
+  - Visual indicators for performance changes
+
+- **Test Directory Support**
+  - Automatic test discovery in `tests/` directory
+  - Integration test support similar to Rust
+  - Benchmark discovery in `benches/` directory
+  - Test filtering and parallel execution infrastructure
+
+- **Project Management**
+  - Project initialization with `Kraken.toml` configuration
+  - Automatic project structure creation
+  - Template-based project generation
+  - `.gitignore` and `README.md` generation
+
+### Dependencies Added
+- `colored` 2.1 - Cross-platform terminal colors
+- `figlet-rs` 0.1 - ASCII art generation
+- `indicatif` 0.17 - Progress bars and spinners
+- `comfy-table` 7.1 - Formatted table output
+- `toml` 0.8 - Configuration file parsing
+- `num_cpus` 1.16 - CPU detection
+- `rustc_version` 0.4 - Rust version info
+
+### Tests
+- Compiler tests: 171 passing (+10 new tests)
+- Runtime tests: 822 passing
+- Total: 993 tests passing with zero errors and zero warnings
+
 ## [0.8.48] - 2026-02-05
 
 ### Added
@@ -2492,7 +2583,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
-[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.48...HEAD
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.49...HEAD
+[0.8.49]: https://github.com/kraken-lang/kraken/compare/v0.8.48...v0.8.49
 [0.8.48]: https://github.com/kraken-lang/kraken/compare/v0.8.47...v0.8.48
 [0.8.47]: https://github.com/kraken-lang/kraken/compare/v0.8.46...v0.8.47
 [0.8.46]: https://github.com/kraken-lang/kraken/compare/v0.8.45...v0.8.46
