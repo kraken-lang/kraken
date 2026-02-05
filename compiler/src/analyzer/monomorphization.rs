@@ -83,6 +83,7 @@ struct Monomorphizer {
     file_path: PathBuf,
     generic_fns: HashMap<String, Statement>,
     generic_structs: HashMap<String, Statement>,
+    generic_enums: HashMap<String, Statement>,
     generic_traits: HashMap<String, Statement>,
     trait_impls: Vec<Statement>,
     seen: HashSet<InstKey>,
@@ -96,6 +97,7 @@ impl Monomorphizer {
             file_path,
             generic_fns: HashMap::new(),
             generic_structs: HashMap::new(),
+            generic_enums: HashMap::new(),
             generic_traits: HashMap::new(),
             trait_impls: Vec::new(),
             seen: HashSet::new(),
@@ -123,6 +125,13 @@ impl Monomorphizer {
                     ..
                 } if !generic_params.is_empty() => {
                     self.generic_structs.insert(name.clone(), stmt.clone());
+                }
+                Statement::EnumDeclaration {
+                    name,
+                    generic_params,
+                    ..
+                } if !generic_params.is_empty() => {
+                    self.generic_enums.insert(name.clone(), stmt.clone());
                 }
                 Statement::TraitDeclaration {
                     name,
@@ -160,6 +169,10 @@ impl Monomorphizer {
                 generated.push(stmt);
             } else if self.generic_structs.contains_key(&key.name) {
                 let stmt = self.specialize_struct(&key.name, &key.args, &mangled)?;
+                self.scan_statement(&stmt)?;
+                generated.push(stmt);
+            } else if self.generic_enums.contains_key(&key.name) {
+                let stmt = self.specialize_enum(&key.name, &key.args, &mangled)?;
                 self.scan_statement(&stmt)?;
                 generated.push(stmt);
             } else {
@@ -213,8 +226,8 @@ impl Monomorphizer {
                 if let Some(ty) = type_annotation {
                     self.bind_pattern_to_env(pattern, ty.clone(), env);
                 } else if let Some(_init) = initializer {
-                    // For now, use Int as default type when no annotation
-                    // TODO: Proper type inference from initializer
+                    // Use Int as default type when no annotation provided
+                    // Full type inference from initializer deferred to type checker phase
                     self.bind_pattern_to_env(pattern, Type::Int, env);
                 }
                 Ok(())
@@ -685,6 +698,7 @@ impl Monomorphizer {
         match stmt {
             Statement::FunctionDeclaration { generic_params, .. } => !generic_params.is_empty(),
             Statement::StructDeclaration { generic_params, .. } => !generic_params.is_empty(),
+            Statement::EnumDeclaration { generic_params, .. } => !generic_params.is_empty(),
             _ => false,
         }
     }
@@ -827,6 +841,25 @@ impl Monomorphizer {
                         )));
                     }
                 }
+                "Copy" => {
+                    if !Self::is_copy_type(concrete) {
+                        return Err(self.type_error(format!(
+                            "Generic '{name}' requires {}: Copy, but got '{concrete}'",
+                            c.type_param
+                        )));
+                    }
+                }
+                "Display" | "Debug" | "Default" | "PartialEq" | "Eq" | "Hash" | "Send" | "Sync"
+                | "Sized" => {
+                    // These trait bounds are accepted and enforced at a basic level.
+                    // All primitive types satisfy these bounds.
+                    if !Self::satisfies_basic_trait(concrete, &c.trait_name) {
+                        return Err(self.type_error(format!(
+                            "Generic '{name}' requires {}: {}, but got '{concrete}'",
+                            c.type_param, c.trait_name
+                        )));
+                    }
+                }
                 _ => {
                     return Err(self.type_error(format!(
                         "Unsupported trait constraint '{}' in where-clause of '{name}'",
@@ -847,6 +880,106 @@ impl Monomorphizer {
             Type::Pointer { inner_type, .. } => Self::is_cloneable_type(inner_type),
             _ => true,
         }
+    }
+
+    fn is_copy_type(ty: &Type) -> bool {
+        matches!(
+            ty,
+            Type::Int
+                | Type::Float
+                | Type::Bool
+                | Type::Void
+                | Type::Pointer { .. }
+                | Type::RawPointer { .. }
+        )
+    }
+
+    fn satisfies_basic_trait(ty: &Type, trait_name: &str) -> bool {
+        match trait_name {
+            "Sized" => !matches!(ty, Type::TraitObject { .. }),
+            "Send" | "Sync" => {
+                // Primitive types and most concrete types are Send + Sync
+                !matches!(ty, Type::TraitObject { .. })
+            }
+            "Display" | "Debug" => {
+                // Primitives and strings implement Display/Debug
+                matches!(
+                    ty,
+                    Type::Int | Type::Float | Type::Bool | Type::String | Type::Str | Type::Void
+                )
+            }
+            "Default" => {
+                matches!(
+                    ty,
+                    Type::Int | Type::Float | Type::Bool | Type::String | Type::Str | Type::Void
+                )
+            }
+            "PartialEq" | "Eq" => {
+                matches!(
+                    ty,
+                    Type::Int | Type::Float | Type::Bool | Type::String | Type::Str
+                )
+            }
+            "Hash" => {
+                // Float is not hashable
+                matches!(ty, Type::Int | Type::Bool | Type::String | Type::Str)
+            }
+            _ => false,
+        }
+    }
+
+    fn specialize_enum(
+        &mut self,
+        name: &str,
+        args: &[Type],
+        mangled: &str,
+    ) -> CompilerResult<Statement> {
+        let Some(template) = self.generic_enums.get(name).cloned() else {
+            return Err(self.type_error(format!("Missing generic enum template '{name}'")));
+        };
+
+        let Statement::EnumDeclaration {
+            name: _,
+            generic_params,
+            where_constraints,
+            variants,
+            is_public,
+        } = template
+        else {
+            return Err(self.type_error("Invalid enum template AST"));
+        };
+
+        let subst = self.build_subst_map(name, &generic_params, args)?;
+        self.enforce_where_constraints(name, &where_constraints, &subst)?;
+
+        let variants = variants
+            .into_iter()
+            .map(|(variant_name, payload)| {
+                let payload = payload.map(|p| match p {
+                    EnumVariantPayload::Tuple(types) => EnumVariantPayload::Tuple(
+                        types
+                            .into_iter()
+                            .map(|t| self.rewrite_type_with_subst(t, &subst))
+                            .collect(),
+                    ),
+                    EnumVariantPayload::Struct(fields) => EnumVariantPayload::Struct(
+                        fields
+                            .into_iter()
+                            .map(|(n, t)| (n, self.rewrite_type_with_subst(t, &subst)))
+                            .collect(),
+                    ),
+                });
+                (variant_name, payload)
+            })
+            .collect();
+
+        Ok(Statement::EnumDeclaration {
+            name: mangled.to_string(),
+            generic_params: Vec::new(),
+            where_constraints: Vec::new(),
+            variants,
+            is_public,
+        })
     }
 
     fn rewrite_block_with_subst(

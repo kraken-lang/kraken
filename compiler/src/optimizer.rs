@@ -183,6 +183,117 @@ impl Default for DeadCodeEliminator {
     }
 }
 
+/// Allocation strategy recommendation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AllocationStrategy {
+    /// Zero-size type, no allocation needed.
+    None,
+    /// Small enough to inline in the struct itself.
+    Inline,
+    /// Stack allocation for short-lived values.
+    Stack,
+    /// Small heap allocation (arena-friendly).
+    SmallHeap,
+    /// Large heap allocation.
+    LargeHeap,
+}
+
+/// SIMD optimization hints for vectorizable operations.
+pub struct SimdHints;
+
+impl SimdHints {
+    /// Check if an operation can be vectorized with SIMD.
+    ///
+    /// Operations on contiguous arrays of uniform numeric types
+    /// are candidates for SIMD vectorization.
+    pub fn is_vectorizable(op: &str, element_count: usize) -> bool {
+        const MIN_SIMD_ELEMENTS: usize = 4;
+        let supported_op = matches!(op, "+" | "-" | "*" | "/" | "&" | "|" | "^");
+        supported_op && element_count >= MIN_SIMD_ELEMENTS
+    }
+
+    /// Recommend SIMD width for a given element size in bytes.
+    pub fn recommended_width(element_size: usize) -> usize {
+        const SIMD_REGISTER_BYTES: usize = 32; // AVX2
+        if element_size == 0 {
+            return 0;
+        }
+        SIMD_REGISTER_BYTES / element_size
+    }
+}
+
+/// Compilation artifact cache for incremental builds.
+pub struct CompilationCache {
+    entries: std::collections::HashMap<u64, CacheEntry>,
+}
+
+/// A cached compilation artifact.
+#[derive(Debug, Clone)]
+pub struct CacheEntry {
+    /// Hash of the source content.
+    pub source_hash: u64,
+    /// Whether the cached artifact is still valid.
+    pub valid: bool,
+}
+
+impl CompilationCache {
+    /// Create a new empty compilation cache.
+    pub fn new() -> Self {
+        Self {
+            entries: std::collections::HashMap::new(),
+        }
+    }
+
+    /// Check if a source file has a valid cached artifact.
+    pub fn is_cached(&self, source_hash: u64) -> bool {
+        self.entries.get(&source_hash).is_some_and(|e| e.valid)
+    }
+
+    /// Insert or update a cache entry.
+    pub fn insert(&mut self, source_hash: u64) {
+        self.entries.insert(
+            source_hash,
+            CacheEntry {
+                source_hash,
+                valid: true,
+            },
+        );
+    }
+
+    /// Invalidate a cache entry.
+    pub fn invalidate(&mut self, source_hash: u64) {
+        if let Some(entry) = self.entries.get_mut(&source_hash) {
+            entry.valid = false;
+        }
+    }
+
+    /// Invalidate all cache entries.
+    pub fn invalidate_all(&mut self) {
+        for entry in self.entries.values_mut() {
+            entry.valid = false;
+        }
+    }
+
+    /// Get the number of valid cache entries.
+    pub fn valid_count(&self) -> usize {
+        self.entries.values().filter(|e| e.valid).count()
+    }
+
+    /// Compute a hash for source content.
+    pub fn hash_source(source: &str) -> u64 {
+        use std::hash::{Hash, Hasher};
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        source.hash(&mut hasher);
+        hasher.finish()
+    }
+}
+
+impl Default for CompilationCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Loop optimization pass.
 pub struct LoopOptimizer;
 
@@ -193,16 +304,68 @@ impl LoopOptimizer {
     }
 
     /// Detect loop invariant code that can be hoisted.
-    pub fn is_loop_invariant(&self, _value: &Value, _loop_body: &[Instruction]) -> bool {
-        // Simplified: check if value doesn't depend on loop variables
-        // In a real implementation, this would do proper data flow analysis
-        false
+    ///
+    /// A value is loop-invariant if it is a constant or if it only depends
+    /// on values defined outside the loop body.
+    pub fn is_loop_invariant(&self, value: &Value, loop_body: &[Instruction]) -> bool {
+        match value {
+            Value::Constant(_) => true,
+            Value::Register(reg) => {
+                // Check if any instruction in the loop defines this register
+                !loop_body.iter().any(|instr| match instr {
+                    Instruction::BinaryOp { result, .. }
+                    | Instruction::UnaryOp { result, .. }
+                    | Instruction::Load { result, .. } => result == &Value::Register(*reg),
+                    Instruction::Call {
+                        result: Some(r), ..
+                    } => r == &Value::Register(*reg),
+                    _ => false,
+                })
+            }
+        }
     }
 
     /// Detect induction variables for strength reduction.
-    pub fn is_induction_variable(&self, _value: &Value, _loop_body: &[Instruction]) -> bool {
-        // Simplified: detect variables that increment by constant in loop
-        false
+    ///
+    /// An induction variable is one that increments by a constant on each
+    /// loop iteration (e.g., `i = i + 1`).
+    pub fn is_induction_variable(&self, value: &Value, loop_body: &[Instruction]) -> bool {
+        if let Value::Register(reg) = value {
+            loop_body.iter().any(|instr| {
+                if let Instruction::BinaryOp {
+                    op,
+                    left,
+                    right,
+                    result,
+                } = instr
+                {
+                    (op == "+" || op == "-")
+                        && result == &Value::Register(*reg)
+                        && ((left == &Value::Register(*reg) && matches!(right, Value::Constant(_)))
+                            || (right == &Value::Register(*reg)
+                                && matches!(left, Value::Constant(_))))
+                } else {
+                    false
+                }
+            })
+        } else {
+            false
+        }
+    }
+
+    /// Count the number of loop-invariant instructions that could be hoisted.
+    pub fn count_hoistable(&self, loop_body: &[Instruction]) -> usize {
+        loop_body
+            .iter()
+            .filter(|instr| match instr {
+                Instruction::BinaryOp { left, right, .. } => {
+                    self.is_loop_invariant(left, loop_body)
+                        && self.is_loop_invariant(right, loop_body)
+                }
+                Instruction::UnaryOp { operand, .. } => self.is_loop_invariant(operand, loop_body),
+                _ => false,
+            })
+            .count()
     }
 }
 
@@ -222,15 +385,37 @@ impl MemoryOptimizer {
     }
 
     /// Check if allocations can be combined.
-    pub fn can_combine_allocations(&self, _size1: usize, _size2: usize) -> bool {
-        // Simplified: check if consecutive allocations can be merged
-        false
+    ///
+    /// Two consecutive allocations can be combined if they are of compatible
+    /// types and their combined size doesn't exceed the maximum allocation unit.
+    pub fn can_combine_allocations(&self, size1: usize, size2: usize) -> bool {
+        const MAX_COMBINED_ALLOCATION: usize = 4096;
+        let combined = size1.saturating_add(size2);
+        combined <= MAX_COMBINED_ALLOCATION && size1 > 0 && size2 > 0
     }
 
     /// Check if allocation can be stack-allocated instead of heap.
-    pub fn can_stack_allocate(&self, size: usize, _lifetime: &str) -> bool {
-        // Simple heuristic: small allocations with known lifetime
-        size <= 1024
+    ///
+    /// Stack allocation is preferred for small, short-lived allocations
+    /// with known lifetime that don't escape the current scope.
+    pub fn can_stack_allocate(&self, size: usize, lifetime: &str) -> bool {
+        const MAX_STACK_ALLOCATION: usize = 1024;
+        size <= MAX_STACK_ALLOCATION && matches!(lifetime, "local" | "block" | "scope")
+    }
+
+    /// Estimate the optimal allocation strategy for a given size.
+    pub fn allocation_strategy(&self, size: usize) -> AllocationStrategy {
+        if size == 0 {
+            AllocationStrategy::None
+        } else if size <= 64 {
+            AllocationStrategy::Inline
+        } else if size <= 1024 {
+            AllocationStrategy::Stack
+        } else if size <= 65536 {
+            AllocationStrategy::SmallHeap
+        } else {
+            AllocationStrategy::LargeHeap
+        }
     }
 }
 
@@ -326,6 +511,230 @@ mod tests {
     fn test_memory_optimizer_stack_allocate() {
         let optimizer = MemoryOptimizer::new();
         assert!(optimizer.can_stack_allocate(512, "local"));
+        assert!(optimizer.can_stack_allocate(512, "block"));
+        assert!(optimizer.can_stack_allocate(512, "scope"));
         assert!(!optimizer.can_stack_allocate(2048, "local"));
+        assert!(!optimizer.can_stack_allocate(512, "global"));
+    }
+
+    #[test]
+    fn test_memory_optimizer_combine_allocations() {
+        let optimizer = MemoryOptimizer::new();
+        assert!(optimizer.can_combine_allocations(100, 200));
+        assert!(optimizer.can_combine_allocations(2048, 2048));
+        assert!(!optimizer.can_combine_allocations(4000, 4000));
+        assert!(!optimizer.can_combine_allocations(0, 100));
+        assert!(!optimizer.can_combine_allocations(100, 0));
+    }
+
+    #[test]
+    fn test_memory_optimizer_allocation_strategy() {
+        let optimizer = MemoryOptimizer::new();
+        assert_eq!(optimizer.allocation_strategy(0), AllocationStrategy::None);
+        assert_eq!(
+            optimizer.allocation_strategy(32),
+            AllocationStrategy::Inline
+        );
+        assert_eq!(
+            optimizer.allocation_strategy(64),
+            AllocationStrategy::Inline
+        );
+        assert_eq!(
+            optimizer.allocation_strategy(512),
+            AllocationStrategy::Stack
+        );
+        assert_eq!(
+            optimizer.allocation_strategy(1024),
+            AllocationStrategy::Stack
+        );
+        assert_eq!(
+            optimizer.allocation_strategy(8192),
+            AllocationStrategy::SmallHeap
+        );
+        assert_eq!(
+            optimizer.allocation_strategy(65536),
+            AllocationStrategy::SmallHeap
+        );
+        assert_eq!(
+            optimizer.allocation_strategy(100000),
+            AllocationStrategy::LargeHeap
+        );
+    }
+
+    #[test]
+    fn test_simd_hints_vectorizable() {
+        assert!(SimdHints::is_vectorizable("+", 4));
+        assert!(SimdHints::is_vectorizable("*", 8));
+        assert!(SimdHints::is_vectorizable("&", 16));
+        assert!(!SimdHints::is_vectorizable("+", 3)); // Too few elements
+        assert!(!SimdHints::is_vectorizable("==", 8)); // Unsupported op
+    }
+
+    #[test]
+    fn test_simd_hints_recommended_width() {
+        assert_eq!(SimdHints::recommended_width(4), 8); // 32/4 = 8 i32s
+        assert_eq!(SimdHints::recommended_width(8), 4); // 32/8 = 4 i64s
+        assert_eq!(SimdHints::recommended_width(1), 32); // 32/1 = 32 bytes
+        assert_eq!(SimdHints::recommended_width(0), 0); // Zero-size
+    }
+
+    #[test]
+    fn test_compilation_cache_basic() {
+        let mut cache = CompilationCache::new();
+        let hash = CompilationCache::hash_source("fn main() {}");
+
+        assert!(!cache.is_cached(hash));
+        cache.insert(hash);
+        assert!(cache.is_cached(hash));
+        assert_eq!(cache.valid_count(), 1);
+    }
+
+    #[test]
+    fn test_compilation_cache_invalidate() {
+        let mut cache = CompilationCache::new();
+        let hash = CompilationCache::hash_source("fn main() {}");
+
+        cache.insert(hash);
+        assert!(cache.is_cached(hash));
+
+        cache.invalidate(hash);
+        assert!(!cache.is_cached(hash));
+        assert_eq!(cache.valid_count(), 0);
+    }
+
+    #[test]
+    fn test_compilation_cache_invalidate_all() {
+        let mut cache = CompilationCache::new();
+        let h1 = CompilationCache::hash_source("fn a() {}");
+        let h2 = CompilationCache::hash_source("fn b() {}");
+
+        cache.insert(h1);
+        cache.insert(h2);
+        assert_eq!(cache.valid_count(), 2);
+
+        cache.invalidate_all();
+        assert_eq!(cache.valid_count(), 0);
+    }
+
+    #[test]
+    fn test_compilation_cache_different_sources() {
+        let h1 = CompilationCache::hash_source("fn a() {}");
+        let h2 = CompilationCache::hash_source("fn b() {}");
+        assert_ne!(h1, h2);
+    }
+
+    #[test]
+    fn test_loop_optimizer_invariant_constant() {
+        let optimizer = LoopOptimizer::new();
+        let loop_body = vec![Instruction::BinaryOp {
+            op: "+".to_string(),
+            left: Value::Register(0),
+            right: Value::Constant(1),
+            result: Value::Register(0),
+        }];
+        // Constants are always loop-invariant
+        assert!(optimizer.is_loop_invariant(&Value::Constant(42), &loop_body));
+    }
+
+    #[test]
+    fn test_loop_optimizer_invariant_register() {
+        let optimizer = LoopOptimizer::new();
+        let loop_body = vec![Instruction::BinaryOp {
+            op: "+".to_string(),
+            left: Value::Register(0),
+            right: Value::Constant(1),
+            result: Value::Register(0),
+        }];
+        // Register 0 is modified in the loop, not invariant
+        assert!(!optimizer.is_loop_invariant(&Value::Register(0), &loop_body));
+        // Register 1 is not modified in the loop, is invariant
+        assert!(optimizer.is_loop_invariant(&Value::Register(1), &loop_body));
+    }
+
+    #[test]
+    fn test_loop_optimizer_induction_variable() {
+        let optimizer = LoopOptimizer::new();
+        let loop_body = vec![Instruction::BinaryOp {
+            op: "+".to_string(),
+            left: Value::Register(0),
+            right: Value::Constant(1),
+            result: Value::Register(0),
+        }];
+        assert!(optimizer.is_induction_variable(&Value::Register(0), &loop_body));
+        assert!(!optimizer.is_induction_variable(&Value::Register(1), &loop_body));
+        assert!(!optimizer.is_induction_variable(&Value::Constant(0), &loop_body));
+    }
+
+    #[test]
+    fn test_loop_optimizer_count_hoistable() {
+        let optimizer = LoopOptimizer::new();
+        let loop_body = vec![
+            // i = i + 1 (not hoistable, depends on loop var)
+            Instruction::BinaryOp {
+                op: "+".to_string(),
+                left: Value::Register(0),
+                right: Value::Constant(1),
+                result: Value::Register(0),
+            },
+            // 5 + 10 (hoistable, both constants)
+            Instruction::BinaryOp {
+                op: "+".to_string(),
+                left: Value::Constant(5),
+                right: Value::Constant(10),
+                result: Value::Register(2),
+            },
+        ];
+        assert_eq!(optimizer.count_hoistable(&loop_body), 1);
+    }
+
+    #[test]
+    fn test_dead_code_value_used() {
+        let eliminator = DeadCodeEliminator::new();
+        let val = Value::Register(1);
+        let instructions = vec![Instruction::BinaryOp {
+            op: "+".to_string(),
+            left: Value::Register(1),
+            right: Value::Constant(2),
+            result: Value::Register(3),
+        }];
+        assert!(eliminator.is_value_used(&val, &instructions));
+        assert!(!eliminator.is_value_used(&Value::Register(5), &instructions));
+    }
+
+    #[test]
+    fn test_constant_fold_bitwise() {
+        let folder = ConstantFolder::new();
+        assert_eq!(folder.fold_binary_op("&", 0xFF, 0x0F), Some(0x0F));
+        assert_eq!(folder.fold_binary_op("|", 0xF0, 0x0F), Some(0xFF));
+        assert_eq!(folder.fold_binary_op("^", 0xFF, 0xFF), Some(0));
+        assert_eq!(folder.fold_binary_op("<<", 1, 4), Some(16));
+        assert_eq!(folder.fold_binary_op(">>", 16, 4), Some(1));
+    }
+
+    #[test]
+    fn test_constant_fold_modulo() {
+        let folder = ConstantFolder::new();
+        assert_eq!(folder.fold_binary_op("%", 10, 3), Some(1));
+        assert_eq!(folder.fold_binary_op("%", 10, 0), None); // Division by zero
+    }
+
+    #[test]
+    fn test_fold_identity_xor_zero() {
+        let folder = ConstantFolder::new();
+        let val = Value::Register(1);
+        assert_eq!(
+            folder.fold_identity("^", &val, &Value::Constant(0)),
+            Some(val.clone())
+        );
+    }
+
+    #[test]
+    fn test_fold_identity_and_zero() {
+        let folder = ConstantFolder::new();
+        let val = Value::Register(1);
+        assert_eq!(
+            folder.fold_identity("&", &val, &Value::Constant(0)),
+            Some(Value::Constant(0))
+        );
     }
 }

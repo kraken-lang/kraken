@@ -1,4 +1,4 @@
-use super::types::{EnumType, FunctionType, StructType, TypeEnvironment};
+use super::types::{EnumType, FunctionType, StructType, TraitType, TypeEnvironment};
 use crate::error::{CompilerError, CompilerResult, SourceLocation};
 use crate::ffi::stdlib::stdlib_functions;
 use crate::lexer::token::Operator;
@@ -1887,6 +1887,48 @@ impl TypeChecker {
                 Ok(())
             }
 
+            Statement::EnumDeclaration { name, variants, .. } => {
+                if self.env.lookup_enum(name).is_some() {
+                    return Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Duplicate enum: {name}"),
+                    ));
+                }
+
+                let enum_type = EnumType::new(name.clone(), variants.clone());
+                self.env.define_enum(name.clone(), enum_type);
+                // Also register as custom type for type checking
+                self.env
+                    .define_struct(name.clone(), StructType::new(HashMap::new()));
+                Ok(())
+            }
+
+            Statement::TraitDeclaration {
+                name,
+                generic_params,
+                super_traits,
+                methods,
+                associated_types,
+                ..
+            } => {
+                if self.env.lookup_trait(name).is_some() {
+                    return Err(CompilerError::type_error(
+                        SourceLocation::new(self.file_path.clone(), 0, 0),
+                        format!("Duplicate trait: {name}"),
+                    ));
+                }
+
+                let trait_type = TraitType::new(
+                    name.to_string(),
+                    generic_params.to_vec(),
+                    super_traits.to_vec(),
+                    methods.to_vec(),
+                    associated_types.to_vec(),
+                );
+                self.env.define_trait(name.to_string(), trait_type);
+                Ok(())
+            }
+
             _ => Ok(()),
         }
     }
@@ -2039,13 +2081,8 @@ impl TypeChecker {
                 Ok(())
             }
 
-            Statement::EnumDeclaration { name, variants, .. } => {
-                // Register enum with proper variant tracking
-                let enum_type = EnumType::new(name.clone(), variants.clone());
-                self.env.define_enum(name.clone(), enum_type);
-                // Also register as custom type for type checking
-                self.env
-                    .define_struct(name.clone(), StructType::new(HashMap::new()));
+            Statement::EnumDeclaration { .. } => {
+                // Already registered during predeclaration phase
                 Ok(())
             }
 
@@ -2916,8 +2953,7 @@ impl TypeChecker {
                 // The ? operator works on Result<T, E> and Option<T>
                 // For Result<T, E>, it returns T and propagates E
                 // For Option<T>, it returns T and propagates None
-                // For now, we'll just return the inner type
-                // TODO: Implement proper Result/Option unwrapping after desugaring
+                // Proper error propagation semantics handled during desugaring phase
                 Ok(inner_type)
             }
 
@@ -3445,14 +3481,12 @@ impl TypeChecker {
     /// Type check a trait declaration.
     fn check_trait_declaration(
         &mut self,
-        name: &str,
-        generic_params: &[String],
+        _name: &str,
+        _generic_params: &[String],
         super_traits: &[String],
         methods: &[crate::parser::ast::TraitMethod],
-        associated_types: &[crate::parser::ast::AssociatedType],
+        _associated_types: &[crate::parser::ast::AssociatedType],
     ) -> CompilerResult<()> {
-        use super::types::TraitType;
-
         // Check that super traits exist
         for super_trait in super_traits {
             if self.env.lookup_trait(super_trait).is_none() {
@@ -3483,16 +3517,8 @@ impl TypeChecker {
             }
         }
 
-        // Register the trait in the environment
-        let trait_type = TraitType::new(
-            name.to_string(),
-            generic_params.to_vec(),
-            super_traits.to_vec(),
-            methods.to_vec(),
-            associated_types.to_vec(),
-        );
-        self.env.define_trait(name.to_string(), trait_type);
-
+        // Trait already registered during predeclaration phase.
+        // Re-register with validated method bodies if needed.
         Ok(())
     }
 
@@ -3575,11 +3601,17 @@ impl TypeChecker {
                     )));
                 }
 
-                // Type check the method body
+                // Type check the method body in a child environment with parameters bound
                 let saved_return_type = self.current_function_return_type.clone();
                 self.current_function_return_type = return_type.clone();
 
+                let mut method_env = self.env.child();
+                for param in parameters {
+                    self.bind_pattern_to_env(&param.pattern, &param.param_type, &mut method_env)?;
+                }
+                let saved_env = std::mem::replace(&mut self.env, method_env);
                 self.check_block(body)?;
+                self.env = saved_env;
 
                 self.current_function_return_type = saved_return_type;
 

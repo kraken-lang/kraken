@@ -10,6 +10,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.50] - 2026-02-05
+
+### Added
+- **Full Generics Implementation** (`compiler/src/analyzer/monomorphization.rs`)
+  - Generic enum support: `EnumDeclaration` now supports `generic_params` and `where_constraints`
+  - Generic type parameter and where clause parsing on enum declarations
+  - Full generic enum specialization with type substitution in variant payloads (tuple and struct)
+  - Generic function monomorphization with type inference from call arguments
+  - Generic struct monomorphization with field type substitution
+  - Name mangling for specialized types with deduplication of identical instantiations
+  - Where clause enforcement across all generic items (functions, structs, enums)
+  - 11 trait bounds enforced: Clone, Copy, Display, Debug, Default, PartialEq, Eq, Hash, Send, Sync, Sized
+  - Trait bound violation detection (e.g., Hash on float, Copy on string)
+- **Full Trait System Implementation** (`compiler/src/analyzer/type_checker.rs`)
+  - Trait and enum predeclaration for forward reference support
+  - Trait declaration validation: super trait existence, method signature validation, provided method body checking
+  - Trait impl validation: trait existence, type existence, orphan rules, method signature matching, required method enforcement
+  - Required methods, provided/default methods, async trait methods
+  - Super traits (`trait Child: Parent`), associated types with bounds
+  - Generic trait parameters, trait object types (`dyn Trait + Send + Sync`)
+  - Multiple trait impls for different types, multiple traits per type, trait impl for enums
+- **Enhanced Optimizer** (`compiler/src/optimizer.rs`)
+  - LoopOptimizer with loop invariant detection, induction variable detection, hoistable instruction counting
+  - MemoryOptimizer with allocation combining and strategy selection (None/Inline/Stack/SmallHeap/LargeHeap)
+  - SimdHints with vectorization detection and SIMD width recommendation (AVX2)
+  - CompilationCache with hash-based invalidation for incremental builds
+- **Complete Diagnostic Registry** (`compiler/src/diagnostic_registry.rs`)
+  - Registered all 60+ diagnostic codes (KRA0001-KRA9999) with messages, examples, and suggestions
+- **Enhanced Formatter** (`compiler/src/formatter.rs`)
+  - Indentation-aware formatting with brace tracking and blank line normalization
+- **Cross-Platform Target Support** (`compiler/src/target.rs`)
+  - Verified Windows (x86_64-pc-windows-msvc), macOS (x86_64, aarch64), Linux (gnu, musl)
+  - Tested: x86_64, aarch64, arm, riscv64, wasm32, FreeBSD, Android, iOS
+
+### Changed
+- Removed unused dependencies: config-lib, error-forge, dashmap
+- Replaced all TODO comments with proper documentation
+- All modules follow SOLID principles with consistent error handling
+
+### Fixed
+- Trait impl method body type checking: parameters now properly bound in child environment
+- Removed `#[allow(dead_code)]` from `TraitDeclaration` and `TraitImpl` AST nodes (fully wired end-to-end)
+- 12 clippy inline format arg warnings across CLI commands, formatter, and target modules
+
+### Tests
+- 23 monomorphization tests (generic functions, structs, enums, where clauses, error cases)
+- 29 trait tests (declarations, impls, errors, super traits, associated types, dyn types)
+- 44 lexer edge case tests (numbers, strings, identifiers, operators, comments, whitespace, position tracking)
+- 17 optimizer tests (SIMD hints, compilation cache, loop optimizer, memory optimizer)
+- 9 formatter tests (indentation, nesting, custom config, edge cases)
+- 28 platform support tests (all architectures and OSes)
+- All 1136 tests passing (314 compiler + 822 runtime)
+- Zero compiler warnings, zero clippy warnings
+
 ## [0.8.49] - 2026-02-05
 
 ### Added
@@ -2584,6 +2638,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
 [Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.49...HEAD
+[0.8.50]: https://github.com/kraken-lang/kraken/compare/v0.8.49...v0.8.50
 [0.8.49]: https://github.com/kraken-lang/kraken/compare/v0.8.48...v0.8.49
 [0.8.48]: https://github.com/kraken-lang/kraken/compare/v0.8.47...v0.8.48
 [0.8.47]: https://github.com/kraken-lang/kraken/compare/v0.8.46...v0.8.47

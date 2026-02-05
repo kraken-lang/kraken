@@ -7,6 +7,10 @@ pub mod drop_checker;
 pub mod future_trait;
 pub mod macro_expander;
 pub mod monomorphization;
+#[cfg(test)]
+mod monomorphization_tests;
+#[cfg(test)]
+mod trait_tests;
 pub mod type_checker;
 pub mod types;
 

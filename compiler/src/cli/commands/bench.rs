@@ -180,7 +180,7 @@ impl BenchCommand {
             }
             OutputFormat::Json => {
                 let json = serde_json::to_string_pretty(results).unwrap();
-                println!("{}", json);
+                println!("{json}");
             }
             OutputFormat::Csv => {
                 println!("name,iterations,mean_ms,median_ms,std_dev_ms,min_ms,max_ms");

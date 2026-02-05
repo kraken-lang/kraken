@@ -148,8 +148,7 @@ impl Command for FmtCommand {
                 println!(
                     "{}",
                     OutputMessage::warning(format!(
-                        "{} files need formatting, {} files are correctly formatted",
-                        formatted, unchanged
+                        "{formatted} files need formatting, {unchanged} files are correctly formatted"
                     ))
                 );
                 return Err(format!("{formatted} files need formatting"));
@@ -157,8 +156,7 @@ impl Command for FmtCommand {
                 println!(
                     "{}",
                     OutputMessage::success(format!(
-                        "All {} files are correctly formatted",
-                        unchanged
+                        "All {unchanged} files are correctly formatted"
                     ))
                 );
             }
@@ -166,8 +164,7 @@ impl Command for FmtCommand {
             println!(
                 "{}",
                 OutputMessage::success(format!(
-                    "Formatted {} files, {} files unchanged",
-                    formatted, unchanged
+                    "Formatted {formatted} files, {unchanged} files unchanged"
                 ))
             );
         }

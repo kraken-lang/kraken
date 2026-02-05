@@ -43,8 +43,6 @@ harness = false
 kraken-runtime = { path = "../runtime" }
 
 # Internal Dependencies
-config-lib  = { workspace = true }
-error-forge = { workspace = true }
 metrics-lib = { workspace = true }
 
 # External Dependencies
@@ -70,7 +68,6 @@ futures = { workspace = true }
 
 # Parallel Processing
 rayon = { workspace = true }
-dashmap = { workspace = true }
 
 # File Watching & Discovery
 notify = { workspace = true }

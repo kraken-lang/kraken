@@ -52,7 +52,7 @@ impl DocCommand {
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>{} - Kraken Documentation</title>
+    <title>{file_name} - Kraken Documentation</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
                max-width: 900px; margin: 0 auto; padding: 20px; }}
@@ -65,16 +65,15 @@ impl DocCommand {
     </style>
 </head>
 <body>
-    <h1>Documentation for {}</h1>
-"#,
-            file_name, file_name
+    <h1>Documentation for {file_name}</h1>
+"#
         );
 
         if docs.is_empty() {
             html.push_str("<p><em>No documentation comments found.</em></p>");
         } else {
             for doc in docs {
-                html.push_str(&format!("<div class='doc-comment'>{}</div>\n", doc));
+                html.push_str(&format!("<div class='doc-comment'>{doc}</div>\n"));
             }
         }
 
@@ -113,10 +112,9 @@ impl DocCommand {
 
         for file in files {
             let file_name = file.file_name().unwrap().to_string_lossy();
-            let html_name = format!("{}.html", file_name);
+            let html_name = format!("{file_name}.html");
             html.push_str(&format!(
-                "        <li><a href='{}'>{}</a></li>\n",
-                html_name, file_name
+                "        <li><a href='{html_name}'>{file_name}</a></li>\n"
             ));
         }
 
@@ -177,7 +175,7 @@ impl Command for DocCommand {
             let html = self.generate_html(file, &docs);
 
             let file_name = file.file_name().unwrap().to_string_lossy();
-            let output_path = self.output_dir.join(format!("{}.html", file_name));
+            let output_path = self.output_dir.join(format!("{file_name}.html"));
 
             fs::write(&output_path, html)
                 .map_err(|e| format!("Failed to write {}: {e}", output_path.display()))?;

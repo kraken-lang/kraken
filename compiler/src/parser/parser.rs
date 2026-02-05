@@ -410,12 +410,32 @@ impl Parser {
     fn parse_enum_declaration(&mut self, is_public: bool) -> CompilerResult<Statement> {
         let name = self.consume_identifier()?;
 
+        let generic_params = if self.match_operator(Operator::Less) {
+            let mut params = Vec::new();
+            params.push(self.consume_identifier()?);
+            while self.match_token(TokenKind::Comma) {
+                params.push(self.consume_identifier()?);
+            }
+            self.expect_operator(Operator::Greater)?;
+            params
+        } else {
+            Vec::new()
+        };
+
+        let where_constraints = if self.match_keyword(Keyword::Where) {
+            self.parse_where_constraints()?
+        } else {
+            Vec::new()
+        };
+
         self.expect_token(TokenKind::LeftBrace)?;
         let variants = self.parse_enum_variants()?;
         self.expect_token(TokenKind::RightBrace)?;
 
         Ok(Statement::EnumDeclaration {
             name,
+            generic_params,
+            where_constraints,
             variants,
             is_public,
         })

@@ -516,6 +516,7 @@ impl LLVMCodegen {
                 name,
                 variants,
                 is_public: _,
+                ..
             } => {
                 // Register enum variants with their tag values and payload types
                 let variants_with_tags: Vec<(String, u32, Option<EnumVariantPayload>)> = variants

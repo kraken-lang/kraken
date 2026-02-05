@@ -79,6 +79,8 @@ pub enum Statement {
     /// Enum declaration
     EnumDeclaration {
         name: String,
+        generic_params: Vec<String>,
+        where_constraints: Vec<WhereConstraint>,
         variants: Vec<(String, Option<EnumVariantPayload>)>, // (variant_name, optional_payload)
         is_public: bool,
     },
@@ -165,7 +167,6 @@ pub enum Statement {
     },
 
     /// Trait declaration: trait Name { ... }
-    #[allow(dead_code)]
     TraitDeclaration {
         name: String,
         generic_params: Vec<String>,
@@ -176,7 +177,6 @@ pub enum Statement {
     },
 
     /// Trait implementation: impl TraitName for TypeName { ... }
-    #[allow(dead_code)]
     TraitImpl {
         trait_name: String,
         type_name: String,
