@@ -1,0 +1,473 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kraken-lang.io/schemas/docgraph-v1.schema.json",
+  "title": "Kraken DocGraph v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "index", "pages", "nodes"],
+  "properties": {
+    "meta": { "$ref": "#/$defs/Meta" },
+    "index": { "$ref": "#/$defs/Index" },
+    "pages": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Page" }
+    },
+    "nodes": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/Node" }
+    }
+  },
+  "$defs": {
+    "Meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "generated_at", "tool", "source"],
+      "properties": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version"],
+          "properties": {
+            "name": { "const": "kraken-docgraph" },
+            "version": { "const": 1 }
+          }
+        },
+        "generated_at": { "type": "string", "format": "date-time" },
+        "tool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "version": { "type": "string", "minLength": 1 },
+            "commit": { "type": "string" },
+            "target_triple": { "type": "string" }
+          }
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["project", "revision"],
+          "properties": {
+            "project": { "type": "string", "minLength": 1 },
+            "revision": { "type": "string", "minLength": 1 },
+            "dirty": { "type": "boolean" },
+            "workspace_root": { "type": "string" }
+          }
+        },
+        "deterministic": { "type": "boolean", "default": true }
+      }
+    },
+
+    "Index": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_kinds", "tags", "search"],
+      "properties": {
+        "node_kinds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "search": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["entries"],
+          "properties": {
+            "entries": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/SearchEntry" }
+            }
+          }
+        }
+      }
+    },
+
+    "SearchEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_id", "title", "kind", "path", "tokens"],
+      "properties": {
+        "node_id": { "$ref": "#/$defs/NodeId" },
+        "title": { "type": "string" },
+        "kind": { "type": "string" },
+        "path": { "type": "string" },
+        "tokens": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "boost": { "type": "number", "default": 1.0 }
+      }
+    },
+
+    "Page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "slug", "title", "sections"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9\\-]{2,80}$" },
+        "slug": { "type": "string", "pattern": "^[a-z0-9][a-z0-9\\-/]{2,120}$" },
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "tags": { "$ref": "#/$defs/Tags" },
+        "nav": { "$ref": "#/$defs/Nav" },
+        "sections": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PageSection" }
+        }
+      }
+    },
+
+    "Nav": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "group": { "type": "string" },
+        "order": { "type": "integer" },
+        "parent_page_id": { "type": "string" }
+      }
+    },
+
+    "PageSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["markdown", "node_ref", "node_list", "toc"]
+        },
+        "title": { "type": "string" },
+        "markdown": { "type": "string" },
+        "node_id": { "$ref": "#/$defs/NodeId" },
+        "node_ids": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/NodeId" }
+        },
+        "filters": { "$ref": "#/$defs/NodeFilters" }
+      }
+    },
+
+    "NodeFilters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kinds": { "type": "array", "items": { "type": "string" } },
+        "tags_any": { "$ref": "#/$defs/Tags" },
+        "tags_all": { "$ref": "#/$defs/Tags" },
+        "stability": { "$ref": "#/$defs/Stability" },
+        "module_prefix": { "type": "string" }
+      }
+    },
+
+    "NodeId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_\\-\\.]{2,200}$"
+    },
+
+    "Tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+
+    "Stability": {
+      "type": "string",
+      "enum": ["stable", "experimental", "deprecated", "internal"]
+    },
+
+    "Span": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "start", "end"],
+      "properties": {
+        "file": { "type": "string" },
+        "start": { "$ref": "#/$defs/Pos" },
+        "end": { "$ref": "#/$defs/Pos" }
+      }
+    },
+
+    "Pos": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "col"],
+      "properties": {
+        "line": { "type": "integer", "minimum": 1 },
+        "col": { "type": "integer", "minimum": 1 },
+        "byte": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "Deprecation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["since"],
+      "properties": {
+        "since": { "type": "string" },
+        "note": { "type": "string" },
+        "replacement_node_id": { "$ref": "#/$defs/NodeId" }
+      }
+    },
+
+    "DocBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "summary": { "type": "string" },
+        "details_markdown": { "type": "string" },
+        "examples": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Example" }
+        },
+        "see_also": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/NodeId" }
+        }
+      }
+    },
+
+    "Example": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "code"],
+      "properties": {
+        "title": { "type": "string" },
+        "code": { "type": "string" },
+        "language": { "type": "string", "default": "kraken" },
+        "expected_output": { "type": "string" },
+        "runnable": { "type": "boolean", "default": false }
+      }
+    },
+
+    "Node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "title", "stability"],
+      "properties": {
+        "id": { "$ref": "#/$defs/NodeId" },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "module",
+            "symbol",
+            "type",
+            "trait",
+            "const",
+            "macro",
+            "keyword",
+            "operator",
+            "attribute",
+            "diagnostic",
+            "concept",
+            "tooling"
+          ]
+        },
+        "title": { "type": "string" },
+        "qualified_name": { "type": "string" },
+        "stability": { "$ref": "#/$defs/Stability" },
+        "since": { "type": "string" },
+        "deprecated": { "$ref": "#/$defs/Deprecation" },
+        "tags": { "$ref": "#/$defs/Tags" },
+        "source_span": { "$ref": "#/$defs/Span" },
+        "docs": { "$ref": "#/$defs/DocBlock" },
+
+        "module": { "$ref": "#/$defs/ModuleNode" },
+        "symbol": { "$ref": "#/$defs/SymbolNode" },
+        "type": { "$ref": "#/$defs/TypeNode" },
+        "diagnostic": { "$ref": "#/$defs/DiagnosticNode" },
+        "concept": { "$ref": "#/$defs/ConceptNode" },
+        "tooling": { "$ref": "#/$defs/ToolingNode" },
+
+        "links": { "$ref": "#/$defs/Links" }
+      }
+    },
+
+    "Links": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "related": { "type": "array", "items": { "$ref": "#/$defs/NodeId" } },
+        "implements": { "type": "array", "items": { "$ref": "#/$defs/NodeId" } },
+        "implemented_by": { "type": "array", "items": { "$ref": "#/$defs/NodeId" } },
+        "uses": { "type": "array", "items": { "$ref": "#/$defs/NodeId" } }
+      }
+    },
+
+    "ModuleNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string" },
+        "parent_module_id": { "$ref": "#/$defs/NodeId" },
+        "children_module_ids": { "type": "array", "items": { "$ref": "#/$defs/NodeId" } },
+        "exports": { "type": "array", "items": { "$ref": "#/$defs/NodeId" } }
+      }
+    },
+
+    "SymbolNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["fn", "method", "var", "field", "enum_variant"] },
+        "module_id": { "$ref": "#/$defs/NodeId" },
+        "signature": { "$ref": "#/$defs/Signature" },
+        "visibility": { "type": "string", "enum": ["public", "module", "private"] },
+        "type_id": { "$ref": "#/$defs/NodeId" }
+      }
+    },
+
+    "Signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string" },
+        "params": { "type": "array", "items": { "$ref": "#/$defs/Param" } },
+        "returns": { "$ref": "#/$defs/TypeRef" },
+        "generics": { "type": "array", "items": { "$ref": "#/$defs/GenericParam" } }
+      }
+    },
+
+    "Param": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "$ref": "#/$defs/TypeRef" },
+        "default": { "type": "string" },
+        "variadic": { "type": "boolean", "default": false }
+      }
+    },
+
+    "GenericParam": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/TypeRef" } }
+      }
+    },
+
+    "TypeNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["struct", "enum", "alias", "primitive"] },
+        "module_id": { "$ref": "#/$defs/NodeId" },
+        "fields": { "type": "array", "items": { "$ref": "#/$defs/Field" } },
+        "variants": { "type": "array", "items": { "$ref": "#/$defs/Variant" } },
+        "methods": { "type": "array", "items": { "$ref": "#/$defs/NodeId" } },
+        "traits": { "type": "array", "items": { "$ref": "#/$defs/NodeId" } }
+      }
+    },
+
+    "Field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "$ref": "#/$defs/TypeRef" },
+        "visibility": { "type": "string", "enum": ["public", "module", "private"] }
+      }
+    },
+
+    "Variant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "fields": { "type": "array", "items": { "$ref": "#/$defs/Field" } }
+      }
+    },
+
+    "TypeRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["display"],
+      "properties": {
+        "display": { "type": "string" },
+        "node_id": { "$ref": "#/$defs/NodeId" },
+        "args": { "type": "array", "items": { "$ref": "#/$defs/TypeRef" } }
+      }
+    },
+
+    "DiagnosticNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "message"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^KRA[0-9]{4}$" },
+        "severity": { "type": "string", "enum": ["error", "warning", "note"] },
+        "category": { "type": "string" },
+        "message": { "type": "string" },
+        "explanation_markdown": { "type": "string" },
+        "common_causes": { "type": "array", "items": { "type": "string" } },
+        "fixes": { "type": "array", "items": { "$ref": "#/$defs/FixIt" } },
+        "related_nodes": { "type": "array", "items": { "$ref": "#/$defs/NodeId" } }
+      }
+    },
+
+    "FixIt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title"],
+      "properties": {
+        "title": { "type": "string" },
+        "description_markdown": { "type": "string" },
+        "example_before": { "type": "string" },
+        "example_after": { "type": "string" }
+      }
+    },
+
+    "ConceptNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "group": { "type": "string" },
+        "keywords": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "ToolingNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ToolCommand" }
+        }
+      }
+    },
+
+    "ToolCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "summary": { "type": "string" },
+        "usage": { "type": "string" },
+        "flags": { "type": "array", "items": { "$ref": "#/$defs/ToolFlag" } }
+      }
+    },
+
+    "ToolFlag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "summary": { "type": "string" },
+        "default": { "type": "string" }
+      }
+    }
+  }
+}
