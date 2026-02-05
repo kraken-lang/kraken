@@ -59,7 +59,7 @@ impl FuzzGenerator {
 
     /// Generate a random boolean.
     pub fn generate_bool(&mut self) -> bool {
-        (self.next_u64() % 2) == 0
+        self.next_u64().is_multiple_of(2)
     }
 
     /// Generate a random string.
