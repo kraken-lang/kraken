@@ -10,6 +10,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Compiler Diagnostic Code System** (`compiler/src/diagnostics.rs`)
+  - Comprehensive diagnostic code enumeration with KRA prefix (KRA0001-KRA9999)
+  - Organized diagnostic categories: Lexer (0-999), Parser (1000-1999), Type (2000-2999), Resolution (3000-3999), Borrow (4000-4999), Codegen (5000-5999), Module (6000-6999), Macro (7000-7999), Attribute (8000-8999), I/O (9000-9999)
+  - Diagnostic severity levels: Error, Warning, Note, Help
+  - Diagnostic metadata with descriptions and suggestions
+  - 80+ unique diagnostic codes covering all compiler phases
+  - Comprehensive test coverage (11 tests)
+- **Diagnostic Registry** (`compiler/src/diagnostic_registry.rs`)
+  - Centralized registry for diagnostic code documentation
+  - Detailed information for each diagnostic code including title, description, examples, and suggestions
+  - Lookup functionality for diagnostic codes
+  - Registry tests for code validation (4 tests)
+- **Enhanced Error System** (`compiler/src/error.rs`)
+  - Integration of new diagnostic codes with existing error types
+  - DiagnosticError variant with full diagnostic context
+  - Helper methods for creating diagnostic-based errors
+  - Backward compatibility with legacy error codes
+  - Mapping between old E-codes and new KRA codes
+
+### Changed
+- Compiler error system now supports both legacy error codes and new KRA diagnostic codes
+- Error messages can now include hints and suggestions for fixing issues
+
+### Tests
+- Total: 128 compiler tests passing (+11 diagnostic tests, +4 registry tests)
+- All tests pass with 0 errors
+- Comprehensive coverage of diagnostic system functionality
+
 ## [0.8.46] - 2026-02-05
 
 ### Added

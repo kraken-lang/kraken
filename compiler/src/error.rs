@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 use thiserror::Error;
 
+use crate::diagnostics::{Diagnostic as NewDiagnostic, DiagnosticCode};
+
 /// Compiler result type.
 pub type CompilerResult<T> = Result<T, CompilerError>;
 
@@ -38,6 +40,13 @@ impl std::fmt::Display for ErrorCode {
 #[derive(Error, Debug)]
 #[allow(dead_code)]
 pub enum CompilerError {
+    /// New diagnostic-based error with KRA codes
+    #[error("{}", .diagnostic.format())]
+    DiagnosticError {
+        diagnostic: NewDiagnostic,
+        location: Option<SourceLocation>,
+    },
+
     /// Lexer errors
     #[error("[{code}] Lexer error at {location}: {message}")]
     LexerError {
@@ -369,10 +378,31 @@ impl CompilerError {
         Self::InternalError(message.into())
     }
 
+    /// Create a new error with a diagnostic code.
+    pub fn from_code(code: DiagnosticCode, message: impl Into<String>) -> Self {
+        Self::DiagnosticError {
+            diagnostic: NewDiagnostic::new(code, message),
+            location: None,
+        }
+    }
+
+    /// Create a new error with a diagnostic code and location.
+    pub fn from_code_with_location(
+        code: DiagnosticCode,
+        message: impl Into<String>,
+        location: SourceLocation,
+    ) -> Self {
+        Self::DiagnosticError {
+            diagnostic: NewDiagnostic::new(code, message),
+            location: Some(location),
+        }
+    }
+
     /// Get the error code for this error.
     #[allow(dead_code)]
     pub fn code(&self) -> ErrorCode {
         match self {
+            Self::DiagnosticError { .. } => ErrorCode::E0017, // Map to generic code for now
             Self::LexerError { code, .. } => *code,
             Self::ParserError { code, .. } => *code,
             Self::TypeError { code, .. } => *code,
