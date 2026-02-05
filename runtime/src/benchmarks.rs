@@ -262,13 +262,13 @@ impl BenchmarkRunner {
     pub fn run_all(&mut self) -> Result<(), String> {
         for benchmark in &self.suite.benchmarks {
             let mut result = BenchmarkResult::new(benchmark.clone());
-            
+
             for &language in &self.suite.languages {
                 // Stub: In real implementation, would compile and run actual code
                 let metrics = self.run_benchmark_for_language(benchmark, language)?;
                 result.add_result(language, metrics);
             }
-            
+
             self.results.push(result);
         }
         Ok(())
@@ -284,7 +284,7 @@ impl BenchmarkRunner {
         let start = Instant::now();
         std::thread::sleep(Duration::from_micros(100)); // Simulate work
         let execution_time = start.elapsed();
-        
+
         Ok(BenchmarkMetrics::new(execution_time)
             .with_compilation_time(Duration::from_millis(50))
             .with_memory_usage(1024 * benchmark.iterations)
@@ -304,7 +304,11 @@ impl BenchmarkRunner {
         output.push_str(&format!("Baseline: {}\n\n", baseline.name()));
 
         for result in &self.results {
-            output.push_str(&format!("## {} ({})\n", result.benchmark.name, result.benchmark.category.name()));
+            output.push_str(&format!(
+                "## {} ({})\n",
+                result.benchmark.name,
+                result.benchmark.category.name()
+            ));
             output.push_str(&format!("{}\n\n", result.benchmark.description));
 
             // Execution time comparison
@@ -315,7 +319,7 @@ impl BenchmarkRunner {
             for lang in langs {
                 let metrics = &result.results[lang];
                 let time_ms = metrics.execution_time.as_secs_f64() * 1000.0;
-                
+
                 if let Some(rel_perf) = result.relative_performance(*lang, baseline) {
                     output.push_str(&format!(
                         "  {:8} {:8.2}ms  ({:6.1}% of baseline)\n",
@@ -338,7 +342,7 @@ impl BenchmarkRunner {
         let mut output = String::from("Performance Summary\n");
         output.push_str("===================\n\n");
         output.push_str(&format!("{:30} ", "Benchmark"));
-        
+
         for lang in &self.suite.languages {
             output.push_str(&format!("{:12} ", lang.name()));
         }
@@ -348,7 +352,7 @@ impl BenchmarkRunner {
 
         for result in &self.results {
             output.push_str(&format!("{:30} ", result.benchmark.name));
-            
+
             for lang in &self.suite.languages {
                 if let Some(metrics) = result.results.get(lang) {
                     let time_ms = metrics.execution_time.as_secs_f64() * 1000.0;
@@ -410,7 +414,8 @@ mod tests {
             "fibonacci".to_string(),
             BenchmarkCategory::Algorithm,
             "Calculate Fibonacci numbers".to_string(),
-        ).with_iterations(1000);
+        )
+        .with_iterations(1000);
 
         assert_eq!(bench.name, "fibonacci");
         assert_eq!(bench.iterations, 1000);
@@ -423,11 +428,20 @@ mod tests {
             BenchmarkCategory::Algorithm,
             "Test benchmark".to_string(),
         );
-        
+
         let mut result = BenchmarkResult::new(bench);
-        result.add_result(Language::Kraken, BenchmarkMetrics::new(Duration::from_millis(100)));
-        result.add_result(Language::Rust, BenchmarkMetrics::new(Duration::from_millis(90)));
-        result.add_result(Language::Go, BenchmarkMetrics::new(Duration::from_millis(110)));
+        result.add_result(
+            Language::Kraken,
+            BenchmarkMetrics::new(Duration::from_millis(100)),
+        );
+        result.add_result(
+            Language::Rust,
+            BenchmarkMetrics::new(Duration::from_millis(90)),
+        );
+        result.add_result(
+            Language::Go,
+            BenchmarkMetrics::new(Duration::from_millis(110)),
+        );
 
         assert_eq!(result.fastest_language(), Some(Language::Rust));
         assert_eq!(result.slowest_language(), Some(Language::Go));
@@ -440,10 +454,16 @@ mod tests {
             BenchmarkCategory::Algorithm,
             "Test".to_string(),
         );
-        
+
         let mut result = BenchmarkResult::new(bench);
-        result.add_result(Language::Kraken, BenchmarkMetrics::new(Duration::from_millis(100)));
-        result.add_result(Language::Rust, BenchmarkMetrics::new(Duration::from_millis(50)));
+        result.add_result(
+            Language::Kraken,
+            BenchmarkMetrics::new(Duration::from_millis(100)),
+        );
+        result.add_result(
+            Language::Rust,
+            BenchmarkMetrics::new(Duration::from_millis(50)),
+        );
 
         let speedup = result.speedup(Language::Rust, Language::Kraken).unwrap();
         assert!((speedup - 2.0).abs() < 0.01);
@@ -456,25 +476,33 @@ mod tests {
             BenchmarkCategory::Algorithm,
             "Test".to_string(),
         );
-        
-        let mut result = BenchmarkResult::new(bench);
-        result.add_result(Language::Kraken, BenchmarkMetrics::new(Duration::from_millis(100)));
-        result.add_result(Language::Rust, BenchmarkMetrics::new(Duration::from_millis(50)));
 
-        let rel_perf = result.relative_performance(Language::Rust, Language::Kraken).unwrap();
+        let mut result = BenchmarkResult::new(bench);
+        result.add_result(
+            Language::Kraken,
+            BenchmarkMetrics::new(Duration::from_millis(100)),
+        );
+        result.add_result(
+            Language::Rust,
+            BenchmarkMetrics::new(Duration::from_millis(50)),
+        );
+
+        let rel_perf = result
+            .relative_performance(Language::Rust, Language::Kraken)
+            .unwrap();
         assert!((rel_perf - 50.0).abs() < 0.01);
     }
 
     #[test]
     fn test_benchmark_suite() {
         let mut suite = BenchmarkSuite::new("Test Suite".to_string());
-        
+
         suite.add_benchmark(Benchmark::new(
             "test1".to_string(),
             BenchmarkCategory::Algorithm,
             "Test 1".to_string(),
         ));
-        
+
         suite.add_language(Language::Kraken);
         suite.add_language(Language::Rust);
         suite.add_language(Language::Rust); // Duplicate
