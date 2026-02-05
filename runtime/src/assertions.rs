@@ -211,7 +211,7 @@ mod tests {
     #[test]
     fn test_assert_approx_eq_success() {
         assert_approx_eq(1.0, 1.0001, 0.001, None);
-        assert_approx_eq(1.41421, 1.41422, 0.0001, None);
+        assert_approx_eq(5.12345, 5.12346, 0.0001, None);
     }
 
     #[test]
