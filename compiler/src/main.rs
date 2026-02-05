@@ -9,6 +9,8 @@ use tokio::fs;
 
 mod analyzer;
 mod codegen;
+mod diagnostic_registry;
+mod diagnostics;
 mod error;
 mod ffi;
 mod ir;
