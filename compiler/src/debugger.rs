@@ -18,7 +18,10 @@ pub struct DebugInfoBuilder {
 
 impl DebugInfoBuilder {
     /// Create a new debug info builder
-    pub fn new(module: LLVMModuleRef, filename: &str, directory: &str) -> Self {
+    ///
+    /// # Safety
+    /// This function is unsafe because it accepts a raw pointer to an LLVM module.
+    pub unsafe fn new(module: LLVMModuleRef, filename: &str, directory: &str) -> Self {
         unsafe {
             let di_builder = LLVMCreateDIBuilder(module);
 
@@ -55,7 +58,7 @@ impl DebugInfoBuilder {
         _line: u32,
         _function: LLVMValueRef,
     ) -> LLVMMetadataRef {
-        unsafe { ptr::null_mut() }
+        ptr::null_mut()
     }
 
     /// Create debug location
