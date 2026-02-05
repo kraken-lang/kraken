@@ -167,6 +167,218 @@ impl<T> Iterator for Once<T> {
     }
 }
 
+/// Zip iterator that combines two iterators into pairs
+pub struct Zip<A, B> {
+    a: A,
+    b: B,
+}
+
+impl<A, B> Zip<A, B> {
+    pub fn new(a: A, b: B) -> Self {
+        Self { a, b }
+    }
+}
+
+impl<A: Iterator, B: Iterator> Iterator for Zip<A, B> {
+    type Item = (A::Item, B::Item);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match (self.a.next(), self.b.next()) {
+            (Some(a), Some(b)) => Some((a, b)),
+            _ => None,
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let (a_lower, a_upper) = self.a.size_hint();
+        let (b_lower, b_upper) = self.b.size_hint();
+
+        let lower = a_lower.min(b_lower);
+        let upper = match (a_upper, b_upper) {
+            (Some(a), Some(b)) => Some(a.min(b)),
+            _ => None,
+        };
+
+        (lower, upper)
+    }
+}
+
+/// Chain iterator that chains two iterators together
+pub struct Chain<A, B> {
+    a: Option<A>,
+    b: B,
+}
+
+impl<A, B> Chain<A, B> {
+    pub fn new(a: A, b: B) -> Self {
+        Self { a: Some(a), b }
+    }
+}
+
+impl<A: Iterator, B: Iterator<Item = A::Item>> Iterator for Chain<A, B> {
+    type Item = A::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(ref mut a) = self.a {
+            if let Some(item) = a.next() {
+                return Some(item);
+            }
+            self.a = None;
+        }
+        self.b.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let (a_lower, a_upper) = self.a.as_ref().map_or((0, Some(0)), |a| a.size_hint());
+        let (b_lower, b_upper) = self.b.size_hint();
+
+        let lower = a_lower.saturating_add(b_lower);
+        let upper = match (a_upper, b_upper) {
+            (Some(a), Some(b)) => a.checked_add(b),
+            _ => None,
+        };
+
+        (lower, upper)
+    }
+}
+
+/// Take iterator that yields at most n elements
+pub struct Take<I> {
+    iter: I,
+    n: usize,
+}
+
+impl<I> Take<I> {
+    pub fn new(iter: I, n: usize) -> Self {
+        Self { iter, n }
+    }
+}
+
+impl<I: Iterator> Iterator for Take<I> {
+    type Item = I::Item;
+
+    fn next(&mut self) -> Option<I::Item> {
+        if self.n > 0 {
+            self.n -= 1;
+            self.iter.next()
+        } else {
+            None
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let (lower, upper) = self.iter.size_hint();
+        let lower = lower.min(self.n);
+        let upper = upper.map(|u| u.min(self.n));
+        (lower, upper)
+    }
+}
+
+/// Skip iterator that skips the first n elements
+pub struct Skip<I> {
+    iter: I,
+    n: usize,
+}
+
+impl<I> Skip<I> {
+    pub fn new(iter: I, n: usize) -> Self {
+        Self { iter, n }
+    }
+}
+
+impl<I: Iterator> Iterator for Skip<I> {
+    type Item = I::Item;
+
+    fn next(&mut self) -> Option<I::Item> {
+        while self.n > 0 {
+            self.n -= 1;
+            self.iter.next()?;
+        }
+        self.iter.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let (lower, upper) = self.iter.size_hint();
+        let lower = lower.saturating_sub(self.n);
+        let upper = upper.map(|u| u.saturating_sub(self.n));
+        (lower, upper)
+    }
+}
+
+/// Enumerate iterator that yields (index, item) pairs
+pub struct Enumerate<I> {
+    iter: I,
+    count: usize,
+}
+
+impl<I> Enumerate<I> {
+    pub fn new(iter: I) -> Self {
+        Self { iter, count: 0 }
+    }
+}
+
+impl<I: Iterator> Iterator for Enumerate<I> {
+    type Item = (usize, I::Item);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let item = self.iter.next()?;
+        let count = self.count;
+        self.count += 1;
+        Some((count, item))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+}
+
+/// Flatten iterator that flattens nested iterators
+pub struct Flatten<I>
+where
+    I: Iterator,
+    I::Item: IntoIterator,
+{
+    outer: I,
+    inner: Option<<I::Item as IntoIterator>::IntoIter>,
+}
+
+impl<I> Flatten<I>
+where
+    I: Iterator,
+    I::Item: IntoIterator,
+{
+    pub fn new(iter: I) -> Self {
+        Self {
+            outer: iter,
+            inner: None,
+        }
+    }
+}
+
+impl<I> Iterator for Flatten<I>
+where
+    I: Iterator,
+    I::Item: IntoIterator,
+{
+    type Item = <I::Item as IntoIterator>::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(ref mut inner) = self.inner {
+                if let Some(item) = inner.next() {
+                    return Some(item);
+                }
+                self.inner = None;
+            }
+
+            match self.outer.next() {
+                Some(inner) => self.inner = Some(inner.into_iter()),
+                None => return None,
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -271,6 +483,99 @@ mod tests {
         let mut iter = Once::new(42);
         assert_eq!(iter.next(), Some(42));
         assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn test_zip_iterator() {
+        let a = Range::new(0i64, 5i64);
+        let b = Range::new(10i64, 15i64);
+        let mut zipped = Zip::new(a, b);
+
+        assert_eq!(zipped.next(), Some((0, 10)));
+        assert_eq!(zipped.next(), Some((1, 11)));
+        assert_eq!(zipped.next(), Some((2, 12)));
+        assert_eq!(zipped.next(), Some((3, 13)));
+        assert_eq!(zipped.next(), Some((4, 14)));
+        assert_eq!(zipped.next(), None);
+    }
+
+    #[test]
+    fn test_chain_iterator() {
+        let a = Range::new(0i64, 3i64);
+        let b = Range::new(10i64, 13i64);
+        let mut chained = Chain::new(a, b);
+
+        assert_eq!(chained.next(), Some(0));
+        assert_eq!(chained.next(), Some(1));
+        assert_eq!(chained.next(), Some(2));
+        assert_eq!(chained.next(), Some(10));
+        assert_eq!(chained.next(), Some(11));
+        assert_eq!(chained.next(), Some(12));
+        assert_eq!(chained.next(), None);
+    }
+
+    #[test]
+    fn test_take_iterator() {
+        let iter = Range::new(0i64, 10i64);
+        let mut taken = Take::new(iter, 3);
+
+        assert_eq!(taken.next(), Some(0));
+        assert_eq!(taken.next(), Some(1));
+        assert_eq!(taken.next(), Some(2));
+        assert_eq!(taken.next(), None);
+    }
+
+    #[test]
+    fn test_skip_iterator() {
+        let iter = Range::new(0i64, 10i64);
+        let mut skipped = Skip::new(iter, 5);
+
+        assert_eq!(skipped.next(), Some(5));
+        assert_eq!(skipped.next(), Some(6));
+        assert_eq!(skipped.next(), Some(7));
+    }
+
+    #[test]
+    fn test_enumerate_iterator() {
+        let iter = Range::new(10i64, 13i64);
+        let mut enumerated = Enumerate::new(iter);
+
+        assert_eq!(enumerated.next(), Some((0, 10)));
+        assert_eq!(enumerated.next(), Some((1, 11)));
+        assert_eq!(enumerated.next(), Some((2, 12)));
+        assert_eq!(enumerated.next(), None);
+    }
+
+    #[test]
+    fn test_flatten_iterator() {
+        let data = vec![vec![1, 2], vec![3, 4, 5], vec![6]];
+        let mut flattened = Flatten::new(data.into_iter());
+
+        assert_eq!(flattened.next(), Some(1));
+        assert_eq!(flattened.next(), Some(2));
+        assert_eq!(flattened.next(), Some(3));
+        assert_eq!(flattened.next(), Some(4));
+        assert_eq!(flattened.next(), Some(5));
+        assert_eq!(flattened.next(), Some(6));
+        assert_eq!(flattened.next(), None);
+    }
+
+    #[test]
+    fn test_zip_unequal_lengths() {
+        let a = Range::new(0i64, 3i64);
+        let b = Range::new(10i64, 15i64);
+        let zipped: Vec<_> = Zip::new(a, b).collect();
+
+        assert_eq!(zipped.len(), 3);
+    }
+
+    #[test]
+    fn test_chain_size_hint() {
+        let a = Range::new(0i64, 3i64);
+        let b = Range::new(10i64, 15i64);
+        let chained = Chain::new(a, b);
+
+        assert_eq!(chained.size_hint(), (8, Some(8)));
     }
 }
 

@@ -10,6 +10,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Process Management Module** (`runtime/src/process.rs`)
+  - ProcessBuilder with fluent API for process configuration
+  - Process spawning with environment variables and working directory control
+  - Stdin/stdout/stderr piping and redirection
+  - Process exit status and exit code handling
+  - ProcessPipe for chaining multiple processes together
+  - ProcessUtils for common process operations
+  - Command existence checking across platforms
+  - 11 comprehensive tests covering all process operations
+- **Error Backtrace Module** (`runtime/src/backtrace.rs`)
+  - Backtrace capture with RUST_BACKTRACE support
+  - BacktraceFrame with symbol, filename, line, and column information
+  - Backtrace formatting with customizable frame limits
+  - ErrorWithBacktrace for errors with automatic backtrace capture
+  - BacktraceUtils for backtrace management
+  - 13 comprehensive tests for backtrace functionality
+- **Enhanced Iterator Module** (`runtime/src/iterators.rs`)
+  - Zip iterator for combining two iterators into pairs
+  - Chain iterator for concatenating iterators
+  - Take iterator for limiting iteration count
+  - Skip iterator for skipping initial elements
+  - Enumerate iterator for index-value pairs
+  - Flatten iterator for nested iterator flattening
+  - 9 additional tests for new iterator combinators
+- **Collection Iterator Support** (`runtime/src/collection_iterators.rs`)
+  - HashMap iterator utilities (keys, values, iter, drain)
+  - HashSet iterator utilities (iter, drain, union, intersection, difference)
+  - BTreeMap iterator utilities (keys, values, iter, range)
+  - BTreeSet iterator utilities (iter, range, union, intersection, difference)
+  - Drain iterators for HashMap and HashSet
+  - 14 comprehensive tests for collection iterators
+- **Assertion Primitives** (`runtime/src/assertions.rs`)
+  - assert_eq and assert_ne for equality testing
+  - assert for boolean conditions
+  - assert_approx_eq for floating-point comparisons
+  - assert_matches for predicate-based assertions
+  - Assertions utility struct with comprehensive assertion methods
+  - Support for Option, Result, and collection assertions
+  - 24 comprehensive tests covering all assertion types
+- **Logging Facade** (`runtime/src/logging.rs`)
+  - LogLevel enumeration (Trace, Debug, Info, Warn, Error)
+  - LogRecord with file location and module path tracking
+  - Logger trait for custom log implementations
+  - ConsoleLogger with configurable log levels
+  - Global logger configuration and max level control
+  - Logging functions (trace, debug, info, warn, error)
+  - Log utility struct for convenient logging
+  - 17 comprehensive tests for logging functionality
+
+### Changed
+- Enhanced signal handling module already provides comprehensive utilities
+- Iterator module expanded with additional combinators
+
+### Tests
+- Total: 778 tests passing (+86 new tests)
+- All tests pass with 0 warnings
+- Clippy clean with `-D warnings`
+
 ## [0.8.45] - 2026-02-05
 
 ### Added

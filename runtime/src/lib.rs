@@ -4,17 +4,20 @@
 //! including async runtime abstraction, memory management, and optional
 //! garbage collection for development mode.
 
+pub mod assertions;
 pub mod async_adapter;
 pub mod async_io;
 pub mod async_primitives;
 pub mod async_runtime;
 pub mod atomic;
+pub mod backtrace;
 pub mod benchmarks;
 pub mod bootstrap;
 pub mod buffered_io;
 pub mod c_backend;
 pub mod codegen;
 pub mod collection_extensions;
+pub mod collection_iterators;
 pub mod collections;
 pub mod compile_bench;
 pub mod concurrent;
@@ -39,6 +42,7 @@ pub mod incremental;
 pub mod ir_gen;
 pub mod iterators;
 pub mod llvm_bindings;
+pub mod logging;
 pub mod math;
 pub mod memory;
 pub mod networking;
@@ -46,6 +50,7 @@ pub mod parallel_compile;
 pub mod path_types;
 pub mod performance;
 pub mod platform;
+pub mod process;
 pub mod random;
 pub mod registry;
 pub mod serialization;
@@ -69,6 +74,7 @@ pub mod utilities;
 pub mod win32;
 pub mod windows_service;
 
+pub use assertions::{assert, assert_approx_eq, assert_eq, assert_matches, assert_ne, Assertions};
 pub use async_adapter::{get_runtime, AsyncRuntime, TokioRuntime};
 pub use async_io::{
     AsyncFile, AsyncStream, AsyncTcpListener, AsyncTcpStream, AsyncTimer, AsyncUdpSocket,
@@ -81,6 +87,11 @@ pub use async_runtime::{Executor, Scheduler, Task, TaskId};
 pub use atomic::{
     AtomicBoolWrapper, AtomicI32Wrapper, AtomicI64Wrapper, AtomicIsizeWrapper, AtomicU32Wrapper,
     AtomicU64Wrapper, AtomicUsizeWrapper, Ordering,
+};
+pub use backtrace::{Backtrace, BacktraceFrame, BacktraceUtils, ErrorWithBacktrace};
+pub use collection_iterators::{
+    BTreeMapIterators, BTreeSetIterators, HashMapDrain, HashMapIterators, HashSetDrain,
+    HashSetIterators,
 };
 pub use collections::{
     BTreeMapWrapper, BTreeSetWrapper, BinaryHeapWrapper, HashSetWrapper, LinkedListWrapper,
@@ -101,11 +112,22 @@ pub use gc::GarbageCollector;
 pub use generic_collections::{Map, SliceUtils, Vec};
 pub use glob::{GlobBuilder, GlobPattern, GlobUtils};
 pub use http::{HttpClient, HttpMethod, HttpRequest, HttpResponse, HttpServer};
+pub use iterators::{
+    Chain, Empty, Enumerate, Filter, Flatten, Map as IterMap, Once, Range, Skip, Take, Zip,
+};
+pub use logging::{
+    debug, error, flush, info, log, log_enabled, trace, warn, ConsoleLogger, Log, LogLevel,
+    LogRecord, Logger,
+};
 pub use math::{Mat2, Mat3, Mat4, Quaternion, Statistics, Trigonometry, Vec2, Vec3, Vec4};
 pub use memory::{Allocator, MemoryError, MemoryResult};
 pub use networking::{IpAddress, TcpListenerSocket, TcpSocket, UdpSocketWrapper};
 pub use path_types::{OsStringUtils, PathUtils as PathTypesUtils};
-pub use platform::{execute, execute_shell, PathUtils, Platform, Process, ProcessBuilder};
+pub use platform::{execute, execute_shell, PathUtils, Platform};
+pub use process::{
+    ProcessBuilder as ProcessBuilderNew, ProcessExitStatus, ProcessHandle, ProcessOutput,
+    ProcessPipe, ProcessUtils,
+};
 pub use random::{
     thread_rng, ChaCha20Rng, Distributions, PcgRng, RandomNumberGenerator, SeedableRng, XorshiftRng,
 };
@@ -130,6 +152,8 @@ pub use threading::{
     ThreadLocal,
 };
 pub use time_types::{CStringUtils, DurationUtils, InstantUtils, SystemTimeUtils};
-pub use utilities::{CliParser, Compression, EnvVars, LogLevel, Logger, Uuid};
+pub use utilities::{
+    CliParser, Compression, EnvVars, LogLevel as UtilLogLevel, Logger as UtilLogger, Uuid,
+};
 pub use win32::{MessageBoxResult, MessageBoxType, Win32};
 pub use windows_service::{ServiceStartType, ServiceState, WindowsService};
