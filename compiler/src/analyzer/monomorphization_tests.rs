@@ -696,7 +696,7 @@ mod tests {
                 vec![Statement::Expression(make_call(
                     "hash_it",
                     Some(vec![Type::Float]),
-                    vec![Expression::FloatLiteral(3.14)],
+                    vec![Expression::FloatLiteral(2.78)],
                 ))],
             ),
         ]);

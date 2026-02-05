@@ -124,8 +124,8 @@ fn bench_type_checker(c: &mut Criterion) {
             let tokens = tokenizer.tokenize().unwrap();
             let mut parser = Parser::new(tokens, PathBuf::from("bench.kr"));
             let ast = parser.parse().unwrap();
-            let mut type_checker = TypeChecker::new();
-            black_box(type_checker.check(&ast))
+            let mut type_checker = TypeChecker::new(PathBuf::from("bench.kr"));
+            black_box(type_checker.check_program(&ast))
         });
     });
 
@@ -160,8 +160,8 @@ fn bench_full_pipeline(c: &mut Criterion) {
             let ast = parser.parse().unwrap();
 
             // Type checker
-            let mut type_checker = TypeChecker::new();
-            let _ = type_checker.check(&ast);
+            let mut type_checker = TypeChecker::new(PathBuf::from("bench.kr"));
+            let _ = type_checker.check_program(&ast);
 
             black_box(ast)
         });
