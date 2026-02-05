@@ -396,8 +396,10 @@ mod tests {
 
     #[test]
     fn test_format_int_hex() {
-        let mut spec = FormatSpec::default();
-        spec.type_spec = Some('x');
+        let mut spec = FormatSpec {
+            type_spec: Some('x'),
+            ..Default::default()
+        };
         assert_eq!(format_int(255, &spec), "ff");
 
         spec.alternate = true;
@@ -406,8 +408,10 @@ mod tests {
 
     #[test]
     fn test_format_int_binary() {
-        let mut spec = FormatSpec::default();
-        spec.type_spec = Some('b');
+        let mut spec = FormatSpec {
+            type_spec: Some('b'),
+            ..Default::default()
+        };
         assert_eq!(format_int(5, &spec), "101");
 
         spec.alternate = true;
@@ -416,8 +420,10 @@ mod tests {
 
     #[test]
     fn test_format_int_octal() {
-        let mut spec = FormatSpec::default();
-        spec.type_spec = Some('o');
+        let mut spec = FormatSpec {
+            type_spec: Some('o'),
+            ..Default::default()
+        };
         assert_eq!(format_int(8, &spec), "10");
 
         spec.alternate = true;
@@ -439,19 +445,19 @@ mod tests {
     #[test]
     fn test_format_float_basic() {
         let spec = FormatSpec::default();
-        assert_eq!(format_float(3.14159, &spec), "3.141590");
+        assert_eq!(format_float(3.14159265, &spec), "3.141593");
     }
 
     #[test]
     fn test_format_float_precision() {
         let spec = FormatSpec::new().with_precision(2);
-        assert_eq!(format_float(3.14159, &spec), "3.14");
+        assert_eq!(format_float(3.14159265, &spec), "3.14");
     }
 
     #[test]
     fn test_format_float_width() {
         let spec = FormatSpec::new().with_width(10).with_precision(2);
-        assert_eq!(format_float(3.14, &spec), "      3.14");
+        assert_eq!(format_float(3.1416, &spec), "      3.14");
     }
 
     #[test]

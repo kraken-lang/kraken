@@ -312,7 +312,7 @@ mod tests {
         let mut reader = BufferedReader::with_capacity(8, cursor);
 
         let mut buf = [0u8; 3];
-        reader.read(&mut buf).unwrap();
+        let _ = reader.read(&mut buf).unwrap();
         assert!(reader.buffer_len() > 0);
     }
 

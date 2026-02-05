@@ -156,7 +156,7 @@ pub fn hex_encode_upper(input: &[u8]) -> String {
 pub fn hex_decode(input: &str) -> Result<Vec<u8>, EncodingError> {
     let input = input.as_bytes();
 
-    if input.len() % 2 != 0 {
+    if !input.len().is_multiple_of(2) {
         return Err(EncodingError::InvalidLength);
     }
 
