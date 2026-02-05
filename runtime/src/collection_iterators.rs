@@ -84,7 +84,7 @@ impl HashMapIterators {
     }
 
     /// Drain all elements from the map
-    pub fn drain<K, V>(map: &mut HashMap<K, V>) -> HashMapDrain<K, V> {
+    pub fn drain<K, V>(map: &mut HashMap<K, V>) -> HashMapDrain<'_, K, V> {
         HashMapDrain::new(map)
     }
 }
@@ -99,7 +99,7 @@ impl HashSetIterators {
     }
 
     /// Drain all elements from the set
-    pub fn drain<T>(set: &mut HashSet<T>) -> HashSetDrain<T> {
+    pub fn drain<T>(set: &mut HashSet<T>) -> HashSetDrain<'_, T> {
         HashSetDrain::new(set)
     }
 

@@ -211,7 +211,7 @@ mod tests {
     #[test]
     fn test_assert_approx_eq_success() {
         assert_approx_eq(1.0, 1.0001, 0.001, None);
-        assert_approx_eq(3.14159, 3.14160, 0.0001, None);
+        assert_approx_eq(2.71828, 2.71829, 0.0001, None);
     }
 
     #[test]
@@ -223,7 +223,7 @@ mod tests {
     #[test]
     fn test_assert_matches_success() {
         assert_matches(5, |x| *x > 0, None);
-        assert_matches("hello", |s| s.len() > 0, None);
+        assert_matches("hello", |s| !s.is_empty(), None);
     }
 
     #[test]
