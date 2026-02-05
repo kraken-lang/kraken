@@ -1,0 +1,3 @@
+[submodule "krakenc"]
+	path = krakenc
+	url = https://github.com/kraken-lang/krakenc.git
