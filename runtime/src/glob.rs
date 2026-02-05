@@ -39,7 +39,7 @@ impl GlobPattern {
         for entry in fs::read_dir(base_dir)? {
             let entry = entry?;
             let path = entry.path();
-            
+
             if self.matches(&path) {
                 matches.push(path);
             }
@@ -147,10 +147,7 @@ impl GlobUtils {
     }
 
     /// Find files matching multiple patterns
-    pub fn glob_multi<P: AsRef<Path>>(
-        patterns: &[&str],
-        base_dir: P,
-    ) -> io::Result<Vec<PathBuf>> {
+    pub fn glob_multi<P: AsRef<Path>>(patterns: &[&str], base_dir: P) -> io::Result<Vec<PathBuf>> {
         let mut all_matches = Vec::new();
         let base = base_dir.as_ref();
 
@@ -228,9 +225,7 @@ impl GlobBuilder {
             let entry = entry?;
             let path = entry.path();
 
-            let filename = path.file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("");
+            let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
             let match_str = if self.case_insensitive {
                 filename.to_lowercase()

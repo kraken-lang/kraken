@@ -28,7 +28,12 @@ impl RegexWrapper {
     }
 
     /// Create a new regex with custom flags
-    pub fn new_with_flags(pattern: &str, case_insensitive: bool, multiline: bool, dot_matches_newline: bool) -> Result<Self, String> {
+    pub fn new_with_flags(
+        pattern: &str,
+        case_insensitive: bool,
+        multiline: bool,
+        dot_matches_newline: bool,
+    ) -> Result<Self, String> {
         let mut flags = String::new();
         if case_insensitive {
             flags.push_str("(?i)");
@@ -57,7 +62,9 @@ impl RegexWrapper {
 
     /// Find the first match and return its position
     pub fn find_with_position(&self, text: &str) -> Option<(usize, usize, String)> {
-        self.inner.find(text).map(|m| (m.start(), m.end(), m.as_str().to_string()))
+        self.inner
+            .find(text)
+            .map(|m| (m.start(), m.end(), m.as_str().to_string()))
     }
 
     /// Find all matches in the text
@@ -93,7 +100,10 @@ impl RegexWrapper {
 
     /// Split text by the regex pattern with a limit
     pub fn splitn(&self, text: &str, limit: usize) -> Vec<String> {
-        self.inner.splitn(text, limit).map(|s| s.to_string()).collect()
+        self.inner
+            .splitn(text, limit)
+            .map(|s| s.to_string())
+            .collect()
     }
 
     /// Capture groups from the first match
@@ -434,9 +444,18 @@ mod tests {
     #[test]
     fn test_regex_named_capture() {
         let re = RegexWrapper::new(r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})").unwrap();
-        assert_eq!(re.named_capture("2024-01-28", "year"), Some("2024".to_string()));
-        assert_eq!(re.named_capture("2024-01-28", "month"), Some("01".to_string()));
-        assert_eq!(re.named_capture("2024-01-28", "day"), Some("28".to_string()));
+        assert_eq!(
+            re.named_capture("2024-01-28", "year"),
+            Some("2024".to_string())
+        );
+        assert_eq!(
+            re.named_capture("2024-01-28", "month"),
+            Some("01".to_string())
+        );
+        assert_eq!(
+            re.named_capture("2024-01-28", "day"),
+            Some("28".to_string())
+        );
     }
 
     #[test]

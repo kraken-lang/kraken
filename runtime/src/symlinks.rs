@@ -43,7 +43,7 @@ impl SymlinkUtils {
     /// Create a symbolic link (auto-detect file or directory)
     pub fn create<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> io::Result<()> {
         let original_path = original.as_ref();
-        
+
         if original_path.is_dir() {
             Self::create_dir(original, link)
         } else {
@@ -71,7 +71,7 @@ impl SymlinkUtils {
     /// Remove a symbolic link
     pub fn remove<P: AsRef<Path>>(link: P) -> io::Result<()> {
         let link_path = link.as_ref();
-        
+
         if Self::is_symlink(link_path) {
             #[cfg(unix)]
             {
@@ -101,7 +101,7 @@ impl SymlinkUtils {
     /// Check if a symlink is broken (target doesn't exist)
     pub fn is_broken<P: AsRef<Path>>(link: P) -> io::Result<bool> {
         let link_path = link.as_ref();
-        
+
         if !Self::is_symlink(link_path) {
             return Ok(false);
         }
@@ -126,7 +126,7 @@ impl SymlinkUtils {
 
             chain.push(current.clone());
             current = Self::read_link(&current)?;
-            
+
             if !current.is_absolute() {
                 if let Some(parent) = chain.last().and_then(|p| p.parent()) {
                     current = parent.join(current);
@@ -154,7 +154,7 @@ mod tests {
         File::create(&original).unwrap();
 
         let result = SymlinkUtils::create_file(&original, &link);
-        
+
         if result.is_ok() {
             assert!(SymlinkUtils::is_symlink(&link));
 
@@ -176,7 +176,7 @@ mod tests {
         fs::create_dir(&original).unwrap();
 
         let result = SymlinkUtils::create_dir(&original, &link);
-        
+
         if result.is_ok() {
             assert!(SymlinkUtils::is_symlink(&link));
 
@@ -208,7 +208,7 @@ mod tests {
         File::create(&original).unwrap();
 
         let result = SymlinkUtils::create_file(&original, &link);
-        
+
         if result.is_ok() {
             fs::remove_file(&original).unwrap();
 
@@ -230,7 +230,7 @@ mod tests {
         File::create(&original).unwrap();
 
         let result = SymlinkUtils::create(&original, &link);
-        
+
         if result.is_ok() {
             assert!(SymlinkUtils::is_symlink(&link));
             SymlinkUtils::remove(&link).unwrap();

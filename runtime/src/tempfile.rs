@@ -78,7 +78,7 @@ impl TempFile {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_nanos() as u64;
-            
+
             let filename = format!("{prefix}{random:x}{count:x}{suffix}");
             let path = dir.join(filename);
 
@@ -182,7 +182,7 @@ impl TempDir {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_nanos() as u64;
-            
+
             let dirname = format!("{prefix}{random:x}{count:x}");
             let path = dir.join(dirname);
 
