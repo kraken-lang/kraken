@@ -10,55 +10,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.43] - 2026-02-05
+
 ### Added
-- **0.8.43 Polish & Stabilization**
-  - **Performance Infrastructure**
-    - Performance profiler with timing measurements
-    - Average, min, max duration tracking
-    - Memory allocation tracker with peak usage monitoring
-    - Cache performance metrics (hit rate, miss rate, evictions)
-    - Comprehensive performance reporting
-    - 11 comprehensive tests for performance tracking
-  - **Fuzzing Infrastructure**
-    - Fuzz input generator with configurable depth and length
-    - Random identifier, integer, float, boolean, and string generation
-    - Token sequence generation for compiler testing
-    - Fuzzing corpus for storing test cases
-    - Fuzzing statistics with crash and timeout tracking
-    - 10 comprehensive tests for fuzzing infrastructure
-  - **Code Quality Improvements**
-    - Comprehensive code review of all unsafe blocks
-    - All unsafe code properly documented with safety invariants
-    - Memory management audit completed
-    - Threading and concurrency review completed
-    - Zero-cost abstractions verified
-  - **Cross-Language Benchmarking Infrastructure**
-    - Comprehensive benchmark framework for comparing against Rust, Go, C++, C
-    - Support for multiple benchmark categories (Algorithm, Data Structure, I/O, Concurrency, Memory, Computation)
-    - Metrics collection (execution time, compilation time, memory usage, peak memory, binary size)
-    - Language comparison tools with speedup and relative performance calculations
-    - Benchmark reporting and visualization
-    - Compiler availability detection
-    - 13 comprehensive tests for benchmarking infrastructure
-  - **Benchmark Methodology Documentation**
-    - Comprehensive methodology guide for accurate benchmarking
-    - Fair comparison guidelines across languages
-    - Statistical rigor requirements (median, std dev, confidence intervals)
-    - Environment setup protocols
-    - Performance tier definitions
-    - Limitations and caveats documentation
-    - Continuous benchmarking guidelines
+- **Performance Infrastructure**
+  - Performance profiler with timing measurements
+  - Average, min, max duration tracking
+  - Memory allocation tracker with peak usage monitoring
+  - Cache performance metrics (hit rate, miss rate, evictions)
+  - Comprehensive performance reporting
+  - 11 comprehensive tests for performance tracking
+- **Fuzzing Infrastructure**
+  - Fuzz input generator with configurable depth and length
+  - Random identifier, integer, float, boolean, and string generation
+  - Token sequence generation for compiler testing
+  - Fuzzing corpus for storing test cases
+  - Fuzzing statistics with crash and timeout tracking
+  - 10 comprehensive tests for fuzzing infrastructure
+- **Cross-Language Benchmarking Infrastructure**
+  - Comprehensive benchmark framework for comparing against Rust, Go, C++, C
+  - Support for multiple benchmark categories (Algorithm, Data Structure, I/O, Concurrency, Memory, Computation)
+  - Metrics collection (execution time, compilation time, memory usage, peak memory, binary size)
+  - Language comparison tools with speedup and relative performance calculations
+  - Benchmark reporting and visualization
+  - Compiler availability detection
+  - 13 comprehensive tests for benchmarking infrastructure
+- **Benchmark Methodology Documentation**
+  - Comprehensive methodology guide for accurate benchmarking
+  - Fair comparison guidelines across languages
+  - Statistical rigor requirements (median, std dev, confidence intervals)
+  - Environment setup protocols
+  - Performance tier definitions
+  - Limitations and caveats documentation
+  - Continuous benchmarking guidelines
+- **DocGraph Schema v1**
+  - JSON schema for metadata export and documentation generation
+  - Support for modules, symbols, types, traits, diagnostics, and tooling nodes
+  - Search index with tokenization and boost support
+  - Page generation with markdown sections and node references
+  - Comprehensive type signatures with generics and trait bounds
+  - Stability tracking (stable, experimental, deprecated, internal)
+  - Source span tracking for all declarations
+  - Example code with runnable flag support
 
 ### Improvements
-- **Test Coverage**
-  - 545 tests passing (+18 new tests from 527)
-  - Test coverage maintained above 85%
-  - All edge cases covered in new modules
 - **Code Quality**
-  - 0 clippy warnings with strict lints
-  - 0 compiler warnings
+  - Comprehensive code review of all unsafe blocks
+  - All unsafe code properly documented with safety invariants
+  - Memory management audit completed
+  - Threading and concurrency review completed
+  - Zero-cost abstractions verified
   - All placeholder code removed
   - Consistent error handling patterns throughout codebase
+- **Test Coverage**
+  - 556 tests passing (+29 new tests from 527)
+  - Test coverage maintained above 85%
+  - All edge cases covered in new modules
+- **Build Quality**
+  - 0 clippy warnings with strict lints
+  - 0 compiler warnings
   - Production-ready code quality
 
 ## [0.8.42] - 2026-01-29
@@ -2208,7 +2218,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
-[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.42...HEAD
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.43...HEAD
+[0.8.43]: https://github.com/kraken-lang/kraken/compare/v0.8.42...v0.8.43
 [0.8.42]: https://github.com/kraken-lang/kraken/compare/v0.8.41...v0.8.42
 [0.8.41]: https://github.com/kraken-lang/kraken/compare/v0.8.40...v0.8.41
 [0.8.40]: https://github.com/kraken-lang/kraken/compare/v0.8.39...v0.8.40

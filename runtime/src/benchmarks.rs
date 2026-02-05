@@ -334,7 +334,7 @@ impl BenchmarkRunner {
     }
 
     /// Generate a summary table.
-    pub fn generate_summary(&self, baseline: Language) -> String {
+    pub fn generate_summary(&self, _baseline: Language) -> String {
         let mut output = String::from("Performance Summary\n");
         output.push_str("===================\n\n");
         output.push_str(&format!("{:30} ", "Benchmark"));
@@ -352,7 +352,7 @@ impl BenchmarkRunner {
             for lang in &self.suite.languages {
                 if let Some(metrics) = result.results.get(lang) {
                     let time_ms = metrics.execution_time.as_secs_f64() * 1000.0;
-                    output.push_str(&format!("{:8.2}ms   ", time_ms));
+                    output.push_str(&format!("{time_ms:8.2}ms   "));
                 } else {
                     output.push_str("N/A          ");
                 }
