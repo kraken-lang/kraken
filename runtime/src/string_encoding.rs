@@ -31,7 +31,7 @@ impl StringEncoder {
 
     /// Decode UTF-16 bytes (little-endian) to a string
     pub fn from_utf16_bytes(bytes: &[u8]) -> Result<String, String> {
-        if bytes.len() % 2 != 0 {
+        if !bytes.len().is_multiple_of(2) {
             return Err("Invalid UTF-16 byte sequence: odd length".to_string());
         }
 
@@ -57,7 +57,7 @@ impl StringEncoder {
 
     /// Decode UTF-16 bytes (big-endian) to a string
     pub fn from_utf16_be_bytes(bytes: &[u8]) -> Result<String, String> {
-        if bytes.len() % 2 != 0 {
+        if !bytes.len().is_multiple_of(2) {
             return Err("Invalid UTF-16 byte sequence: odd length".to_string());
         }
 
