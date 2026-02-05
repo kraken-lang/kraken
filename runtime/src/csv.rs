@@ -88,7 +88,7 @@ impl CsvParser {
 
         for (line_num, line) in reader.lines().enumerate() {
             let line = line.map_err(|e| format!("Failed to read line {line_num}: {e}"))?;
-            
+
             if line.trim().is_empty() {
                 continue;
             }
@@ -146,7 +146,7 @@ impl CsvParser {
     /// Parse CSV data and return with headers
     pub fn parse_with_headers(&self, data: &str) -> Result<(Vec<String>, Vec<CsvRecord>), String> {
         let records = self.parse(data)?;
-        
+
         if records.is_empty() {
             return Ok((Vec::new(), Vec::new()));
         }
@@ -188,7 +188,7 @@ impl CsvWriter {
     /// Write CSV records to a string
     pub fn write_to_string(&self, records: &[CsvRecord]) -> String {
         let mut output = String::new();
-        
+
         for record in records {
             let line = self.format_record(record);
             output.push_str(&line);
@@ -222,8 +222,14 @@ impl CsvWriter {
     }
 
     fn format_field(&self, field: &str) -> String {
-        if field.contains(self.config.delimiter) || field.contains(self.config.quote) || field.contains('\n') {
-            let escaped = field.replace(&self.config.quote.to_string(), &format!("{}{}", self.config.quote, self.config.quote));
+        if field.contains(self.config.delimiter)
+            || field.contains(self.config.quote)
+            || field.contains('\n')
+        {
+            let escaped = field.replace(
+                &self.config.quote.to_string(),
+                &format!("{}{}", self.config.quote, self.config.quote),
+            );
             format!("{}{}{}", self.config.quote, escaped, self.config.quote)
         } else {
             field.to_string()
@@ -246,7 +252,7 @@ mod tests {
         let parser = CsvParser::new();
         let data = "name,age,city\nAlice,30,NYC\nBob,25,LA";
         let records = parser.parse(data).unwrap();
-        
+
         assert_eq!(records.len(), 3);
         assert_eq!(records[0].get(0), Some("name"));
         assert_eq!(records[1].get(0), Some("Alice"));
@@ -258,7 +264,7 @@ mod tests {
         let parser = CsvParser::new();
         let data = "name,age,city\nAlice,30,NYC\nBob,25,LA";
         let (headers, records) = parser.parse_with_headers(data).unwrap();
-        
+
         assert_eq!(headers, vec!["name", "age", "city"]);
         assert_eq!(records.len(), 2);
         assert_eq!(records[0].get(0), Some("Alice"));
@@ -271,7 +277,7 @@ mod tests {
 "Alice","She said ""hello"""
 "Bob","Simple text""#;
         let records = parser.parse(data).unwrap();
-        
+
         assert_eq!(records.len(), 3);
         assert_eq!(records[1].get(0), Some("Alice"));
         assert_eq!(records[1].get(1), Some("She said \"hello\""));
@@ -284,7 +290,7 @@ mod tests {
 "Alice","123 Main St, Apt 4"
 "Bob","456 Oak Ave""#;
         let records = parser.parse(data).unwrap();
-        
+
         assert_eq!(records[1].get(1), Some("123 Main St, Apt 4"));
     }
 
@@ -296,7 +302,7 @@ mod tests {
             CsvRecord::new(vec!["Alice".to_string(), "30".to_string()]),
             CsvRecord::new(vec!["Bob".to_string(), "25".to_string()]),
         ];
-        
+
         let output = writer.write_to_string(&records);
         assert!(output.contains("name,age"));
         assert!(output.contains("Alice,30"));
@@ -310,7 +316,7 @@ mod tests {
             CsvRecord::new(vec!["name".to_string(), "description".to_string()]),
             CsvRecord::new(vec!["Alice".to_string(), "She said \"hello\"".to_string()]),
         ];
-        
+
         let output = writer.write_to_string(&records);
         assert!(output.contains(r#""She said ""hello""""#));
     }
@@ -324,7 +330,7 @@ mod tests {
         let parser = CsvParser::with_config(config);
         let data = "name;age;city\nAlice;30;NYC";
         let records = parser.parse(data).unwrap();
-        
+
         assert_eq!(records[1].get(0), Some("Alice"));
         assert_eq!(records[1].get(1), Some("30"));
     }
@@ -334,7 +340,7 @@ mod tests {
         let parser = CsvParser::new();
         let data = "name , age , city\n Alice , 30 , NYC ";
         let records = parser.parse(data).unwrap();
-        
+
         assert_eq!(records[0].get(0), Some("name"));
         assert_eq!(records[1].get(0), Some("Alice"));
     }
@@ -344,7 +350,7 @@ mod tests {
         let parser = CsvParser::new();
         let data = "name,age,city\nAlice,,NYC\n,25,LA";
         let records = parser.parse(data).unwrap();
-        
+
         assert_eq!(records[1].get(1), Some(""));
         assert_eq!(records[2].get(0), Some(""));
     }

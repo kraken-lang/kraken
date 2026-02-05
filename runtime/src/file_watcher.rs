@@ -78,13 +78,13 @@ impl FileWatcher {
     /// Add a path to watch
     pub fn watch<P: AsRef<Path>>(&mut self, path: P) -> Result<(), String> {
         let path = path.as_ref().to_path_buf();
-        
+
         if !path.exists() {
             return Err(format!("Path does not exist: {}", path.display()));
         }
 
-        let metadata = std::fs::metadata(&path)
-            .map_err(|e| format!("Failed to read metadata: {e}"))?;
+        let metadata =
+            std::fs::metadata(&path).map_err(|e| format!("Failed to read metadata: {e}"))?;
 
         let state = FileState {
             modified_time: metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH),
@@ -138,12 +138,7 @@ impl FileWatcher {
 
     /// Get the list of watched paths
     pub fn watched_paths(&self) -> Vec<PathBuf> {
-        self.watched_paths
-            .lock()
-            .unwrap()
-            .keys()
-            .cloned()
-            .collect()
+        self.watched_paths.lock().unwrap().keys().cloned().collect()
     }
 
     /// Clear all watched paths
@@ -172,9 +167,13 @@ impl DirectoryWatcher {
     }
 
     /// Watch a directory for changes
-    pub fn watch_directory<P: AsRef<Path>>(&mut self, path: P, recursive: bool) -> Result<(), String> {
+    pub fn watch_directory<P: AsRef<Path>>(
+        &mut self,
+        path: P,
+        recursive: bool,
+    ) -> Result<(), String> {
         let path = path.as_ref();
-        
+
         if !path.is_dir() {
             return Err(format!("Path is not a directory: {}", path.display()));
         }

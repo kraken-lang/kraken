@@ -83,7 +83,7 @@ impl XmlParser {
 
     fn parse_node(xml: &str) -> Result<XmlNode, String> {
         let xml = xml.trim();
-        
+
         // Find opening tag
         if !xml.starts_with('<') {
             return Err("XML must start with '<'".to_string());
@@ -108,7 +108,8 @@ impl XmlParser {
         // Find closing tag
         let closing_tag = format!("</{tag}>");
         let content_start = tag_end + 1;
-        let content_end = xml.rfind(&closing_tag)
+        let content_end = xml
+            .rfind(&closing_tag)
             .ok_or_else(|| format!("Missing closing tag for '{tag}'"))?;
 
         let content = &xml[content_start..content_end].trim();
@@ -130,7 +131,9 @@ impl XmlParser {
         })
     }
 
-    fn parse_tag_and_attributes(tag_content: &str) -> Result<(String, HashMap<String, String>), String> {
+    fn parse_tag_and_attributes(
+        tag_content: &str,
+    ) -> Result<(String, HashMap<String, String>), String> {
         let parts: Vec<&str> = tag_content.split_whitespace().collect();
         if parts.is_empty() {
             return Err("Empty tag".to_string());
@@ -167,15 +170,15 @@ impl XmlParser {
             let tag_end = remaining.find('>').ok_or("Missing closing '>'")?;
             let tag_content = &remaining[tag_start + 1..tag_end];
 
-            let tag_name = tag_content.split_whitespace().next()
-                .ok_or("Empty tag")?;
+            let tag_name = tag_content.split_whitespace().next().ok_or("Empty tag")?;
 
             let closing_tag = format!("</{tag_name}>");
-            
+
             let node_end = if tag_content.ends_with('/') {
                 tag_end + 1
             } else {
-                remaining.find(&closing_tag)
+                remaining
+                    .find(&closing_tag)
                     .ok_or_else(|| format!("Missing closing tag for '{tag_name}'"))?
                     + closing_tag.len()
             };
@@ -287,7 +290,7 @@ mod tests {
         let node = XmlNode::new("root")
             .with_attribute("id", "123")
             .with_attribute("name", "test");
-        
+
         assert_eq!(node.get_attribute("id"), Some(&"123".to_string()));
         assert_eq!(node.get_attribute("name"), Some(&"test".to_string()));
     }
@@ -310,7 +313,7 @@ mod tests {
     fn test_parse_simple_xml() {
         let xml = "<root>Hello</root>";
         let node = XmlParser::parse(xml).unwrap();
-        
+
         assert_eq!(node.tag, "root");
         assert_eq!(node.text, Some("Hello".to_string()));
     }
@@ -319,7 +322,7 @@ mod tests {
     fn test_parse_self_closing() {
         let xml = "<root />";
         let node = XmlParser::parse(xml).unwrap();
-        
+
         assert_eq!(node.tag, "root");
         assert!(node.text.is_none());
         assert!(node.children.is_empty());
@@ -329,7 +332,7 @@ mod tests {
     fn test_parse_with_attributes() {
         let xml = r#"<root id="123" name="test">Content</root>"#;
         let node = XmlParser::parse(xml).unwrap();
-        
+
         assert_eq!(node.tag, "root");
         assert_eq!(node.get_attribute("id"), Some(&"123".to_string()));
         assert_eq!(node.get_attribute("name"), Some(&"test".to_string()));
@@ -339,7 +342,7 @@ mod tests {
     fn test_parse_with_children() {
         let xml = "<root><child1>Text1</child1><child2>Text2</child2></root>";
         let node = XmlParser::parse(xml).unwrap();
-        
+
         assert_eq!(node.children.len(), 2);
         assert_eq!(node.children[0].tag, "child1");
         assert_eq!(node.children[1].tag, "child2");
@@ -349,7 +352,7 @@ mod tests {
     fn test_find_child() {
         let xml = "<root><child1>Text1</child1><child2>Text2</child2></root>";
         let node = XmlParser::parse(xml).unwrap();
-        
+
         let child = node.find_child("child1");
         assert!(child.is_some());
         assert_eq!(child.unwrap().tag, "child1");
@@ -360,7 +363,7 @@ mod tests {
         let node = XmlNode::new("root").with_text("Hello");
         let writer = XmlWriter::new();
         let xml = writer.write(&node);
-        
+
         assert!(xml.contains("<root>"));
         assert!(xml.contains("Hello"));
         assert!(xml.contains("</root>"));
@@ -373,7 +376,7 @@ mod tests {
             .with_text("Content");
         let writer = XmlWriter::new();
         let xml = writer.write(&node);
-        
+
         assert!(xml.contains(r#"id="123""#));
     }
 
@@ -382,7 +385,7 @@ mod tests {
         let node = XmlNode::new("root");
         let writer = XmlWriter::new();
         let xml = writer.write(&node);
-        
+
         assert!(xml.contains("<root />"));
     }
 
@@ -391,7 +394,7 @@ mod tests {
         let node = XmlNode::new("root").with_text("Hello");
         let writer = XmlWriter::compact();
         let xml = writer.write(&node);
-        
+
         assert!(!xml.contains('\n'));
     }
 
@@ -400,11 +403,11 @@ mod tests {
         let original = XmlNode::new("root")
             .with_attribute("id", "123")
             .with_child(XmlNode::new("child").with_text("Text"));
-        
+
         let writer = XmlWriter::compact();
         let xml = writer.write(&original);
         let parsed = XmlParser::parse(&xml).unwrap();
-        
+
         assert_eq!(parsed.tag, original.tag);
         assert_eq!(parsed.get_attribute("id"), original.get_attribute("id"));
     }
