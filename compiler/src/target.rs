@@ -53,61 +53,10 @@ pub enum Environment {
     None,
 }
 
-impl Target {
-    /// Get the host target (current platform)
-    pub fn host() -> Self {
-        #[cfg(all(target_arch = "x86_64", target_os = "linux", target_env = "gnu"))]
-        return Self {
-            arch: Architecture::X86_64,
-            vendor: Vendor::Unknown,
-            os: OperatingSystem::Linux,
-            env: Environment::Gnu,
-        };
+impl std::str::FromStr for Target {
+    type Err = String;
 
-        #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
-        return Self {
-            arch: Architecture::X86_64,
-            vendor: Vendor::Apple,
-            os: OperatingSystem::MacOS,
-            env: Environment::Darwin,
-        };
-
-        #[cfg(all(target_arch = "x86_64", target_os = "windows", target_env = "msvc"))]
-        return Self {
-            arch: Architecture::X86_64,
-            vendor: Vendor::Pc,
-            os: OperatingSystem::Windows,
-            env: Environment::Msvc,
-        };
-
-        #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-        return Self {
-            arch: Architecture::Aarch64,
-            vendor: Vendor::Apple,
-            os: OperatingSystem::MacOS,
-            env: Environment::Darwin,
-        };
-
-        #[cfg(all(target_arch = "aarch64", target_os = "linux"))]
-        return Self {
-            arch: Architecture::Aarch64,
-            vendor: Vendor::Unknown,
-            os: OperatingSystem::Linux,
-            env: Environment::Gnu,
-        };
-
-        // Fallback
-        #[allow(unreachable_code)]
-        Self {
-            arch: Architecture::X86_64,
-            vendor: Vendor::Unknown,
-            os: OperatingSystem::Linux,
-            env: Environment::Gnu,
-        }
-    }
-
-    /// Parse target from string (e.g., "x86_64-pc-windows-msvc")
-    pub fn from_str(s: &str) -> Result<Self, String> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts: Vec<&str> = s.split('-').collect();
         if parts.len() < 3 {
             return Err(format!("Invalid target triple: {}", s));
@@ -159,6 +108,60 @@ impl Target {
             os,
             env,
         })
+    }
+}
+
+impl Target {
+    /// Get the host target (current platform)
+    pub fn host() -> Self {
+        #[cfg(all(target_arch = "x86_64", target_os = "linux", target_env = "gnu"))]
+        return Self {
+            arch: Architecture::X86_64,
+            vendor: Vendor::Unknown,
+            os: OperatingSystem::Linux,
+            env: Environment::Gnu,
+        };
+
+        #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+        return Self {
+            arch: Architecture::X86_64,
+            vendor: Vendor::Apple,
+            os: OperatingSystem::MacOS,
+            env: Environment::Darwin,
+        };
+
+        #[cfg(all(target_arch = "x86_64", target_os = "windows", target_env = "msvc"))]
+        return Self {
+            arch: Architecture::X86_64,
+            vendor: Vendor::Pc,
+            os: OperatingSystem::Windows,
+            env: Environment::Msvc,
+        };
+
+        #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+        return Self {
+            arch: Architecture::Aarch64,
+            vendor: Vendor::Apple,
+            os: OperatingSystem::MacOS,
+            env: Environment::Darwin,
+        };
+
+        #[cfg(all(target_arch = "aarch64", target_os = "linux"))]
+        return Self {
+            arch: Architecture::Aarch64,
+            vendor: Vendor::Unknown,
+            os: OperatingSystem::Linux,
+            env: Environment::Gnu,
+        };
+
+        // Fallback
+        #[allow(unreachable_code)]
+        Self {
+            arch: Architecture::X86_64,
+            vendor: Vendor::Unknown,
+            os: OperatingSystem::Linux,
+            env: Environment::Gnu,
+        }
     }
 
     /// Get LLVM target triple string
@@ -228,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_parse_target() {
-        let target = Target::from_str("x86_64-pc-windows-msvc").unwrap();
+        let target: Target = "x86_64-pc-windows-msvc".parse().unwrap();
         assert_eq!(target.arch, Architecture::X86_64);
         assert_eq!(target.os, OperatingSystem::Windows);
         assert_eq!(target.env, Environment::Msvc);

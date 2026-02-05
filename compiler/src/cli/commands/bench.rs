@@ -41,6 +41,7 @@ impl BenchmarkResults {
         }
     }
 
+    #[allow(dead_code)]
     fn to_json(&self) -> String {
         serde_json::to_string_pretty(self).unwrap()
     }
@@ -54,12 +55,15 @@ impl BenchmarkResults {
 }
 
 pub struct BenchCommand {
+    #[allow(dead_code)]
     filter: Option<String>,
+    #[allow(dead_code)]
     output_format: OutputFormat,
     baseline_file: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 enum OutputFormat {
     Text,
     Json,

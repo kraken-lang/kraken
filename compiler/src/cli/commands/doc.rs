@@ -7,6 +7,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 pub struct DocCommand {
+    #[allow(dead_code)]
     open: bool,
     output_dir: PathBuf,
 }
@@ -34,10 +35,11 @@ impl DocCommand {
         let mut docs = Vec::new();
         for line in source.lines() {
             let trimmed = line.trim();
-            if trimmed.starts_with("///") {
-                docs.push(trimmed[3..].trim().to_string());
-            } else if trimmed.starts_with("//!") {
-                docs.push(trimmed[3..].trim().to_string());
+            if let Some(stripped) = trimmed
+                .strip_prefix("///")
+                .or_else(|| trimmed.strip_prefix("//!"))
+            {
+                docs.push(stripped.trim().to_string());
             }
         }
         docs

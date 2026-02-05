@@ -24,9 +24,9 @@ impl DebugInfoBuilder {
 
             let file_cstr = CString::new(filename).unwrap();
             let dir_cstr = CString::new(directory).unwrap();
-            let producer = CString::new("Kraken Compiler v0.8.49").unwrap();
+            let _producer = CString::new("Kraken Compiler v0.8.49").unwrap();
 
-            let file = LLVMDIBuilderCreateFile(
+            let _file = LLVMDIBuilderCreateFile(
                 di_builder,
                 file_cstr.as_ptr(),
                 filename.len(),
@@ -67,7 +67,7 @@ impl DebugInfoBuilder {
         _scope: LLVMMetadataRef,
         _context: LLVMContextRef,
     ) -> LLVMMetadataRef {
-        unsafe { ptr::null_mut() }
+        ptr::null_mut()
     }
 
     /// Finalize debug info
