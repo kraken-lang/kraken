@@ -17,6 +17,10 @@ modcli/tests_disabled/
 /build/
 /compiler/build/
 
+# Runtime Build Artifacts (platform-specific, rebuilt in CI)
+runtime/*.o
+runtime/*.a
+
 # Dependencies
 /node_modules/
 /vendor/

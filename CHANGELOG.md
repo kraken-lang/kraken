@@ -48,6 +48,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Runtime library build** (`runtime/build.sh`, `runtime/kraken_string.c`)
   - Added missing `#include <stdio.h>` in `kraken_string.c` for `vsprintf`/`vsnprintf` declarations
   - Updated `build.sh` to compile all 8 C runtime source files (was only compiling 4)
+- **Runtime architecture mismatch on macOS CI** (`.github/workflows/ci.yml`, `.gitignore`)
+  - Pre-built `libkraken_runtime.a` was committed as x86_64; macOS CI runners are arm64
+  - Linker ignored all `.o` files, causing undefined symbols for `_kraken_str_join` and `_kraken_str_split`
+  - Fixed by adding `runtime/*.o` and `runtime/*.a` to `.gitignore` and rebuilding the runtime in CI per-platform
+  - Added "Build runtime library" step to both test and release CI jobs
 - **LLVM codegen test SIGSEGV in CI** (`compiler/src/codegen/llvm_backend.rs`)
   - `LLVMSizeOf()` returns a `ConstantExpr` (a sizeof expression), not a `ConstantInt`
   - Calling `LLVMConstIntGetZExtValue()` on a `ConstantExpr` is undefined behavior that causes SIGSEGV on Linux CI
