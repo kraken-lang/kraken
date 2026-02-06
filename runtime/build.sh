@@ -19,7 +19,7 @@ fi
 # Platform-specific compiler flags (-fPIC is Unix-only, unsupported on Windows MSVC)
 CFLAGS="-O2"
 case "$(uname -s)" in
-    MINGW*|MSYS*|CYGWIN*) ;;  # Windows: no -fPIC
+    MINGW*|MSYS*|CYGWIN*) CFLAGS="$CFLAGS -D_CRT_SECURE_NO_WARNINGS" ;;  # Windows: suppress MSVC deprecation warnings
     *) CFLAGS="$CFLAGS -fPIC" ;;
 esac
 
