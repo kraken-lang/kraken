@@ -16,7 +16,14 @@ else
     exit 1
 fi
 
-echo "Building Kraken runtime library (archiver: $AR)..."
+# Platform-specific compiler flags (-fPIC is Unix-only, unsupported on Windows MSVC)
+CFLAGS="-O2"
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) ;;  # Windows: no -fPIC
+    *) CFLAGS="$CFLAGS -fPIC" ;;
+esac
+
+echo "Building Kraken runtime library (archiver: $AR, cflags: $CFLAGS)..."
 
 SOURCES=(
     kraken_string
@@ -31,7 +38,7 @@ SOURCES=(
 
 # Compile C runtime
 for src in "${SOURCES[@]}"; do
-    clang -c -O2 -fPIC "${src}.c" -o "${src}.o"
+    clang -c $CFLAGS "${src}.c" -o "${src}.o"
 done
 
 # Create static library
