@@ -7,15 +7,29 @@ use llvm_sys::core::*;
 use llvm_sys::prelude::*;
 use llvm_sys::target::*;
 use llvm_sys::target_machine::*;
-use llvm_sys::LLVMIntPredicate;
+use llvm_sys::{LLVMIntPredicate, LLVMRealPredicate};
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
-use std::path::Path;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::ptr;
+use std::sync::Once;
 
 type EnumVariantInfo = (String, u32, Option<crate::parser::ast::EnumVariantPayload>);
 type EnumTypesMap = HashMap<String, Vec<EnumVariantInfo>>;
+
+static LLVM_INIT: Once = Once::new();
+
+/// Initialize LLVM targets exactly once per process.
+/// This prevents multiple atexit handler registrations that cause crashes during cleanup.
+fn initialize_llvm_targets() {
+    LLVM_INIT.call_once(|| unsafe {
+        LLVM_InitializeAllTargetInfos();
+        LLVM_InitializeAllTargets();
+        LLVM_InitializeAllTargetMCs();
+        LLVM_InitializeAllAsmParsers();
+        LLVM_InitializeAllAsmPrinters();
+    });
+}
 
 /// LLVM code generator for Kraken.
 ///
@@ -261,14 +275,10 @@ impl LLVMCodegen {
     /// # Errors
     /// Returns `CompilerError::CodegenError` if code generation fails
     pub fn compile(&mut self, program: &Program, output_path: &Path) -> CompilerResult<()> {
-        unsafe {
-            // Initialize LLVM targets
-            LLVM_InitializeAllTargetInfos();
-            LLVM_InitializeAllTargets();
-            LLVM_InitializeAllTargetMCs();
-            LLVM_InitializeAllAsmParsers();
-            LLVM_InitializeAllAsmPrinters();
+        // Initialize LLVM targets once per process
+        initialize_llvm_targets();
 
+        unsafe {
             // Declare standard library functions
             self.declare_stdlib_functions()?;
 
@@ -399,13 +409,8 @@ impl LLVMCodegen {
     /// Generate LLVM IR for a program without emitting to disk.
     /// Useful for testing and IR inspection.
     pub fn generate(&mut self, program: &Program) -> CompilerResult<()> {
-        unsafe {
-            LLVM_InitializeAllTargetInfos();
-            LLVM_InitializeAllTargets();
-            LLVM_InitializeAllTargetMCs();
-            LLVM_InitializeAllAsmParsers();
-            LLVM_InitializeAllAsmPrinters();
-        }
+        // Initialize LLVM targets once per process
+        initialize_llvm_targets();
 
         self.declare_stdlib_functions()?;
 
