@@ -1604,55 +1604,55 @@ impl Parser {
                             TokenKind::Operator(Operator::Less)
                         )
                     {
-                    self.advance(); // Consume '::'
-                    self.advance(); // Consume '<'
+                        self.advance(); // Consume '::'
+                        self.advance(); // Consume '<'
 
-                    let mut type_args = Vec::new();
-                    type_args.push(self.parse_type()?);
-                    while self.match_token(TokenKind::Comma) {
+                        let mut type_args = Vec::new();
                         type_args.push(self.parse_type()?);
-                    }
-                    self.expect_operator(Operator::Greater)?;
+                        while self.match_token(TokenKind::Comma) {
+                            type_args.push(self.parse_type()?);
+                        }
+                        self.expect_operator(Operator::Greater)?;
 
-                    // Must be followed by '(' for function call or '{' for struct literal
-                    if self.match_token(TokenKind::LeftParen) {
-                        let mut arguments = Vec::new();
-                        if !self.check_token(TokenKind::RightParen) {
-                            arguments.push(self.parse_expression()?);
-                            while self.match_token(TokenKind::Comma) {
+                        // Must be followed by '(' for function call or '{' for struct literal
+                        if self.match_token(TokenKind::LeftParen) {
+                            let mut arguments = Vec::new();
+                            if !self.check_token(TokenKind::RightParen) {
                                 arguments.push(self.parse_expression()?);
+                                while self.match_token(TokenKind::Comma) {
+                                    arguments.push(self.parse_expression()?);
+                                }
                             }
-                        }
-                        self.expect_token(TokenKind::RightParen)?;
-                        expr = Expression::Call {
-                            callee: Box::new(Expression::Identifier(name.clone())),
-                            type_args: Some(type_args),
-                            arguments,
-                        };
-                        continue;
-                    } else if self.match_token(TokenKind::LeftBrace) {
-                        let mut fields = Vec::new();
-                        while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
-                            let field_name = self.consume_identifier()?;
-                            self.expect_token(TokenKind::Colon)?;
-                            let field_value = self.parse_expression()?;
-                            fields.push((field_name, field_value));
-                            if !self.match_token(TokenKind::Comma) {
-                                break;
+                            self.expect_token(TokenKind::RightParen)?;
+                            expr = Expression::Call {
+                                callee: Box::new(Expression::Identifier(name.clone())),
+                                type_args: Some(type_args),
+                                arguments,
+                            };
+                            continue;
+                        } else if self.match_token(TokenKind::LeftBrace) {
+                            let mut fields = Vec::new();
+                            while !self.check_token(TokenKind::RightBrace) && !self.is_at_end() {
+                                let field_name = self.consume_identifier()?;
+                                self.expect_token(TokenKind::Colon)?;
+                                let field_value = self.parse_expression()?;
+                                fields.push((field_name, field_value));
+                                if !self.match_token(TokenKind::Comma) {
+                                    break;
+                                }
                             }
+                            self.expect_token(TokenKind::RightBrace)?;
+                            expr = Expression::StructLiteral {
+                                name: name.clone(),
+                                type_args: Some(type_args),
+                                fields,
+                            };
+                            continue;
+                        } else {
+                            return Err(
+                                self.error("Expected '(' or '{' after turbofish type arguments")
+                            );
                         }
-                        self.expect_token(TokenKind::RightBrace)?;
-                        expr = Expression::StructLiteral {
-                            name: name.clone(),
-                            type_args: Some(type_args),
-                            fields,
-                        };
-                        continue;
-                    } else {
-                        return Err(
-                            self.error("Expected '(' or '{' after turbofish type arguments")
-                        );
-                    }
                     } // end turbofish peek-ahead
                 }
             }

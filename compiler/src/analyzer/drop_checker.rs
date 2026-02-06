@@ -1,6 +1,5 @@
 //! Drop trait implementation and RAII support for automatic resource cleanup.
 
-
 use crate::error::{CompilerError, CompilerResult};
 use crate::parser::ast::Type;
 use std::collections::HashMap;

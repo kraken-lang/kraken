@@ -587,20 +587,12 @@ mod tests {
 
     #[tokio::test]
     async fn string_split_test_compile_and_run() -> Result<()> {
-        assert_program_exit_code(
-            PathBuf::from("../tests/programs/string_split_test.kr"),
-            0,
-        )
-        .await
+        assert_program_exit_code(PathBuf::from("../tests/programs/string_split_test.kr"), 0).await
     }
 
     #[tokio::test]
     async fn string_join_test_compile_and_run() -> Result<()> {
-        assert_program_exit_code(
-            PathBuf::from("../tests/programs/string_join_test.kr"),
-            0,
-        )
-        .await
+        assert_program_exit_code(PathBuf::from("../tests/programs/string_join_test.kr"), 0).await
     }
 
     #[tokio::test]

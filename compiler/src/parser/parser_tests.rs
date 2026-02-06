@@ -27,10 +27,7 @@ mod tests {
     }
 
     fn assert_parse_err(source: &str) {
-        assert!(
-            parse(source).is_err(),
-            "Expected parse error for: {source}"
-        );
+        assert!(parse(source).is_err(), "Expected parse error for: {source}");
     }
 
     // ─── Variable Declarations ─────────────────────────────────────
@@ -178,23 +175,27 @@ mod tests {
 
     #[test]
     fn test_parse_impl_block() {
-        assert_parses(r#"
+        assert_parses(
+            r#"
             struct Foo { x: int; }
             impl Foo {
                 fn get_x() -> int { return 0; }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_parse_trait_impl() {
-        assert_parses(r#"
+        assert_parses(
+            r#"
             trait Bar { fn bar(); }
             struct Foo { x: int; }
             impl Bar for Foo {
                 fn bar() { }
             }
-        "#);
+        "#,
+        );
     }
 
     // ─── Trait Declarations ────────────────────────────────────────
@@ -211,13 +212,15 @@ mod tests {
 
     #[test]
     fn test_parse_trait_provided_method() {
-        assert_parses(r#"
+        assert_parses(
+            r#"
             trait Greet {
                 fn greet() -> string {
                     return "hello";
                 }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
@@ -264,24 +267,28 @@ mod tests {
 
     #[test]
     fn test_parse_match() {
-        assert_parses(r#"
+        assert_parses(
+            r#"
             match (x) {
                 1 -> { }
                 2 -> { }
                 _ -> { }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_parse_match_enum_pattern() {
-        assert_parses(r#"
+        assert_parses(
+            r#"
             match (val) {
                 Color::Red -> { }
                 Color::Green -> { }
                 _ -> { }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
@@ -507,7 +514,8 @@ mod tests {
 
     #[test]
     fn test_parse_deeply_nested_if() {
-        assert_parses(r#"
+        assert_parses(
+            r#"
             fn deep() {
                 if (true) {
                     if (true) {
@@ -517,7 +525,8 @@ mod tests {
                     }
                 }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
@@ -527,16 +536,19 @@ mod tests {
 
     #[test]
     fn test_parse_multiple_statements() {
-        assert_parses(r#"
+        assert_parses(
+            r#"
             let a = 1;
             let b = 2;
             let c = a + b;
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_parse_complex_program() {
-        assert_parses(r#"
+        assert_parses(
+            r#"
             struct Point { x: int; y: int; }
             enum Color { Red, Green, Blue }
             trait Drawable { fn draw(); }
@@ -549,7 +561,8 @@ mod tests {
                     }
                 }
             }
-        "#);
+        "#,
+        );
     }
 
     // ─── Malformed Input ───────────────────────────────────────────
@@ -650,9 +663,7 @@ mod tests {
         let program = parse("enum Color { Red, Green, Blue }").unwrap();
         assert_eq!(program.statements.len(), 1);
         match &program.statements[0] {
-            Statement::EnumDeclaration {
-                name, variants, ..
-            } => {
+            Statement::EnumDeclaration { name, variants, .. } => {
                 assert_eq!(name, "Color");
                 assert_eq!(variants.len(), 3);
                 assert_eq!(variants[0].0, "Red");

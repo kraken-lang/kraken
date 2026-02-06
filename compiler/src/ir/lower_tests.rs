@@ -90,11 +90,13 @@ mod tests {
 
     #[test]
     fn test_lower_multiple_functions() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             fn foo() -> int { return 1; }
             fn bar() -> int { return 2; }
             fn baz() -> int { return 3; }
-        "#);
+        "#,
+        );
         assert_eq!(ir.functions.len(), 3);
         assert_eq!(ir.functions[0].name, "foo");
         assert_eq!(ir.functions[1].name, "bar");
@@ -137,9 +139,8 @@ mod tests {
 
     #[test]
     fn test_lower_struct_mixed_types() {
-        let ir = assert_lowers(
-            "struct Record { id: int; value: float; name: string; active: bool; }",
-        );
+        let ir =
+            assert_lowers("struct Record { id: int; value: float; name: string; active: bool; }");
         assert_eq!(ir.structs[0].fields.len(), 4);
         assert_eq!(ir.structs[0].fields[0].1, IrType::Int);
         assert_eq!(ir.structs[0].fields[1].1, IrType::Float);
@@ -155,10 +156,12 @@ mod tests {
 
     #[test]
     fn test_lower_multiple_structs() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             struct A { x: int; }
             struct B { y: float; }
-        "#);
+        "#,
+        );
         assert_eq!(ir.structs.len(), 2);
         assert_eq!(ir.structs[0].name, "A");
         assert_eq!(ir.structs[1].name, "B");
@@ -233,7 +236,13 @@ mod tests {
         let ir = assert_lowers("fn f() -> int { return 1 + 2; }");
         let block = &ir.functions[0].blocks[0];
         let has_binop = block.instructions.iter().any(|i| {
-            matches!(i, IrInstruction::BinaryOp { op: Operator::Plus, .. })
+            matches!(
+                i,
+                IrInstruction::BinaryOp {
+                    op: Operator::Plus,
+                    ..
+                }
+            )
         });
         assert!(has_binop, "Expected Plus BinaryOp instruction");
     }
@@ -243,7 +252,13 @@ mod tests {
         let ir = assert_lowers("fn f() -> int { return 5 - 3; }");
         let block = &ir.functions[0].blocks[0];
         let has_binop = block.instructions.iter().any(|i| {
-            matches!(i, IrInstruction::BinaryOp { op: Operator::Minus, .. })
+            matches!(
+                i,
+                IrInstruction::BinaryOp {
+                    op: Operator::Minus,
+                    ..
+                }
+            )
         });
         assert!(has_binop, "Expected Minus BinaryOp instruction");
     }
@@ -253,7 +268,13 @@ mod tests {
         let ir = assert_lowers("fn f() -> int { return 2 * 3; }");
         let block = &ir.functions[0].blocks[0];
         let has_binop = block.instructions.iter().any(|i| {
-            matches!(i, IrInstruction::BinaryOp { op: Operator::Star, .. })
+            matches!(
+                i,
+                IrInstruction::BinaryOp {
+                    op: Operator::Star,
+                    ..
+                }
+            )
         });
         assert!(has_binop, "Expected Star BinaryOp instruction");
     }
@@ -263,7 +284,13 @@ mod tests {
         let ir = assert_lowers("fn f() -> int { return 10 / 2; }");
         let block = &ir.functions[0].blocks[0];
         let has_binop = block.instructions.iter().any(|i| {
-            matches!(i, IrInstruction::BinaryOp { op: Operator::Slash, .. })
+            matches!(
+                i,
+                IrInstruction::BinaryOp {
+                    op: Operator::Slash,
+                    ..
+                }
+            )
         });
         assert!(has_binop, "Expected Slash BinaryOp instruction");
     }
@@ -273,7 +300,13 @@ mod tests {
         let ir = assert_lowers("fn f() -> int { return 10 % 3; }");
         let block = &ir.functions[0].blocks[0];
         let has_binop = block.instructions.iter().any(|i| {
-            matches!(i, IrInstruction::BinaryOp { op: Operator::Percent, .. })
+            matches!(
+                i,
+                IrInstruction::BinaryOp {
+                    op: Operator::Percent,
+                    ..
+                }
+            )
         });
         assert!(has_binop, "Expected Percent BinaryOp instruction");
     }
@@ -283,7 +316,13 @@ mod tests {
         let ir = assert_lowers("fn f() -> bool { return 1 == 2; }");
         let block = &ir.functions[0].blocks[0];
         let has_cmp = block.instructions.iter().any(|i| {
-            matches!(i, IrInstruction::BinaryOp { op: Operator::Equal, .. })
+            matches!(
+                i,
+                IrInstruction::BinaryOp {
+                    op: Operator::Equal,
+                    ..
+                }
+            )
         });
         assert!(has_cmp, "Expected EqualEqual comparison instruction");
     }
@@ -293,7 +332,13 @@ mod tests {
         let ir = assert_lowers("fn f() -> bool { return 1 < 2; }");
         let block = &ir.functions[0].blocks[0];
         let has_cmp = block.instructions.iter().any(|i| {
-            matches!(i, IrInstruction::BinaryOp { op: Operator::Less, .. })
+            matches!(
+                i,
+                IrInstruction::BinaryOp {
+                    op: Operator::Less,
+                    ..
+                }
+            )
         });
         assert!(has_cmp, "Expected Less comparison instruction");
     }
@@ -302,13 +347,15 @@ mod tests {
 
     #[test]
     fn test_lower_if_statement() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             fn f() {
                 if (true) {
                     let x = 1;
                 }
             }
-        "#);
+        "#,
+        );
         assert_eq!(ir.functions.len(), 1);
         let block = &ir.functions[0].blocks[0];
         // If statement should produce instructions (condition eval + body)
@@ -320,7 +367,8 @@ mod tests {
 
     #[test]
     fn test_lower_if_else() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             fn f() {
                 if (true) {
                     let x = 1;
@@ -328,7 +376,8 @@ mod tests {
                     let x = 2;
                 }
             }
-        "#);
+        "#,
+        );
         assert_eq!(ir.functions.len(), 1);
         let block = &ir.functions[0].blocks[0];
         // If-else should produce instructions for both branches
@@ -340,14 +389,16 @@ mod tests {
 
     #[test]
     fn test_lower_while_loop() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             fn f() {
                 let i = 0;
                 while (i < 10) {
                     i = i + 1;
                 }
             }
-        "#);
+        "#,
+        );
         assert_eq!(ir.functions.len(), 1);
         let block = &ir.functions[0].blocks[0];
         // While loop should produce instructions (init + condition + body + update)
@@ -359,13 +410,15 @@ mod tests {
 
     #[test]
     fn test_lower_for_loop() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             fn f() {
                 for (let i = 0; i < 10; i = i + 1) {
                     let x = i;
                 }
             }
-        "#);
+        "#,
+        );
         assert_eq!(ir.functions.len(), 1);
         let block = &ir.functions[0].blocks[0];
         assert!(!block.instructions.is_empty());
@@ -375,10 +428,12 @@ mod tests {
 
     #[test]
     fn test_lower_function_call() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             fn callee(x: int) -> int { return x; }
             fn caller() -> int { return callee(42); }
-        "#);
+        "#,
+        );
         assert_eq!(ir.functions.len(), 2);
         let caller = &ir.functions[1];
         let block = &caller.blocks[0];
@@ -391,10 +446,12 @@ mod tests {
 
     #[test]
     fn test_lower_function_call_no_args() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             fn get_zero() -> int { return 0; }
             fn f() -> int { return get_zero(); }
-        "#);
+        "#,
+        );
         let f = &ir.functions[1];
         let block = &f.blocks[0];
         let has_call = block
@@ -408,25 +465,29 @@ mod tests {
 
     #[test]
     fn test_lower_struct_literal() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             struct Point { x: int; y: int; }
             fn f() {
                 let p = Point { x: 1, y: 2 };
             }
-        "#);
+        "#,
+        );
         assert_eq!(ir.structs.len(), 1);
         assert_eq!(ir.functions.len(), 1);
     }
 
     #[test]
     fn test_lower_struct_field_access() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             struct Point { x: int; y: int; }
             fn f() -> int {
                 let p = Point { x: 10, y: 20 };
                 return p.x;
             }
-        "#);
+        "#,
+        );
         assert_eq!(ir.structs.len(), 1);
         assert_eq!(ir.functions.len(), 1);
     }
@@ -448,14 +509,16 @@ mod tests {
 
     #[test]
     fn test_lower_factorial() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             fn factorial(n: int) -> int {
                 if (n <= 1) {
                     return 1;
                 }
                 return n * factorial(n - 1);
             }
-        "#);
+        "#,
+        );
         assert_eq!(ir.functions.len(), 1);
         assert_eq!(ir.functions[0].name, "factorial");
         assert_eq!(ir.functions[0].params.len(), 1);
@@ -463,7 +526,8 @@ mod tests {
 
     #[test]
     fn test_lower_mixed_program() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             struct Point { x: int; y: int; }
             fn origin() -> Point {
                 return Point { x: 0, y: 0 };
@@ -471,18 +535,21 @@ mod tests {
             fn distance(a: int, b: int) -> int {
                 return a + b;
             }
-        "#);
+        "#,
+        );
         assert_eq!(ir.structs.len(), 1);
         assert_eq!(ir.functions.len(), 2);
     }
 
     #[test]
     fn test_lower_nested_calls() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             fn double(x: int) -> int { return x * 2; }
             fn triple(x: int) -> int { return x * 3; }
             fn combined(x: int) -> int { return double(triple(x)); }
-        "#);
+        "#,
+        );
         assert_eq!(ir.functions.len(), 3);
     }
 
@@ -545,14 +612,16 @@ mod tests {
 
     #[test]
     fn test_lower_all_primitive_types() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             struct AllTypes {
                 a: int;
                 b: float;
                 c: bool;
                 d: string;
             }
-        "#);
+        "#,
+        );
         let fields = &ir.structs[0].fields;
         assert_eq!(fields[0].1, IrType::Int);
         assert_eq!(fields[1].1, IrType::Float);
@@ -590,10 +659,12 @@ mod tests {
 
     #[test]
     fn test_lower_function_value_id_reset() {
-        let ir = assert_lowers(r#"
+        let ir = assert_lowers(
+            r#"
             fn first(a: int) -> int { return a; }
             fn second(b: int) -> int { return b; }
-        "#);
+        "#,
+        );
         assert!(!ir.functions[0].blocks.is_empty());
         assert!(!ir.functions[1].blocks.is_empty());
     }

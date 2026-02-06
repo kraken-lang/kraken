@@ -23,7 +23,11 @@ pub struct SemVer {
 impl SemVer {
     /// Create a new semantic version.
     pub fn new(major: u32, minor: u32, patch: u32) -> Self {
-        Self { major, minor, patch }
+        Self {
+            major,
+            minor,
+            patch,
+        }
     }
 
     /// Parse a version string like "0.8.50".
@@ -41,17 +45,29 @@ impl SemVer {
 
     /// Return the next major version (e.g. 0.8.50 → 1.0.0).
     pub fn bump_major(&self) -> Self {
-        Self { major: self.major + 1, minor: 0, patch: 0 }
+        Self {
+            major: self.major + 1,
+            minor: 0,
+            patch: 0,
+        }
     }
 
     /// Return the next minor version (e.g. 0.8.50 → 0.9.0).
     pub fn bump_minor(&self) -> Self {
-        Self { major: self.major, minor: self.minor + 1, patch: 0 }
+        Self {
+            major: self.major,
+            minor: self.minor + 1,
+            patch: 0,
+        }
     }
 
     /// Return the next patch version (e.g. 0.8.50 → 0.8.51).
     pub fn bump_patch(&self) -> Self {
-        Self { major: self.major, minor: self.minor, patch: self.patch + 1 }
+        Self {
+            major: self.major,
+            minor: self.minor,
+            patch: self.patch + 1,
+        }
     }
 }
 
@@ -115,7 +131,9 @@ pub struct ApiSurface {
 impl ApiSurface {
     /// Create a new empty API surface.
     pub fn new() -> Self {
-        Self { symbols: BTreeMap::new() }
+        Self {
+            symbols: BTreeMap::new(),
+        }
     }
 
     /// Register a public symbol.
@@ -257,14 +275,28 @@ impl ApiDiff {
 
     /// Return true if there are any breaking changes.
     pub fn has_breaking_changes(&self) -> bool {
-        self.changes.iter().any(|c| c.severity == ChangeSeverity::Breaking)
+        self.changes
+            .iter()
+            .any(|c| c.severity == ChangeSeverity::Breaking)
     }
 
     /// Return the number of changes by severity.
     pub fn count_by_severity(&self) -> (usize, usize, usize) {
-        let breaking = self.changes.iter().filter(|c| c.severity == ChangeSeverity::Breaking).count();
-        let additive = self.changes.iter().filter(|c| c.severity == ChangeSeverity::Additive).count();
-        let patch = self.changes.iter().filter(|c| c.severity == ChangeSeverity::Patch).count();
+        let breaking = self
+            .changes
+            .iter()
+            .filter(|c| c.severity == ChangeSeverity::Breaking)
+            .count();
+        let additive = self
+            .changes
+            .iter()
+            .filter(|c| c.severity == ChangeSeverity::Additive)
+            .count();
+        let patch = self
+            .changes
+            .iter()
+            .filter(|c| c.severity == ChangeSeverity::Patch)
+            .count();
         (breaking, additive, patch)
     }
 
@@ -308,9 +340,7 @@ impl ApiDiff {
             ChangeSeverity::Patch => {
                 // Any bump is fine for patch-level changes
                 if new <= old {
-                    return Err(format!(
-                        "Version {new} is not greater than {old}"
-                    ));
+                    return Err(format!("Version {new} is not greater than {old}"));
                 }
             }
         }
@@ -322,8 +352,13 @@ impl ApiDiff {
 impl fmt::Display for ApiDiff {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (breaking, additive, _patch) = self.count_by_severity();
-        writeln!(f, "API Diff: {} breaking, {} additive, {} total changes",
-            breaking, additive, self.changes.len())?;
+        writeln!(
+            f,
+            "API Diff: {} breaking, {} additive, {} total changes",
+            breaking,
+            additive,
+            self.changes.len()
+        )?;
         writeln!(f, "Required bump: {}", self.required_bump())?;
         writeln!(f)?;
 

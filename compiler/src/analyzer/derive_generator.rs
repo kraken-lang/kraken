@@ -1,6 +1,5 @@
 //! Derive macro code generation for automatic trait implementations.
 
-
 use crate::error::{CompilerError, CompilerResult};
 use crate::parser::ast::{Block, Expression, Parameter, Statement, Type};
 

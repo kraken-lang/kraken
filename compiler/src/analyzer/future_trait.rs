@@ -1,6 +1,5 @@
 //! Future trait infrastructure for async/await support.
 
-
 use crate::error::{CompilerError, CompilerResult};
 use crate::parser::ast::Type;
 use std::collections::HashMap;

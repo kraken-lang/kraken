@@ -177,9 +177,21 @@ mod tests {
                 generic_params: vec![],
                 where_constraints: vec![],
                 fields: vec![
-                    StructField { name: "a".to_string(), field_type: Type::Int, is_public: false },
-                    StructField { name: "b".to_string(), field_type: Type::Bool, is_public: false },
-                    StructField { name: "c".to_string(), field_type: Type::Int, is_public: false },
+                    StructField {
+                        name: "a".to_string(),
+                        field_type: Type::Int,
+                        is_public: false,
+                    },
+                    StructField {
+                        name: "b".to_string(),
+                        field_type: Type::Bool,
+                        is_public: false,
+                    },
+                    StructField {
+                        name: "c".to_string(),
+                        field_type: Type::Int,
+                        is_public: false,
+                    },
                 ],
                 is_public: false,
                 repr: Some(StructRepr::Packed),
@@ -190,23 +202,27 @@ mod tests {
                 where_constraints: vec![],
                 parameters: vec![],
                 return_type: Some(Type::Custom("Packed".to_string())),
-                body: Block { statements: vec![
-                    Statement::VariableDeclaration {
-                        pattern: Pattern::Identifier("p".to_string()),
-                        type_annotation: Some(Type::Custom("Packed".to_string())),
-                        initializer: Some(Expression::StructLiteral {
-                            name: "Packed".to_string(),
-                            type_args: None,
-                            fields: vec![
-                                ("a".to_string(), Expression::IntLiteral(1)),
-                                ("b".to_string(), Expression::BoolLiteral(true)),
-                                ("c".to_string(), Expression::IntLiteral(3)),
-                            ],
-                        }),
-                        is_mutable: false,
-                    },
-                    Statement::Return { value: Some(Expression::Identifier("p".to_string())) },
-                ] },
+                body: Block {
+                    statements: vec![
+                        Statement::VariableDeclaration {
+                            pattern: Pattern::Identifier("p".to_string()),
+                            type_annotation: Some(Type::Custom("Packed".to_string())),
+                            initializer: Some(Expression::StructLiteral {
+                                name: "Packed".to_string(),
+                                type_args: None,
+                                fields: vec![
+                                    ("a".to_string(), Expression::IntLiteral(1)),
+                                    ("b".to_string(), Expression::BoolLiteral(true)),
+                                    ("c".to_string(), Expression::IntLiteral(3)),
+                                ],
+                            }),
+                            is_mutable: false,
+                        },
+                        Statement::Return {
+                            value: Some(Expression::Identifier("p".to_string())),
+                        },
+                    ],
+                },
                 is_async: false,
                 is_unsafe: false,
                 is_public: false,
@@ -229,8 +245,16 @@ mod tests {
                 generic_params: vec![],
                 where_constraints: vec![],
                 fields: vec![
-                    StructField { name: "x".to_string(), field_type: Type::Int, is_public: false },
-                    StructField { name: "y".to_string(), field_type: Type::Float, is_public: false },
+                    StructField {
+                        name: "x".to_string(),
+                        field_type: Type::Int,
+                        is_public: false,
+                    },
+                    StructField {
+                        name: "y".to_string(),
+                        field_type: Type::Float,
+                        is_public: false,
+                    },
                 ],
                 is_public: false,
                 repr: Some(StructRepr::C),
@@ -241,22 +265,26 @@ mod tests {
                 where_constraints: vec![],
                 parameters: vec![],
                 return_type: Some(Type::Custom("CStruct".to_string())),
-                body: Block { statements: vec![
-                    Statement::VariableDeclaration {
-                        pattern: Pattern::Identifier("s".to_string()),
-                        type_annotation: Some(Type::Custom("CStruct".to_string())),
-                        initializer: Some(Expression::StructLiteral {
-                            name: "CStruct".to_string(),
-                            type_args: None,
-                            fields: vec![
-                                ("x".to_string(), Expression::IntLiteral(1)),
-                                ("y".to_string(), Expression::FloatLiteral(2.0)),
-                            ],
-                        }),
-                        is_mutable: false,
-                    },
-                    Statement::Return { value: Some(Expression::Identifier("s".to_string())) },
-                ] },
+                body: Block {
+                    statements: vec![
+                        Statement::VariableDeclaration {
+                            pattern: Pattern::Identifier("s".to_string()),
+                            type_annotation: Some(Type::Custom("CStruct".to_string())),
+                            initializer: Some(Expression::StructLiteral {
+                                name: "CStruct".to_string(),
+                                type_args: None,
+                                fields: vec![
+                                    ("x".to_string(), Expression::IntLiteral(1)),
+                                    ("y".to_string(), Expression::FloatLiteral(2.0)),
+                                ],
+                            }),
+                            is_mutable: false,
+                        },
+                        Statement::Return {
+                            value: Some(Expression::Identifier("s".to_string())),
+                        },
+                    ],
+                },
                 is_async: false,
                 is_unsafe: false,
                 is_public: false,

@@ -20,10 +20,10 @@ pub mod monomorphization;
 mod monomorphization_tests;
 #[cfg(test)]
 mod trait_tests;
-#[cfg(test)]
-mod type_checker_tests;
 /// Type checker: validates types, resolves symbols, checks trait bounds, and enforces semantics.
 pub mod type_checker;
+#[cfg(test)]
+mod type_checker_tests;
 /// Type environment: type definitions, function signatures, trait registry, and scope management.
 pub mod types;
 

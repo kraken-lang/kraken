@@ -102,18 +102,22 @@ mod tests {
 
     #[test]
     fn test_var_shadowing() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             let x = 42;
             let x = "hello";
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_var_reassignment() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             let x = 42;
             x = 100;
-        "#);
+        "#,
+        );
     }
 
     #[test]
@@ -152,128 +156,154 @@ mod tests {
 
     #[test]
     fn test_fn_call_correct_args() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             fn add(a: int, b: int) -> int { return a + b; }
             let result = add(1, 2);
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_fn_call_wrong_arg_count() {
-        assert_err(r#"
+        assert_err(
+            r#"
             fn add(a: int, b: int) -> int { return a + b; }
             let result = add(1);
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_fn_call_wrong_arg_type() {
-        assert_err(r#"
+        assert_err(
+            r#"
             fn add(a: int, b: int) -> int { return a + b; }
             let result = add(1, "two");
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_fn_recursive() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             fn factorial(n: int) -> int {
                 if (n <= 1) {
                     return 1;
                 }
                 return n * factorial(n - 1);
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_fn_forward_reference() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             fn caller() -> int { return callee(5); }
             fn callee(x: int) -> int { return x * 2; }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_fn_multiple_returns() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             fn my_abs(x: int) -> int {
                 if (x < 0) {
                     return 0 - x;
                 }
                 return x;
             }
-        "#);
+        "#,
+        );
     }
 
     // ─── Control Flow ──────────────────────────────────────────────
 
     #[test]
     fn test_if_bool_condition() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             let x = true;
             if (x) { let y = 1; }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_if_comparison_condition() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             let x = 5;
             if (x > 0) { let y = 1; }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_if_else() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             let x = 5;
             if (x > 0) {
                 let y = 1;
             } else {
                 let y = 0;
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_while_loop() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             let i = 0;
             while (i < 10) {
                 i = i + 1;
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_for_loop() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             for (let i = 0; i < 10; i = i + 1) {
                 let x = i;
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_break_in_loop() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             let i = 0;
             while (true) {
                 if (i > 5) { break; }
                 i = i + 1;
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_continue_in_loop() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             for (let i = 0; i < 10; i = i + 1) {
                 if (i == 5) { continue; }
                 let x = i;
             }
-        "#);
+        "#,
+        );
     }
 
     // ─── Binary Operations ─────────────────────────────────────────
@@ -329,106 +359,127 @@ mod tests {
 
     #[test]
     fn test_struct_declaration() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             struct Point {
                 x: int;
                 y: int;
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_struct_literal() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             struct Point { x: int; y: int; }
             let p = Point { x: 1, y: 2 };
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_struct_field_access() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             struct Point { x: int; y: int; }
             let p = Point { x: 1, y: 2 };
             let x = p.x;
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_struct_wrong_field_type() {
-        assert_err(r#"
+        assert_err(
+            r#"
             struct Point { x: int; y: int; }
             let p = Point { x: "hello", y: 2 };
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_struct_forward_reference() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             fn make_point() -> Point {
                 return Point { x: 0, y: 0 };
             }
             struct Point { x: int; y: int; }
-        "#);
+        "#,
+        );
     }
 
     // ─── Enum Declarations ─────────────────────────────────────────
 
     #[test]
     fn test_enum_declaration() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             enum Color {
                 Red,
                 Green,
                 Blue
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_enum_variant_construction() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             enum Color { Red, Green, Blue }
             let c = Color::Red;
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_enum_with_payload() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             enum Shape {
                 Circle(float),
                 Rectangle(float, float)
             }
             let s = Shape::Circle(5.0);
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_enum_forward_reference() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             fn get_color() -> Color { return Color::Red; }
             enum Color { Red, Green, Blue }
-        "#);
+        "#,
+        );
     }
 
     // ─── Match Expressions ─────────────────────────────────────────
 
     #[test]
     fn test_match_int() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             let x = 5;
             match (x) {
                 1 -> { let y = 10; }
                 5 -> { let y = 50; }
                 _ -> { let y = 0; }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_match_enum() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             enum Color { Red, Green, Blue }
             let c = Color::Red;
             match (c) {
@@ -436,7 +487,8 @@ mod tests {
                 Color::Green -> { let x = 2; }
                 Color::Blue -> { let x = 3; }
             }
-        "#);
+        "#,
+        );
     }
 
     // ─── Arrays ────────────────────────────────────────────────────
@@ -448,10 +500,12 @@ mod tests {
 
     #[test]
     fn test_array_index() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             let arr = [1, 2, 3];
             let x = arr[0];
-        "#);
+        "#,
+        );
     }
 
     #[test]
@@ -468,46 +522,55 @@ mod tests {
 
     #[test]
     fn test_tuple_index() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             let t = (1, 2, 3);
             let x = t.0;
-        "#);
+        "#,
+        );
     }
 
     // ─── Trait Declarations ────────────────────────────────────────
 
     #[test]
     fn test_trait_declaration_basic() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             trait Printable {
                 fn print(name: string);
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_trait_with_return_type() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             trait Describable {
                 fn describe() -> string;
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_trait_with_provided_method() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             trait Greetable {
                 fn greet() -> string {
                     return "hello";
                 }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_trait_impl_basic() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             trait Printable {
                 fn print();
             }
@@ -515,12 +578,14 @@ mod tests {
             impl Printable for Dog {
                 fn print() { }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_trait_impl_missing_method() {
-        assert_err(r#"
+        assert_err(
+            r#"
             trait Printable {
                 fn print();
                 fn display();
@@ -529,12 +594,14 @@ mod tests {
             impl Printable for Dog {
                 fn print() { }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_trait_impl_wrong_signature() {
-        assert_err(r#"
+        assert_err(
+            r#"
             trait Printable {
                 fn print() -> string;
             }
@@ -542,12 +609,14 @@ mod tests {
             impl Printable for Dog {
                 fn print() -> int { return 0; }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_trait_impl_for_enum() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             trait Describable {
                 fn describe() -> string;
             }
@@ -557,12 +626,14 @@ mod tests {
                     return "a color";
                 }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_trait_duplicate_impl() {
-        assert_err(r#"
+        assert_err(
+            r#"
             trait Printable {
                 fn print();
             }
@@ -573,52 +644,61 @@ mod tests {
             impl Printable for Dog {
                 fn print() { }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_trait_nonexistent_trait() {
-        assert_err(r#"
+        assert_err(
+            r#"
             struct Dog { name: string; }
             impl NonExistent for Dog {
                 fn print() { }
             }
-        "#);
+        "#,
+        );
     }
 
     // ─── Async Functions ───────────────────────────────────────────
 
     #[test]
     fn test_async_fn_declaration() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             async fn fetch() -> int {
                 return 42;
             }
-        "#);
+        "#,
+        );
     }
 
     // ─── Unsafe Blocks ─────────────────────────────────────────────
 
     #[test]
     fn test_unsafe_block() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             unsafe {
                 let x = 42;
             }
-        "#);
+        "#,
+        );
     }
 
     // ─── Defer Statement ───────────────────────────────────────────
 
     #[test]
     fn test_defer_statement() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             fn cleanup() { }
             fn main() {
                 defer cleanup();
                 let x = 42;
             }
-        "#);
+        "#,
+        );
     }
 
     // ─── Undefined Variable/Function ───────────────────────────────
@@ -637,28 +717,33 @@ mod tests {
 
     #[test]
     fn test_nested_scope_access() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             let x = 42;
             if (true) {
                 let y = x + 1;
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_scope_isolation() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             if (true) {
                 let x = 42;
             }
-        "#);
+        "#,
+        );
     }
 
     // ─── Complex Programs ──────────────────────────────────────────
 
     #[test]
     fn test_fibonacci() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             fn fib(n: int) -> int {
                 if (n <= 1) {
                     return n;
@@ -666,12 +751,14 @@ mod tests {
                 return fib(n - 1) + fib(n - 2);
             }
             let result = fib(10);
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_struct_methods_via_impl() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             struct Counter { value: int; }
             impl Counter {
                 fn new() -> Counter {
@@ -681,22 +768,26 @@ mod tests {
                     return 42;
                 }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_multiple_structs() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             struct Point { x: int; y: int; }
             struct Size { w: int; h: int; }
             let p = Point { x: 0, y: 0 };
             let s = Size { w: 10, h: 10 };
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_enum_match_with_payload() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             enum Option {
                 Some(int),
                 None
@@ -706,12 +797,14 @@ mod tests {
                 Option::Some(x) -> { let y = 1; }
                 Option::None -> { let y = 0; }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_deeply_nested_control_flow() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             fn deep(x: int) -> int {
                 if (x > 0) {
                     if (x > 5) {
@@ -724,29 +817,35 @@ mod tests {
                 }
                 return 0;
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_for_in_range() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             let sum = 0;
             for (x in 0..10) {
                 sum = sum + x;
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_type_alias() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             type MyInt = int;
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_multiple_trait_impls_different_types() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             trait Printable {
                 fn print();
             }
@@ -758,12 +857,14 @@ mod tests {
             impl Printable for Cat {
                 fn print() { }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_multiple_traits_same_type() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             trait Printable {
                 fn print();
             }
@@ -779,7 +880,8 @@ mod tests {
                     return "a dog";
                 }
             }
-        "#);
+        "#,
+        );
     }
 
     #[test]
@@ -799,12 +901,14 @@ mod tests {
 
     #[test]
     fn test_chained_comparisons() {
-        assert_ok(r#"
+        assert_ok(
+            r#"
             let a = 1;
             let b = 2;
             let c = 3;
             let x = a < b && b < c;
-        "#);
+        "#,
+        );
     }
 
     #[test]
