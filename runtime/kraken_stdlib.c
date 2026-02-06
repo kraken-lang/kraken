@@ -189,13 +189,14 @@ void* kraken_calloc(int64_t count, int64_t size) {
     return calloc((size_t)count, (size_t)size);
 }
 
-// Wrapper for aligned_alloc (C11)
+// Wrapper for aligned_alloc (platform-aware)
 void* kraken_aligned_alloc(int64_t alignment, int64_t size) {
     if (alignment <= 0 || size <= 0) return NULL;
-    #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+    #if defined(_MSC_VER) || defined(_WIN32)
+        return _aligned_malloc((size_t)size, (size_t)alignment);
+    #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
         return aligned_alloc((size_t)alignment, (size_t)size);
     #else
-        // Fallback for older C standards
         return malloc((size_t)size);
     #endif
 }
