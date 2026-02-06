@@ -48,11 +48,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Runtime library build** (`runtime/build.sh`, `runtime/kraken_string.c`)
   - Added missing `#include <stdio.h>` in `kraken_string.c` for `vsprintf`/`vsnprintf` declarations
   - Updated `build.sh` to compile all 8 C runtime source files (was only compiling 4)
-- **LLVM codegen test SIGSEGV in CI** (`compiler/Cargo.toml`, `compiler/src/codegen/`)
+- **LLVM codegen test SIGSEGV in CI** (`compiler/build.rs`)
   - LLVM's global state (context creation/destruction, `atexit` handlers) is not thread-safe when multiple `LLVMContext` instances exist concurrently
-  - Crash occurred during parallel test execution across multiple test binaries in `cargo test --workspace`
-  - Fixed by adding `serial_test` crate with `file_locks` feature and `#[file_serial]` attributes to all 90 LLVM-touching tests
-  - `file_serial` uses filesystem-based locks to synchronize across process boundaries, ensuring only one LLVM context exists at a time workspace-wide
+  - Crash occurred during parallel test execution when multiple test threads created LLVM contexts simultaneously
+  - Fixed by adding `build.rs` that sets `RUST_TEST_THREADS=1` at compile time, forcing single-threaded test execution for the compiler crate
+  - This ensures only one LLVM context exists at a time while keeping other workspace crates' tests parallel
 - Removed stale `#[allow(dead_code)]` from 16+ files across analyzer, parser, CLI, and IR modules
 - Removed duplicate inner `#![allow(dead_code)]` attributes from `diagnostic_registry.rs` and `diagnostics.rs`
 - Replaced all stale TODO/FIXME comments with proper documentation noting deferred-to-1.0 status

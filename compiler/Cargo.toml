@@ -76,4 +76,3 @@ glob = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }
-serial_test = { version = "3.0", features = ["file_locks"] }

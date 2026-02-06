@@ -12905,11 +12905,9 @@ impl LLVMCodegen {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serial_test::file_serial;
     use std::path::PathBuf;
 
     #[test]
-    #[file_serial]
     fn test_llvm_type_conversion() {
         let codegen = LLVMCodegen::new("test".to_string(), PathBuf::from("test.kr"));
 
@@ -12925,7 +12923,6 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
     fn test_compile_empty_program() {
         let mut codegen = LLVMCodegen::new("test".to_string(), PathBuf::from("test.kr"));
         let program = Program::new(vec![]);

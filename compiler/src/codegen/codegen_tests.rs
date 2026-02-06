@@ -16,7 +16,6 @@ mod tests {
     use crate::lexer::tokenizer::Tokenizer;
     use crate::parser::ast::Program;
     use crate::parser::parser::Parser;
-    use serial_test::file_serial;
     use std::path::PathBuf;
 
     // ─── Test Helpers ───────────────────────────────────────────────
@@ -61,7 +60,7 @@ mod tests {
     // ═══════════════════════════════════════════════════════════════
 
     #[test]
-    #[file_serial]
+
     fn test_struct_two_int_fields_layout() {
         let ir = assert_codegen_ok(
             r#"
@@ -79,7 +78,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_struct_three_fields_layout() {
         let ir = assert_codegen_ok(
             r#"
@@ -98,7 +97,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_struct_mixed_field_types() {
         let ir = assert_codegen_ok(
             r#"
@@ -117,7 +116,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_struct_single_field() {
         let ir = assert_codegen_ok(
             r#"
@@ -134,7 +133,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_struct_field_access_gep() {
         let ir = assert_codegen_ok(
             r#"
@@ -153,7 +152,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_struct_literal_construction() {
         let ir = assert_codegen_ok(
             r#"
@@ -173,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_struct_packed_repr_via_ast() {
         use crate::parser::ast::*;
 
@@ -244,7 +243,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_struct_c_repr_via_ast() {
         use crate::parser::ast::*;
 
@@ -307,7 +306,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_struct_nested_field_types() {
         let ir = assert_codegen_ok(
             r#"
@@ -329,7 +328,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_struct_multiple_declarations() {
         let ir = assert_codegen_ok(
             r#"
@@ -350,7 +349,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_struct_field_store_and_load() {
         let ir = assert_codegen_ok(
             r#"
@@ -368,7 +367,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_struct_alloca_and_memcpy() {
         let ir = assert_codegen_ok(
             r#"
@@ -391,7 +390,7 @@ mod tests {
     // ═══════════════════════════════════════════════════════════════
 
     #[test]
-    #[file_serial]
+
     fn test_enum_simple_variants_as_i64_tags() {
         let ir = assert_codegen_ok(
             r#"
@@ -410,7 +409,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_enum_variant_tag_ordering() {
         let ir = assert_codegen_ok(
             r#"
@@ -433,7 +432,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_enum_with_payload_stores_tag() {
         let ir = assert_codegen_ok(
             r#"
@@ -451,7 +450,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_enum_match_tag_comparison() {
         let ir = assert_codegen_ok(
             r#"
@@ -473,7 +472,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_enum_match_multiple_variants() {
         let ir = assert_codegen_ok(
             r#"
@@ -498,7 +497,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_enum_single_variant() {
         let ir = assert_codegen_ok(
             r#"
@@ -514,7 +513,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_enum_many_variants() {
         let ir = assert_codegen_ok(
             r#"
@@ -540,7 +539,7 @@ mod tests {
     // ═══════════════════════════════════════════════════════════════
 
     #[test]
-    #[file_serial]
+
     fn test_function_no_params_returns_int() {
         let ir = assert_codegen_ok(
             r#"
@@ -554,7 +553,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_function_no_params_returns_float() {
         let ir = assert_codegen_ok(
             r#"
@@ -568,7 +567,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_function_no_params_returns_bool() {
         let ir = assert_codegen_ok(
             r#"
@@ -582,7 +581,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_function_single_int_param() {
         let ir = assert_codegen_ok(
             r#"
@@ -595,7 +594,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_function_multiple_params() {
         let ir = assert_codegen_ok(
             r#"
@@ -609,7 +608,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_function_mixed_param_types() {
         let ir = assert_codegen_ok(
             r#"
@@ -622,7 +621,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_function_void_return() {
         let ir = assert_codegen_ok(
             r#"
@@ -636,7 +635,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_function_calls_another() {
         let ir = assert_codegen_ok(
             r#"
@@ -654,7 +653,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_function_calls_with_args() {
         let ir = assert_codegen_ok(
             r#"
@@ -670,7 +669,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_recursive_function() {
         let ir = assert_codegen_ok(
             r#"
@@ -687,7 +686,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_multiple_return_paths() {
         let ir = assert_codegen_ok(
             r#"
@@ -704,7 +703,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_function_with_local_variables() {
         let ir = assert_codegen_ok(
             r#"
@@ -723,7 +722,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_function_struct_return() {
         let ir = assert_codegen_ok(
             r#"
@@ -745,7 +744,7 @@ mod tests {
     // ═══════════════════════════════════════════════════════════════
 
     #[test]
-    #[file_serial]
+
     fn test_string_literal_codegen() {
         let ir = assert_codegen_ok(
             r#"
@@ -759,7 +758,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_string_variable() {
         let ir = assert_codegen_ok(
             r#"
@@ -773,7 +772,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_empty_string_literal() {
         let ir = assert_codegen_ok(
             r#"
@@ -786,7 +785,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_array_int_declaration() {
         let ir = assert_codegen_ok(
             r#"
@@ -800,7 +799,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_array_element_access() {
         let ir = assert_codegen_ok(
             r#"
@@ -813,7 +812,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_array_float_elements() {
         let ir = assert_codegen_ok(
             r#"
@@ -826,7 +825,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_string_param_and_return() {
         let ir = assert_codegen_ok(
             r#"
@@ -839,7 +838,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_string_concat_calls_runtime() {
         let ir = assert_codegen_ok(
             r#"
@@ -856,7 +855,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_multiple_string_variables() {
         let ir = assert_codegen_ok(
             r#"
@@ -877,7 +876,7 @@ mod tests {
     // ═══════════════════════════════════════════════════════════════
 
     #[test]
-    #[file_serial]
+
     fn test_int_addition() {
         let ir = assert_codegen_ok(
             r#"
@@ -890,7 +889,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_int_subtraction() {
         let ir = assert_codegen_ok(
             r#"
@@ -903,7 +902,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_int_multiplication() {
         let ir = assert_codegen_ok(
             r#"
@@ -916,7 +915,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_int_division() {
         let ir = assert_codegen_ok(
             r#"
@@ -929,7 +928,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_int_modulo() {
         let ir = assert_codegen_ok(
             r#"
@@ -942,7 +941,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_float_addition() {
         let ir = assert_codegen_ok(
             r#"
@@ -956,7 +955,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_float_subtraction() {
         let ir = assert_codegen_ok(
             r#"
@@ -969,7 +968,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_float_multiplication() {
         let ir = assert_codegen_ok(
             r#"
@@ -982,7 +981,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_float_division() {
         let ir = assert_codegen_ok(
             r#"
@@ -995,7 +994,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_int_comparison_less_than() {
         let ir = assert_codegen_ok(
             r#"
@@ -1008,7 +1007,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_int_comparison_greater_than() {
         let ir = assert_codegen_ok(
             r#"
@@ -1021,7 +1020,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_int_comparison_equal() {
         let ir = assert_codegen_ok(
             r#"
@@ -1034,7 +1033,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_int_comparison_not_equal() {
         let ir = assert_codegen_ok(
             r#"
@@ -1047,7 +1046,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_int_comparison_less_equal() {
         let ir = assert_codegen_ok(
             r#"
@@ -1060,7 +1059,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_int_comparison_greater_equal() {
         let ir = assert_codegen_ok(
             r#"
@@ -1073,7 +1072,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_float_comparison_less_than() {
         let ir = assert_codegen_ok(
             r#"
@@ -1087,7 +1086,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_float_comparison_equal() {
         let ir = assert_codegen_ok(
             r#"
@@ -1100,7 +1099,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_boolean_and() {
         let ir = assert_codegen_ok(
             r#"
@@ -1113,7 +1112,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_boolean_or() {
         let ir = assert_codegen_ok(
             r#"
@@ -1126,7 +1125,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_boolean_not() {
         let ir = assert_codegen_ok(
             r#"
@@ -1141,7 +1140,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_negation_int() {
         let ir = assert_codegen_ok(
             r#"
@@ -1155,7 +1154,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_negation_float() {
         let ir = assert_codegen_ok(
             r#"
@@ -1169,7 +1168,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_constant_zero() {
         let ir = assert_codegen_ok(
             r#"
@@ -1182,7 +1181,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_constant_negative() {
         let ir = assert_codegen_ok(
             r#"
@@ -1195,7 +1194,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_large_constant() {
         let ir = assert_codegen_ok(
             r#"
@@ -1208,7 +1207,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_float_constant_zero() {
         let ir = assert_codegen_ok(
             r#"
@@ -1221,7 +1220,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_chained_arithmetic() {
         let ir = assert_codegen_ok(
             r#"
@@ -1235,7 +1234,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_nested_arithmetic() {
         let ir = assert_codegen_ok(
             r#"
@@ -1250,7 +1249,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_division_by_variable_with_guard() {
         let ir = assert_codegen_ok(
             r#"
@@ -1268,7 +1267,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_bitwise_and() {
         let ir = assert_codegen_ok(
             r#"
@@ -1281,7 +1280,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_bitwise_xor() {
         let ir = assert_codegen_ok(
             r#"
@@ -1294,7 +1293,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_shift_left() {
         let ir = assert_codegen_ok(
             r#"
@@ -1307,7 +1306,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_shift_right() {
         let ir = assert_codegen_ok(
             r#"
@@ -1322,7 +1321,7 @@ mod tests {
     // ─── Control Flow in Codegen ────────────────────────────────────
 
     #[test]
-    #[file_serial]
+
     fn test_if_else_codegen() {
         let ir = assert_codegen_ok(
             r#"
@@ -1340,7 +1339,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_while_loop_codegen() {
         let ir = assert_codegen_ok(
             r#"
@@ -1359,7 +1358,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_for_loop_codegen() {
         let ir = assert_codegen_ok(
             r#"
@@ -1379,7 +1378,7 @@ mod tests {
     // ─── Edge Cases ─────────────────────────────────────────────────
 
     #[test]
-    #[file_serial]
+
     fn test_empty_function_body() {
         let ir = assert_codegen_ok(
             r#"
@@ -1391,7 +1390,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_deeply_nested_expressions() {
         let ir = assert_codegen_ok(
             r#"
@@ -1404,7 +1403,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_many_local_variables() {
         let ir = assert_codegen_ok(
             r#"
@@ -1424,7 +1423,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_variable_reassignment() {
         let ir = assert_codegen_ok(
             r#"
@@ -1442,7 +1441,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_bool_true_false_constants() {
         let ir = assert_codegen_ok(
             r#"
@@ -1459,7 +1458,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_multiple_functions_in_module() {
         let ir = assert_codegen_ok(
             r#"
@@ -1478,7 +1477,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_function_with_struct_param_float_ops() {
         let ir = assert_codegen_ok(
             r#"
@@ -1500,7 +1499,7 @@ mod tests {
     // ─── Union Layout ───────────────────────────────────────────────
 
     #[test]
-    #[file_serial]
+
     fn test_union_codegen_succeeds() {
         // Union declarations generate a named type but it may only appear
         // in IR when referenced by a function that uses the union type.
@@ -1517,7 +1516,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_union_single_field_codegen_succeeds() {
         assert_codegen_ok(
             r#"
@@ -1532,7 +1531,7 @@ mod tests {
     // ─── Module Structure ───────────────────────────────────────────
 
     #[test]
-    #[file_serial]
+
     fn test_module_name() {
         let ir = assert_codegen_ok(
             r#"
@@ -1543,7 +1542,7 @@ mod tests {
     }
 
     #[test]
-    #[file_serial]
+
     fn test_stdlib_functions_declared() {
         let ir = assert_codegen_ok(
             r#"
