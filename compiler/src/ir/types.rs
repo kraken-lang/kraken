@@ -135,24 +135,24 @@ impl fmt::Display for IrValue {
 /// IR instruction - a single operation in the IR.
 #[derive(Debug, Clone, PartialEq)]
 pub enum IrInstruction {
-    /// Allocate local variable: %dest = alloca <type>
+    /// Allocate local variable: `%dest = alloca <type>`
     Alloca {
         dest: ValueId,
         ty: IrType,
         name: String,
     },
 
-    /// Store value to memory: store <value>, <ptr>
+    /// Store value to memory: `store <value>, <ptr>`
     Store { value: IrValue, ptr: IrValue },
 
-    /// Load value from memory: %dest = load <ptr>
+    /// Load value from memory: `%dest = load <ptr>`
     Load {
         dest: ValueId,
         ptr: IrValue,
         ty: IrType,
     },
 
-    /// Binary operation: %dest = <op> <left>, <right>
+    /// Binary operation: `%dest = <op> <left>, <right>`
     BinaryOp {
         dest: ValueId,
         op: Operator,
@@ -161,7 +161,7 @@ pub enum IrInstruction {
         ty: IrType,
     },
 
-    /// Unary operation: %dest = <op> <operand>
+    /// Unary operation: `%dest = <op> <operand>`
     UnaryOp {
         dest: ValueId,
         op: Operator,
@@ -169,7 +169,7 @@ pub enum IrInstruction {
         ty: IrType,
     },
 
-    /// Function call: %dest = call @<func>(<args>)
+    /// Function call: `%dest = call @<func>(<args>)`
     Call {
         dest: Option<ValueId>,
         func: String,
@@ -177,27 +177,27 @@ pub enum IrInstruction {
         ret_ty: IrType,
     },
 
-    /// Return from function: ret <value>
+    /// Return from function: `ret <value>`
     Return { value: Option<IrValue> },
 
-    /// Unconditional branch: br <block>
+    /// Unconditional branch: `br <block>`
     Branch { target: BlockId },
 
-    /// Conditional branch: br <cond>, <then_block>, <else_block>
+    /// Conditional branch: `br <cond>, <then_block>, <else_block>`
     CondBranch {
         cond: IrValue,
         then_block: BlockId,
         else_block: BlockId,
     },
 
-    /// Phi node for SSA: %dest = phi [<val1>, <block1>], [<val2>, <block2>], ...
+    /// Phi node for SSA: `%dest = phi [<val1>, <block1>], [<val2>, <block2>], ...`
     Phi {
         dest: ValueId,
         ty: IrType,
         incoming: Vec<(IrValue, BlockId)>,
     },
 
-    /// Get element pointer: %dest = gep <ptr>, <indices>
+    /// Get element pointer: `%dest = gep <ptr>, <indices>`
     GetElementPtr {
         dest: ValueId,
         ptr: IrValue,
@@ -205,7 +205,7 @@ pub enum IrInstruction {
         ty: IrType,
     },
 
-    /// Member access: %dest = extractvalue <ptr>, <field_idx>
+    /// Member access: `%dest = extractvalue <ptr>, <field_idx>`
     ExtractValue {
         dest: ValueId,
         ptr: IrValue,
@@ -213,7 +213,7 @@ pub enum IrInstruction {
         ty: IrType,
     },
 
-    /// Insert value into struct: %dest = insertvalue <struct>, <value>, <field_idx>
+    /// Insert value into struct: `%dest = insertvalue <struct>, <value>, <field_idx>`
     InsertValue {
         dest: ValueId,
         struct_val: IrValue,

@@ -304,25 +304,13 @@ pub fn generate_lsif(root: &Path, _graph: &DocGraph) -> String {
 
         // Edge: document -> contains -> [ranges]
         if !range_ids.is_empty() {
-            emit_edge(
-                &mut elements,
-                "contains",
-                doc_id,
-                None,
-                Some(range_ids),
-            );
+            emit_edge(&mut elements, "contains", doc_id, None, Some(range_ids));
         }
     }
 
     // Edge: project -> contains -> [documents]
     if !doc_ids.is_empty() {
-        emit_edge(
-            &mut elements,
-            "contains",
-            project_id,
-            None,
-            Some(doc_ids),
-        );
+        emit_edge(&mut elements, "contains", project_id, None, Some(doc_ids));
     }
 
     // Serialize to line-delimited JSON
@@ -444,11 +432,12 @@ fn scan_declarations(source: &str) -> Vec<SourceDecl> {
         };
 
         // Determine name position
-        let name_offset = if kw == "async" || (kw == "const" && tokens.get(start + 1) == Some(&"fn")) {
-            start + 2
-        } else {
-            start + 1
-        };
+        let name_offset =
+            if kw == "async" || (kw == "const" && tokens.get(start + 1) == Some(&"fn")) {
+                start + 2
+            } else {
+                start + 1
+            };
 
         let raw_name = tokens.get(name_offset).unwrap_or(&"");
         let name = raw_name
@@ -573,10 +562,7 @@ mod tests {
             dump.contains("\"definitionResult\""),
             "should have definitionResult"
         );
-        assert!(
-            dump.contains("\"hoverResult\""),
-            "should have hoverResult"
-        );
+        assert!(dump.contains("\"hoverResult\""), "should have hoverResult");
         assert!(dump.contains("main"), "should contain function name");
         let _ = std::fs::remove_dir_all(&tmp);
     }

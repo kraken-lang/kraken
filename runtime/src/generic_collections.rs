@@ -1,11 +1,11 @@
-//! Generic collections module providing Vec<T>, HashMap<K,V>, and slice utilities.
+//! Generic collections module providing `Vec<T>`, `HashMap<K,V>`, and slice utilities.
 
 #![allow(dead_code)]
 
 use std::collections::HashMap;
 use std::hash::Hash;
 
-/// Generic Vec<T> wrapper for Kraken runtime
+/// Generic `Vec<T>` wrapper for Kraken runtime
 pub struct Vec<T> {
     inner: std::vec::Vec<T>,
 }

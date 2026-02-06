@@ -162,7 +162,13 @@ fn add_keywords(nodes: &mut BTreeMap<String, Node>, search: &mut Vec<SearchEntry
     ];
     for (kw, desc, group) in kws {
         let id = format!("keyword.{kw}");
-        let mut n = mk_node(&id, "keyword", &format!("`{kw}`"), "0.1.0", &["keyword", group]);
+        let mut n = mk_node(
+            &id,
+            "keyword",
+            &format!("`{kw}`"),
+            "0.1.0",
+            &["keyword", group],
+        );
         n.docs = Some(DocBlock {
             summary: Some(desc.into()),
             details_markdown: None,
@@ -334,20 +340,104 @@ fn add_stdlib_functions(nodes: &mut BTreeMap<String, Node>, search: &mut Vec<Sea
         ret: &'static str,
     }
     let fns = vec![
-        FnDef { name: "printf", sig: "fn printf(fmt: string, ...) -> int", desc: "Print formatted output to stdout", params: vec![("fmt", "string")], ret: "int" },
-        FnDef { name: "puts", sig: "fn puts(s: string) -> int", desc: "Print string with newline", params: vec![("s", "string")], ret: "int" },
-        FnDef { name: "malloc", sig: "fn malloc(size: int) -> bytes", desc: "Allocate heap memory", params: vec![("size", "int")], ret: "bytes" },
-        FnDef { name: "calloc", sig: "fn calloc(count: int, size: int) -> bytes", desc: "Allocate zeroed heap memory", params: vec![("count", "int"), ("size", "int")], ret: "bytes" },
-        FnDef { name: "realloc", sig: "fn realloc(ptr: bytes, size: int) -> bytes", desc: "Resize heap allocation", params: vec![("ptr", "bytes"), ("size", "int")], ret: "bytes" },
-        FnDef { name: "free", sig: "fn free(ptr: bytes) -> void", desc: "Free heap memory", params: vec![("ptr", "bytes")], ret: "void" },
-        FnDef { name: "strlen", sig: "fn strlen(s: string) -> int", desc: "String byte length", params: vec![("s", "string")], ret: "int" },
-        FnDef { name: "strcmp", sig: "fn strcmp(a: string, b: string) -> int", desc: "Compare two strings", params: vec![("a", "string"), ("b", "string")], ret: "int" },
-        FnDef { name: "kraken_str_split", sig: "fn kraken_str_split(s: string, delim: string) -> VecString", desc: "Split string by delimiter", params: vec![("s", "string"), ("delim", "string")], ret: "VecString" },
-        FnDef { name: "kraken_str_join", sig: "fn kraken_str_join(v: VecString, sep: string) -> string", desc: "Join string vector with separator", params: vec![("v", "VecString"), ("sep", "string")], ret: "string" },
-        FnDef { name: "kraken_str_len", sig: "fn kraken_str_len(s: string) -> int", desc: "Safe string length", params: vec![("s", "string")], ret: "int" },
-        FnDef { name: "kraken_str_concat", sig: "fn kraken_str_concat(a: string, b: string) -> string", desc: "Concatenate two strings (heap-allocated)", params: vec![("a", "string"), ("b", "string")], ret: "string" },
-        FnDef { name: "kraken_str_contains", sig: "fn kraken_str_contains(s: string, needle: string) -> bool", desc: "Check if string contains substring", params: vec![("s", "string"), ("needle", "string")], ret: "bool" },
-        FnDef { name: "kraken_str_trim", sig: "fn kraken_str_trim(s: string) -> string", desc: "Trim leading and trailing whitespace", params: vec![("s", "string")], ret: "string" },
+        FnDef {
+            name: "printf",
+            sig: "fn printf(fmt: string, ...) -> int",
+            desc: "Print formatted output to stdout",
+            params: vec![("fmt", "string")],
+            ret: "int",
+        },
+        FnDef {
+            name: "puts",
+            sig: "fn puts(s: string) -> int",
+            desc: "Print string with newline",
+            params: vec![("s", "string")],
+            ret: "int",
+        },
+        FnDef {
+            name: "malloc",
+            sig: "fn malloc(size: int) -> bytes",
+            desc: "Allocate heap memory",
+            params: vec![("size", "int")],
+            ret: "bytes",
+        },
+        FnDef {
+            name: "calloc",
+            sig: "fn calloc(count: int, size: int) -> bytes",
+            desc: "Allocate zeroed heap memory",
+            params: vec![("count", "int"), ("size", "int")],
+            ret: "bytes",
+        },
+        FnDef {
+            name: "realloc",
+            sig: "fn realloc(ptr: bytes, size: int) -> bytes",
+            desc: "Resize heap allocation",
+            params: vec![("ptr", "bytes"), ("size", "int")],
+            ret: "bytes",
+        },
+        FnDef {
+            name: "free",
+            sig: "fn free(ptr: bytes) -> void",
+            desc: "Free heap memory",
+            params: vec![("ptr", "bytes")],
+            ret: "void",
+        },
+        FnDef {
+            name: "strlen",
+            sig: "fn strlen(s: string) -> int",
+            desc: "String byte length",
+            params: vec![("s", "string")],
+            ret: "int",
+        },
+        FnDef {
+            name: "strcmp",
+            sig: "fn strcmp(a: string, b: string) -> int",
+            desc: "Compare two strings",
+            params: vec![("a", "string"), ("b", "string")],
+            ret: "int",
+        },
+        FnDef {
+            name: "kraken_str_split",
+            sig: "fn kraken_str_split(s: string, delim: string) -> VecString",
+            desc: "Split string by delimiter",
+            params: vec![("s", "string"), ("delim", "string")],
+            ret: "VecString",
+        },
+        FnDef {
+            name: "kraken_str_join",
+            sig: "fn kraken_str_join(v: VecString, sep: string) -> string",
+            desc: "Join string vector with separator",
+            params: vec![("v", "VecString"), ("sep", "string")],
+            ret: "string",
+        },
+        FnDef {
+            name: "kraken_str_len",
+            sig: "fn kraken_str_len(s: string) -> int",
+            desc: "Safe string length",
+            params: vec![("s", "string")],
+            ret: "int",
+        },
+        FnDef {
+            name: "kraken_str_concat",
+            sig: "fn kraken_str_concat(a: string, b: string) -> string",
+            desc: "Concatenate two strings (heap-allocated)",
+            params: vec![("a", "string"), ("b", "string")],
+            ret: "string",
+        },
+        FnDef {
+            name: "kraken_str_contains",
+            sig: "fn kraken_str_contains(s: string, needle: string) -> bool",
+            desc: "Check if string contains substring",
+            params: vec![("s", "string"), ("needle", "string")],
+            ret: "bool",
+        },
+        FnDef {
+            name: "kraken_str_trim",
+            sig: "fn kraken_str_trim(s: string) -> string",
+            desc: "Trim leading and trailing whitespace",
+            params: vec![("s", "string")],
+            ret: "string",
+        },
     ];
     for f in fns {
         let id = format!("fn.{}", f.name);
@@ -605,8 +695,8 @@ mod tests {
     fn test_all_keywords_present() {
         let graph = generate();
         let expected = vec![
-            "if", "else", "match", "for", "while", "fn", "let", "const", "struct", "enum",
-            "trait", "impl", "type", "pub", "async", "await", "unsafe", "mut", "return",
+            "if", "else", "match", "for", "while", "fn", "let", "const", "struct", "enum", "trait",
+            "impl", "type", "pub", "async", "await", "unsafe", "mut", "return",
         ];
         for kw in expected {
             let id = format!("keyword.{kw}");
@@ -647,7 +737,13 @@ mod tests {
     #[test]
     fn test_stdlib_functions_present() {
         let graph = generate();
-        for f in &["printf", "malloc", "free", "kraken_str_split", "kraken_str_join"] {
+        for f in &[
+            "printf",
+            "malloc",
+            "free",
+            "kraken_str_split",
+            "kraken_str_join",
+        ] {
             let id = format!("fn.{f}");
             assert!(
                 graph.nodes.contains_key(&id),
@@ -664,13 +760,7 @@ mod tests {
             "missing CLI tooling node"
         );
         let cli = &graph.nodes["tooling.cli"];
-        let cmds = cli
-            .tooling
-            .as_ref()
-            .unwrap()
-            .commands
-            .as_ref()
-            .unwrap();
+        let cmds = cli.tooling.as_ref().unwrap().commands.as_ref().unwrap();
         assert!(cmds.len() >= 10, "should have at least 10 CLI commands");
     }
 
@@ -710,8 +800,14 @@ mod tests {
         let graph = generate();
         let json = serde_json::to_string_pretty(&graph).expect("serialization failed");
         assert!(json.len() > 1000, "serialized JSON should be substantial");
-        assert!(json.contains("\"keyword\""), "JSON should contain keyword kind");
-        assert!(json.contains("\"operator\""), "JSON should contain operator kind");
+        assert!(
+            json.contains("\"keyword\""),
+            "JSON should contain keyword kind"
+        );
+        assert!(
+            json.contains("\"operator\""),
+            "JSON should contain operator kind"
+        );
         assert!(json.contains("\"type\""), "JSON should contain type kind");
     }
 }

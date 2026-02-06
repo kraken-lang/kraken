@@ -319,11 +319,7 @@ impl DocCommand {
     // -- HTML generation (enhanced) -----------------------------------------
 
     fn generate_html(&self, file_doc: &FileDoc, all_names: &[String]) -> String {
-        let file_name = file_doc
-            .path
-            .file_name()
-            .unwrap()
-            .to_string_lossy();
+        let file_name = file_doc.path.file_name().unwrap().to_string_lossy();
 
         let mut html = format!(
             r#"<!DOCTYPE html>
@@ -534,8 +530,7 @@ impl DocCommand {
 
     fn generate_docgraph_json(&self) -> Result<(), String> {
         let out_dir = self.output_dir.join("generated");
-        fs::create_dir_all(&out_dir)
-            .map_err(|e| format!("Failed to create generated dir: {e}"))?;
+        fs::create_dir_all(&out_dir).map_err(|e| format!("Failed to create generated dir: {e}"))?;
 
         let graph = docgen::generate();
 
@@ -661,17 +656,11 @@ impl Command for DocCommand {
         progress.finish("Documentation generated");
 
         // Generate DocGraph JSON metadata
-        println!(
-            "{}",
-            OutputMessage::info("Generating DocGraph metadata")
-        );
+        println!("{}", OutputMessage::info("Generating DocGraph metadata"));
         self.generate_docgraph_json()?;
 
         // Generate LSIF dump
-        println!(
-            "{}",
-            OutputMessage::info("Generating LSIF index")
-        );
+        println!("{}", OutputMessage::info("Generating LSIF index"));
         self.generate_lsif_dump(&project_root)?;
 
         println!(
@@ -692,8 +681,7 @@ impl DocCommand {
         let graph = docgen::generate();
         let lsif = docgen::lsif::generate_lsif(project_root, &graph);
         let dump_path = project_root.join("dump.lsif");
-        fs::write(&dump_path, &lsif)
-            .map_err(|e| format!("Failed to write dump.lsif: {e}"))?;
+        fs::write(&dump_path, &lsif).map_err(|e| format!("Failed to write dump.lsif: {e}"))?;
         println!(
             "{}",
             OutputMessage::info(format!(
@@ -783,14 +771,20 @@ mod tests {
     fn test_render_markdown_inline_code() {
         let lines = vec!["Use `printf` to print.".into()];
         let html = DocCommand::render_markdown(&lines, &[]);
-        assert!(html.contains("<code>printf</code>"), "should render inline code");
+        assert!(
+            html.contains("<code>printf</code>"),
+            "should render inline code"
+        );
     }
 
     #[test]
     fn test_render_markdown_bold() {
         let lines = vec!["This is **important** text.".into()];
         let html = DocCommand::render_markdown(&lines, &[]);
-        assert!(html.contains("<strong>important</strong>"), "should render bold");
+        assert!(
+            html.contains("<strong>important</strong>"),
+            "should render bold"
+        );
     }
 
     #[test]
@@ -814,8 +808,14 @@ mod tests {
     fn test_cross_reference_unknown_name() {
         let lines = vec!["See [`Unknown`] for details.".into()];
         let html = DocCommand::render_markdown(&lines, &[]);
-        assert!(!html.contains("href="), "should not create link for unknown");
-        assert!(html.contains("<code>Unknown</code>"), "should render as code");
+        assert!(
+            !html.contains("href="),
+            "should not create link for unknown"
+        );
+        assert!(
+            html.contains("<code>Unknown</code>"),
+            "should render as code"
+        );
     }
 
     #[test]
@@ -868,6 +868,9 @@ mod tests {
         let source = "/// First.\nfn a() {}\n/// Second.\nfn b() {}\n";
         let fd = cmd.extract_file_doc(Path::new("test.kr"), source);
         let html = cmd.generate_html(&fd, &[]);
-        assert!(html.contains("class=\"toc\""), "should have table of contents");
+        assert!(
+            html.contains("class=\"toc\""),
+            "should have table of contents"
+        );
     }
 }

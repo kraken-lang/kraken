@@ -5,8 +5,8 @@
 //! - **Minor** (additive): adding public items, adding optional fields, new enum variants
 //! - **Patch** (fix): bug fixes, doc changes, internal refactors with no API change
 //!
-//! The [`ApiSurface`] struct captures a snapshot of all public symbols. Comparing
-//! two snapshots via [`ApiSurface::diff`] produces an [`ApiDiff`] that classifies
+//! The `ApiSurface` struct captures a snapshot of all public symbols. Comparing
+//! two snapshots via `ApiSurface::diff` produces an `ApiDiff` that classifies
 //! every change and determines the minimum required version bump.
 
 use std::collections::{BTreeMap, BTreeSet};

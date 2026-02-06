@@ -6,7 +6,7 @@ use std::collections::HashMap;
 /// Attribute information extracted from AST
 #[derive(Debug, Clone, PartialEq)]
 pub enum AttributeValue {
-    /// Simple flag attribute (e.g., #[inline])
+    /// Simple flag attribute (e.g., `#[inline]`)
     Flag,
     /// Attribute with arguments (e.g., #[derive(Clone, Debug)])
     Args(Vec<String>),

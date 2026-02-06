@@ -263,7 +263,7 @@ pub enum Expression {
         index: Box<Expression>,
     },
 
-    /// Slice expression: x[start:end]
+    /// Slice expression: `x[start:end]`
     Slice {
         array: Box<Expression>,
         start: Box<Expression>,

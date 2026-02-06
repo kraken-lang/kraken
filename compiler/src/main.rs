@@ -310,8 +310,7 @@ version = "0.1.0"
 
 /// Doc command implementation — generates DocGraph JSON, LSIF, and HTML docs.
 async fn doc_command(output: PathBuf, verbose: bool) -> Result<()> {
-    let project_root =
-        std::env::current_dir().context("Failed to get current directory")?;
+    let project_root = std::env::current_dir().context("Failed to get current directory")?;
 
     if verbose {
         println!("Generating documentation in: {}", output.display());
@@ -319,16 +318,18 @@ async fn doc_command(output: PathBuf, verbose: bool) -> Result<()> {
 
     // 1. Generate DocGraph JSON metadata
     let generated_dir = output.join("generated");
-    std::fs::create_dir_all(&generated_dir)
-        .context("Failed to create docs/generated directory")?;
+    std::fs::create_dir_all(&generated_dir).context("Failed to create docs/generated directory")?;
 
     let graph = docgen::generate();
 
-    let docgraph_json = serde_json::to_string_pretty(&graph)
-        .context("Failed to serialize DocGraph")?;
+    let docgraph_json =
+        serde_json::to_string_pretty(&graph).context("Failed to serialize DocGraph")?;
     std::fs::write(generated_dir.join("docgraph.json"), &docgraph_json)
         .context("Failed to write docgraph.json")?;
-    println!("  Generated: docs/generated/docgraph.json ({} bytes)", docgraph_json.len());
+    println!(
+        "  Generated: docs/generated/docgraph.json ({} bytes)",
+        docgraph_json.len()
+    );
 
     let search_json = serde_json::to_string_pretty(&graph.index.search)
         .context("Failed to serialize search index")?;
@@ -338,10 +339,12 @@ async fn doc_command(output: PathBuf, verbose: bool) -> Result<()> {
 
     // Per-page JSON files
     for page in &graph.pages {
-        let page_json = serde_json::to_string_pretty(page)
-            .context("Failed to serialize page")?;
-        std::fs::write(generated_dir.join(format!("{}.json", page.slug)), &page_json)
-            .with_context(|| format!("Failed to write {}.json", page.slug))?;
+        let page_json = serde_json::to_string_pretty(page).context("Failed to serialize page")?;
+        std::fs::write(
+            generated_dir.join(format!("{}.json", page.slug)),
+            &page_json,
+        )
+        .with_context(|| format!("Failed to write {}.json", page.slug))?;
         if verbose {
             println!("  Generated: docs/generated/{}.json", page.slug);
         }
@@ -364,8 +367,8 @@ async fn doc_command(output: PathBuf, verbose: bool) -> Result<()> {
             )
         })
         .collect();
-    let link_json = serde_json::to_string_pretty(&link_index)
-        .context("Failed to serialize link index")?;
+    let link_json =
+        serde_json::to_string_pretty(&link_index).context("Failed to serialize link index")?;
     std::fs::write(generated_dir.join("link_index.json"), &link_json)
         .context("Failed to write link_index.json")?;
     println!("  Generated: docs/generated/link_index.json");
@@ -373,8 +376,7 @@ async fn doc_command(output: PathBuf, verbose: bool) -> Result<()> {
     // 2. Generate LSIF dump
     let lsif = docgen::lsif::generate_lsif(&project_root, &graph);
     let dump_path = project_root.join("dump.lsif");
-    std::fs::write(&dump_path, &lsif)
-        .context("Failed to write dump.lsif")?;
+    std::fs::write(&dump_path, &lsif).context("Failed to write dump.lsif")?;
     println!("  Generated: dump.lsif ({} bytes)", lsif.len());
 
     // 3. Discover and document .kr source files

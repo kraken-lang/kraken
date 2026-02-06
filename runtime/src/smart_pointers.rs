@@ -6,7 +6,7 @@ use std::alloc::{alloc, dealloc, Layout};
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-/// Box<T> runtime - heap allocation with ownership
+/// `Box<T>` runtime - heap allocation with ownership
 pub struct BoxRuntime<T> {
     ptr: NonNull<T>,
 }
@@ -48,7 +48,7 @@ impl<T> Drop for BoxRuntime<T> {
     }
 }
 
-/// Rc<T> runtime - reference counting for shared ownership
+/// `Rc<T>` runtime - reference counting for shared ownership
 pub struct RcRuntime<T> {
     ptr: NonNull<RcBox<T>>,
 }
@@ -116,7 +116,7 @@ impl<T> Drop for RcRuntime<T> {
     }
 }
 
-/// Arc<T> runtime - atomic reference counting for thread safety
+/// `Arc<T>` runtime - atomic reference counting for thread safety
 pub struct ArcRuntime<T> {
     ptr: NonNull<ArcBox<T>>,
 }

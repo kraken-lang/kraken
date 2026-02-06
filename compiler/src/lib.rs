@@ -13,10 +13,10 @@ pub mod codegen;
 pub mod debugger;
 /// Diagnostic code registry: KRA-prefixed error/warning code lookup and documentation.
 pub mod diagnostic_registry;
-/// Documentation metadata generator: DocGraph JSON conforming to docgraph-v1 schema.
-pub mod docgen;
 /// Diagnostic system: structured error/warning codes with severity, messages, and suggestions.
 pub mod diagnostics;
+/// Documentation metadata generator: DocGraph JSON conforming to docgraph-v1 schema.
+pub mod docgen;
 /// Compiler error types, source locations, spans, and diagnostic hints.
 pub mod error;
 /// Error helper utilities: fuzzy name matching, "did you mean" suggestions.
@@ -36,6 +36,8 @@ pub mod optimizer;
 /// Parser: token stream to AST conversion, expression/statement parsing.
 pub mod parser;
 /// Semantic versioning enforcement: API surface tracking, diff detection, and bump validation.
+///
+/// See [`semver::ApiSurface`] and [`semver::ApiDiff`] for details.
 pub mod semver;
 /// Cross-platform target support: target triples, architecture detection, LLVM target generation.
 pub mod target;
