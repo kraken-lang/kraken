@@ -50,8 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated `build.sh` to compile all 8 C runtime source files (was only compiling 4)
 - **LLVM codegen test SIGSEGV in CI** (`compiler/Cargo.toml`, `compiler/src/codegen/`)
   - LLVM's global state (context creation/destruction, `atexit` handlers) is not thread-safe when multiple `LLVMContext` instances exist concurrently
-  - Crash occurred during process teardown after all codegen tests passed, causing CI failures
-  - Fixed by adding `serial_test` crate and `#[serial]` attributes to all 90 LLVM-touching tests, forcing sequential execution while keeping other tests parallel
+  - Crash occurred during parallel test execution across multiple test binaries in `cargo test --workspace`
+  - Fixed by adding `serial_test` crate with `file_locks` feature and `#[file_serial]` attributes to all 90 LLVM-touching tests
+  - `file_serial` uses filesystem-based locks to synchronize across process boundaries, ensuring only one LLVM context exists at a time workspace-wide
 - Removed stale `#[allow(dead_code)]` from 16+ files across analyzer, parser, CLI, and IR modules
 - Removed duplicate inner `#![allow(dead_code)]` attributes from `diagnostic_registry.rs` and `diagnostics.rs`
 - Replaced all stale TODO/FIXME comments with proper documentation noting deferred-to-1.0 status
