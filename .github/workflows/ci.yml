@@ -87,8 +87,8 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-v2-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build runtime library (Unix)
-        if: runner.os != 'Windows'
+      - name: Build runtime library
+        shell: bash
         run: bash runtime/build.sh
 
       - name: Build
@@ -196,8 +196,8 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Build runtime library (Unix)
-        if: runner.os != 'Windows'
+      - name: Build runtime library
+        shell: bash
         run: bash runtime/build.sh
 
       - name: Build release
