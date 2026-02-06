@@ -48,6 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Runtime library build** (`runtime/build.sh`, `runtime/kraken_string.c`)
   - Added missing `#include <stdio.h>` in `kraken_string.c` for `vsprintf`/`vsnprintf` declarations
   - Updated `build.sh` to compile all 8 C runtime source files (was only compiling 4)
+- **LLVM codegen test SIGSEGV in CI** (`.cargo/config.toml`, `compiler/src/codegen/mod.rs`)
+  - LLVM's global state (context creation/destruction, `atexit` handlers) is not thread-safe when multiple `LLVMContext` instances exist concurrently
+  - Crash occurred during process teardown after all codegen tests passed, causing CI failures
+  - Fixed with `RUST_TEST_THREADS=1` in `.cargo/config.toml` and a shared `LLVM_TEST_LOCK` mutex across codegen test modules
 - Removed stale `#[allow(dead_code)]` from 16+ files across analyzer, parser, CLI, and IR modules
 - Removed duplicate inner `#![allow(dead_code)]` attributes from `diagnostic_registry.rs` and `diagnostics.rs`
 - Replaced all stale TODO/FIXME comments with proper documentation noting deferred-to-1.0 status

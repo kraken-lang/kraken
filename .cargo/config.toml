@@ -1,0 +1,11 @@
+#####################################################
+#  Cargo Configuration
+#####################################################
+
+# Force single-threaded test execution for the lib test binary.
+# LLVM's global state (context creation/destruction, target initialization,
+# atexit handlers) is not thread-safe when multiple LLVMContext instances
+# are created and destroyed concurrently. Running tests in parallel causes
+# SIGSEGV during LLVM context teardown.
+[env]
+RUST_TEST_THREADS = "1"
