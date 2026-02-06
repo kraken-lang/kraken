@@ -93,7 +93,7 @@ jobs:
           LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
 
       - name: Run tests
-        run: cargo test --workspace
+        run: cargo test --workspace -- --test-threads=1
         env:
           LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
 
