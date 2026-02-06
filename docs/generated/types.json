@@ -1,0 +1,33 @@
+{
+  "id": "page.types",
+  "slug": "types",
+  "title": "Types",
+  "summary": "Primitive and container types in Kraken.",
+  "nav": {
+    "group": "Language Reference",
+    "order": 3
+  },
+  "sections": [
+    {
+      "kind": "node_list",
+      "title": "Types",
+      "node_ids": [
+        "type.bool",
+        "type.bytes",
+        "type.float",
+        "type.int",
+        "type.mapstringint",
+        "type.mapstringstring",
+        "type.slicebytes",
+        "type.sliceint",
+        "type.slicestring",
+        "type.str",
+        "type.string",
+        "type.vecbytes",
+        "type.vecint",
+        "type.vecstring",
+        "type.void"
+      ]
+    }
+  ]
+}

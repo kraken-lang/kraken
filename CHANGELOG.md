@@ -10,6 +10,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-02-06
+
+### Added
+- **Language Specification** (`docs/spec/`)
+  - 15 ordered chapters (00-14) covering introduction, lexical structure, types, declarations, expressions, statements, patterns, generics and traits, modules and visibility, memory model, error handling, concurrency, FFI and ABI, macros and compile-time features, and standard library reference
+  - Formal EBNF grammar (`docs/spec/grammar.ebnf`) with 511 production rules covering the full parser-accepted syntax
+  - Spec directory README with chapter index and notation conventions
+- **DocGraph Metadata Generator** (`compiler/src/docgen/`)
+  - New `docgen` module with `types.rs` (serializable DocGraph structures conforming to `docgraph-v1.schema.json`) and `builder.rs` (populates 49 keywords, 31 operators, 7 primitive types, 8 container types, 14 stdlib functions, and CLI tooling nodes)
+  - Search index generation with tokenized entries for all 111 nodes
+  - Grouped page generation: keywords, operators, types, stdlib, tooling
+  - 9 unit tests for node presence, search consistency, page references, and JSON roundtrip
+- **LSIF Index Generator** (`compiler/src/docgen/lsif.rs`)
+  - Generates `dump.lsif` in LSIF 0.4 line-delimited JSON format
+  - Indexes all `.kr` source files with document, range, resultSet, definitionResult, and hoverResult vertices
+  - Declaration scanner covering fn, async fn, struct, enum, trait, impl, type, const, union, class, and interface declarations
+  - 8 unit tests for declaration scanning, LSIF output structure, and JSON line validity
+- **Enhanced Doc Command** (`compiler/src/cli/commands/doc.rs`)
+  - Structured doc extraction separating `//!` module docs from `///` item docs with declaration-kind detection
+  - Markdown rendering in doc comments: fenced code blocks, headers, bold, italic, inline code
+  - Cross-references via `` [`Name`] `` syntax, linking to known declarations by anchor
+  - Client-side search filtering on both per-file and index pages
+  - Table of contents with declaration kind badges and source line numbers
+  - Breadcrumb navigation and modernized CSS
+  - Automatic DocGraph JSON output: `docgraph.json`, `search_index.json`, per-page JSONs, `link_index.json`
+  - Automatic LSIF dump on `krakenc doc`
+  - 18 unit tests covering extraction, rendering, cross-refs, and HTML output
+- **`doc` CLI Subcommand** (`compiler/src/main.rs`)
+  - Added `Doc` variant to the clap-based CLI so `krakenc doc` works end-to-end
+  - `--output` flag for custom output directory, `--verbose` for detailed progress
+
+### Changed
+- **DocGraph Schema** (`docs/schemas/docgraph-v1.schema.json`)
+  - Added `union` to the `TypeNode.kind` enum to match language support for union declarations
+- Registered `docgen` module in `compiler/src/lib.rs`
+- Total tests: 580 integration + 686 library = 1266 tests passing, zero warnings
+
+
 ## [0.9.0] - 2026-02-05
 
 ### Added
@@ -2723,7 +2761,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
-[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/kraken-lang/kraken/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/kraken-lang/kraken/compare/v0.8.50...v0.9.0
 [0.8.50]: https://github.com/kraken-lang/kraken/compare/v0.8.49...v0.8.50
 [0.8.49]: https://github.com/kraken-lang/kraken/compare/v0.8.48...v0.8.49

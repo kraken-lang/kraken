@@ -901,7 +901,7 @@ dependencies = [
 
 [[package]]
 name = "kraken"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -929,7 +929,7 @@ dependencies = [
 
 [[package]]
 name = "kraken-runtime"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "chrono",
  "chrono-tz",

@@ -1,0 +1,49 @@
+{
+  "id": "page.operators",
+  "slug": "operators",
+  "title": "Operators",
+  "summary": "All operators in the Kraken language.",
+  "nav": {
+    "group": "Language Reference",
+    "order": 2
+  },
+  "sections": [
+    {
+      "kind": "node_list",
+      "title": "Operators",
+      "node_ids": [
+        "operator.and",
+        "operator.arrow",
+        "operator.assign",
+        "operator.bit-and",
+        "operator.bit-not",
+        "operator.bit-or",
+        "operator.bit-xor",
+        "operator.double-colon",
+        "operator.equal",
+        "operator.greater",
+        "operator.greater-equal",
+        "operator.left-shift",
+        "operator.less",
+        "operator.less-equal",
+        "operator.minus",
+        "operator.minus-assign",
+        "operator.not",
+        "operator.not-equal",
+        "operator.or",
+        "operator.percent",
+        "operator.percent-assign",
+        "operator.plus",
+        "operator.plus-assign",
+        "operator.range",
+        "operator.range-inclusive",
+        "operator.right-shift",
+        "operator.slash",
+        "operator.slash-assign",
+        "operator.star",
+        "operator.star-assign",
+        "operator.try"
+      ]
+    }
+  ]
+}

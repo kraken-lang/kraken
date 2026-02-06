@@ -1,0 +1,19 @@
+{
+  "id": "page.tooling",
+  "slug": "tooling",
+  "title": "Tooling",
+  "summary": "CLI commands and developer tools.",
+  "nav": {
+    "group": "Tooling",
+    "order": 5
+  },
+  "sections": [
+    {
+      "kind": "node_list",
+      "title": "Tools",
+      "node_ids": [
+        "tooling.cli"
+      ]
+    }
+  ]
+}

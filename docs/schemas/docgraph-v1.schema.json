@@ -358,7 +358,7 @@
       "additionalProperties": false,
       "required": ["kind"],
       "properties": {
-        "kind": { "type": "string", "enum": ["struct", "enum", "alias", "primitive"] },
+        "kind": { "type": "string", "enum": ["struct", "enum", "union", "alias", "primitive"] },
         "module_id": { "$ref": "#/$defs/NodeId" },
         "fields": { "type": "array", "items": { "$ref": "#/$defs/Field" } },
         "variants": { "type": "array", "items": { "$ref": "#/$defs/Variant" } },

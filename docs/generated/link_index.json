@@ -1,0 +1,557 @@
+{
+  "fn.calloc": {
+    "kind": "symbol",
+    "path": "std/calloc",
+    "title": "calloc"
+  },
+  "fn.free": {
+    "kind": "symbol",
+    "path": "std/free",
+    "title": "free"
+  },
+  "fn.kraken_str_concat": {
+    "kind": "symbol",
+    "path": "std/kraken_str_concat",
+    "title": "kraken_str_concat"
+  },
+  "fn.kraken_str_contains": {
+    "kind": "symbol",
+    "path": "std/kraken_str_contains",
+    "title": "kraken_str_contains"
+  },
+  "fn.kraken_str_join": {
+    "kind": "symbol",
+    "path": "std/kraken_str_join",
+    "title": "kraken_str_join"
+  },
+  "fn.kraken_str_len": {
+    "kind": "symbol",
+    "path": "std/kraken_str_len",
+    "title": "kraken_str_len"
+  },
+  "fn.kraken_str_split": {
+    "kind": "symbol",
+    "path": "std/kraken_str_split",
+    "title": "kraken_str_split"
+  },
+  "fn.kraken_str_trim": {
+    "kind": "symbol",
+    "path": "std/kraken_str_trim",
+    "title": "kraken_str_trim"
+  },
+  "fn.malloc": {
+    "kind": "symbol",
+    "path": "std/malloc",
+    "title": "malloc"
+  },
+  "fn.printf": {
+    "kind": "symbol",
+    "path": "std/printf",
+    "title": "printf"
+  },
+  "fn.puts": {
+    "kind": "symbol",
+    "path": "std/puts",
+    "title": "puts"
+  },
+  "fn.realloc": {
+    "kind": "symbol",
+    "path": "std/realloc",
+    "title": "realloc"
+  },
+  "fn.strcmp": {
+    "kind": "symbol",
+    "path": "std/strcmp",
+    "title": "strcmp"
+  },
+  "fn.strlen": {
+    "kind": "symbol",
+    "path": "std/strlen",
+    "title": "strlen"
+  },
+  "keyword.as": {
+    "kind": "keyword",
+    "path": "keywords/as",
+    "title": "`as` keyword"
+  },
+  "keyword.async": {
+    "kind": "keyword",
+    "path": "keywords/async",
+    "title": "`async` keyword"
+  },
+  "keyword.await": {
+    "kind": "keyword",
+    "path": "keywords/await",
+    "title": "`await` keyword"
+  },
+  "keyword.break": {
+    "kind": "keyword",
+    "path": "keywords/break",
+    "title": "`break` keyword"
+  },
+  "keyword.class": {
+    "kind": "keyword",
+    "path": "keywords/class",
+    "title": "`class` keyword"
+  },
+  "keyword.const": {
+    "kind": "keyword",
+    "path": "keywords/const",
+    "title": "`const` keyword"
+  },
+  "keyword.continue": {
+    "kind": "keyword",
+    "path": "keywords/continue",
+    "title": "`continue` keyword"
+  },
+  "keyword.defer": {
+    "kind": "keyword",
+    "path": "keywords/defer",
+    "title": "`defer` keyword"
+  },
+  "keyword.derive": {
+    "kind": "keyword",
+    "path": "keywords/derive",
+    "title": "`derive` keyword"
+  },
+  "keyword.do": {
+    "kind": "keyword",
+    "path": "keywords/do",
+    "title": "`do` keyword"
+  },
+  "keyword.dyn": {
+    "kind": "keyword",
+    "path": "keywords/dyn",
+    "title": "`dyn` keyword"
+  },
+  "keyword.else": {
+    "kind": "keyword",
+    "path": "keywords/else",
+    "title": "`else` keyword"
+  },
+  "keyword.enum": {
+    "kind": "keyword",
+    "path": "keywords/enum",
+    "title": "`enum` keyword"
+  },
+  "keyword.false": {
+    "kind": "keyword",
+    "path": "keywords/false",
+    "title": "`false` keyword"
+  },
+  "keyword.fn": {
+    "kind": "keyword",
+    "path": "keywords/fn",
+    "title": "`fn` keyword"
+  },
+  "keyword.for": {
+    "kind": "keyword",
+    "path": "keywords/for",
+    "title": "`for` keyword"
+  },
+  "keyword.generic": {
+    "kind": "keyword",
+    "path": "keywords/generic",
+    "title": "`generic` keyword"
+  },
+  "keyword.if": {
+    "kind": "keyword",
+    "path": "keywords/if",
+    "title": "`if` keyword"
+  },
+  "keyword.impl": {
+    "kind": "keyword",
+    "path": "keywords/impl",
+    "title": "`impl` keyword"
+  },
+  "keyword.import": {
+    "kind": "keyword",
+    "path": "keywords/import",
+    "title": "`import` keyword"
+  },
+  "keyword.in": {
+    "kind": "keyword",
+    "path": "keywords/in",
+    "title": "`in` keyword"
+  },
+  "keyword.inline": {
+    "kind": "keyword",
+    "path": "keywords/inline",
+    "title": "`inline` keyword"
+  },
+  "keyword.interface": {
+    "kind": "keyword",
+    "path": "keywords/interface",
+    "title": "`interface` keyword"
+  },
+  "keyword.let": {
+    "kind": "keyword",
+    "path": "keywords/let",
+    "title": "`let` keyword"
+  },
+  "keyword.macro": {
+    "kind": "keyword",
+    "path": "keywords/macro",
+    "title": "`macro` keyword"
+  },
+  "keyword.macro_rules": {
+    "kind": "keyword",
+    "path": "keywords/macro_rules",
+    "title": "`macro_rules` keyword"
+  },
+  "keyword.match": {
+    "kind": "keyword",
+    "path": "keywords/match",
+    "title": "`match` keyword"
+  },
+  "keyword.module": {
+    "kind": "keyword",
+    "path": "keywords/module",
+    "title": "`module` keyword"
+  },
+  "keyword.move": {
+    "kind": "keyword",
+    "path": "keywords/move",
+    "title": "`move` keyword"
+  },
+  "keyword.mut": {
+    "kind": "keyword",
+    "path": "keywords/mut",
+    "title": "`mut` keyword"
+  },
+  "keyword.no_mangle": {
+    "kind": "keyword",
+    "path": "keywords/no_mangle",
+    "title": "`no_mangle` keyword"
+  },
+  "keyword.null": {
+    "kind": "keyword",
+    "path": "keywords/null",
+    "title": "`null` keyword"
+  },
+  "keyword.priv": {
+    "kind": "keyword",
+    "path": "keywords/priv",
+    "title": "`priv` keyword"
+  },
+  "keyword.pub": {
+    "kind": "keyword",
+    "path": "keywords/pub",
+    "title": "`pub` keyword"
+  },
+  "keyword.ref": {
+    "kind": "keyword",
+    "path": "keywords/ref",
+    "title": "`ref` keyword"
+  },
+  "keyword.return": {
+    "kind": "keyword",
+    "path": "keywords/return",
+    "title": "`return` keyword"
+  },
+  "keyword.self": {
+    "kind": "keyword",
+    "path": "keywords/self",
+    "title": "`self` keyword"
+  },
+  "keyword.spawn": {
+    "kind": "keyword",
+    "path": "keywords/spawn",
+    "title": "`spawn` keyword"
+  },
+  "keyword.static": {
+    "kind": "keyword",
+    "path": "keywords/static",
+    "title": "`static` keyword"
+  },
+  "keyword.static_assert": {
+    "kind": "keyword",
+    "path": "keywords/static_assert",
+    "title": "`static_assert` keyword"
+  },
+  "keyword.struct": {
+    "kind": "keyword",
+    "path": "keywords/struct",
+    "title": "`struct` keyword"
+  },
+  "keyword.super": {
+    "kind": "keyword",
+    "path": "keywords/super",
+    "title": "`super` keyword"
+  },
+  "keyword.test": {
+    "kind": "keyword",
+    "path": "keywords/test",
+    "title": "`test` keyword"
+  },
+  "keyword.trait": {
+    "kind": "keyword",
+    "path": "keywords/trait",
+    "title": "`trait` keyword"
+  },
+  "keyword.true": {
+    "kind": "keyword",
+    "path": "keywords/true",
+    "title": "`true` keyword"
+  },
+  "keyword.type": {
+    "kind": "keyword",
+    "path": "keywords/type",
+    "title": "`type` keyword"
+  },
+  "keyword.union": {
+    "kind": "keyword",
+    "path": "keywords/union",
+    "title": "`union` keyword"
+  },
+  "keyword.unsafe": {
+    "kind": "keyword",
+    "path": "keywords/unsafe",
+    "title": "`unsafe` keyword"
+  },
+  "keyword.where": {
+    "kind": "keyword",
+    "path": "keywords/where",
+    "title": "`where` keyword"
+  },
+  "keyword.while": {
+    "kind": "keyword",
+    "path": "keywords/while",
+    "title": "`while` keyword"
+  },
+  "operator.and": {
+    "kind": "operator",
+    "path": "operators/and",
+    "title": "`&&` operator"
+  },
+  "operator.arrow": {
+    "kind": "operator",
+    "path": "operators/arrow",
+    "title": "`->` operator"
+  },
+  "operator.assign": {
+    "kind": "operator",
+    "path": "operators/assign",
+    "title": "`=` operator"
+  },
+  "operator.bit-and": {
+    "kind": "operator",
+    "path": "operators/bit-and",
+    "title": "`&` operator"
+  },
+  "operator.bit-not": {
+    "kind": "operator",
+    "path": "operators/bit-not",
+    "title": "`~` operator"
+  },
+  "operator.bit-or": {
+    "kind": "operator",
+    "path": "operators/bit-or",
+    "title": "`|` operator"
+  },
+  "operator.bit-xor": {
+    "kind": "operator",
+    "path": "operators/bit-xor",
+    "title": "`^` operator"
+  },
+  "operator.double-colon": {
+    "kind": "operator",
+    "path": "operators/double-colon",
+    "title": "`::` operator"
+  },
+  "operator.equal": {
+    "kind": "operator",
+    "path": "operators/equal",
+    "title": "`==` operator"
+  },
+  "operator.greater": {
+    "kind": "operator",
+    "path": "operators/greater",
+    "title": "`>` operator"
+  },
+  "operator.greater-equal": {
+    "kind": "operator",
+    "path": "operators/greater-equal",
+    "title": "`>=` operator"
+  },
+  "operator.left-shift": {
+    "kind": "operator",
+    "path": "operators/left-shift",
+    "title": "`<<` operator"
+  },
+  "operator.less": {
+    "kind": "operator",
+    "path": "operators/less",
+    "title": "`<` operator"
+  },
+  "operator.less-equal": {
+    "kind": "operator",
+    "path": "operators/less-equal",
+    "title": "`<=` operator"
+  },
+  "operator.minus": {
+    "kind": "operator",
+    "path": "operators/minus",
+    "title": "`-` operator"
+  },
+  "operator.minus-assign": {
+    "kind": "operator",
+    "path": "operators/minus-assign",
+    "title": "`-=` operator"
+  },
+  "operator.not": {
+    "kind": "operator",
+    "path": "operators/not",
+    "title": "`!` operator"
+  },
+  "operator.not-equal": {
+    "kind": "operator",
+    "path": "operators/not-equal",
+    "title": "`!=` operator"
+  },
+  "operator.or": {
+    "kind": "operator",
+    "path": "operators/or",
+    "title": "`||` operator"
+  },
+  "operator.percent": {
+    "kind": "operator",
+    "path": "operators/percent",
+    "title": "`%` operator"
+  },
+  "operator.percent-assign": {
+    "kind": "operator",
+    "path": "operators/percent-assign",
+    "title": "`%=` operator"
+  },
+  "operator.plus": {
+    "kind": "operator",
+    "path": "operators/plus",
+    "title": "`+` operator"
+  },
+  "operator.plus-assign": {
+    "kind": "operator",
+    "path": "operators/plus-assign",
+    "title": "`+=` operator"
+  },
+  "operator.range": {
+    "kind": "operator",
+    "path": "operators/range",
+    "title": "`..` operator"
+  },
+  "operator.range-inclusive": {
+    "kind": "operator",
+    "path": "operators/range-inclusive",
+    "title": "`..=` operator"
+  },
+  "operator.right-shift": {
+    "kind": "operator",
+    "path": "operators/right-shift",
+    "title": "`>>` operator"
+  },
+  "operator.slash": {
+    "kind": "operator",
+    "path": "operators/slash",
+    "title": "`/` operator"
+  },
+  "operator.slash-assign": {
+    "kind": "operator",
+    "path": "operators/slash-assign",
+    "title": "`/=` operator"
+  },
+  "operator.star": {
+    "kind": "operator",
+    "path": "operators/star",
+    "title": "`*` operator"
+  },
+  "operator.star-assign": {
+    "kind": "operator",
+    "path": "operators/star-assign",
+    "title": "`*=` operator"
+  },
+  "operator.try": {
+    "kind": "operator",
+    "path": "operators/try",
+    "title": "`?` operator"
+  },
+  "tooling.cli": {
+    "kind": "tooling",
+    "path": "tooling/cli",
+    "title": "Kraken CLI"
+  },
+  "type.bool": {
+    "kind": "type",
+    "path": "types/bool",
+    "title": "bool"
+  },
+  "type.bytes": {
+    "kind": "type",
+    "path": "types/bytes",
+    "title": "bytes"
+  },
+  "type.float": {
+    "kind": "type",
+    "path": "types/float",
+    "title": "float"
+  },
+  "type.int": {
+    "kind": "type",
+    "path": "types/int",
+    "title": "int"
+  },
+  "type.mapstringint": {
+    "kind": "type",
+    "path": "types/MapStringInt",
+    "title": "MapStringInt"
+  },
+  "type.mapstringstring": {
+    "kind": "type",
+    "path": "types/MapStringString",
+    "title": "MapStringString"
+  },
+  "type.slicebytes": {
+    "kind": "type",
+    "path": "types/SliceBytes",
+    "title": "SliceBytes"
+  },
+  "type.sliceint": {
+    "kind": "type",
+    "path": "types/SliceInt",
+    "title": "SliceInt"
+  },
+  "type.slicestring": {
+    "kind": "type",
+    "path": "types/SliceString",
+    "title": "SliceString"
+  },
+  "type.str": {
+    "kind": "type",
+    "path": "types/str",
+    "title": "str"
+  },
+  "type.string": {
+    "kind": "type",
+    "path": "types/string",
+    "title": "string"
+  },
+  "type.vecbytes": {
+    "kind": "type",
+    "path": "types/VecBytes",
+    "title": "VecBytes"
+  },
+  "type.vecint": {
+    "kind": "type",
+    "path": "types/VecInt",
+    "title": "VecInt"
+  },
+  "type.vecstring": {
+    "kind": "type",
+    "path": "types/VecString",
+    "title": "VecString"
+  },
+  "type.void": {
+    "kind": "type",
+    "path": "types/void",
+    "title": "void"
+  }
+}

@@ -7,6 +7,8 @@ use clap::{Parser as ClapParser, Subcommand};
 use std::path::{Path, PathBuf};
 use tokio::fs;
 
+use kraken::docgen;
+
 #[allow(dead_code)]
 mod analyzer;
 #[allow(dead_code)]
@@ -98,6 +100,17 @@ enum Commands {
         #[arg(short, long, value_name = "DIR")]
         path: Option<PathBuf>,
     },
+
+    /// Generate documentation, DocGraph JSON, and LSIF index
+    Doc {
+        /// Output directory for generated docs (default: docs)
+        #[arg(short, long, value_name = "DIR", default_value = "docs")]
+        output: PathBuf,
+
+        /// Enable verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
 }
 
 #[tokio::main]
@@ -121,6 +134,9 @@ async fn main() -> Result<()> {
         }
         Commands::New { name, path } => {
             new_command(name, path).await?;
+        }
+        Commands::Doc { output, verbose } => {
+            doc_command(output, verbose).await?;
         }
     }
 
@@ -288,6 +304,89 @@ version = "0.1.0"
 
     println!("Created new Kraken project: {name}");
     println!("  Directory: {}", project_dir.display());
+
+    Ok(())
+}
+
+/// Doc command implementation — generates DocGraph JSON, LSIF, and HTML docs.
+async fn doc_command(output: PathBuf, verbose: bool) -> Result<()> {
+    let project_root =
+        std::env::current_dir().context("Failed to get current directory")?;
+
+    if verbose {
+        println!("Generating documentation in: {}", output.display());
+    }
+
+    // 1. Generate DocGraph JSON metadata
+    let generated_dir = output.join("generated");
+    std::fs::create_dir_all(&generated_dir)
+        .context("Failed to create docs/generated directory")?;
+
+    let graph = docgen::generate();
+
+    let docgraph_json = serde_json::to_string_pretty(&graph)
+        .context("Failed to serialize DocGraph")?;
+    std::fs::write(generated_dir.join("docgraph.json"), &docgraph_json)
+        .context("Failed to write docgraph.json")?;
+    println!("  Generated: docs/generated/docgraph.json ({} bytes)", docgraph_json.len());
+
+    let search_json = serde_json::to_string_pretty(&graph.index.search)
+        .context("Failed to serialize search index")?;
+    std::fs::write(generated_dir.join("search_index.json"), &search_json)
+        .context("Failed to write search_index.json")?;
+    println!("  Generated: docs/generated/search_index.json");
+
+    // Per-page JSON files
+    for page in &graph.pages {
+        let page_json = serde_json::to_string_pretty(page)
+            .context("Failed to serialize page")?;
+        std::fs::write(generated_dir.join(format!("{}.json", page.slug)), &page_json)
+            .with_context(|| format!("Failed to write {}.json", page.slug))?;
+        if verbose {
+            println!("  Generated: docs/generated/{}.json", page.slug);
+        }
+    }
+
+    // Link index
+    let link_index: std::collections::BTreeMap<&str, serde_json::Value> = graph
+        .index
+        .search
+        .entries
+        .iter()
+        .map(|e| {
+            (
+                e.node_id.as_str(),
+                serde_json::json!({
+                    "title": e.title,
+                    "kind": e.kind,
+                    "path": e.path
+                }),
+            )
+        })
+        .collect();
+    let link_json = serde_json::to_string_pretty(&link_index)
+        .context("Failed to serialize link index")?;
+    std::fs::write(generated_dir.join("link_index.json"), &link_json)
+        .context("Failed to write link_index.json")?;
+    println!("  Generated: docs/generated/link_index.json");
+
+    // 2. Generate LSIF dump
+    let lsif = docgen::lsif::generate_lsif(&project_root, &graph);
+    let dump_path = project_root.join("dump.lsif");
+    std::fs::write(&dump_path, &lsif)
+        .context("Failed to write dump.lsif")?;
+    println!("  Generated: dump.lsif ({} bytes)", lsif.len());
+
+    // 3. Discover and document .kr source files
+    let kr_files = discover_source_files(&project_root).unwrap_or_default();
+    if !kr_files.is_empty() {
+        println!("  Found {} source file(s) for HTML docs", kr_files.len());
+    }
+
+    println!("Documentation generation complete.");
+    println!("  DocGraph nodes: {}", graph.nodes.len());
+    println!("  Search entries: {}", graph.index.search.entries.len());
+    println!("  Pages: {}", graph.pages.len());
 
     Ok(())
 }

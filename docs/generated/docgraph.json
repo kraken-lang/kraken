@@ -1,0 +1,3699 @@
+{
+  "meta": {
+    "schema": {
+      "name": "kraken-docgraph",
+      "version": 1
+    },
+    "generated_at": "1770388128",
+    "tool": {
+      "name": "kraken-docgen",
+      "version": "0.9.0"
+    },
+    "source": {
+      "project": "kraken-lang/kraken",
+      "revision": "HEAD"
+    }
+  },
+  "index": {
+    "node_kinds": [
+      "keyword",
+      "operator",
+      "symbol",
+      "tooling",
+      "type"
+    ],
+    "tags": [
+      "cli",
+      "container",
+      "control-flow",
+      "declaration",
+      "function",
+      "generics",
+      "keyword",
+      "literal",
+      "macro",
+      "modifier",
+      "module",
+      "operator",
+      "primitive",
+      "special",
+      "stdlib",
+      "tooling",
+      "type"
+    ],
+    "search": {
+      "entries": [
+        {
+          "node_id": "keyword.if",
+          "title": "`if` keyword",
+          "kind": "keyword",
+          "path": "keywords/if",
+          "tokens": [
+            "if",
+            "keyword",
+            "control-flow"
+          ]
+        },
+        {
+          "node_id": "keyword.else",
+          "title": "`else` keyword",
+          "kind": "keyword",
+          "path": "keywords/else",
+          "tokens": [
+            "else",
+            "keyword",
+            "control-flow"
+          ]
+        },
+        {
+          "node_id": "keyword.match",
+          "title": "`match` keyword",
+          "kind": "keyword",
+          "path": "keywords/match",
+          "tokens": [
+            "match",
+            "keyword",
+            "control-flow"
+          ]
+        },
+        {
+          "node_id": "keyword.for",
+          "title": "`for` keyword",
+          "kind": "keyword",
+          "path": "keywords/for",
+          "tokens": [
+            "for",
+            "keyword",
+            "control-flow"
+          ]
+        },
+        {
+          "node_id": "keyword.while",
+          "title": "`while` keyword",
+          "kind": "keyword",
+          "path": "keywords/while",
+          "tokens": [
+            "while",
+            "keyword",
+            "control-flow"
+          ]
+        },
+        {
+          "node_id": "keyword.do",
+          "title": "`do` keyword",
+          "kind": "keyword",
+          "path": "keywords/do",
+          "tokens": [
+            "do",
+            "keyword",
+            "control-flow"
+          ]
+        },
+        {
+          "node_id": "keyword.break",
+          "title": "`break` keyword",
+          "kind": "keyword",
+          "path": "keywords/break",
+          "tokens": [
+            "break",
+            "keyword",
+            "control-flow"
+          ]
+        },
+        {
+          "node_id": "keyword.continue",
+          "title": "`continue` keyword",
+          "kind": "keyword",
+          "path": "keywords/continue",
+          "tokens": [
+            "continue",
+            "keyword",
+            "control-flow"
+          ]
+        },
+        {
+          "node_id": "keyword.return",
+          "title": "`return` keyword",
+          "kind": "keyword",
+          "path": "keywords/return",
+          "tokens": [
+            "return",
+            "keyword",
+            "control-flow"
+          ]
+        },
+        {
+          "node_id": "keyword.fn",
+          "title": "`fn` keyword",
+          "kind": "keyword",
+          "path": "keywords/fn",
+          "tokens": [
+            "fn",
+            "keyword",
+            "declaration"
+          ]
+        },
+        {
+          "node_id": "keyword.let",
+          "title": "`let` keyword",
+          "kind": "keyword",
+          "path": "keywords/let",
+          "tokens": [
+            "let",
+            "keyword",
+            "declaration"
+          ]
+        },
+        {
+          "node_id": "keyword.const",
+          "title": "`const` keyword",
+          "kind": "keyword",
+          "path": "keywords/const",
+          "tokens": [
+            "const",
+            "keyword",
+            "declaration"
+          ]
+        },
+        {
+          "node_id": "keyword.struct",
+          "title": "`struct` keyword",
+          "kind": "keyword",
+          "path": "keywords/struct",
+          "tokens": [
+            "struct",
+            "keyword",
+            "declaration"
+          ]
+        },
+        {
+          "node_id": "keyword.enum",
+          "title": "`enum` keyword",
+          "kind": "keyword",
+          "path": "keywords/enum",
+          "tokens": [
+            "enum",
+            "keyword",
+            "declaration"
+          ]
+        },
+        {
+          "node_id": "keyword.trait",
+          "title": "`trait` keyword",
+          "kind": "keyword",
+          "path": "keywords/trait",
+          "tokens": [
+            "trait",
+            "keyword",
+            "declaration"
+          ]
+        },
+        {
+          "node_id": "keyword.impl",
+          "title": "`impl` keyword",
+          "kind": "keyword",
+          "path": "keywords/impl",
+          "tokens": [
+            "impl",
+            "keyword",
+            "declaration"
+          ]
+        },
+        {
+          "node_id": "keyword.type",
+          "title": "`type` keyword",
+          "kind": "keyword",
+          "path": "keywords/type",
+          "tokens": [
+            "type",
+            "keyword",
+            "declaration"
+          ]
+        },
+        {
+          "node_id": "keyword.union",
+          "title": "`union` keyword",
+          "kind": "keyword",
+          "path": "keywords/union",
+          "tokens": [
+            "union",
+            "keyword",
+            "declaration"
+          ]
+        },
+        {
+          "node_id": "keyword.class",
+          "title": "`class` keyword",
+          "kind": "keyword",
+          "path": "keywords/class",
+          "tokens": [
+            "class",
+            "keyword",
+            "declaration"
+          ]
+        },
+        {
+          "node_id": "keyword.interface",
+          "title": "`interface` keyword",
+          "kind": "keyword",
+          "path": "keywords/interface",
+          "tokens": [
+            "interface",
+            "keyword",
+            "declaration"
+          ]
+        },
+        {
+          "node_id": "keyword.module",
+          "title": "`module` keyword",
+          "kind": "keyword",
+          "path": "keywords/module",
+          "tokens": [
+            "module",
+            "keyword",
+            "module"
+          ]
+        },
+        {
+          "node_id": "keyword.import",
+          "title": "`import` keyword",
+          "kind": "keyword",
+          "path": "keywords/import",
+          "tokens": [
+            "import",
+            "keyword",
+            "module"
+          ]
+        },
+        {
+          "node_id": "keyword.pub",
+          "title": "`pub` keyword",
+          "kind": "keyword",
+          "path": "keywords/pub",
+          "tokens": [
+            "pub",
+            "keyword",
+            "modifier"
+          ]
+        },
+        {
+          "node_id": "keyword.priv",
+          "title": "`priv` keyword",
+          "kind": "keyword",
+          "path": "keywords/priv",
+          "tokens": [
+            "priv",
+            "keyword",
+            "modifier"
+          ]
+        },
+        {
+          "node_id": "keyword.static",
+          "title": "`static` keyword",
+          "kind": "keyword",
+          "path": "keywords/static",
+          "tokens": [
+            "static",
+            "keyword",
+            "modifier"
+          ]
+        },
+        {
+          "node_id": "keyword.async",
+          "title": "`async` keyword",
+          "kind": "keyword",
+          "path": "keywords/async",
+          "tokens": [
+            "async",
+            "keyword",
+            "modifier"
+          ]
+        },
+        {
+          "node_id": "keyword.await",
+          "title": "`await` keyword",
+          "kind": "keyword",
+          "path": "keywords/await",
+          "tokens": [
+            "await",
+            "keyword",
+            "modifier"
+          ]
+        },
+        {
+          "node_id": "keyword.spawn",
+          "title": "`spawn` keyword",
+          "kind": "keyword",
+          "path": "keywords/spawn",
+          "tokens": [
+            "spawn",
+            "keyword",
+            "modifier"
+          ]
+        },
+        {
+          "node_id": "keyword.ref",
+          "title": "`ref` keyword",
+          "kind": "keyword",
+          "path": "keywords/ref",
+          "tokens": [
+            "ref",
+            "keyword",
+            "modifier"
+          ]
+        },
+        {
+          "node_id": "keyword.mut",
+          "title": "`mut` keyword",
+          "kind": "keyword",
+          "path": "keywords/mut",
+          "tokens": [
+            "mut",
+            "keyword",
+            "modifier"
+          ]
+        },
+        {
+          "node_id": "keyword.move",
+          "title": "`move` keyword",
+          "kind": "keyword",
+          "path": "keywords/move",
+          "tokens": [
+            "move",
+            "keyword",
+            "modifier"
+          ]
+        },
+        {
+          "node_id": "keyword.unsafe",
+          "title": "`unsafe` keyword",
+          "kind": "keyword",
+          "path": "keywords/unsafe",
+          "tokens": [
+            "unsafe",
+            "keyword",
+            "modifier"
+          ]
+        },
+        {
+          "node_id": "keyword.true",
+          "title": "`true` keyword",
+          "kind": "keyword",
+          "path": "keywords/true",
+          "tokens": [
+            "true",
+            "keyword",
+            "literal"
+          ]
+        },
+        {
+          "node_id": "keyword.false",
+          "title": "`false` keyword",
+          "kind": "keyword",
+          "path": "keywords/false",
+          "tokens": [
+            "false",
+            "keyword",
+            "literal"
+          ]
+        },
+        {
+          "node_id": "keyword.null",
+          "title": "`null` keyword",
+          "kind": "keyword",
+          "path": "keywords/null",
+          "tokens": [
+            "null",
+            "keyword",
+            "literal"
+          ]
+        },
+        {
+          "node_id": "keyword.self",
+          "title": "`self` keyword",
+          "kind": "keyword",
+          "path": "keywords/self",
+          "tokens": [
+            "self",
+            "keyword",
+            "special"
+          ]
+        },
+        {
+          "node_id": "keyword.super",
+          "title": "`super` keyword",
+          "kind": "keyword",
+          "path": "keywords/super",
+          "tokens": [
+            "super",
+            "keyword",
+            "special"
+          ]
+        },
+        {
+          "node_id": "keyword.defer",
+          "title": "`defer` keyword",
+          "kind": "keyword",
+          "path": "keywords/defer",
+          "tokens": [
+            "defer",
+            "keyword",
+            "special"
+          ]
+        },
+        {
+          "node_id": "keyword.generic",
+          "title": "`generic` keyword",
+          "kind": "keyword",
+          "path": "keywords/generic",
+          "tokens": [
+            "generic",
+            "keyword",
+            "generics"
+          ]
+        },
+        {
+          "node_id": "keyword.where",
+          "title": "`where` keyword",
+          "kind": "keyword",
+          "path": "keywords/where",
+          "tokens": [
+            "where",
+            "keyword",
+            "generics"
+          ]
+        },
+        {
+          "node_id": "keyword.as",
+          "title": "`as` keyword",
+          "kind": "keyword",
+          "path": "keywords/as",
+          "tokens": [
+            "as",
+            "keyword",
+            "special"
+          ]
+        },
+        {
+          "node_id": "keyword.in",
+          "title": "`in` keyword",
+          "kind": "keyword",
+          "path": "keywords/in",
+          "tokens": [
+            "in",
+            "keyword",
+            "special"
+          ]
+        },
+        {
+          "node_id": "keyword.dyn",
+          "title": "`dyn` keyword",
+          "kind": "keyword",
+          "path": "keywords/dyn",
+          "tokens": [
+            "dyn",
+            "keyword",
+            "generics"
+          ]
+        },
+        {
+          "node_id": "keyword.macro",
+          "title": "`macro` keyword",
+          "kind": "keyword",
+          "path": "keywords/macro",
+          "tokens": [
+            "macro",
+            "keyword",
+            "macro"
+          ]
+        },
+        {
+          "node_id": "keyword.macro_rules",
+          "title": "`macro_rules` keyword",
+          "kind": "keyword",
+          "path": "keywords/macro_rules",
+          "tokens": [
+            "macro_rules",
+            "keyword",
+            "macro"
+          ]
+        },
+        {
+          "node_id": "keyword.derive",
+          "title": "`derive` keyword",
+          "kind": "keyword",
+          "path": "keywords/derive",
+          "tokens": [
+            "derive",
+            "keyword",
+            "macro"
+          ]
+        },
+        {
+          "node_id": "keyword.inline",
+          "title": "`inline` keyword",
+          "kind": "keyword",
+          "path": "keywords/inline",
+          "tokens": [
+            "inline",
+            "keyword",
+            "macro"
+          ]
+        },
+        {
+          "node_id": "keyword.no_mangle",
+          "title": "`no_mangle` keyword",
+          "kind": "keyword",
+          "path": "keywords/no_mangle",
+          "tokens": [
+            "no_mangle",
+            "keyword",
+            "macro"
+          ]
+        },
+        {
+          "node_id": "keyword.test",
+          "title": "`test` keyword",
+          "kind": "keyword",
+          "path": "keywords/test",
+          "tokens": [
+            "test",
+            "keyword",
+            "macro"
+          ]
+        },
+        {
+          "node_id": "keyword.static_assert",
+          "title": "`static_assert` keyword",
+          "kind": "keyword",
+          "path": "keywords/static_assert",
+          "tokens": [
+            "static_assert",
+            "keyword",
+            "macro"
+          ]
+        },
+        {
+          "node_id": "operator.plus",
+          "title": "`+` operator",
+          "kind": "operator",
+          "path": "operators/plus",
+          "tokens": [
+            "+",
+            "plus",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.minus",
+          "title": "`-` operator",
+          "kind": "operator",
+          "path": "operators/minus",
+          "tokens": [
+            "-",
+            "minus",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.star",
+          "title": "`*` operator",
+          "kind": "operator",
+          "path": "operators/star",
+          "tokens": [
+            "*",
+            "star",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.slash",
+          "title": "`/` operator",
+          "kind": "operator",
+          "path": "operators/slash",
+          "tokens": [
+            "/",
+            "slash",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.percent",
+          "title": "`%` operator",
+          "kind": "operator",
+          "path": "operators/percent",
+          "tokens": [
+            "%",
+            "percent",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.equal",
+          "title": "`==` operator",
+          "kind": "operator",
+          "path": "operators/equal",
+          "tokens": [
+            "==",
+            "equal",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.not-equal",
+          "title": "`!=` operator",
+          "kind": "operator",
+          "path": "operators/not-equal",
+          "tokens": [
+            "!=",
+            "not-equal",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.less",
+          "title": "`<` operator",
+          "kind": "operator",
+          "path": "operators/less",
+          "tokens": [
+            "<",
+            "less",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.less-equal",
+          "title": "`<=` operator",
+          "kind": "operator",
+          "path": "operators/less-equal",
+          "tokens": [
+            "<=",
+            "less-equal",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.greater",
+          "title": "`>` operator",
+          "kind": "operator",
+          "path": "operators/greater",
+          "tokens": [
+            ">",
+            "greater",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.greater-equal",
+          "title": "`>=` operator",
+          "kind": "operator",
+          "path": "operators/greater-equal",
+          "tokens": [
+            ">=",
+            "greater-equal",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.and",
+          "title": "`&&` operator",
+          "kind": "operator",
+          "path": "operators/and",
+          "tokens": [
+            "&&",
+            "and",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.or",
+          "title": "`||` operator",
+          "kind": "operator",
+          "path": "operators/or",
+          "tokens": [
+            "||",
+            "or",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.not",
+          "title": "`!` operator",
+          "kind": "operator",
+          "path": "operators/not",
+          "tokens": [
+            "!",
+            "not",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.bit-and",
+          "title": "`&` operator",
+          "kind": "operator",
+          "path": "operators/bit-and",
+          "tokens": [
+            "&",
+            "bit-and",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.bit-or",
+          "title": "`|` operator",
+          "kind": "operator",
+          "path": "operators/bit-or",
+          "tokens": [
+            "|",
+            "bit-or",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.bit-xor",
+          "title": "`^` operator",
+          "kind": "operator",
+          "path": "operators/bit-xor",
+          "tokens": [
+            "^",
+            "bit-xor",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.bit-not",
+          "title": "`~` operator",
+          "kind": "operator",
+          "path": "operators/bit-not",
+          "tokens": [
+            "~",
+            "bit-not",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.left-shift",
+          "title": "`<<` operator",
+          "kind": "operator",
+          "path": "operators/left-shift",
+          "tokens": [
+            "<<",
+            "left-shift",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.right-shift",
+          "title": "`>>` operator",
+          "kind": "operator",
+          "path": "operators/right-shift",
+          "tokens": [
+            ">>",
+            "right-shift",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.assign",
+          "title": "`=` operator",
+          "kind": "operator",
+          "path": "operators/assign",
+          "tokens": [
+            "=",
+            "assign",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.plus-assign",
+          "title": "`+=` operator",
+          "kind": "operator",
+          "path": "operators/plus-assign",
+          "tokens": [
+            "+=",
+            "plus-assign",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.minus-assign",
+          "title": "`-=` operator",
+          "kind": "operator",
+          "path": "operators/minus-assign",
+          "tokens": [
+            "-=",
+            "minus-assign",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.star-assign",
+          "title": "`*=` operator",
+          "kind": "operator",
+          "path": "operators/star-assign",
+          "tokens": [
+            "*=",
+            "star-assign",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.slash-assign",
+          "title": "`/=` operator",
+          "kind": "operator",
+          "path": "operators/slash-assign",
+          "tokens": [
+            "/=",
+            "slash-assign",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.percent-assign",
+          "title": "`%=` operator",
+          "kind": "operator",
+          "path": "operators/percent-assign",
+          "tokens": [
+            "%=",
+            "percent-assign",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.range",
+          "title": "`..` operator",
+          "kind": "operator",
+          "path": "operators/range",
+          "tokens": [
+            "..",
+            "range",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.range-inclusive",
+          "title": "`..=` operator",
+          "kind": "operator",
+          "path": "operators/range-inclusive",
+          "tokens": [
+            "..=",
+            "range-inclusive",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.try",
+          "title": "`?` operator",
+          "kind": "operator",
+          "path": "operators/try",
+          "tokens": [
+            "?",
+            "try",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.arrow",
+          "title": "`->` operator",
+          "kind": "operator",
+          "path": "operators/arrow",
+          "tokens": [
+            "->",
+            "arrow",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "operator.double-colon",
+          "title": "`::` operator",
+          "kind": "operator",
+          "path": "operators/double-colon",
+          "tokens": [
+            "::",
+            "double-colon",
+            "operator"
+          ]
+        },
+        {
+          "node_id": "type.int",
+          "title": "int",
+          "kind": "type",
+          "path": "types/int",
+          "tokens": [
+            "int",
+            "primitive",
+            "type"
+          ]
+        },
+        {
+          "node_id": "type.float",
+          "title": "float",
+          "kind": "type",
+          "path": "types/float",
+          "tokens": [
+            "float",
+            "primitive",
+            "type"
+          ]
+        },
+        {
+          "node_id": "type.bool",
+          "title": "bool",
+          "kind": "type",
+          "path": "types/bool",
+          "tokens": [
+            "bool",
+            "primitive",
+            "type"
+          ]
+        },
+        {
+          "node_id": "type.string",
+          "title": "string",
+          "kind": "type",
+          "path": "types/string",
+          "tokens": [
+            "string",
+            "primitive",
+            "type"
+          ]
+        },
+        {
+          "node_id": "type.str",
+          "title": "str",
+          "kind": "type",
+          "path": "types/str",
+          "tokens": [
+            "str",
+            "primitive",
+            "type"
+          ]
+        },
+        {
+          "node_id": "type.bytes",
+          "title": "bytes",
+          "kind": "type",
+          "path": "types/bytes",
+          "tokens": [
+            "bytes",
+            "primitive",
+            "type"
+          ]
+        },
+        {
+          "node_id": "type.void",
+          "title": "void",
+          "kind": "type",
+          "path": "types/void",
+          "tokens": [
+            "void",
+            "primitive",
+            "type"
+          ]
+        },
+        {
+          "node_id": "type.vecint",
+          "title": "VecInt",
+          "kind": "type",
+          "path": "types/VecInt",
+          "tokens": [
+            "VecInt",
+            "container",
+            "type"
+          ]
+        },
+        {
+          "node_id": "type.vecstring",
+          "title": "VecString",
+          "kind": "type",
+          "path": "types/VecString",
+          "tokens": [
+            "VecString",
+            "container",
+            "type"
+          ]
+        },
+        {
+          "node_id": "type.vecbytes",
+          "title": "VecBytes",
+          "kind": "type",
+          "path": "types/VecBytes",
+          "tokens": [
+            "VecBytes",
+            "container",
+            "type"
+          ]
+        },
+        {
+          "node_id": "type.mapstringint",
+          "title": "MapStringInt",
+          "kind": "type",
+          "path": "types/MapStringInt",
+          "tokens": [
+            "MapStringInt",
+            "container",
+            "type"
+          ]
+        },
+        {
+          "node_id": "type.mapstringstring",
+          "title": "MapStringString",
+          "kind": "type",
+          "path": "types/MapStringString",
+          "tokens": [
+            "MapStringString",
+            "container",
+            "type"
+          ]
+        },
+        {
+          "node_id": "type.sliceint",
+          "title": "SliceInt",
+          "kind": "type",
+          "path": "types/SliceInt",
+          "tokens": [
+            "SliceInt",
+            "container",
+            "type"
+          ]
+        },
+        {
+          "node_id": "type.slicestring",
+          "title": "SliceString",
+          "kind": "type",
+          "path": "types/SliceString",
+          "tokens": [
+            "SliceString",
+            "container",
+            "type"
+          ]
+        },
+        {
+          "node_id": "type.slicebytes",
+          "title": "SliceBytes",
+          "kind": "type",
+          "path": "types/SliceBytes",
+          "tokens": [
+            "SliceBytes",
+            "container",
+            "type"
+          ]
+        },
+        {
+          "node_id": "fn.printf",
+          "title": "printf",
+          "kind": "symbol",
+          "path": "std/printf",
+          "tokens": [
+            "printf",
+            "function",
+            "stdlib"
+          ]
+        },
+        {
+          "node_id": "fn.puts",
+          "title": "puts",
+          "kind": "symbol",
+          "path": "std/puts",
+          "tokens": [
+            "puts",
+            "function",
+            "stdlib"
+          ]
+        },
+        {
+          "node_id": "fn.malloc",
+          "title": "malloc",
+          "kind": "symbol",
+          "path": "std/malloc",
+          "tokens": [
+            "malloc",
+            "function",
+            "stdlib"
+          ]
+        },
+        {
+          "node_id": "fn.calloc",
+          "title": "calloc",
+          "kind": "symbol",
+          "path": "std/calloc",
+          "tokens": [
+            "calloc",
+            "function",
+            "stdlib"
+          ]
+        },
+        {
+          "node_id": "fn.realloc",
+          "title": "realloc",
+          "kind": "symbol",
+          "path": "std/realloc",
+          "tokens": [
+            "realloc",
+            "function",
+            "stdlib"
+          ]
+        },
+        {
+          "node_id": "fn.free",
+          "title": "free",
+          "kind": "symbol",
+          "path": "std/free",
+          "tokens": [
+            "free",
+            "function",
+            "stdlib"
+          ]
+        },
+        {
+          "node_id": "fn.strlen",
+          "title": "strlen",
+          "kind": "symbol",
+          "path": "std/strlen",
+          "tokens": [
+            "strlen",
+            "function",
+            "stdlib"
+          ]
+        },
+        {
+          "node_id": "fn.strcmp",
+          "title": "strcmp",
+          "kind": "symbol",
+          "path": "std/strcmp",
+          "tokens": [
+            "strcmp",
+            "function",
+            "stdlib"
+          ]
+        },
+        {
+          "node_id": "fn.kraken_str_split",
+          "title": "kraken_str_split",
+          "kind": "symbol",
+          "path": "std/kraken_str_split",
+          "tokens": [
+            "kraken_str_split",
+            "function",
+            "stdlib"
+          ]
+        },
+        {
+          "node_id": "fn.kraken_str_join",
+          "title": "kraken_str_join",
+          "kind": "symbol",
+          "path": "std/kraken_str_join",
+          "tokens": [
+            "kraken_str_join",
+            "function",
+            "stdlib"
+          ]
+        },
+        {
+          "node_id": "fn.kraken_str_len",
+          "title": "kraken_str_len",
+          "kind": "symbol",
+          "path": "std/kraken_str_len",
+          "tokens": [
+            "kraken_str_len",
+            "function",
+            "stdlib"
+          ]
+        },
+        {
+          "node_id": "fn.kraken_str_concat",
+          "title": "kraken_str_concat",
+          "kind": "symbol",
+          "path": "std/kraken_str_concat",
+          "tokens": [
+            "kraken_str_concat",
+            "function",
+            "stdlib"
+          ]
+        },
+        {
+          "node_id": "fn.kraken_str_contains",
+          "title": "kraken_str_contains",
+          "kind": "symbol",
+          "path": "std/kraken_str_contains",
+          "tokens": [
+            "kraken_str_contains",
+            "function",
+            "stdlib"
+          ]
+        },
+        {
+          "node_id": "fn.kraken_str_trim",
+          "title": "kraken_str_trim",
+          "kind": "symbol",
+          "path": "std/kraken_str_trim",
+          "tokens": [
+            "kraken_str_trim",
+            "function",
+            "stdlib"
+          ]
+        },
+        {
+          "node_id": "tooling.cli",
+          "title": "Kraken CLI",
+          "kind": "tooling",
+          "path": "tooling/cli",
+          "tokens": [
+            "cli",
+            "krakenc",
+            "tooling",
+            "compiler"
+          ]
+        }
+      ]
+    }
+  },
+  "pages": [
+    {
+      "id": "page.keywords",
+      "slug": "keywords",
+      "title": "Keywords",
+      "summary": "All reserved keywords in the Kraken language.",
+      "nav": {
+        "group": "Language Reference",
+        "order": 1
+      },
+      "sections": [
+        {
+          "kind": "node_list",
+          "title": "Keywords",
+          "node_ids": [
+            "keyword.as",
+            "keyword.async",
+            "keyword.await",
+            "keyword.break",
+            "keyword.class",
+            "keyword.const",
+            "keyword.continue",
+            "keyword.defer",
+            "keyword.derive",
+            "keyword.do",
+            "keyword.dyn",
+            "keyword.else",
+            "keyword.enum",
+            "keyword.false",
+            "keyword.fn",
+            "keyword.for",
+            "keyword.generic",
+            "keyword.if",
+            "keyword.impl",
+            "keyword.import",
+            "keyword.in",
+            "keyword.inline",
+            "keyword.interface",
+            "keyword.let",
+            "keyword.macro",
+            "keyword.macro_rules",
+            "keyword.match",
+            "keyword.module",
+            "keyword.move",
+            "keyword.mut",
+            "keyword.no_mangle",
+            "keyword.null",
+            "keyword.priv",
+            "keyword.pub",
+            "keyword.ref",
+            "keyword.return",
+            "keyword.self",
+            "keyword.spawn",
+            "keyword.static",
+            "keyword.static_assert",
+            "keyword.struct",
+            "keyword.super",
+            "keyword.test",
+            "keyword.trait",
+            "keyword.true",
+            "keyword.type",
+            "keyword.union",
+            "keyword.unsafe",
+            "keyword.where",
+            "keyword.while"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "page.operators",
+      "slug": "operators",
+      "title": "Operators",
+      "summary": "All operators in the Kraken language.",
+      "nav": {
+        "group": "Language Reference",
+        "order": 2
+      },
+      "sections": [
+        {
+          "kind": "node_list",
+          "title": "Operators",
+          "node_ids": [
+            "operator.and",
+            "operator.arrow",
+            "operator.assign",
+            "operator.bit-and",
+            "operator.bit-not",
+            "operator.bit-or",
+            "operator.bit-xor",
+            "operator.double-colon",
+            "operator.equal",
+            "operator.greater",
+            "operator.greater-equal",
+            "operator.left-shift",
+            "operator.less",
+            "operator.less-equal",
+            "operator.minus",
+            "operator.minus-assign",
+            "operator.not",
+            "operator.not-equal",
+            "operator.or",
+            "operator.percent",
+            "operator.percent-assign",
+            "operator.plus",
+            "operator.plus-assign",
+            "operator.range",
+            "operator.range-inclusive",
+            "operator.right-shift",
+            "operator.slash",
+            "operator.slash-assign",
+            "operator.star",
+            "operator.star-assign",
+            "operator.try"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "page.types",
+      "slug": "types",
+      "title": "Types",
+      "summary": "Primitive and container types in Kraken.",
+      "nav": {
+        "group": "Language Reference",
+        "order": 3
+      },
+      "sections": [
+        {
+          "kind": "node_list",
+          "title": "Types",
+          "node_ids": [
+            "type.bool",
+            "type.bytes",
+            "type.float",
+            "type.int",
+            "type.mapstringint",
+            "type.mapstringstring",
+            "type.slicebytes",
+            "type.sliceint",
+            "type.slicestring",
+            "type.str",
+            "type.string",
+            "type.vecbytes",
+            "type.vecint",
+            "type.vecstring",
+            "type.void"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "page.stdlib",
+      "slug": "stdlib",
+      "title": "Standard Library",
+      "summary": "Built-in and runtime library functions.",
+      "nav": {
+        "group": "API Reference",
+        "order": 4
+      },
+      "sections": [
+        {
+          "kind": "node_list",
+          "title": "Functions",
+          "node_ids": [
+            "fn.calloc",
+            "fn.free",
+            "fn.kraken_str_concat",
+            "fn.kraken_str_contains",
+            "fn.kraken_str_join",
+            "fn.kraken_str_len",
+            "fn.kraken_str_split",
+            "fn.kraken_str_trim",
+            "fn.malloc",
+            "fn.printf",
+            "fn.puts",
+            "fn.realloc",
+            "fn.strcmp",
+            "fn.strlen"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "page.tooling",
+      "slug": "tooling",
+      "title": "Tooling",
+      "summary": "CLI commands and developer tools.",
+      "nav": {
+        "group": "Tooling",
+        "order": 5
+      },
+      "sections": [
+        {
+          "kind": "node_list",
+          "title": "Tools",
+          "node_ids": [
+            "tooling.cli"
+          ]
+        }
+      ]
+    }
+  ],
+  "nodes": {
+    "fn.calloc": {
+      "id": "fn.calloc",
+      "kind": "symbol",
+      "title": "calloc",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "function",
+        "stdlib"
+      ],
+      "docs": {
+        "summary": "Allocate zeroed heap memory"
+      },
+      "symbol": {
+        "kind": "fn",
+        "signature": {
+          "text": "fn calloc(count: int, size: int) -> bytes",
+          "params": [
+            {
+              "name": "count",
+              "type": {
+                "display": "int"
+              }
+            },
+            {
+              "name": "size",
+              "type": {
+                "display": "int"
+              }
+            }
+          ],
+          "returns": {
+            "display": "bytes"
+          }
+        },
+        "visibility": "public"
+      }
+    },
+    "fn.free": {
+      "id": "fn.free",
+      "kind": "symbol",
+      "title": "free",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "function",
+        "stdlib"
+      ],
+      "docs": {
+        "summary": "Free heap memory"
+      },
+      "symbol": {
+        "kind": "fn",
+        "signature": {
+          "text": "fn free(ptr: bytes) -> void",
+          "params": [
+            {
+              "name": "ptr",
+              "type": {
+                "display": "bytes"
+              }
+            }
+          ],
+          "returns": {
+            "display": "void"
+          }
+        },
+        "visibility": "public"
+      }
+    },
+    "fn.kraken_str_concat": {
+      "id": "fn.kraken_str_concat",
+      "kind": "symbol",
+      "title": "kraken_str_concat",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "function",
+        "stdlib"
+      ],
+      "docs": {
+        "summary": "Concatenate two strings (heap-allocated)"
+      },
+      "symbol": {
+        "kind": "fn",
+        "signature": {
+          "text": "fn kraken_str_concat(a: string, b: string) -> string",
+          "params": [
+            {
+              "name": "a",
+              "type": {
+                "display": "string"
+              }
+            },
+            {
+              "name": "b",
+              "type": {
+                "display": "string"
+              }
+            }
+          ],
+          "returns": {
+            "display": "string"
+          }
+        },
+        "visibility": "public"
+      }
+    },
+    "fn.kraken_str_contains": {
+      "id": "fn.kraken_str_contains",
+      "kind": "symbol",
+      "title": "kraken_str_contains",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "function",
+        "stdlib"
+      ],
+      "docs": {
+        "summary": "Check if string contains substring"
+      },
+      "symbol": {
+        "kind": "fn",
+        "signature": {
+          "text": "fn kraken_str_contains(s: string, needle: string) -> bool",
+          "params": [
+            {
+              "name": "s",
+              "type": {
+                "display": "string"
+              }
+            },
+            {
+              "name": "needle",
+              "type": {
+                "display": "string"
+              }
+            }
+          ],
+          "returns": {
+            "display": "bool"
+          }
+        },
+        "visibility": "public"
+      }
+    },
+    "fn.kraken_str_join": {
+      "id": "fn.kraken_str_join",
+      "kind": "symbol",
+      "title": "kraken_str_join",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "function",
+        "stdlib"
+      ],
+      "docs": {
+        "summary": "Join string vector with separator"
+      },
+      "symbol": {
+        "kind": "fn",
+        "signature": {
+          "text": "fn kraken_str_join(v: VecString, sep: string) -> string",
+          "params": [
+            {
+              "name": "v",
+              "type": {
+                "display": "VecString"
+              }
+            },
+            {
+              "name": "sep",
+              "type": {
+                "display": "string"
+              }
+            }
+          ],
+          "returns": {
+            "display": "string"
+          }
+        },
+        "visibility": "public"
+      }
+    },
+    "fn.kraken_str_len": {
+      "id": "fn.kraken_str_len",
+      "kind": "symbol",
+      "title": "kraken_str_len",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "function",
+        "stdlib"
+      ],
+      "docs": {
+        "summary": "Safe string length"
+      },
+      "symbol": {
+        "kind": "fn",
+        "signature": {
+          "text": "fn kraken_str_len(s: string) -> int",
+          "params": [
+            {
+              "name": "s",
+              "type": {
+                "display": "string"
+              }
+            }
+          ],
+          "returns": {
+            "display": "int"
+          }
+        },
+        "visibility": "public"
+      }
+    },
+    "fn.kraken_str_split": {
+      "id": "fn.kraken_str_split",
+      "kind": "symbol",
+      "title": "kraken_str_split",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "function",
+        "stdlib"
+      ],
+      "docs": {
+        "summary": "Split string by delimiter"
+      },
+      "symbol": {
+        "kind": "fn",
+        "signature": {
+          "text": "fn kraken_str_split(s: string, delim: string) -> VecString",
+          "params": [
+            {
+              "name": "s",
+              "type": {
+                "display": "string"
+              }
+            },
+            {
+              "name": "delim",
+              "type": {
+                "display": "string"
+              }
+            }
+          ],
+          "returns": {
+            "display": "VecString"
+          }
+        },
+        "visibility": "public"
+      }
+    },
+    "fn.kraken_str_trim": {
+      "id": "fn.kraken_str_trim",
+      "kind": "symbol",
+      "title": "kraken_str_trim",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "function",
+        "stdlib"
+      ],
+      "docs": {
+        "summary": "Trim leading and trailing whitespace"
+      },
+      "symbol": {
+        "kind": "fn",
+        "signature": {
+          "text": "fn kraken_str_trim(s: string) -> string",
+          "params": [
+            {
+              "name": "s",
+              "type": {
+                "display": "string"
+              }
+            }
+          ],
+          "returns": {
+            "display": "string"
+          }
+        },
+        "visibility": "public"
+      }
+    },
+    "fn.malloc": {
+      "id": "fn.malloc",
+      "kind": "symbol",
+      "title": "malloc",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "function",
+        "stdlib"
+      ],
+      "docs": {
+        "summary": "Allocate heap memory"
+      },
+      "symbol": {
+        "kind": "fn",
+        "signature": {
+          "text": "fn malloc(size: int) -> bytes",
+          "params": [
+            {
+              "name": "size",
+              "type": {
+                "display": "int"
+              }
+            }
+          ],
+          "returns": {
+            "display": "bytes"
+          }
+        },
+        "visibility": "public"
+      }
+    },
+    "fn.printf": {
+      "id": "fn.printf",
+      "kind": "symbol",
+      "title": "printf",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "function",
+        "stdlib"
+      ],
+      "docs": {
+        "summary": "Print formatted output to stdout"
+      },
+      "symbol": {
+        "kind": "fn",
+        "signature": {
+          "text": "fn printf(fmt: string, ...) -> int",
+          "params": [
+            {
+              "name": "fmt",
+              "type": {
+                "display": "string"
+              }
+            }
+          ],
+          "returns": {
+            "display": "int"
+          }
+        },
+        "visibility": "public"
+      }
+    },
+    "fn.puts": {
+      "id": "fn.puts",
+      "kind": "symbol",
+      "title": "puts",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "function",
+        "stdlib"
+      ],
+      "docs": {
+        "summary": "Print string with newline"
+      },
+      "symbol": {
+        "kind": "fn",
+        "signature": {
+          "text": "fn puts(s: string) -> int",
+          "params": [
+            {
+              "name": "s",
+              "type": {
+                "display": "string"
+              }
+            }
+          ],
+          "returns": {
+            "display": "int"
+          }
+        },
+        "visibility": "public"
+      }
+    },
+    "fn.realloc": {
+      "id": "fn.realloc",
+      "kind": "symbol",
+      "title": "realloc",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "function",
+        "stdlib"
+      ],
+      "docs": {
+        "summary": "Resize heap allocation"
+      },
+      "symbol": {
+        "kind": "fn",
+        "signature": {
+          "text": "fn realloc(ptr: bytes, size: int) -> bytes",
+          "params": [
+            {
+              "name": "ptr",
+              "type": {
+                "display": "bytes"
+              }
+            },
+            {
+              "name": "size",
+              "type": {
+                "display": "int"
+              }
+            }
+          ],
+          "returns": {
+            "display": "bytes"
+          }
+        },
+        "visibility": "public"
+      }
+    },
+    "fn.strcmp": {
+      "id": "fn.strcmp",
+      "kind": "symbol",
+      "title": "strcmp",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "function",
+        "stdlib"
+      ],
+      "docs": {
+        "summary": "Compare two strings"
+      },
+      "symbol": {
+        "kind": "fn",
+        "signature": {
+          "text": "fn strcmp(a: string, b: string) -> int",
+          "params": [
+            {
+              "name": "a",
+              "type": {
+                "display": "string"
+              }
+            },
+            {
+              "name": "b",
+              "type": {
+                "display": "string"
+              }
+            }
+          ],
+          "returns": {
+            "display": "int"
+          }
+        },
+        "visibility": "public"
+      }
+    },
+    "fn.strlen": {
+      "id": "fn.strlen",
+      "kind": "symbol",
+      "title": "strlen",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "function",
+        "stdlib"
+      ],
+      "docs": {
+        "summary": "String byte length"
+      },
+      "symbol": {
+        "kind": "fn",
+        "signature": {
+          "text": "fn strlen(s: string) -> int",
+          "params": [
+            {
+              "name": "s",
+              "type": {
+                "display": "string"
+              }
+            }
+          ],
+          "returns": {
+            "display": "int"
+          }
+        },
+        "visibility": "public"
+      }
+    },
+    "keyword.as": {
+      "id": "keyword.as",
+      "kind": "keyword",
+      "title": "`as`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "special"
+      ],
+      "docs": {
+        "summary": "Type cast"
+      },
+      "concept": {
+        "group": "special",
+        "keywords": [
+          "as"
+        ]
+      }
+    },
+    "keyword.async": {
+      "id": "keyword.async",
+      "kind": "keyword",
+      "title": "`async`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "modifier"
+      ],
+      "docs": {
+        "summary": "Async function"
+      },
+      "concept": {
+        "group": "modifier",
+        "keywords": [
+          "async"
+        ]
+      }
+    },
+    "keyword.await": {
+      "id": "keyword.await",
+      "kind": "keyword",
+      "title": "`await`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "modifier"
+      ],
+      "docs": {
+        "summary": "Await expression"
+      },
+      "concept": {
+        "group": "modifier",
+        "keywords": [
+          "await"
+        ]
+      }
+    },
+    "keyword.break": {
+      "id": "keyword.break",
+      "kind": "keyword",
+      "title": "`break`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "control-flow"
+      ],
+      "docs": {
+        "summary": "Exit loop"
+      },
+      "concept": {
+        "group": "control-flow",
+        "keywords": [
+          "break"
+        ]
+      }
+    },
+    "keyword.class": {
+      "id": "keyword.class",
+      "kind": "keyword",
+      "title": "`class`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "declaration"
+      ],
+      "docs": {
+        "summary": "Class declaration"
+      },
+      "concept": {
+        "group": "declaration",
+        "keywords": [
+          "class"
+        ]
+      }
+    },
+    "keyword.const": {
+      "id": "keyword.const",
+      "kind": "keyword",
+      "title": "`const`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "declaration"
+      ],
+      "docs": {
+        "summary": "Constant declaration"
+      },
+      "concept": {
+        "group": "declaration",
+        "keywords": [
+          "const"
+        ]
+      }
+    },
+    "keyword.continue": {
+      "id": "keyword.continue",
+      "kind": "keyword",
+      "title": "`continue`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "control-flow"
+      ],
+      "docs": {
+        "summary": "Skip iteration"
+      },
+      "concept": {
+        "group": "control-flow",
+        "keywords": [
+          "continue"
+        ]
+      }
+    },
+    "keyword.defer": {
+      "id": "keyword.defer",
+      "kind": "keyword",
+      "title": "`defer`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "special"
+      ],
+      "docs": {
+        "summary": "Deferred execution"
+      },
+      "concept": {
+        "group": "special",
+        "keywords": [
+          "defer"
+        ]
+      }
+    },
+    "keyword.derive": {
+      "id": "keyword.derive",
+      "kind": "keyword",
+      "title": "`derive`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "macro"
+      ],
+      "docs": {
+        "summary": "Derive attribute"
+      },
+      "concept": {
+        "group": "macro",
+        "keywords": [
+          "derive"
+        ]
+      }
+    },
+    "keyword.do": {
+      "id": "keyword.do",
+      "kind": "keyword",
+      "title": "`do`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "control-flow"
+      ],
+      "docs": {
+        "summary": "Do loop (reserved)"
+      },
+      "concept": {
+        "group": "control-flow",
+        "keywords": [
+          "do"
+        ]
+      }
+    },
+    "keyword.dyn": {
+      "id": "keyword.dyn",
+      "kind": "keyword",
+      "title": "`dyn`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "generics"
+      ],
+      "docs": {
+        "summary": "Trait object"
+      },
+      "concept": {
+        "group": "generics",
+        "keywords": [
+          "dyn"
+        ]
+      }
+    },
+    "keyword.else": {
+      "id": "keyword.else",
+      "kind": "keyword",
+      "title": "`else`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "control-flow"
+      ],
+      "docs": {
+        "summary": "Alternative branch"
+      },
+      "concept": {
+        "group": "control-flow",
+        "keywords": [
+          "else"
+        ]
+      }
+    },
+    "keyword.enum": {
+      "id": "keyword.enum",
+      "kind": "keyword",
+      "title": "`enum`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "declaration"
+      ],
+      "docs": {
+        "summary": "Enum type declaration"
+      },
+      "concept": {
+        "group": "declaration",
+        "keywords": [
+          "enum"
+        ]
+      }
+    },
+    "keyword.false": {
+      "id": "keyword.false",
+      "kind": "keyword",
+      "title": "`false`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "literal"
+      ],
+      "docs": {
+        "summary": "Boolean literal false"
+      },
+      "concept": {
+        "group": "literal",
+        "keywords": [
+          "false"
+        ]
+      }
+    },
+    "keyword.fn": {
+      "id": "keyword.fn",
+      "kind": "keyword",
+      "title": "`fn`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "declaration"
+      ],
+      "docs": {
+        "summary": "Function declaration"
+      },
+      "concept": {
+        "group": "declaration",
+        "keywords": [
+          "fn"
+        ]
+      }
+    },
+    "keyword.for": {
+      "id": "keyword.for",
+      "kind": "keyword",
+      "title": "`for`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "control-flow"
+      ],
+      "docs": {
+        "summary": "C-style loop"
+      },
+      "concept": {
+        "group": "control-flow",
+        "keywords": [
+          "for"
+        ]
+      }
+    },
+    "keyword.generic": {
+      "id": "keyword.generic",
+      "kind": "keyword",
+      "title": "`generic`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "generics"
+      ],
+      "docs": {
+        "summary": "Generic qualifier"
+      },
+      "concept": {
+        "group": "generics",
+        "keywords": [
+          "generic"
+        ]
+      }
+    },
+    "keyword.if": {
+      "id": "keyword.if",
+      "kind": "keyword",
+      "title": "`if`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "control-flow"
+      ],
+      "docs": {
+        "summary": "Conditional branch"
+      },
+      "concept": {
+        "group": "control-flow",
+        "keywords": [
+          "if"
+        ]
+      }
+    },
+    "keyword.impl": {
+      "id": "keyword.impl",
+      "kind": "keyword",
+      "title": "`impl`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "declaration"
+      ],
+      "docs": {
+        "summary": "Implementation block"
+      },
+      "concept": {
+        "group": "declaration",
+        "keywords": [
+          "impl"
+        ]
+      }
+    },
+    "keyword.import": {
+      "id": "keyword.import",
+      "kind": "keyword",
+      "title": "`import`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "module"
+      ],
+      "docs": {
+        "summary": "Import declaration"
+      },
+      "concept": {
+        "group": "module",
+        "keywords": [
+          "import"
+        ]
+      }
+    },
+    "keyword.in": {
+      "id": "keyword.in",
+      "kind": "keyword",
+      "title": "`in`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "special"
+      ],
+      "docs": {
+        "summary": "Iterator variable"
+      },
+      "concept": {
+        "group": "special",
+        "keywords": [
+          "in"
+        ]
+      }
+    },
+    "keyword.inline": {
+      "id": "keyword.inline",
+      "kind": "keyword",
+      "title": "`inline`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "macro"
+      ],
+      "docs": {
+        "summary": "Inline hint"
+      },
+      "concept": {
+        "group": "macro",
+        "keywords": [
+          "inline"
+        ]
+      }
+    },
+    "keyword.interface": {
+      "id": "keyword.interface",
+      "kind": "keyword",
+      "title": "`interface`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "declaration"
+      ],
+      "docs": {
+        "summary": "Interface declaration"
+      },
+      "concept": {
+        "group": "declaration",
+        "keywords": [
+          "interface"
+        ]
+      }
+    },
+    "keyword.let": {
+      "id": "keyword.let",
+      "kind": "keyword",
+      "title": "`let`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "declaration"
+      ],
+      "docs": {
+        "summary": "Variable declaration"
+      },
+      "concept": {
+        "group": "declaration",
+        "keywords": [
+          "let"
+        ]
+      }
+    },
+    "keyword.macro": {
+      "id": "keyword.macro",
+      "kind": "keyword",
+      "title": "`macro`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "macro"
+      ],
+      "docs": {
+        "summary": "Macro keyword"
+      },
+      "concept": {
+        "group": "macro",
+        "keywords": [
+          "macro"
+        ]
+      }
+    },
+    "keyword.macro_rules": {
+      "id": "keyword.macro_rules",
+      "kind": "keyword",
+      "title": "`macro_rules`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "macro"
+      ],
+      "docs": {
+        "summary": "Declarative macro"
+      },
+      "concept": {
+        "group": "macro",
+        "keywords": [
+          "macro_rules"
+        ]
+      }
+    },
+    "keyword.match": {
+      "id": "keyword.match",
+      "kind": "keyword",
+      "title": "`match`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "control-flow"
+      ],
+      "docs": {
+        "summary": "Pattern matching"
+      },
+      "concept": {
+        "group": "control-flow",
+        "keywords": [
+          "match"
+        ]
+      }
+    },
+    "keyword.module": {
+      "id": "keyword.module",
+      "kind": "keyword",
+      "title": "`module`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "module"
+      ],
+      "docs": {
+        "summary": "Module declaration"
+      },
+      "concept": {
+        "group": "module",
+        "keywords": [
+          "module"
+        ]
+      }
+    },
+    "keyword.move": {
+      "id": "keyword.move",
+      "kind": "keyword",
+      "title": "`move`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "modifier"
+      ],
+      "docs": {
+        "summary": "Move capture"
+      },
+      "concept": {
+        "group": "modifier",
+        "keywords": [
+          "move"
+        ]
+      }
+    },
+    "keyword.mut": {
+      "id": "keyword.mut",
+      "kind": "keyword",
+      "title": "`mut`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "modifier"
+      ],
+      "docs": {
+        "summary": "Mutable qualifier"
+      },
+      "concept": {
+        "group": "modifier",
+        "keywords": [
+          "mut"
+        ]
+      }
+    },
+    "keyword.no_mangle": {
+      "id": "keyword.no_mangle",
+      "kind": "keyword",
+      "title": "`no_mangle`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "macro"
+      ],
+      "docs": {
+        "summary": "No name mangling"
+      },
+      "concept": {
+        "group": "macro",
+        "keywords": [
+          "no_mangle"
+        ]
+      }
+    },
+    "keyword.null": {
+      "id": "keyword.null",
+      "kind": "keyword",
+      "title": "`null`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "literal"
+      ],
+      "docs": {
+        "summary": "Null pointer value"
+      },
+      "concept": {
+        "group": "literal",
+        "keywords": [
+          "null"
+        ]
+      }
+    },
+    "keyword.priv": {
+      "id": "keyword.priv",
+      "kind": "keyword",
+      "title": "`priv`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "modifier"
+      ],
+      "docs": {
+        "summary": "Private visibility"
+      },
+      "concept": {
+        "group": "modifier",
+        "keywords": [
+          "priv"
+        ]
+      }
+    },
+    "keyword.pub": {
+      "id": "keyword.pub",
+      "kind": "keyword",
+      "title": "`pub`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "modifier"
+      ],
+      "docs": {
+        "summary": "Public visibility"
+      },
+      "concept": {
+        "group": "modifier",
+        "keywords": [
+          "pub"
+        ]
+      }
+    },
+    "keyword.ref": {
+      "id": "keyword.ref",
+      "kind": "keyword",
+      "title": "`ref`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "modifier"
+      ],
+      "docs": {
+        "summary": "Reference qualifier"
+      },
+      "concept": {
+        "group": "modifier",
+        "keywords": [
+          "ref"
+        ]
+      }
+    },
+    "keyword.return": {
+      "id": "keyword.return",
+      "kind": "keyword",
+      "title": "`return`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "control-flow"
+      ],
+      "docs": {
+        "summary": "Return from function"
+      },
+      "concept": {
+        "group": "control-flow",
+        "keywords": [
+          "return"
+        ]
+      }
+    },
+    "keyword.self": {
+      "id": "keyword.self",
+      "kind": "keyword",
+      "title": "`self`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "special"
+      ],
+      "docs": {
+        "summary": "Self reference"
+      },
+      "concept": {
+        "group": "special",
+        "keywords": [
+          "self"
+        ]
+      }
+    },
+    "keyword.spawn": {
+      "id": "keyword.spawn",
+      "kind": "keyword",
+      "title": "`spawn`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "modifier"
+      ],
+      "docs": {
+        "summary": "Spawn concurrent task"
+      },
+      "concept": {
+        "group": "modifier",
+        "keywords": [
+          "spawn"
+        ]
+      }
+    },
+    "keyword.static": {
+      "id": "keyword.static",
+      "kind": "keyword",
+      "title": "`static`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "modifier"
+      ],
+      "docs": {
+        "summary": "Static qualifier"
+      },
+      "concept": {
+        "group": "modifier",
+        "keywords": [
+          "static"
+        ]
+      }
+    },
+    "keyword.static_assert": {
+      "id": "keyword.static_assert",
+      "kind": "keyword",
+      "title": "`static_assert`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "macro"
+      ],
+      "docs": {
+        "summary": "Compile-time assertion"
+      },
+      "concept": {
+        "group": "macro",
+        "keywords": [
+          "static_assert"
+        ]
+      }
+    },
+    "keyword.struct": {
+      "id": "keyword.struct",
+      "kind": "keyword",
+      "title": "`struct`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "declaration"
+      ],
+      "docs": {
+        "summary": "Struct type declaration"
+      },
+      "concept": {
+        "group": "declaration",
+        "keywords": [
+          "struct"
+        ]
+      }
+    },
+    "keyword.super": {
+      "id": "keyword.super",
+      "kind": "keyword",
+      "title": "`super`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "special"
+      ],
+      "docs": {
+        "summary": "Parent module"
+      },
+      "concept": {
+        "group": "special",
+        "keywords": [
+          "super"
+        ]
+      }
+    },
+    "keyword.test": {
+      "id": "keyword.test",
+      "kind": "keyword",
+      "title": "`test`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "macro"
+      ],
+      "docs": {
+        "summary": "Test function"
+      },
+      "concept": {
+        "group": "macro",
+        "keywords": [
+          "test"
+        ]
+      }
+    },
+    "keyword.trait": {
+      "id": "keyword.trait",
+      "kind": "keyword",
+      "title": "`trait`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "declaration"
+      ],
+      "docs": {
+        "summary": "Trait declaration"
+      },
+      "concept": {
+        "group": "declaration",
+        "keywords": [
+          "trait"
+        ]
+      }
+    },
+    "keyword.true": {
+      "id": "keyword.true",
+      "kind": "keyword",
+      "title": "`true`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "literal"
+      ],
+      "docs": {
+        "summary": "Boolean literal true"
+      },
+      "concept": {
+        "group": "literal",
+        "keywords": [
+          "true"
+        ]
+      }
+    },
+    "keyword.type": {
+      "id": "keyword.type",
+      "kind": "keyword",
+      "title": "`type`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "declaration"
+      ],
+      "docs": {
+        "summary": "Type alias"
+      },
+      "concept": {
+        "group": "declaration",
+        "keywords": [
+          "type"
+        ]
+      }
+    },
+    "keyword.union": {
+      "id": "keyword.union",
+      "kind": "keyword",
+      "title": "`union`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "declaration"
+      ],
+      "docs": {
+        "summary": "Union type declaration"
+      },
+      "concept": {
+        "group": "declaration",
+        "keywords": [
+          "union"
+        ]
+      }
+    },
+    "keyword.unsafe": {
+      "id": "keyword.unsafe",
+      "kind": "keyword",
+      "title": "`unsafe`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "modifier"
+      ],
+      "docs": {
+        "summary": "Unsafe block/function"
+      },
+      "concept": {
+        "group": "modifier",
+        "keywords": [
+          "unsafe"
+        ]
+      }
+    },
+    "keyword.where": {
+      "id": "keyword.where",
+      "kind": "keyword",
+      "title": "`where`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "generics"
+      ],
+      "docs": {
+        "summary": "Generic constraint"
+      },
+      "concept": {
+        "group": "generics",
+        "keywords": [
+          "where"
+        ]
+      }
+    },
+    "keyword.while": {
+      "id": "keyword.while",
+      "kind": "keyword",
+      "title": "`while`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "keyword",
+        "control-flow"
+      ],
+      "docs": {
+        "summary": "Condition loop"
+      },
+      "concept": {
+        "group": "control-flow",
+        "keywords": [
+          "while"
+        ]
+      }
+    },
+    "operator.and": {
+      "id": "operator.and",
+      "kind": "operator",
+      "title": "`&&`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Logical AND (short-circuit)"
+      }
+    },
+    "operator.arrow": {
+      "id": "operator.arrow",
+      "kind": "operator",
+      "title": "`->`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Return type / match arm"
+      }
+    },
+    "operator.assign": {
+      "id": "operator.assign",
+      "kind": "operator",
+      "title": "`=`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Assignment"
+      }
+    },
+    "operator.bit-and": {
+      "id": "operator.bit-and",
+      "kind": "operator",
+      "title": "`&`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Bitwise AND / reference"
+      }
+    },
+    "operator.bit-not": {
+      "id": "operator.bit-not",
+      "kind": "operator",
+      "title": "`~`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Bitwise NOT"
+      }
+    },
+    "operator.bit-or": {
+      "id": "operator.bit-or",
+      "kind": "operator",
+      "title": "`|`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Bitwise OR"
+      }
+    },
+    "operator.bit-xor": {
+      "id": "operator.bit-xor",
+      "kind": "operator",
+      "title": "`^`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Bitwise XOR"
+      }
+    },
+    "operator.double-colon": {
+      "id": "operator.double-colon",
+      "kind": "operator",
+      "title": "`::`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Path separator / turbofish"
+      }
+    },
+    "operator.equal": {
+      "id": "operator.equal",
+      "kind": "operator",
+      "title": "`==`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Equality comparison"
+      }
+    },
+    "operator.greater": {
+      "id": "operator.greater",
+      "kind": "operator",
+      "title": "`>`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Greater than"
+      }
+    },
+    "operator.greater-equal": {
+      "id": "operator.greater-equal",
+      "kind": "operator",
+      "title": "`>=`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Greater than or equal"
+      }
+    },
+    "operator.left-shift": {
+      "id": "operator.left-shift",
+      "kind": "operator",
+      "title": "`<<`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Left bit shift"
+      }
+    },
+    "operator.less": {
+      "id": "operator.less",
+      "kind": "operator",
+      "title": "`<`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Less than"
+      }
+    },
+    "operator.less-equal": {
+      "id": "operator.less-equal",
+      "kind": "operator",
+      "title": "`<=`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Less than or equal"
+      }
+    },
+    "operator.minus": {
+      "id": "operator.minus",
+      "kind": "operator",
+      "title": "`-`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Subtraction / unary negation"
+      }
+    },
+    "operator.minus-assign": {
+      "id": "operator.minus-assign",
+      "kind": "operator",
+      "title": "`-=`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Subtraction assignment"
+      }
+    },
+    "operator.not": {
+      "id": "operator.not",
+      "kind": "operator",
+      "title": "`!`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Logical NOT"
+      }
+    },
+    "operator.not-equal": {
+      "id": "operator.not-equal",
+      "kind": "operator",
+      "title": "`!=`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Inequality comparison"
+      }
+    },
+    "operator.or": {
+      "id": "operator.or",
+      "kind": "operator",
+      "title": "`||`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Logical OR (short-circuit)"
+      }
+    },
+    "operator.percent": {
+      "id": "operator.percent",
+      "kind": "operator",
+      "title": "`%`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Remainder"
+      }
+    },
+    "operator.percent-assign": {
+      "id": "operator.percent-assign",
+      "kind": "operator",
+      "title": "`%=`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Remainder assignment"
+      }
+    },
+    "operator.plus": {
+      "id": "operator.plus",
+      "kind": "operator",
+      "title": "`+`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Addition / unary plus"
+      }
+    },
+    "operator.plus-assign": {
+      "id": "operator.plus-assign",
+      "kind": "operator",
+      "title": "`+=`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Addition assignment"
+      }
+    },
+    "operator.range": {
+      "id": "operator.range",
+      "kind": "operator",
+      "title": "`..`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Exclusive range"
+      }
+    },
+    "operator.range-inclusive": {
+      "id": "operator.range-inclusive",
+      "kind": "operator",
+      "title": "`..=`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Inclusive range"
+      }
+    },
+    "operator.right-shift": {
+      "id": "operator.right-shift",
+      "kind": "operator",
+      "title": "`>>`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Arithmetic right shift"
+      }
+    },
+    "operator.slash": {
+      "id": "operator.slash",
+      "kind": "operator",
+      "title": "`/`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Division"
+      }
+    },
+    "operator.slash-assign": {
+      "id": "operator.slash-assign",
+      "kind": "operator",
+      "title": "`/=`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Division assignment"
+      }
+    },
+    "operator.star": {
+      "id": "operator.star",
+      "kind": "operator",
+      "title": "`*`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Multiplication / dereference"
+      }
+    },
+    "operator.star-assign": {
+      "id": "operator.star-assign",
+      "kind": "operator",
+      "title": "`*=`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Multiplication assignment"
+      }
+    },
+    "operator.try": {
+      "id": "operator.try",
+      "kind": "operator",
+      "title": "`?`",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "operator"
+      ],
+      "docs": {
+        "summary": "Try operator (error propagation)"
+      }
+    },
+    "tooling.cli": {
+      "id": "tooling.cli",
+      "kind": "tooling",
+      "title": "Kraken CLI",
+      "stability": "stable",
+      "since": "0.8.49",
+      "tags": [
+        "tooling",
+        "cli"
+      ],
+      "docs": {
+        "summary": "The `krakenc` command-line compiler and toolchain.",
+        "details_markdown": "Usage: `krakenc <COMMAND> [OPTIONS]`",
+        "examples": [
+          {
+            "title": "Build a project",
+            "code": "krakenc build",
+            "language": "bash"
+          },
+          {
+            "title": "Run tests",
+            "code": "krakenc test",
+            "language": "bash"
+          }
+        ]
+      },
+      "tooling": {
+        "commands": [
+          {
+            "name": "build",
+            "summary": "Compile a Kraken project"
+          },
+          {
+            "name": "run",
+            "summary": "Build and execute"
+          },
+          {
+            "name": "test",
+            "summary": "Run test suite"
+          },
+          {
+            "name": "bench",
+            "summary": "Run benchmarks with statistical analysis"
+          },
+          {
+            "name": "check",
+            "summary": "Type-check without emitting binaries"
+          },
+          {
+            "name": "fmt",
+            "summary": "Format source files"
+          },
+          {
+            "name": "doc",
+            "summary": "Generate HTML documentation"
+          },
+          {
+            "name": "clean",
+            "summary": "Remove build artifacts"
+          },
+          {
+            "name": "init",
+            "summary": "Initialize project in current directory"
+          },
+          {
+            "name": "new",
+            "summary": "Create new project from template"
+          },
+          {
+            "name": "version",
+            "summary": "Show compiler version"
+          }
+        ]
+      }
+    },
+    "type.bool": {
+      "id": "type.bool",
+      "kind": "type",
+      "title": "bool",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "type",
+        "primitive"
+      ],
+      "docs": {
+        "summary": "Boolean value (true/false)"
+      },
+      "type": {
+        "kind": "primitive"
+      }
+    },
+    "type.bytes": {
+      "id": "type.bytes",
+      "kind": "type",
+      "title": "bytes",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "type",
+        "primitive"
+      ],
+      "docs": {
+        "summary": "Raw byte buffer pointer (i8*)"
+      },
+      "type": {
+        "kind": "primitive"
+      }
+    },
+    "type.float": {
+      "id": "type.float",
+      "kind": "type",
+      "title": "float",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "type",
+        "primitive"
+      ],
+      "docs": {
+        "summary": "64-bit IEEE 754 double-precision"
+      },
+      "type": {
+        "kind": "primitive"
+      }
+    },
+    "type.int": {
+      "id": "type.int",
+      "kind": "type",
+      "title": "int",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "type",
+        "primitive"
+      ],
+      "docs": {
+        "summary": "64-bit signed integer (i64)"
+      },
+      "type": {
+        "kind": "primitive"
+      }
+    },
+    "type.mapstringint": {
+      "id": "type.mapstringint",
+      "kind": "type",
+      "title": "MapStringInt",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "type",
+        "container"
+      ],
+      "docs": {
+        "summary": "Hash map: string keys, int values"
+      },
+      "type": {
+        "kind": "struct"
+      }
+    },
+    "type.mapstringstring": {
+      "id": "type.mapstringstring",
+      "kind": "type",
+      "title": "MapStringString",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "type",
+        "container"
+      ],
+      "docs": {
+        "summary": "Hash map: string keys, string values"
+      },
+      "type": {
+        "kind": "struct"
+      }
+    },
+    "type.slicebytes": {
+      "id": "type.slicebytes",
+      "kind": "type",
+      "title": "SliceBytes",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "type",
+        "container"
+      ],
+      "docs": {
+        "summary": "Borrowed view of byte buffers"
+      },
+      "type": {
+        "kind": "struct"
+      }
+    },
+    "type.sliceint": {
+      "id": "type.sliceint",
+      "kind": "type",
+      "title": "SliceInt",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "type",
+        "container"
+      ],
+      "docs": {
+        "summary": "Borrowed view of integers"
+      },
+      "type": {
+        "kind": "struct"
+      }
+    },
+    "type.slicestring": {
+      "id": "type.slicestring",
+      "kind": "type",
+      "title": "SliceString",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "type",
+        "container"
+      ],
+      "docs": {
+        "summary": "Borrowed view of strings"
+      },
+      "type": {
+        "kind": "struct"
+      }
+    },
+    "type.str": {
+      "id": "type.str",
+      "kind": "type",
+      "title": "str",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "type",
+        "primitive"
+      ],
+      "docs": {
+        "summary": "Borrowed string view (read-only i8*)"
+      },
+      "type": {
+        "kind": "primitive"
+      }
+    },
+    "type.string": {
+      "id": "type.string",
+      "kind": "type",
+      "title": "string",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "type",
+        "primitive"
+      ],
+      "docs": {
+        "summary": "Null-terminated C string pointer (i8*)"
+      },
+      "type": {
+        "kind": "primitive"
+      }
+    },
+    "type.vecbytes": {
+      "id": "type.vecbytes",
+      "kind": "type",
+      "title": "VecBytes",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "type",
+        "container"
+      ],
+      "docs": {
+        "summary": "Dynamic array of byte buffers"
+      },
+      "type": {
+        "kind": "struct"
+      }
+    },
+    "type.vecint": {
+      "id": "type.vecint",
+      "kind": "type",
+      "title": "VecInt",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "type",
+        "container"
+      ],
+      "docs": {
+        "summary": "Dynamic array of integers"
+      },
+      "type": {
+        "kind": "struct"
+      }
+    },
+    "type.vecstring": {
+      "id": "type.vecstring",
+      "kind": "type",
+      "title": "VecString",
+      "stability": "stable",
+      "since": "0.8.0",
+      "tags": [
+        "type",
+        "container"
+      ],
+      "docs": {
+        "summary": "Dynamic array of strings"
+      },
+      "type": {
+        "kind": "struct"
+      }
+    },
+    "type.void": {
+      "id": "type.void",
+      "kind": "type",
+      "title": "void",
+      "stability": "stable",
+      "since": "0.1.0",
+      "tags": [
+        "type",
+        "primitive"
+      ],
+      "docs": {
+        "summary": "No value; used for functions returning nothing"
+      },
+      "type": {
+        "kind": "primitive"
+      }
+    }
+  }
+}

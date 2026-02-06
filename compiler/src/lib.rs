@@ -13,6 +13,8 @@ pub mod codegen;
 pub mod debugger;
 /// Diagnostic code registry: KRA-prefixed error/warning code lookup and documentation.
 pub mod diagnostic_registry;
+/// Documentation metadata generator: DocGraph JSON conforming to docgraph-v1 schema.
+pub mod docgen;
 /// Diagnostic system: structured error/warning codes with severity, messages, and suggestions.
 pub mod diagnostics;
 /// Compiler error types, source locations, spans, and diagnostic hints.

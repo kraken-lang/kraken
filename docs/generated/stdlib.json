@@ -1,0 +1,32 @@
+{
+  "id": "page.stdlib",
+  "slug": "stdlib",
+  "title": "Standard Library",
+  "summary": "Built-in and runtime library functions.",
+  "nav": {
+    "group": "API Reference",
+    "order": 4
+  },
+  "sections": [
+    {
+      "kind": "node_list",
+      "title": "Functions",
+      "node_ids": [
+        "fn.calloc",
+        "fn.free",
+        "fn.kraken_str_concat",
+        "fn.kraken_str_contains",
+        "fn.kraken_str_join",
+        "fn.kraken_str_len",
+        "fn.kraken_str_split",
+        "fn.kraken_str_trim",
+        "fn.malloc",
+        "fn.printf",
+        "fn.puts",
+        "fn.realloc",
+        "fn.strcmp",
+        "fn.strlen"
+      ]
+    }
+  ]
+}
