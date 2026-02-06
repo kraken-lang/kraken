@@ -10,6 +10,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Compiler Benchmark Harness** (`compiler/src/bench_harness.rs`)
+  - `PhaseMetrics` — per-phase timing (nanoseconds), memory tracking, throughput calculation
+  - `BenchHarness` — configurable iterations, regression threshold, baseline path
+  - `BenchResult` — full pipeline results with per-phase breakdown (lexer, parser, type_checker, ir_lower)
+  - `Baseline` — JSON-persisted baseline snapshots with timestamp and git commit tracking
+  - `RegressionStatus` / `RegressionReport` — automated regression detection against saved baselines
+  - `PhaseTimer` — lightweight zero-allocation phase instrumentation
+  - `compare_phase` — percentage-based regression/improvement classification
+  - Built-in benchmark corpus: 7 entries spanning trivial, small, medium, large, and stress categories
+  - `default_corpus()` with generated multi-function and deep-nesting stress programs
+  - Human-readable report formatting with regression annotations
+  - 26 comprehensive unit tests covering metrics, timer, corpus, pipeline execution, comparison, regression detection, baseline roundtrip, and edge cases
+- **Benchmark Runner Script** (`scripts/bench_compiler.sh`)
+  - Automated runner with `--save` (persist baseline) and `--ci` (fail on regression) modes
+  - Runs criterion micro-benchmarks and harness pipeline benchmarks in sequence
+  - Captures output to `build/bench_results/`
+- **Benchmark Harness Tests** (`compiler/src/bench_harness_tests.rs`)
+  - 26 tests: phase metric conversions, throughput edge cases, timer accuracy, corpus validation, pipeline execution, comparison logic (stable/regressed/improved/zero-baseline), regression detection, baseline persistence roundtrip, report formatting
+
+### Changed
+- Registered `bench_harness` module in `compiler/src/lib.rs`
+- Total tests: 710 compiler lib + 580 integration + 822 runtime = 2112 tests passing, zero warnings
+
 ## [0.9.1] - 2026-02-06
 
 ### Added

@@ -5,6 +5,10 @@
 
 /// Semantic analysis: type checking, closure analysis, monomorphization, macros, and traits.
 pub mod analyzer;
+/// Compiler benchmark harness: pipeline instrumentation, regression detection, baseline persistence.
+pub mod bench_harness;
+#[cfg(test)]
+mod bench_harness_tests;
 /// Command-line interface: build, run, test, bench, check, fmt, doc, clean, init, new.
 pub mod cli;
 /// LLVM code generation: IR emission, optimization passes, and object file output.
