@@ -17,7 +17,6 @@ mod tests {
     use crate::parser::ast::Program;
     use crate::parser::parser::Parser;
     use std::path::PathBuf;
-
     // ─── Test Helpers ───────────────────────────────────────────────
 
     /// Parse Kraken source into an AST.
@@ -30,6 +29,9 @@ mod tests {
 
     /// Parse source and generate LLVM IR, returning the IR string.
     fn codegen_ir(source: &str) -> CompilerResult<String> {
+        let _guard = crate::codegen::LLVM_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let program = parse_source(source)?;
         let mut codegen = LLVMCodegen::new("test_module".to_string(), PathBuf::from("test.kr"));
         codegen.generate(&program)?;
