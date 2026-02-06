@@ -7,7 +7,7 @@ use llvm_sys::core::*;
 use llvm_sys::prelude::*;
 use llvm_sys::target::*;
 use llvm_sys::target_machine::*;
-use llvm_sys::{LLVMIntPredicate, LLVMRealPredicate};
+use llvm_sys::LLVMIntPredicate;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::path::{Path, PathBuf};
@@ -554,14 +554,17 @@ impl LLVMCodegen {
                     let mut field_names: Vec<String> = Vec::new();
                     let mut field_types_original: Vec<LLVMTypeRef> = Vec::new();
 
-                    // Collect all field types and find the largest
+                    // Collect all field types and find the largest.
+                    // NOTE: We compute sizes from Kraken types directly instead of using
+                    // LLVMSizeOf(), which returns a ConstantExpr (not a ConstantInt).
+                    // Calling LLVMConstIntGetZExtValue on a ConstantExpr is undefined
+                    // behavior and causes SIGSEGV on some platforms.
                     let mut max_size: u64 = 0;
                     let mut largest_type = LLVMInt8TypeInContext(self.context);
 
                     for field in fields {
                         let llvm_ty = self.get_llvm_type(&field.field_type);
-                        let size = LLVMSizeOf(llvm_ty);
-                        let size_val = LLVMConstIntGetZExtValue(size);
+                        let size_val = Self::kraken_type_size(&field.field_type);
                         field_names.push(field.name.clone());
                         field_types_original.push(llvm_ty);
                         if size_val > max_size {
@@ -4080,6 +4083,26 @@ impl LLVMCodegen {
 
                 _ => Err(CompilerError::codegen_error("Unsupported expression type")),
             }
+        }
+    }
+
+    /// Compute the size in bytes of a Kraken type without LLVM API calls.
+    /// Used for union layout computation where `LLVMSizeOf` returns a ConstantExpr
+    /// that cannot be safely passed to `LLVMConstIntGetZExtValue`.
+    fn kraken_type_size(ty: &Type) -> u64 {
+        match ty {
+            Type::Int => 8,
+            Type::Float => 8,
+            Type::Bool => 1,
+            Type::String | Type::Str | Type::Bytes => 8,
+            Type::Void => 0,
+            Type::Array { element_type, size } => {
+                let elem_size = Self::kraken_type_size(element_type);
+                size.map_or(8, |s| elem_size * s as u64) // unsized = pointer
+            }
+            Type::Reference { .. } | Type::Pointer { .. } | Type::RawPointer { .. } => 8,
+            Type::Custom(_) => 8, // struct pointer or opaque — assume pointer-sized
+            _ => 8,
         }
     }
 

@@ -48,11 +48,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Runtime library build** (`runtime/build.sh`, `runtime/kraken_string.c`)
   - Added missing `#include <stdio.h>` in `kraken_string.c` for `vsprintf`/`vsnprintf` declarations
   - Updated `build.sh` to compile all 8 C runtime source files (was only compiling 4)
-- **LLVM codegen test SIGSEGV in CI** (`.github/workflows/ci.yml`, `compiler/src/codegen/llvm_backend.rs`)
-  - LLVM's global initialization functions register `atexit` handlers that crash when called multiple times during process cleanup
-  - Crash occurred after all tests completed, during LLVM's global teardown phase
-  - Fixed by wrapping LLVM initialization in `std::sync::Once` to ensure targets are initialized exactly once per process
-  - CI workflow also sets `RUST_TEST_THREADS=1` and passes `--test-threads=1` flag for additional safety
+- **LLVM codegen test SIGSEGV in CI** (`compiler/src/codegen/llvm_backend.rs`)
+  - `LLVMSizeOf()` returns a `ConstantExpr` (a sizeof expression), not a `ConstantInt`
+  - Calling `LLVMConstIntGetZExtValue()` on a `ConstantExpr` is undefined behavior that causes SIGSEGV on Linux CI
+  - Fixed by replacing `LLVMSizeOf` + `LLVMConstIntGetZExtValue` in union layout with `kraken_type_size()` helper that computes sizes from Kraken types directly
+  - Also wrapped LLVM target initialization in `std::sync::Once` to prevent redundant `atexit` handler registrations
+  - CI workflow sets `RUST_TEST_THREADS=1` and `--test-threads=1` for additional safety
 - Removed stale `#[allow(dead_code)]` from 16+ files across analyzer, parser, CLI, and IR modules
 - Removed duplicate inner `#![allow(dead_code)]` attributes from `diagnostic_registry.rs` and `diagnostics.rs`
 - Replaced all stale TODO/FIXME comments with proper documentation noting deferred-to-1.0 status
