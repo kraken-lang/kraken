@@ -93,9 +93,10 @@ jobs:
           LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
 
       - name: Run tests
-        run: cargo test --workspace -- --test-threads=1
+        run: cargo test --workspace
         env:
           LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
+          RUST_TEST_THREADS: 1
 
   lint:
     name: Lint
