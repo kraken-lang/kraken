@@ -5,11 +5,6 @@ pub mod llvm_backend;
 /// LLVM optimization passes: configurable optimization levels and pass management.
 pub mod optimization;
 
-// LLVM global state is not thread-safe across context creation/destruction.
-// This shared lock serializes all codegen tests to prevent SIGSEGV.
-#[cfg(test)]
-pub(crate) static LLVM_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
 #[cfg(test)]
 mod codegen_tests;
 

@@ -76,3 +76,4 @@ glob = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }
+serial_test = "3.0"

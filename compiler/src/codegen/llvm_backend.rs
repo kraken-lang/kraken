@@ -12905,13 +12905,12 @@ impl LLVMCodegen {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::path::PathBuf;
 
     #[test]
+    #[serial]
     fn test_llvm_type_conversion() {
-        let _guard = crate::codegen::LLVM_TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
         let codegen = LLVMCodegen::new("test".to_string(), PathBuf::from("test.kr"));
 
         let int_type = codegen.get_llvm_type(&Type::Int);
@@ -12926,10 +12925,8 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_compile_empty_program() {
-        let _guard = crate::codegen::LLVM_TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
         let mut codegen = LLVMCodegen::new("test".to_string(), PathBuf::from("test.kr"));
         let program = Program::new(vec![]);
         let output = std::env::temp_dir().join("test.o");
