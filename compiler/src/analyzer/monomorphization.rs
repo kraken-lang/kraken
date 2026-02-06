@@ -74,6 +74,7 @@ struct InstKey {
     args: Vec<Type>,
 }
 
+/// Monomorphize all generic functions and types in the program, producing a fully specialized AST.
 pub fn monomorphize_program(program: Program, file_path: PathBuf) -> CompilerResult<Program> {
     let mut mono = Monomorphizer::new(file_path);
     mono.run(program)

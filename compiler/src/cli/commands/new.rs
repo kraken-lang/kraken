@@ -5,9 +5,11 @@ use crate::cli::{Command, CommandResult};
 use std::fs;
 use std::path::Path;
 
+/// New command: creates a new Kraken project directory from a template.
 pub struct NewCommand;
 
 impl NewCommand {
+    /// Create a new project creation command.
     pub fn create() -> Box<dyn Command> {
         Box::new(Self)
     }

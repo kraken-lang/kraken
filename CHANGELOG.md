@@ -10,6 +10,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-02-05
+
+### Added
+- **Comprehensive Type Checker Tests** (`compiler/src/analyzer/type_checker_tests.rs`)
+  - 91 tests covering variables, constants, functions, control flow, binary/unary ops, structs, enums, match expressions, arrays, tuples, traits, async, unsafe, defer, scoping, and complex programs
+- **Comprehensive Parser Tests** (`compiler/src/parser/parser_tests.rs`)
+  - 96 tests covering all statement types, expression types, closures, edge cases, malformed input, and AST structure verification with operator precedence checks
+- **Comprehensive IR Lowering Tests** (`compiler/src/ir/lower_tests.rs`)
+  - 52 tests covering function/struct lowering, variable declarations, return statements, binary operations, control flow, function calls, struct operations, type lowering, edge cases, and direct AST construction
+- **Comprehensive LLVM Codegen Tests** (`compiler/src/codegen/codegen_tests.rs`)
+  - 88 tests verifying LLVM IR output via string inspection across all major codegen paths
+  - Struct layout and field access: named types, GEP field access, alloca/memcpy, packed and C repr (via AST), nested structs, multi-struct modules
+  - Enum tag and variant handling: tag values, payload storage, match tag comparison, single/many variants
+  - Function calls and return values: int/float/bool/void/struct returns, single/multi params, inter-function calls, recursion, multiple return paths, local variables
+  - String and array operations: string literals, variables, empty strings, concatenation via runtime, array declarations, element access, float arrays
+  - Numeric operations: int arithmetic (add/sub/mul/sdiv/srem), float arithmetic (add/sub/mul/sdiv double), all comparison operators (icmp slt/sgt/eq/ne/sle/sge), boolean and/or/not, int/float negation, constants, chained/nested expressions
+  - Bitwise operations: and, xor, shift left, arithmetic shift right
+  - Control flow: if/else branching, while loops, for loops
+  - Edge cases: empty functions, deeply nested expressions, many local variables, variable reassignment, bool constants, multi-function modules
+  - Union codegen, module structure, stdlib declarations
+- **API Stabilization** (`compiler/src/`)
+  - 100% doc comment coverage on all 485 public items (structs, enums, traits, functions, type aliases, modules)
+  - Finalized stdlib function signatures: 26 FFI functions with validated Kraken types, C ABI types, nullability, ownership, errno conventions, and int widening rules
+  - Semantic versioning enforcement module (`compiler/src/semver.rs`) with 15 tests: `SemVer` parsing/ordering/bumps, `ApiSurface` snapshot/diff, `ApiDiff` breaking/additive/patch classification, pre-1.0 and post-1.0 bump validation
+  - Comprehensive API behavior contracts document (`.private/API_CONTRACTS.md`): guaranteed behavior for all 15 public modules covering error system, lexer, parser, analyzer, IR, codegen, FFI, CLI, optimizer, formatter, diagnostics, target, semver, modules, and stdlib
+
+### Fixed
+- **Parser Bug: Turbofish intercepting enum variant syntax** (`compiler/src/parser/parser.rs`)
+  - `Color::Red` was incorrectly parsed as turbofish syntax (`Identifier::<T>`) causing "Expected '<' after '::'" errors
+  - Fixed by peek-ahead: `::` followed by `<` triggers turbofish, otherwise falls through to enum variant handling
+- **VecString GEP element type bug** (`compiler/src/codegen/llvm_backend.rs`)
+  - `vec_string_new`, `vec_string_push`, and `vec_string_len` used `i8_ptr_ty` (pointer type, 8-byte stride) as the GEP element type for byte-offset struct field access
+  - This caused struct field offsets 8 and 16 to be multiplied by pointer size, accessing memory at offsets 64 and 128 instead of 8 and 16
+  - Fixed by using `i8_ty` (1-byte stride) for all byte-offset GEP instructions in VecString intrinsics
+  - Root cause of `string_join_test` and `string_split_test` integration test failures
+- **Runtime library build** (`runtime/build.sh`, `runtime/kraken_string.c`)
+  - Added missing `#include <stdio.h>` in `kraken_string.c` for `vsprintf`/`vsnprintf` declarations
+  - Updated `build.sh` to compile all 8 C runtime source files (was only compiling 4)
+- Removed stale `#[allow(dead_code)]` from 16+ files across analyzer, parser, CLI, and IR modules
+- Removed duplicate inner `#![allow(dead_code)]` attributes from `diagnostic_registry.rs` and `diagnostics.rs`
+- Replaced all stale TODO/FIXME comments with proper documentation noting deferred-to-1.0 status
+- Prefixed unused private infrastructure methods/fields with `_` where appropriate
+
+### Implemented (previously deferred)
+- **Interface Declaration Checking** (`compiler/src/analyzer/type_checker.rs`)
+  - Interface method signatures now validated: parameter types and return types checked for existence
+- **repr(align(N)) Codegen** (`compiler/src/codegen/llvm_backend.rs`)
+  - `repr(align(N))` structs now apply `LLVMSetAlignment` on stack allocations
+- **Proper Union Semantics** (`compiler/src/codegen/llvm_backend.rs`)
+  - Unions now use max-size single allocation (largest field type) instead of struct-with-all-fields
+  - Field access uses bitcast to the appropriate type
+- **Enum Payload Extraction** (`compiler/src/codegen/llvm_backend.rs`)
+  - Match arms on enum variants with payloads now extract payload fields via GEP and bind them to variables
+  - Enum construction with payloads returns struct pointer (not just tag) enabling full payload access
+- **Try Operator Desugaring** (`compiler/src/codegen/llvm_backend.rs`, `compiler/src/ir/lower.rs`)
+  - `?` operator now desugars to: check tag == 0 (Ok) → extract payload, tag != 0 (Err) → early return
+  - IR lowering emits tag comparison; LLVM backend generates full branch/phi control flow
+- **Closure Codegen** (`compiler/src/codegen/llvm_backend.rs`)
+  - Closures generate anonymous LLVM functions with parameter binding
+  - Supports both expression-body (`|x| x + 1`) and block-body (`|x| { ... }`) forms
+  - Returns function pointer for use as first-class value
+- **Trait Object Fat Pointers** (`compiler/src/codegen/llvm_backend.rs`)
+  - `dyn Trait` types now represented as fat pointer struct `{ data_ptr: *i8, vtable_ptr: *i8 }`
+- **Thread Pool Dispatch (pool_spawn)** (`compiler/src/codegen/llvm_backend.rs`)
+  - `pool_spawn` now dispatches work via `pthread_create` with the function pointer as thread routine
+  - Returns thread handle for join/tracking
+- **String Split & Join Tests** (`compiler/src/main.rs`)
+  - `string_split_test_compile_and_run` and `string_join_test_compile_and_run` integration tests enabled
+
+### Changed
+- Public API re-exports in `analyzer/mod.rs`, `codegen/mod.rs`, `ir/mod.rs` annotated with `#[allow(unused_imports)]` to suppress binary-crate warnings while preserving library API surface
+- Module declarations in `main.rs` annotated with `#[allow(dead_code)]` to suppress warnings for public API items not used by the binary crate
+- Zero clippy warnings, zero compiler warnings across the entire workspace
+- 580 integration tests passing, 651 library tests passing
+
 ## [0.8.50] - 2026-02-05
 
 ### Added
@@ -2637,7 +2712,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
-[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.8.49...HEAD
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/kraken-lang/kraken/compare/v0.8.50...v0.9.0
 [0.8.50]: https://github.com/kraken-lang/kraken/compare/v0.8.49...v0.8.50
 [0.8.49]: https://github.com/kraken-lang/kraken/compare/v0.8.48...v0.8.49
 [0.8.48]: https://github.com/kraken-lang/kraken/compare/v0.8.47...v0.8.48

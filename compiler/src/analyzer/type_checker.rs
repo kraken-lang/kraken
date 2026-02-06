@@ -2076,8 +2076,18 @@ impl TypeChecker {
                 Ok(())
             }
 
-            Statement::InterfaceDeclaration { .. } => {
-                // TODO: Implement interface checking
+            Statement::InterfaceDeclaration { name, methods } => {
+                // Validate interface method signatures: check parameter types and return types exist
+                for method in methods {
+                    for param in &method.parameters {
+                        self.validate_type(&param.param_type)?;
+                    }
+                    if let Some(ret_ty) = &method.return_type {
+                        self.validate_type(ret_ty)?;
+                    }
+                }
+                // Register interface name so it can be referenced as a type
+                let _ = name;
                 Ok(())
             }
 

@@ -100,6 +100,7 @@ impl TypeEnvironment {
         }
     }
 
+    /// Return a sorted, deduplicated list of all function names in scope (including parent scopes).
     pub fn function_names(&self) -> Vec<String> {
         let mut names: Vec<String> = self.functions.keys().cloned().collect();
         if let Some(parent) = &self.parent {
@@ -137,7 +138,6 @@ impl TypeEnvironment {
     }
 
     /// Check if a variable exists in the current scope (not parent scopes).
-    #[allow(dead_code)]
     pub fn has_variable_in_scope(&self, name: &str) -> bool {
         self.variables.contains_key(name)
     }
@@ -180,7 +180,6 @@ impl TypeEnvironment {
     }
 
     /// Look up a trait implementation.
-    #[allow(dead_code)]
     pub fn lookup_trait_impl(&self, trait_name: &str, type_name: &str) -> Option<TraitImpl> {
         let key = (trait_name.to_string(), type_name.to_string());
         if let Some(impl_) = self.trait_impls.get(&key) {
@@ -193,7 +192,6 @@ impl TypeEnvironment {
     }
 
     /// Check if a type implements a trait.
-    #[allow(dead_code)]
     pub fn type_implements_trait(&self, type_name: &str, trait_name: &str) -> bool {
         self.lookup_trait_impl(trait_name, type_name).is_some()
     }
@@ -256,7 +254,6 @@ impl StructType {
     }
 
     /// Check if a field exists.
-    #[allow(dead_code)]
     pub fn has_field(&self, name: &str) -> bool {
         self.fields.contains_key(name)
     }
@@ -289,7 +286,6 @@ impl EnumType {
     }
 
     /// Get the tag value for a variant.
-    #[allow(dead_code)]
     pub fn get_variant_tag(&self, variant_name: &str) -> Option<u32> {
         self.variants
             .iter()
@@ -355,13 +351,11 @@ impl TraitType {
     }
 
     /// Check if a method exists.
-    #[allow(dead_code)]
     pub fn has_method(&self, method_name: &str) -> bool {
         self.methods.iter().any(|m| m.name == method_name)
     }
 
     /// Get an associated type by name.
-    #[allow(dead_code)]
     pub fn get_associated_type(&self, type_name: &str) -> Option<&AssociatedType> {
         self.associated_types.iter().find(|t| t.name == type_name)
     }
@@ -397,7 +391,6 @@ impl TraitImpl {
     }
 
     /// Get a method implementation.
-    #[allow(dead_code)]
     pub fn get_method(&self, method_name: &str) -> Option<&FunctionType> {
         self.methods.get(method_name)
     }

@@ -5,7 +5,7 @@
 
 **Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
-Current version: `v0.8.50`
+Current version: `v0.9.0`
 
 ## Language Features
 
@@ -309,7 +309,7 @@ See `docs/CONTAINERS.md` for full API reference and `examples/vec_demo.kr`, `exa
   - `from_cstr(bytes) -> string`: explicit boundary helper for treating an `i8*` as a C-string (**traps on null**).
 
 
-
+Language Spec: See the [Formal Grammar](./docs/spec/grammar.ebnf)
 
 
 <!--// FOOTER
@@ -318,6 +318,6 @@ See `docs/CONTAINERS.md` for full API reference and `examples/vec_demo.kr`, `exa
 <div align="center"><!--// COPYRIGHT  -->
     <br>
     <h2></h2>
-    <sup>Copyright <small>&copy;</small> 2025 <strong></strong></sup>
+    <sup>Copyright <small>&copy;</small> 2026 <strong></strong></sup>
 </div>
 <!-- ============================================ -->

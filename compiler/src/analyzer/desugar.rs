@@ -10,10 +10,9 @@ use crate::error::CompilerResult;
 use crate::parser::ast::*;
 
 /// Desugar pass that transforms AST constructs into simpler forms.
-#[allow(dead_code)]
 pub struct AstDesugar {
-    /// Counter for generating unique temporary variable names
-    temp_counter: u32,
+    /// Counter for generating unique temporary variable names (reserved for ? desugaring)
+    _temp_counter: u32,
 }
 
 impl Default for AstDesugar {
@@ -22,16 +21,16 @@ impl Default for AstDesugar {
     }
 }
 
-#[allow(dead_code)]
 impl AstDesugar {
+    /// Create a new AST desugaring pass.
     pub fn new() -> Self {
-        Self { temp_counter: 0 }
+        Self { _temp_counter: 0 }
     }
 
-    /// Generate a unique temporary variable name
-    fn gen_temp(&mut self) -> String {
-        let name = format!("__try_temp_{}", self.temp_counter);
-        self.temp_counter += 1;
+    /// Generate a unique temporary variable name (reserved for ? desugaring)
+    fn _gen_temp(&mut self) -> String {
+        let name = format!("__try_temp_{}", self._temp_counter);
+        self._temp_counter += 1;
         name
     }
 

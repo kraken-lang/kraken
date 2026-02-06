@@ -4,9 +4,11 @@ use crate::cli::output::OutputMessage;
 use crate::cli::{Command, CommandResult};
 use std::path::Path;
 
+/// Clean command: removes build artifacts from the output directory.
 pub struct CleanCommand;
 
 impl CleanCommand {
+    /// Create a new clean command.
     pub fn create() -> Box<dyn Command> {
         Box::new(Self)
     }

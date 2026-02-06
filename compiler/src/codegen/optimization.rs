@@ -47,6 +47,7 @@ pub struct Optimizer {
 }
 
 impl Optimizer {
+    /// Create a new optimizer with the given optimization level.
     pub fn new(optimization_level: OptimizationLevel) -> Self {
         Self { optimization_level }
     }

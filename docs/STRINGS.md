@@ -1,4 +1,8 @@
-# Strings in Kraken
+<h1 align="center">
+    <img width="auto" height="90" alt="Kraken Language" src="https://raw.githubusercontent.com/kraken-lang/.github/refs/heads/main/images/kraken-logo.png">
+        <br><sub><sup>KRAKEN LANGUAGE</sup></sub><br>
+        STRINGS
+</h1>
 
 This guide provides a comprehensive overview of string handling in the Kraken programming language, including string types, operations, memory management, and best practices.
 

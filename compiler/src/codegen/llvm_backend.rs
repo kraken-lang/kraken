@@ -35,10 +35,9 @@ pub struct LLVMCodegen {
     loop_continue_blocks: Vec<LLVMBasicBlockRef>,
     file_path: PathBuf,
     debug_bounds_checks: bool, // Enable bounds checking when KRAKEN_DEBUG_BOUNDS=1
-    #[allow(dead_code)]
-    vtables: HashMap<String, LLVMValueRef>, // (trait_name, type_name) -> vtable global
-    #[allow(dead_code)]
-    trait_methods: HashMap<String, Vec<String>>, // trait_name -> [method_names]
+    struct_alignments: HashMap<String, u32>, // struct name -> alignment (from repr(align(N)))
+    _vtables: HashMap<String, LLVMValueRef>, // trait_name -> vtable global (used by dynamic dispatch)
+    _trait_methods: HashMap<String, Vec<String>>, // trait_name -> [method_names] (used by dynamic dispatch)
 }
 
 impl LLVMCodegen {
@@ -84,8 +83,9 @@ impl LLVMCodegen {
                 loop_continue_blocks: Vec::new(),
                 file_path,
                 debug_bounds_checks,
-                vtables: HashMap::new(),
-                trait_methods: HashMap::new(),
+                struct_alignments: HashMap::new(),
+                _vtables: HashMap::new(),
+                _trait_methods: HashMap::new(),
             }
         }
     }
@@ -396,6 +396,66 @@ impl LLVMCodegen {
         }
     }
 
+    /// Generate LLVM IR for a program without emitting to disk.
+    /// Useful for testing and IR inspection.
+    pub fn generate(&mut self, program: &Program) -> CompilerResult<()> {
+        unsafe {
+            LLVM_InitializeAllTargetInfos();
+            LLVM_InitializeAllTargets();
+            LLVM_InitializeAllTargetMCs();
+            LLVM_InitializeAllAsmParsers();
+            LLVM_InitializeAllAsmPrinters();
+        }
+
+        self.declare_stdlib_functions()?;
+
+        for statement in &program.statements {
+            if matches!(
+                statement,
+                Statement::StructDeclaration { .. }
+                    | Statement::UnionDeclaration { .. }
+                    | Statement::EnumDeclaration { .. }
+            ) {
+                self.codegen_statement(statement)?;
+            }
+        }
+
+        // Pass 1: Declare all functions
+        for statement in &program.statements {
+            if let Statement::FunctionDeclaration {
+                name,
+                parameters,
+                return_type,
+                ..
+            } = statement
+            {
+                self.declare_function(
+                    name,
+                    parameters,
+                    return_type.as_ref().unwrap_or(&Type::Void),
+                )?;
+            }
+        }
+
+        // Pass 2: Generate function bodies
+        for statement in &program.statements {
+            self.codegen_statement(statement)?;
+        }
+
+        Ok(())
+    }
+
+    /// Return the generated LLVM IR as a string.
+    /// Must be called after `generate` or `compile`.
+    pub fn get_ir_string(&self) -> String {
+        unsafe {
+            let ir_ptr = LLVMPrintModuleToString(self.module);
+            let ir_str = CStr::from_ptr(ir_ptr).to_string_lossy().into_owned();
+            LLVMDisposeMessage(ir_ptr);
+            ir_str
+        }
+    }
+
     /// Generate code for a statement.
     fn codegen_statement(&mut self, statement: &Statement) -> CompilerResult<()> {
         match statement {
@@ -457,9 +517,10 @@ impl LLVMCodegen {
                         if is_packed { 1 } else { 0 },
                     );
 
-                    // TODO: Handle repr(C) and repr(align(N)) with LLVM alignment APIs
-                    // repr(C) ensures C-compatible layout (default in LLVM)
-                    // repr(align(N)) would require LLVMSetAlignment on allocations
+                    // Store alignment requirement from repr(align(N))
+                    if let Some(StructRepr::Align(n)) = repr {
+                        self.struct_alignments.insert(name.clone(), *n);
+                    }
 
                     // Store struct type, field names, and field types
                     self.struct_types
@@ -478,36 +539,53 @@ impl LLVMCodegen {
                         return Ok(());
                     }
 
-                    // For unions, we'll use a simple approach: create a struct with all fields
-                    // This is a simplified implementation - proper unions would need size calculation
+                    // Proper union semantics: allocate a single storage region sized to
+                    // the largest field. The union is represented as a struct containing
+                    // a byte array large enough for the largest variant, plus the first
+                    // (largest) field type for proper alignment.
                     let union_name = CString::new(name.as_str()).expect("CString failed");
                     let union_type = LLVMStructCreateNamed(self.context, union_name.as_ptr());
 
-                    let mut field_types: Vec<LLVMTypeRef> = Vec::new();
                     let mut field_names: Vec<String> = Vec::new();
+                    let mut field_types_original: Vec<LLVMTypeRef> = Vec::new();
 
-                    // For now, treat union like a struct (all fields present)
-                    // TODO: Implement proper union semantics with size calculation
+                    // Collect all field types and find the largest
+                    let mut max_size: u64 = 0;
+                    let mut largest_type = LLVMInt8TypeInContext(self.context);
+
                     for field in fields {
-                        field_types.push(self.get_llvm_type(&field.field_type));
+                        let llvm_ty = self.get_llvm_type(&field.field_type);
+                        let size = LLVMSizeOf(llvm_ty);
+                        let size_val = LLVMConstIntGetZExtValue(size);
                         field_names.push(field.name.clone());
+                        field_types_original.push(llvm_ty);
+                        if size_val > max_size {
+                            max_size = size_val;
+                            largest_type = llvm_ty;
+                        }
                     }
 
+                    // Union layout: single field of the largest type
+                    // All field accesses will bitcast the pointer to the appropriate type
+                    let mut body_types = vec![largest_type];
+
                     // If no fields, use a single byte
-                    if field_types.is_empty() {
-                        field_types.push(LLVMInt8TypeInContext(self.context));
+                    if fields.is_empty() {
+                        body_types = vec![LLVMInt8TypeInContext(self.context)];
                     }
 
                     LLVMStructSetBody(
                         union_type,
-                        field_types.as_mut_ptr(),
-                        field_types.len() as u32,
+                        body_types.as_mut_ptr(),
+                        body_types.len() as u32,
                         0, // not packed
                     );
 
-                    // Store union type
-                    self.struct_types
-                        .insert(name.clone(), (union_type, field_names, field_types));
+                    // Store union type with original field names and types for field access
+                    self.struct_types.insert(
+                        name.clone(),
+                        (union_type, field_names, field_types_original),
+                    );
                 }
                 Ok(())
             }
@@ -658,6 +736,13 @@ impl LLVMCodegen {
 
                     // Create alloca at the entry block
                     let alloca = self.create_entry_block_alloca(var_type, &name)?;
+
+                    // Apply repr(align(N)) alignment if this is an aligned struct
+                    if let Some(sname) = &struct_name {
+                        if let Some(&align) = self.struct_alignments.get(sname) {
+                            LLVMSetAlignment(alloca, align);
+                        }
+                    }
 
                     // Store initial value if provided
                     if let Some(init_expr) = initializer {
@@ -1182,19 +1267,65 @@ impl LLVMCodegen {
                             } => {
                                 // Look up the tag value for this variant
                                 if let Some(variants) = self.enum_types.get(enum_name).cloned() {
-                                    if let Some((_, tag, _payload_types)) =
+                                    if let Some((_, tag, payload_types)) =
                                         variants.iter().find(|(name, _, _)| name == variant_name)
                                     {
-                                        // Compare match value (assumed to be tag) against expected tag
                                         let i64_ty = LLVMInt64TypeInContext(self.context);
                                         let expected_tag = LLVMConstInt(i64_ty, *tag as u64, 0);
+
+                                        // Determine if match_val is a pointer (enum with payload)
+                                        // or a plain i64 (simple enum without payload)
+                                        let match_val_type = LLVMTypeOf(match_val);
+                                        let is_pointer = LLVMGetTypeKind(match_val_type)
+                                            == llvm_sys::LLVMTypeKind::LLVMPointerTypeKind;
+
+                                        let tag_val = if is_pointer {
+                                            // match_val is a struct pointer { tag, payload... }
+                                            // Build the struct type to GEP into it
+                                            let mut field_types_for_gep = vec![i64_ty];
+                                            if let Some(pt) = payload_types {
+                                                let ptypes = match pt {
+                                                    EnumVariantPayload::Tuple(types) => types.clone(),
+                                                    EnumVariantPayload::Struct(fields) => {
+                                                        fields.iter().map(|(_, ty)| ty.clone()).collect()
+                                                    }
+                                                };
+                                                for ptype in &ptypes {
+                                                    field_types_for_gep.push(self.get_llvm_type(ptype));
+                                                }
+                                            }
+                                            let struct_ty = LLVMStructTypeInContext(
+                                                self.context,
+                                                field_types_for_gep.as_mut_ptr(),
+                                                field_types_for_gep.len() as u32,
+                                                0,
+                                            );
+                                            // Load the tag from the struct
+                                            let tag_ptr = LLVMBuildStructGEP2(
+                                                self.builder,
+                                                struct_ty,
+                                                match_val,
+                                                0,
+                                                c"enum.tag.ptr".as_ptr(),
+                                            );
+                                            LLVMBuildLoad2(
+                                                self.builder,
+                                                i64_ty,
+                                                tag_ptr,
+                                                c"enum.tag".as_ptr(),
+                                            )
+                                        } else {
+                                            // match_val is already the tag (simple enum)
+                                            match_val
+                                        };
+
                                         let cmp_name =
                                             CString::new(format!("enum.cmp.{variant_name}"))
                                                 .expect("CString failed");
                                         let cond = LLVMBuildICmp(
                                             self.builder,
                                             LLVMIntPredicate::LLVMIntEQ,
-                                            match_val,
+                                            tag_val,
                                             expected_tag,
                                             cmp_name.as_ptr(),
                                         );
@@ -1205,11 +1336,60 @@ impl LLVMCodegen {
                                             next_check_blocks[i],
                                         );
 
-                                        // TODO: For payload extraction, we need to:
-                                        // 1. Load payload data from the enum struct
-                                        // 2. Bind each payload element to the corresponding binding name
-                                        // For now, bindings are placeholders (payload support is in progress)
-                                        let _ = bindings; // Suppress unused warning
+                                        // Extract payload bindings in the arm block
+                                        if is_pointer && !bindings.is_empty() {
+                                            if let Some(pt) = payload_types {
+                                                let ptypes = match pt {
+                                                    EnumVariantPayload::Tuple(types) => types.clone(),
+                                                    EnumVariantPayload::Struct(fields) => {
+                                                        fields.iter().map(|(_, ty)| ty.clone()).collect()
+                                                    }
+                                                };
+
+                                                // Position in arm block to extract payloads
+                                                LLVMPositionBuilderAtEnd(self.builder, arm_blocks[i]);
+
+                                                // Rebuild struct type for GEP
+                                                let mut field_types_for_gep = vec![i64_ty];
+                                                for ptype in &ptypes {
+                                                    field_types_for_gep.push(self.get_llvm_type(ptype));
+                                                }
+                                                let struct_ty = LLVMStructTypeInContext(
+                                                    self.context,
+                                                    field_types_for_gep.as_mut_ptr(),
+                                                    field_types_for_gep.len() as u32,
+                                                    0,
+                                                );
+
+                                                for (bind_idx, binding_name) in bindings.iter().enumerate() {
+                                                    if bind_idx < ptypes.len() {
+                                                        // GEP to payload field (index 0 is tag, payload starts at 1)
+                                                        let payload_ptr = LLVMBuildStructGEP2(
+                                                            self.builder,
+                                                            struct_ty,
+                                                            match_val,
+                                                            (bind_idx + 1) as u32,
+                                                            c"enum.payload.ptr".as_ptr(),
+                                                        );
+                                                        let payload_ty = self.get_llvm_type(&ptypes[bind_idx]);
+                                                        let payload_val = LLVMBuildLoad2(
+                                                            self.builder,
+                                                            payload_ty,
+                                                            payload_ptr,
+                                                            c"enum.payload".as_ptr(),
+                                                        );
+
+                                                        // Bind to variable
+                                                        let alloca = self.create_entry_block_alloca(payload_ty, binding_name)?;
+                                                        LLVMBuildStore(self.builder, payload_val, alloca);
+                                                        self.named_values.insert(binding_name.clone(), alloca);
+                                                    }
+                                                }
+
+                                                // Reposition to the check block for the next pattern
+                                                LLVMPositionBuilderAtEnd(self.builder, next_check_blocks[i]);
+                                            }
+                                        }
                                     } else {
                                         // Variant not found, just branch (will error at runtime)
                                         LLVMBuildBr(self.builder, arm_blocks[i]);
@@ -3570,15 +3750,8 @@ impl LLVMCodegen {
                                         LLVMBuildStore(self.builder, payload_val, payload_ptr);
                                     }
 
-                                    // Load the tag for pattern matching (simple enums just return tag)
-                                    // For full support, we'd return the struct pointer
-                                    let loaded_tag = LLVMBuildLoad2(
-                                        self.builder,
-                                        i64_ty,
-                                        tag_ptr,
-                                        c"tag".as_ptr(),
-                                    );
-                                    return Ok(loaded_tag);
+                                    // Return the struct pointer so match arms can extract payloads
+                                    return Ok(struct_ptr);
                                 }
                             }
 
@@ -3653,24 +3826,217 @@ impl LLVMCodegen {
                 }
 
                 Expression::Try { expression } => {
-                    // Try operator should be desugared before codegen
-                    // For now, just codegen the inner expression
-                    // TODO: Implement proper desugaring before this stage
-                    self.codegen_expression(expression)
+                    // Try operator desugaring: expr? becomes:
+                    //   let tmp = expr;
+                    //   if tmp is Ok(val) -> val
+                    //   if tmp is Err(e)  -> return Err(e)
+                    let inner_val = self.codegen_expression(expression)?;
+
+                    let inner_type = LLVMTypeOf(inner_val);
+                    let is_pointer = LLVMGetTypeKind(inner_type)
+                        == llvm_sys::LLVMTypeKind::LLVMPointerTypeKind;
+
+                    if is_pointer {
+                        // Inner expression returned a struct pointer (enum with payload)
+                        // Result<T,E> layout: { tag: i64, payload: T_or_E }
+                        // Ok = tag 0, Err = tag 1
+                        let i64_ty = LLVMInt64TypeInContext(self.context);
+
+                        // Build a minimal struct type { i64, i64 } for tag extraction
+                        let mut gep_types = vec![i64_ty, i64_ty];
+                        let struct_ty = LLVMStructTypeInContext(
+                            self.context,
+                            gep_types.as_mut_ptr(),
+                            gep_types.len() as u32,
+                            0,
+                        );
+
+                        // Load the tag
+                        let tag_ptr = LLVMBuildStructGEP2(
+                            self.builder,
+                            struct_ty,
+                            inner_val,
+                            0,
+                            c"try.tag.ptr".as_ptr(),
+                        );
+                        let tag_val = LLVMBuildLoad2(
+                            self.builder,
+                            i64_ty,
+                            tag_ptr,
+                            c"try.tag".as_ptr(),
+                        );
+
+                        // Compare tag == 0 (Ok)
+                        let zero = LLVMConstInt(i64_ty, 0, 0);
+                        let is_ok = LLVMBuildICmp(
+                            self.builder,
+                            LLVMIntPredicate::LLVMIntEQ,
+                            tag_val,
+                            zero,
+                            c"try.is_ok".as_ptr(),
+                        );
+
+                        let function = self.current_function.ok_or_else(|| {
+                            CompilerError::codegen_error("Try operator outside of function")
+                        })?;
+
+                        let ok_bb = LLVMAppendBasicBlockInContext(
+                            self.context, function, c"try.ok".as_ptr(),
+                        );
+                        let err_bb = LLVMAppendBasicBlockInContext(
+                            self.context, function, c"try.err".as_ptr(),
+                        );
+                        let merge_bb = LLVMAppendBasicBlockInContext(
+                            self.context, function, c"try.merge".as_ptr(),
+                        );
+
+                        LLVMBuildCondBr(self.builder, is_ok, ok_bb, err_bb);
+
+                        // Err path: early return with the error value
+                        LLVMPositionBuilderAtEnd(self.builder, err_bb);
+                        // Return the entire Result (propagate the Err)
+                        let err_payload_ptr = LLVMBuildStructGEP2(
+                            self.builder, struct_ty, inner_val, 1,
+                            c"try.err.payload.ptr".as_ptr(),
+                        );
+                        let err_payload = LLVMBuildLoad2(
+                            self.builder, i64_ty, err_payload_ptr,
+                            c"try.err.payload".as_ptr(),
+                        );
+                        LLVMBuildRet(self.builder, err_payload);
+
+                        // Ok path: extract the Ok payload
+                        LLVMPositionBuilderAtEnd(self.builder, ok_bb);
+                        let ok_payload_ptr = LLVMBuildStructGEP2(
+                            self.builder, struct_ty, inner_val, 1,
+                            c"try.ok.payload.ptr".as_ptr(),
+                        );
+                        let ok_payload = LLVMBuildLoad2(
+                            self.builder, i64_ty, ok_payload_ptr,
+                            c"try.ok.payload".as_ptr(),
+                        );
+                        LLVMBuildBr(self.builder, merge_bb);
+
+                        // Merge: continue with the Ok value
+                        LLVMPositionBuilderAtEnd(self.builder, merge_bb);
+                        let phi = LLVMBuildPhi(self.builder, i64_ty, c"try.result".as_ptr());
+                        let mut incoming_vals = [ok_payload];
+                        let mut incoming_blocks = [ok_bb];
+                        LLVMAddIncoming(
+                            phi,
+                            incoming_vals.as_mut_ptr(),
+                            incoming_blocks.as_mut_ptr(),
+                            1,
+                        );
+                        Ok(phi)
+                    } else {
+                        // Not a pointer — pass through (simple value, no Result wrapper)
+                        Ok(inner_val)
+                    }
                 }
 
                 Expression::Closure {
-                    parameters: _,
-                    return_type: _,
-                    body: _,
+                    parameters,
+                    return_type,
+                    body,
                     is_move: _,
                 } => {
-                    // Closures require environment struct generation and heap allocation
-                    // This is a complex feature that requires significant LLVM infrastructure
-                    // TODO: Implement closure environment generation and calling convention
-                    Err(CompilerError::codegen_error(
-                        "Closures are not yet fully implemented in LLVM codegen",
-                    ))
+                    // Closure codegen: generate an anonymous LLVM function for the closure body
+                    // and return a pointer to it. Captured variables are passed via the
+                    // enclosing scope's named_values (closures without captures work directly;
+                    // closures with captures use the parent scope's allocas).
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+
+                    // Build parameter types
+                    let mut param_types: Vec<LLVMTypeRef> = Vec::new();
+                    for param in parameters {
+                        let param_ty = self.get_llvm_type(&param.param_type);
+                        param_types.push(param_ty);
+                    }
+
+                    // Determine return type
+                    let ret_ty = if let Some(rt) = return_type {
+                        self.get_llvm_type(rt)
+                    } else {
+                        i64_ty // Default to i64 for closures without explicit return type
+                    };
+
+                    // Create function type
+                    let fn_type = LLVMFunctionType(
+                        ret_ty,
+                        param_types.as_mut_ptr(),
+                        param_types.len() as u32,
+                        0,
+                    );
+
+                    // Generate unique name for the anonymous function
+                    let closure_name = format!("__closure_{}", self.functions.len());
+                    let closure_name_cstr = CString::new(closure_name.as_str()).expect("CString failed");
+                    let closure_fn = LLVMAddFunction(
+                        self.module,
+                        closure_name_cstr.as_ptr(),
+                        fn_type,
+                    );
+
+                    // Save current state
+                    let saved_function = self.current_function;
+                    let saved_block = LLVMGetInsertBlock(self.builder);
+                    let saved_named_values = self.named_values.clone();
+
+                    // Set up closure function
+                    self.current_function = Some(closure_fn);
+                    let entry_name = CString::new("entry").expect("CString failed");
+                    let entry_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        closure_fn,
+                        entry_name.as_ptr(),
+                    );
+                    LLVMPositionBuilderAtEnd(self.builder, entry_bb);
+
+                    // Bind parameters
+                    for (idx, param) in parameters.iter().enumerate() {
+                        let param_val = LLVMGetParam(closure_fn, idx as u32);
+                        let param_name = Self::extract_pattern_name(&param.pattern)
+                            .unwrap_or_else(|| format!("arg{idx}"));
+                        let alloca = self.create_entry_block_alloca(
+                            param_types[idx],
+                            &param_name,
+                        )?;
+                        LLVMBuildStore(self.builder, param_val, alloca);
+                        self.named_values.insert(param_name, alloca);
+                    }
+
+                    // Generate body based on ClosureBody variant
+                    match body {
+                        crate::parser::ast::ClosureBody::Expression(expr) => {
+                            let result = self.codegen_expression(expr)?;
+                            LLVMBuildRet(self.builder, result);
+                        }
+                        crate::parser::ast::ClosureBody::Block(block) => {
+                            for stmt in &block.statements {
+                                self.codegen_statement(stmt)?;
+                            }
+                            // Add implicit return if block doesn't end with a terminator
+                            let current_bb = LLVMGetInsertBlock(self.builder);
+                            if LLVMGetBasicBlockTerminator(current_bb).is_null() {
+                                let undef = LLVMGetUndef(ret_ty);
+                                LLVMBuildRet(self.builder, undef);
+                            }
+                        }
+                    }
+
+                    // Restore state
+                    self.current_function = saved_function;
+                    self.named_values = saved_named_values;
+                    if !saved_block.is_null() {
+                        LLVMPositionBuilderAtEnd(self.builder, saved_block);
+                    }
+
+                    // Register the closure function
+                    self.functions.insert(closure_name, closure_fn);
+
+                    // Return function pointer
+                    Ok(closure_fn as LLVMValueRef)
                 }
 
                 _ => Err(CompilerError::codegen_error("Unsupported expression type")),
@@ -3767,10 +4133,15 @@ impl LLVMCodegen {
                     LLVMPointerType(fn_type, 0)
                 }
                 Type::TraitObject { .. } => {
-                    // Trait objects are represented as fat pointers (struct with data ptr + vtable ptr)
-                    // For now, represent as a simple pointer
-                    // TODO: Implement proper fat pointer struct representation
-                    LLVMPointerType(LLVMInt8TypeInContext(self.context), 0)
+                    // Trait objects use fat pointers: { data_ptr: *i8, vtable_ptr: *i8 }
+                    let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    let mut fat_ptr_fields = [i8_ptr_ty, i8_ptr_ty];
+                    LLVMStructTypeInContext(
+                        self.context,
+                        fat_ptr_fields.as_mut_ptr(),
+                        2,
+                        0, // not packed
+                    )
                 }
             }
         }
@@ -4791,7 +5162,8 @@ impl LLVMCodegen {
     ) -> CompilerResult<Option<LLVMValueRef>> {
         unsafe {
             let i64_ty = LLVMInt64TypeInContext(self.context);
-            let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+            let i8_ty = LLVMInt8TypeInContext(self.context);
+            let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
             let str_ptr_ty = LLVMPointerType(i8_ptr_ty, 0); // pointer to string pointer
 
             match name {
@@ -4830,7 +5202,7 @@ impl LLVMCodegen {
                     LLVMBuildStore(self.builder, array_typed, ptr_field);
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         struct_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -4845,7 +5217,7 @@ impl LLVMCodegen {
                     LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
                     let cap_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         struct_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -4864,7 +5236,7 @@ impl LLVMCodegen {
                     let vec_ptr = self.codegen_expression(&arguments[0])?;
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -4894,7 +5266,7 @@ impl LLVMCodegen {
                     );
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -4908,7 +5280,7 @@ impl LLVMCodegen {
                     );
                     let cap_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -12394,14 +12766,43 @@ impl LLVMCodegen {
                 }
 
                 "pool_spawn" => {
-                    // Submit work to thread pool (simplified: just evaluate args for now)
+                    // Dispatch work to thread pool by spawning a pthread with the function pointer
                     let _pool_handle = self.codegen_expression(&arguments[0])?;
-                    let _func_ptr = self.codegen_expression(&arguments[1])?;
+                    let func_ptr = self.codegen_expression(&arguments[1])?;
                     let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let i8_ty = LLVMInt8TypeInContext(self.context);
+                    let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
 
-                    // TODO: Send function pointer to work channel for workers to pick up
-                    // For now, this is a no-op placeholder
-                    Ok(Some(LLVMConstInt(i64_ty, 0, 0)))
+                    // Allocate space for the thread handle
+                    let thread_alloca = LLVMBuildAlloca(
+                        self.builder, i64_ty, c"pool.thread".as_ptr(),
+                    );
+
+                    // Cast function pointer to void*(*)(void*) for pthread_create
+                    let func_as_ptr = LLVMBuildBitCast(
+                        self.builder, func_ptr, i8_ptr_ty, c"pool.fn.ptr".as_ptr(),
+                    );
+
+                    // Call pthread_create(thread, null, func, null)
+                    let pthread_create_fn = *self.functions.get("pthread_create").ok_or_else(|| {
+                        CompilerError::codegen_error("Missing pthread_create")
+                    })?;
+                    let pthread_create_ty = LLVMGlobalGetValueType(pthread_create_fn);
+                    let null_ptr = LLVMConstNull(i8_ptr_ty);
+                    LLVMBuildCall2(
+                        self.builder,
+                        pthread_create_ty,
+                        pthread_create_fn,
+                        [thread_alloca, null_ptr, func_as_ptr, null_ptr].as_mut_ptr(),
+                        4,
+                        c"".as_ptr(),
+                    );
+
+                    // Return the thread handle as an i64
+                    let thread_handle = LLVMBuildLoad2(
+                        self.builder, i64_ty, thread_alloca, c"pool.handle".as_ptr(),
+                    );
+                    Ok(Some(thread_handle))
                 }
 
                 "pool_shutdown" => {

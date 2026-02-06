@@ -7,6 +7,7 @@ pub struct Program {
 }
 
 impl Program {
+    /// Create a new program from a list of top-level statements.
     pub fn new(statements: Vec<Statement>) -> Self {
         Self { statements }
     }
@@ -86,7 +87,6 @@ pub enum Statement {
     },
 
     /// Union declaration
-    #[allow(dead_code)]
     UnionDeclaration {
         name: String,
         fields: Vec<StructField>,
@@ -186,14 +186,12 @@ pub enum Statement {
     },
 
     /// Macro declaration: macro_rules! name { ... }
-    #[allow(dead_code)]
     MacroDeclaration {
         name: String,
         rules: Vec<MacroRule>,
     },
 
     /// Const function declaration: const fn name() -> T { ... }
-    #[allow(dead_code)]
     ConstFunctionDeclaration {
         name: String,
         parameters: Vec<Parameter>,
@@ -203,14 +201,12 @@ pub enum Statement {
     },
 
     /// Static assertion: static_assert!(condition, "message")
-    #[allow(dead_code)]
     StaticAssert {
         condition: Expression,
         message: String,
     },
 
     /// Attribute: #[derive(Clone, Debug)]
-    #[allow(dead_code)]
     Attribute {
         name: String,
         args: Vec<String>,
@@ -354,6 +350,7 @@ pub struct Block {
 }
 
 impl Block {
+    /// Create a new code block from a list of statements.
     pub fn new(statements: Vec<Statement>) -> Self {
         Self { statements }
     }
@@ -377,7 +374,6 @@ pub struct StructField {
 
 /// Struct representation attribute for FFI compatibility
 #[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
 pub enum StructRepr {
     /// #[repr(C)] - C-compatible layout
     C,
@@ -412,6 +408,7 @@ pub struct MatchArm {
     pub body: Block,
 }
 
+/// Generic where-clause constraint binding a type parameter to a trait.
 #[derive(Debug, Clone, PartialEq)]
 pub struct WhereConstraint {
     pub type_param: String,
@@ -460,7 +457,6 @@ pub enum Pattern {
 
 /// Type representation.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[allow(dead_code)]
 pub enum Type {
     /// Primitive types
     Int,
@@ -686,7 +682,6 @@ pub struct MacroRule {
 
 /// Token in a macro pattern or expansion
 #[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
 pub enum MacroToken {
     Literal(String),
     Variable(String),

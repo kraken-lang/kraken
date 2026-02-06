@@ -1593,15 +1593,18 @@ impl Parser {
         let mut expr = self.parse_primary()?;
 
         loop {
-            // Turbofish syntax: Identifier::<T>(...) - unambiguous
+            // Turbofish syntax: Identifier::<T>(...) - only when '::' is followed by '<'
             if matches!(self.peek().kind, TokenKind::ColonColon) {
                 if let Expression::Identifier(name) = &expr {
+                    // Peek ahead: if next-next token is '<', parse turbofish.
+                    // Otherwise, fall through to enum variant handling below.
+                    if self.current + 1 < self.tokens.len()
+                        && matches!(
+                            self.tokens[self.current + 1].kind,
+                            TokenKind::Operator(Operator::Less)
+                        )
+                    {
                     self.advance(); // Consume '::'
-
-                    if !matches!(self.peek().kind, TokenKind::Operator(Operator::Less)) {
-                        return Err(self.error("Expected '<' after '::' in turbofish syntax"));
-                    }
-
                     self.advance(); // Consume '<'
 
                     let mut type_args = Vec::new();
@@ -1650,6 +1653,7 @@ impl Parser {
                             self.error("Expected '(' or '{' after turbofish type arguments")
                         );
                     }
+                    } // end turbofish peek-ahead
                 }
             }
 

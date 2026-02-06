@@ -5,18 +5,17 @@ use crate::cli::{Command, CommandResult};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+#[allow(dead_code)]
+/// Test command: discovers and runs tests from the `tests/` directory with filtering and parallelism.
 pub struct TestCommand {
-    #[allow(dead_code)]
     filter: Option<String>,
-    #[allow(dead_code)]
     lib_only: bool,
-    #[allow(dead_code)]
     integration_only: bool,
-    #[allow(dead_code)]
     parallel: bool,
 }
 
 impl TestCommand {
+    /// Create a new test command with default settings (no filter, all tests, parallel).
     pub fn create() -> Box<dyn Command> {
         Box::new(Self {
             filter: None,

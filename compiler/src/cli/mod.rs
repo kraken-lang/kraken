@@ -4,7 +4,9 @@
 //! ASCII art, and cross-platform terminal support.
 
 pub mod commands;
+/// CLI configuration: color, verbosity, output format, parallelism, and project root.
 pub mod config;
+/// Rich terminal output: colored messages, ASCII art banners, progress bars, and tables.
 pub mod output;
 
 use commands::*;
@@ -12,6 +14,7 @@ use config::CliConfig;
 use std::collections::HashMap;
 use std::env;
 
+/// Result type for CLI command execution (Ok on success, Err with message on failure).
 pub type CommandResult = Result<(), String>;
 
 /// Command trait for CLI commands

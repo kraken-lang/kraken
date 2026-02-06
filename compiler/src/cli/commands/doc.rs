@@ -6,6 +6,7 @@ use glob::glob;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// Doc command: generates HTML documentation from `///` and `//!` doc comments.
 pub struct DocCommand {
     #[allow(dead_code)]
     open: bool,
@@ -13,6 +14,7 @@ pub struct DocCommand {
 }
 
 impl DocCommand {
+    /// Create a new doc command with default output directory (`docs/`).
     pub fn create() -> Box<dyn Command> {
         Box::new(Self {
             open: false,

@@ -1,13 +1,10 @@
 //! Macro expansion engine for declarative macros.
 
-#![allow(dead_code)]
-
 use crate::error::{CompilerError, CompilerResult};
 use crate::parser::ast::{Expression, MacroRule, MacroToken, Statement};
 use std::collections::HashMap;
 
 /// Macro expander for declarative macros
-#[allow(dead_code)]
 pub struct MacroExpander {
     macros: HashMap<String, Vec<MacroRule>>,
     hygiene_counter: usize,
@@ -20,6 +17,7 @@ impl Default for MacroExpander {
 }
 
 impl MacroExpander {
+    /// Create a new macro expander with no registered macros.
     pub fn new() -> Self {
         Self {
             macros: HashMap::new(),

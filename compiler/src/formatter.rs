@@ -28,12 +28,14 @@ pub struct Formatter {
 }
 
 impl Formatter {
+    /// Create a new formatter with default configuration (4-space indent, 100-char width).
     pub fn new() -> Self {
         Self {
             config: FormatConfig::default(),
         }
     }
 
+    /// Create a new formatter with custom configuration.
     pub fn with_config(config: FormatConfig) -> Self {
         Self { config }
     }

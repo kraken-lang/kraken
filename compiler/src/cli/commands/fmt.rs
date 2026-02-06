@@ -6,6 +6,7 @@ use crate::formatter::Formatter;
 use glob::glob;
 use std::path::{Path, PathBuf};
 
+/// Fmt command: formats Kraken source files with whitespace normalization and indentation.
 pub struct FmtCommand {
     check: bool,
     #[allow(dead_code)]
@@ -13,6 +14,7 @@ pub struct FmtCommand {
 }
 
 impl FmtCommand {
+    /// Create a new fmt command with default settings (format mode, no custom config).
     pub fn create() -> Box<dyn Command> {
         Box::new(Self {
             check: false,

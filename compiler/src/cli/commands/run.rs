@@ -3,9 +3,11 @@
 use crate::cli::output::OutputMessage;
 use crate::cli::{Command, CommandResult};
 
+/// Run command: builds and executes a Kraken program.
 pub struct RunCommand;
 
 impl RunCommand {
+    /// Create a new run command.
     pub fn create() -> Box<dyn Command> {
         Box::new(Self)
     }

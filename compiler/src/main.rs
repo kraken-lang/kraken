@@ -7,15 +7,25 @@ use clap::{Parser as ClapParser, Subcommand};
 use std::path::{Path, PathBuf};
 use tokio::fs;
 
+#[allow(dead_code)]
 mod analyzer;
+#[allow(dead_code)]
 mod codegen;
+#[allow(dead_code)]
 mod diagnostic_registry;
+#[allow(dead_code)]
 mod diagnostics;
+#[allow(dead_code)]
 mod error;
+#[allow(dead_code)]
 mod ffi;
+#[allow(dead_code)]
 mod ir;
+#[allow(dead_code)]
 mod lexer;
+#[allow(dead_code)]
 mod modules;
+#[allow(dead_code)]
 mod parser;
 
 use analyzer::{monomorphize_program, TypeChecker};
@@ -575,25 +585,23 @@ mod tests {
         assert_program_exit_code(PathBuf::from("../tests/programs/string_utf8_test.kr"), 0).await
     }
 
-    // TODO: Re-enable in 0.8.16 when C runtime library is implemented
-    // #[tokio::test]
-    // async fn string_split_test_compile_and_run() -> Result<()> {
-    //     assert_program_exit_code(
-    //         PathBuf::from("../tests/programs/string_split_test.kr"),
-    //         0,
-    //     )
-    //     .await
-    // }
+    #[tokio::test]
+    async fn string_split_test_compile_and_run() -> Result<()> {
+        assert_program_exit_code(
+            PathBuf::from("../tests/programs/string_split_test.kr"),
+            0,
+        )
+        .await
+    }
 
-    // TODO: Re-enable in 0.8.16 when C runtime library is implemented
-    // #[tokio::test]
-    // async fn string_join_test_compile_and_run() -> Result<()> {
-    //     assert_program_exit_code(
-    //         PathBuf::from("../tests/programs/string_join_test.kr"),
-    //         0,
-    //     )
-    //     .await
-    // }
+    #[tokio::test]
+    async fn string_join_test_compile_and_run() -> Result<()> {
+        assert_program_exit_code(
+            PathBuf::from("../tests/programs/string_join_test.kr"),
+            0,
+        )
+        .await
+    }
 
     #[tokio::test]
     async fn string_replace_test_compile_and_run() -> Result<()> {

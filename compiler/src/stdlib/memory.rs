@@ -24,6 +24,7 @@ pub struct PoolAllocator {
 }
 
 impl PoolAllocator {
+    /// Create a new pool allocator with the given block size and initial capacity.
     pub fn new(block_size: usize, initial_capacity: usize) -> Self {
         Self {
             block_size,
@@ -32,10 +33,12 @@ impl PoolAllocator {
         }
     }
 
+    /// Return the fixed block size for this pool.
     pub fn block_size(&self) -> usize {
         self.block_size
     }
 
+    /// Return the number of free blocks available in the pool.
     pub fn available_blocks(&self) -> usize {
         self.pool.len()
     }
@@ -73,6 +76,7 @@ pub struct ArenaAllocator {
 }
 
 impl ArenaAllocator {
+    /// Create a new arena allocator with the given byte capacity.
     pub fn new(capacity: usize) -> Self {
         Self {
             buffer: Vec::with_capacity(capacity),
@@ -81,14 +85,17 @@ impl ArenaAllocator {
         }
     }
 
+    /// Return the total byte capacity of the arena.
     pub fn capacity(&self) -> usize {
         self.buffer.capacity()
     }
 
+    /// Return the number of bytes currently allocated.
     pub fn used(&self) -> usize {
         self.offset
     }
 
+    /// Reset the arena, freeing all allocations (O(1)).
     pub fn reset(&mut self) {
         self.offset = 0;
         self.allocated = 0;
@@ -124,6 +131,7 @@ pub struct AllocationProfiler {
 }
 
 impl AllocationProfiler {
+    /// Create a new allocation profiler with empty tracking state.
     pub fn new() -> Self {
         Self {
             allocations: HashMap::new(),
@@ -132,6 +140,7 @@ impl AllocationProfiler {
         }
     }
 
+    /// Record an allocation of `size` bytes under the given tag.
     pub fn record_allocation(&mut self, tag: String, size: usize) {
         *self.allocations.entry(tag).or_insert(0) += size;
         self.total_allocated += size;
@@ -140,6 +149,7 @@ impl AllocationProfiler {
         }
     }
 
+    /// Record a deallocation of `size` bytes under the given tag.
     pub fn record_deallocation(&mut self, tag: &str, size: usize) {
         if let Some(allocated) = self.allocations.get_mut(tag) {
             *allocated = allocated.saturating_sub(size);
@@ -147,14 +157,17 @@ impl AllocationProfiler {
         self.total_allocated = self.total_allocated.saturating_sub(size);
     }
 
+    /// Return the current total bytes allocated.
     pub fn total_allocated(&self) -> usize {
         self.total_allocated
     }
 
+    /// Return the peak total bytes allocated at any point.
     pub fn peak_allocated(&self) -> usize {
         self.peak_allocated
     }
 
+    /// Return a map of tag names to their current allocated byte counts.
     pub fn allocations_by_tag(&self) -> &HashMap<String, usize> {
         &self.allocations
     }

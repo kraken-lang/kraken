@@ -1,13 +1,10 @@
 //! Attribute processing and validation for Kraken compiler.
 
-#![allow(dead_code)]
-
 use crate::error::{CompilerError, CompilerResult};
 use std::collections::HashMap;
 
 /// Attribute information extracted from AST
 #[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
 pub enum AttributeValue {
     /// Simple flag attribute (e.g., #[inline])
     Flag,
@@ -16,7 +13,6 @@ pub enum AttributeValue {
 }
 
 /// Attribute processor for managing function and type attributes
-#[allow(dead_code)]
 pub struct AttributeProcessor {
     /// Function attributes: function_name -> attribute_name -> value
     function_attrs: HashMap<String, HashMap<String, AttributeValue>>,
@@ -31,7 +27,7 @@ impl Default for AttributeProcessor {
 }
 
 impl AttributeProcessor {
-    #[allow(dead_code)]
+    /// Create a new attribute processor with empty registries.
     pub fn new() -> Self {
         Self {
             function_attrs: HashMap::new(),
@@ -40,7 +36,6 @@ impl AttributeProcessor {
     }
 
     /// Register a function attribute
-    #[allow(dead_code)]
     pub fn register_function_attr(
         &mut self,
         func_name: String,

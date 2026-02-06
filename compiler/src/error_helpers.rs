@@ -1,7 +1,6 @@
 use super::error::{CompilerError, ErrorCode, SourceLocation};
 
 /// Create an undefined variable error with suggestions.
-#[allow(dead_code)]
 pub fn undefined_variable_error(
     location: SourceLocation,
     name: &str,
@@ -22,7 +21,6 @@ pub fn undefined_variable_error(
 }
 
 /// Create an undefined function error with suggestions.
-#[allow(dead_code)]
 pub fn undefined_function_error(
     location: SourceLocation,
     name: &str,
@@ -43,7 +41,6 @@ pub fn undefined_function_error(
 }
 
 /// Create a type mismatch error with expected and actual types.
-#[allow(dead_code)]
 pub fn type_mismatch_error(
     location: SourceLocation,
     expected: &str,
@@ -57,7 +54,6 @@ pub fn type_mismatch_error(
 }
 
 /// Calculate Levenshtein distance for "did you mean" suggestions.
-#[allow(dead_code)]
 pub fn levenshtein_distance(a: &str, b: &str) -> usize {
     let a_len = a.chars().count();
     let b_len = b.chars().count();
@@ -89,7 +85,6 @@ pub fn levenshtein_distance(a: &str, b: &str) -> usize {
 }
 
 /// Find similar names for "did you mean" suggestions.
-#[allow(dead_code)]
 pub fn find_similar_names(
     target: &str,
     candidates: &[String],

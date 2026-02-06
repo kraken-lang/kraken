@@ -95,7 +95,6 @@ impl fmt::Display for IrType {
 
 /// IR value - either a constant or a reference to a computed value.
 #[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
 pub enum IrValue {
     /// Reference to a computed value (register/temporary).
     Register(ValueId),
@@ -135,7 +134,6 @@ impl fmt::Display for IrValue {
 
 /// IR instruction - a single operation in the IR.
 #[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
 pub enum IrInstruction {
     /// Allocate local variable: %dest = alloca <type>
     Alloca {
@@ -328,7 +326,6 @@ impl fmt::Display for IrInstruction {
 
 /// A basic block - a sequence of instructions with a single entry and exit.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct IrBlock {
     pub id: BlockId,
     pub name: String,
@@ -336,6 +333,7 @@ pub struct IrBlock {
 }
 
 impl IrBlock {
+    /// Create a new empty basic block with the given ID and label name.
     pub fn new(id: BlockId, name: String) -> Self {
         Self {
             id,
@@ -374,6 +372,7 @@ pub struct IrFunction {
 }
 
 impl IrFunction {
+    /// Create a new IR function with the given signature and no blocks.
     pub fn new(name: String, params: Vec<IrParam>, return_type: IrType, is_public: bool) -> Self {
         Self {
             name,
@@ -436,6 +435,7 @@ pub struct IrProgram {
 }
 
 impl IrProgram {
+    /// Create a new empty IR program.
     pub fn new() -> Self {
         Self {
             structs: Vec::new(),

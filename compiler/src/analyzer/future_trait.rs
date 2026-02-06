@@ -1,6 +1,5 @@
 //! Future trait infrastructure for async/await support.
 
-#![allow(dead_code)]
 
 use crate::error::{CompilerError, CompilerResult};
 use crate::parser::ast::Type;
@@ -27,6 +26,7 @@ pub enum PollResult {
 }
 
 impl FutureTracker {
+    /// Create a new future tracker with no registered implementations.
     pub fn new() -> Self {
         Self {
             future_impls: HashMap::new(),
@@ -80,10 +80,12 @@ pub struct Pin<T> {
 }
 
 impl<T> Pin<T> {
+    /// Create a new pinned pointer wrapping the given value.
     pub fn new(pointer: T) -> Self {
         Self { pointer }
     }
 
+    /// Get a shared reference to the pinned value.
     pub fn get_ref(&self) -> &T {
         &self.pointer
     }
@@ -96,14 +98,17 @@ pub struct Waker {
 }
 
 impl Waker {
+    /// Create a new waker for the given task ID.
     pub fn new(task_id: usize) -> Self {
         Self { task_id }
     }
 
+    /// Signal the runtime to re-poll the associated task.
     pub fn wake(&self) {
         // Wake the task (implementation in runtime)
     }
 
+    /// Return the task ID this waker is associated with.
     pub fn task_id(&self) -> usize {
         self.task_id
     }
@@ -116,10 +121,12 @@ pub struct Context {
 }
 
 impl Context {
+    /// Create a new polling context with the given waker.
     pub fn new(waker: Waker) -> Self {
         Self { waker }
     }
 
+    /// Get a reference to the waker for this context.
     pub fn waker(&self) -> &Waker {
         &self.waker
     }

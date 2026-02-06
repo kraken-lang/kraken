@@ -8,7 +8,6 @@ pub type CompilerResult<T> = Result<T, CompilerError>;
 
 /// Error codes for categorization and documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(dead_code)]
 pub enum ErrorCode {
     E0001, // Unexpected character in lexer
     E0002, // Unterminated string literal
@@ -38,7 +37,6 @@ impl std::fmt::Display for ErrorCode {
 
 /// Comprehensive compiler error types.
 #[derive(Error, Debug)]
-#[allow(dead_code)]
 pub enum CompilerError {
     /// New diagnostic-based error with KRA codes
     #[error("{}", .diagnostic.format())]
@@ -111,7 +109,6 @@ impl SourceLocation {
     }
 
     /// Create a location at the start of a file.
-    #[allow(dead_code)]
     pub fn start_of_file(file: PathBuf) -> Self {
         Self {
             file,
@@ -137,7 +134,6 @@ pub struct SourceSpan {
     pub end_col: usize,
 }
 
-#[allow(dead_code)]
 impl SourceSpan {
     /// Create a new source span.
     pub fn new(
@@ -200,13 +196,11 @@ impl std::fmt::Display for SourceSpan {
 
 /// Diagnostic hint for helping users fix errors.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DiagnosticHint {
     pub message: String,
     pub suggestion: Option<String>,
 }
 
-#[allow(dead_code)]
 impl DiagnosticHint {
     /// Create a new hint with just a message.
     pub fn new(message: impl Into<String>) -> Self {
@@ -237,7 +231,6 @@ impl std::fmt::Display for DiagnosticHint {
 
 /// Enhanced diagnostic with span and hints.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct Diagnostic {
     pub span: SourceSpan,
     pub message: String,
@@ -245,16 +238,14 @@ pub struct Diagnostic {
     pub severity: DiagnosticSeverity,
 }
 
+/// Severity level for compiler diagnostics.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(dead_code)]
 pub enum DiagnosticSeverity {
     Error,
     Warning,
-    #[allow(dead_code)]
     Info,
 }
 
-#[allow(dead_code)]
 impl Diagnostic {
     /// Create a new error diagnostic.
     pub fn error(span: SourceSpan, message: impl Into<String>) -> Self {
@@ -267,7 +258,6 @@ impl Diagnostic {
     }
 
     /// Create a new warning diagnostic.
-    #[allow(dead_code)]
     pub fn warning(span: SourceSpan, message: impl Into<String>) -> Self {
         Self {
             span,
@@ -373,13 +363,11 @@ impl CompilerError {
     }
 
     /// Create an internal error.
-    #[allow(dead_code)]
     pub fn internal_error(message: impl Into<String>) -> Self {
         Self::InternalError(message.into())
     }
 
     /// Create a new error with a diagnostic code.
-    #[allow(dead_code)]
     pub fn from_code(code: DiagnosticCode, message: impl Into<String>) -> Self {
         Self::DiagnosticError {
             diagnostic: NewDiagnostic::new(code, message),
@@ -388,7 +376,6 @@ impl CompilerError {
     }
 
     /// Create a new error with a diagnostic code and location.
-    #[allow(dead_code)]
     pub fn from_code_with_location(
         code: DiagnosticCode,
         message: impl Into<String>,
@@ -401,7 +388,6 @@ impl CompilerError {
     }
 
     /// Get the error code for this error.
-    #[allow(dead_code)]
     pub fn code(&self) -> ErrorCode {
         match self {
             Self::DiagnosticError { .. } => ErrorCode::E0017, // Map to generic code for now

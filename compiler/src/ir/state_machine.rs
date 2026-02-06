@@ -109,6 +109,7 @@ pub struct AsyncAnalyzer {
 }
 
 impl AsyncAnalyzer {
+    /// Create a new async analyzer with no await points or captured locals.
     pub fn new() -> Self {
         Self {
             await_points: Vec::new(),
@@ -191,6 +192,7 @@ pub struct StateMachineLowering {
 }
 
 impl StateMachineLowering {
+    /// Create a new state machine lowering pass.
     pub fn new() -> Self {
         Self {
             next_value_id: 0,

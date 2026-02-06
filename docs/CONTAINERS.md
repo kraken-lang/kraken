@@ -1,4 +1,8 @@
-# Kraken Containers v1 — Semantics Reference
+<h1 align="center">
+    <img width="auto" height="90" alt="Kraken Language" src="https://raw.githubusercontent.com/kraken-lang/.github/refs/heads/main/images/kraken-logo.png">
+        <br><sub><sup>KRAKEN LANGUAGE</sup></sub><br>
+        CONTAINERS REFERENCE
+</h1>
 
 This document defines the semantics for Kraken's v1 container types.
 

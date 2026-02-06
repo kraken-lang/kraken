@@ -2,6 +2,7 @@ use crate::error::CompilerResult;
 use crate::parser::ast::{Block, ClosureBody, Expression, Pattern, Statement};
 use std::collections::HashSet;
 
+/// A variable captured by a closure from an enclosing scope.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CapturedVariable {
     pub name: String,
@@ -9,14 +10,15 @@ pub struct CapturedVariable {
     pub capture_by_value: bool,
 }
 
+/// The capture environment for a closure, tracking all captured variables.
 #[derive(Debug, Clone)]
 pub struct ClosureEnvironment {
     pub captured_vars: Vec<CapturedVariable>,
-    #[allow(dead_code)]
     pub is_move: bool,
 }
 
 impl ClosureEnvironment {
+    /// Create a new closure environment.
     pub fn new(is_move: bool) -> Self {
         Self {
             captured_vars: Vec::new(),
@@ -24,6 +26,7 @@ impl ClosureEnvironment {
         }
     }
 
+    /// Add a captured variable to the environment (deduplicates by name).
     pub fn add_capture(&mut self, var: CapturedVariable) {
         if !self.captured_vars.iter().any(|v| v.name == var.name) {
             self.captured_vars.push(var);
@@ -31,6 +34,7 @@ impl ClosureEnvironment {
     }
 }
 
+/// Analyzes closure bodies to determine which variables are captured from enclosing scopes.
 pub struct ClosureAnalyzer {
     local_vars: Vec<HashSet<String>>,
 }
@@ -42,6 +46,7 @@ impl Default for ClosureAnalyzer {
 }
 
 impl ClosureAnalyzer {
+    /// Create a new closure analyzer with an empty root scope.
     pub fn new() -> Self {
         Self {
             local_vars: vec![HashSet::new()],
@@ -62,13 +67,11 @@ impl ClosureAnalyzer {
         }
     }
 
-    #[allow(dead_code)]
-    fn is_local(&self, name: &str) -> bool {
+    fn _is_local(&self, name: &str) -> bool {
         self.local_vars.iter().any(|scope| scope.contains(name))
     }
 
-    #[allow(dead_code)]
-    fn is_in_outer_scopes(&self, name: &str) -> bool {
+    fn _is_in_outer_scopes(&self, name: &str) -> bool {
         // Check all scopes except the last one (current closure scope)
         if self.local_vars.len() <= 1 {
             return false;
@@ -78,6 +81,7 @@ impl ClosureAnalyzer {
             .any(|scope| scope.contains(name))
     }
 
+    /// Analyze a closure body and return its capture environment.
     pub fn analyze_closure(
         &mut self,
         parameters: &[crate::parser::ast::Parameter],

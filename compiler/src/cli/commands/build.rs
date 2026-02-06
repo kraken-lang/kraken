@@ -5,16 +5,16 @@ use crate::cli::{Command, CommandResult};
 use std::path::PathBuf;
 use std::time::Instant;
 
+#[allow(dead_code)]
+/// Build command: compiles Kraken source with configurable release mode, output path, and parallelism.
 pub struct BuildCommand {
-    #[allow(dead_code)]
     release: bool,
-    #[allow(dead_code)]
     output: Option<PathBuf>,
-    #[allow(dead_code)]
     jobs: usize,
 }
 
 impl BuildCommand {
+    /// Create a new build command with default settings (debug mode, auto-detect CPU count).
     pub fn create() -> Box<dyn Command> {
         Box::new(Self {
             release: false,

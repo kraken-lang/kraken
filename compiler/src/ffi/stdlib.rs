@@ -4,6 +4,7 @@ use crate::parser::ast::Type;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
+/// Low-level C ABI type used in stdlib function signatures.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AbiType {
     Void,
@@ -12,6 +13,7 @@ pub enum AbiType {
     I8Ptr,
 }
 
+/// How a C `int` return value is widened to Kraken's `i64`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CIntWidening {
     Signed,
@@ -21,6 +23,7 @@ pub enum CIntWidening {
 
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
+/// Canonical signature for a stdlib/FFI function, covering both Kraken and C ABI metadata.
 pub struct StdlibFnSig {
     pub name: &'static str,
     pub kraken_params: &'static [Type],
@@ -36,6 +39,7 @@ pub struct StdlibFnSig {
     pub c_int_widening: Option<CIntWidening>,
 }
 
+/// Return the full table of stdlib function signatures (lazily initialized, static lifetime).
 pub fn stdlib_functions() -> &'static [StdlibFnSig] {
     &[
         StdlibFnSig {
@@ -555,6 +559,7 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
     ]
 }
 
+/// Look up a stdlib function signature by name (O(1) via cached HashMap).
 pub fn stdlib_sig(name: &str) -> Option<&'static StdlibFnSig> {
     static MAP: OnceLock<HashMap<&'static str, &'static StdlibFnSig>> = OnceLock::new();
 
@@ -569,6 +574,7 @@ pub fn stdlib_sig(name: &str) -> Option<&'static StdlibFnSig> {
     map.get(name).copied()
 }
 
+/// Validate internal consistency of the stdlib function table (param counts, widening rules, vararg rules).
 pub fn validate_stdlib_table() -> std::result::Result<(), String> {
     for sig in stdlib_functions() {
         let params_len = sig.c_abi_params.len();

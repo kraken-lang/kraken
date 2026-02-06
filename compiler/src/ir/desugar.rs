@@ -5,17 +5,17 @@
 //! - `defer` statements → explicit cleanup at exit points
 //!
 //! NOTE: This module is reserved for future IR optimization passes.
-#![allow(dead_code)]
-
 use crate::ir::types::*;
 
 /// Desugar pass that transforms IR constructs into simpler forms.
+#[allow(dead_code)]
 pub struct Desugar {
     next_value_id: u32,
     next_block_id: u32,
 }
 
 impl Desugar {
+    /// Create a new desugar pass with high-offset IDs to avoid conflicts with existing IR.
     pub fn new() -> Self {
         Self {
             next_value_id: 1000, // Start high to avoid conflicts
@@ -108,15 +108,13 @@ impl Desugar {
         }
     }
 
-    #[allow(dead_code)]
-    fn alloc_value(&mut self) -> ValueId {
+    fn _alloc_value(&mut self) -> ValueId {
         let id = ValueId(self.next_value_id);
         self.next_value_id += 1;
         id
     }
 
-    #[allow(dead_code)]
-    fn alloc_block(&mut self) -> BlockId {
+    fn _alloc_block(&mut self) -> BlockId {
         let id = BlockId(self.next_block_id);
         self.next_block_id += 1;
         id

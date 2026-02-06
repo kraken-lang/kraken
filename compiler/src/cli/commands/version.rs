@@ -2,9 +2,11 @@
 
 use crate::cli::{Command, CommandResult};
 
+/// Version command: displays the Kraken compiler version.
 pub struct VersionCommand;
 
 impl VersionCommand {
+    /// Create a new version command.
     pub fn create() -> Box<dyn Command> {
         Box::new(Self)
     }

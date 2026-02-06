@@ -1,6 +1,5 @@
 //! Drop trait implementation and RAII support for automatic resource cleanup.
 
-#![allow(dead_code)]
 
 use crate::error::{CompilerError, CompilerResult};
 use crate::parser::ast::Type;
@@ -36,6 +35,7 @@ pub struct VariableInfo {
 }
 
 impl DropChecker {
+    /// Create a new drop checker with an empty root scope.
     pub fn new() -> Self {
         Self {
             drop_impls: HashMap::new(),

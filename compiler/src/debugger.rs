@@ -29,7 +29,7 @@ impl DebugInfoBuilder {
 
             let file_cstr = CString::new(filename).unwrap();
             let dir_cstr = CString::new(directory).unwrap();
-            let _producer = CString::new("Kraken Compiler v0.8.50").unwrap();
+            let _producer = CString::new("Kraken Compiler v0.9.0").unwrap();
 
             let _file = LLVMDIBuilderCreateFile(
                 di_builder,

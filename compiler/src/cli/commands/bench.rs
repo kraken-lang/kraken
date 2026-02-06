@@ -7,6 +7,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
+/// Statistical results from a benchmark run (mean, median, std dev, min, max in milliseconds).
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BenchmarkResults {
     pub name: String,
@@ -18,6 +19,7 @@ pub struct BenchmarkResults {
     pub max: f64,
 }
 
+#[allow(dead_code)]
 impl BenchmarkResults {
     fn from_samples(name: String, samples: &[Duration]) -> Self {
         let mut times: Vec<f64> = samples.iter().map(|d| d.as_secs_f64() * 1000.0).collect();
@@ -41,7 +43,6 @@ impl BenchmarkResults {
         }
     }
 
-    #[allow(dead_code)]
     fn to_json(&self) -> String {
         serde_json::to_string_pretty(self).unwrap()
     }
@@ -54,10 +55,10 @@ impl BenchmarkResults {
     }
 }
 
+#[allow(dead_code)]
+/// Benchmark command: discovers and runs benchmarks from `benches/` with statistical analysis.
 pub struct BenchCommand {
-    #[allow(dead_code)]
     filter: Option<String>,
-    #[allow(dead_code)]
     output_format: OutputFormat,
     baseline_file: Option<PathBuf>,
 }
@@ -71,6 +72,7 @@ enum OutputFormat {
 }
 
 impl BenchCommand {
+    /// Create a new bench command with default settings (text output, baseline file enabled).
     pub fn create() -> Box<dyn Command> {
         Box::new(Self {
             filter: None,

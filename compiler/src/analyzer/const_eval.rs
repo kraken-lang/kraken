@@ -1,14 +1,11 @@
 //! Compile-time constant evaluation for const functions and static assertions.
 
-#![allow(dead_code)]
-
 use crate::error::{CompilerError, CompilerResult};
 use crate::parser::ast::{Block, Expression, Statement};
 use std::collections::HashMap;
 
 /// Constant value that can be evaluated at compile time
 #[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
 pub enum ConstValue {
     Int(i64),
     Float(f64),
@@ -17,7 +14,6 @@ pub enum ConstValue {
 }
 
 /// Constant evaluator for compile-time evaluation
-#[allow(dead_code)]
 pub struct ConstEvaluator {
     const_functions: HashMap<String, (Vec<String>, Block)>,
     const_values: HashMap<String, ConstValue>,
@@ -30,6 +26,7 @@ impl Default for ConstEvaluator {
 }
 
 impl ConstEvaluator {
+    /// Create a new constant evaluator with empty function and value registries.
     pub fn new() -> Self {
         Self {
             const_functions: HashMap::new(),

@@ -5,9 +5,11 @@ use crate::cli::{Command, CommandResult};
 use std::fs;
 use std::path::Path;
 
+/// Init command: initializes a new Kraken project in the current directory.
 pub struct InitCommand;
 
 impl InitCommand {
+    /// Create a new init command.
     pub fn create() -> Box<dyn Command> {
         Box::new(Self)
     }

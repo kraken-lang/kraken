@@ -3,9 +3,11 @@
 use crate::cli::output::OutputMessage;
 use crate::cli::{Command, CommandResult};
 
+/// Check command: type-check Kraken source without emitting binaries.
 pub struct CheckCommand;
 
 impl CheckCommand {
+    /// Create a new check command.
     pub fn create() -> Box<dyn Command> {
         Box::new(Self)
     }

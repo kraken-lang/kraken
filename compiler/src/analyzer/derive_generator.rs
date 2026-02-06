@@ -1,6 +1,5 @@
 //! Derive macro code generation for automatic trait implementations.
 
-#![allow(dead_code)]
 
 use crate::error::{CompilerError, CompilerResult};
 use crate::parser::ast::{Block, Expression, Parameter, Statement, Type};
@@ -9,6 +8,7 @@ use crate::parser::ast::{Block, Expression, Parameter, Statement, Type};
 pub struct DeriveGenerator;
 
 impl DeriveGenerator {
+    /// Create a new derive generator.
     pub fn new() -> Self {
         Self
     }

@@ -1,4 +1,8 @@
-# Traits in Kraken
+<h1 align="center">
+    <img width="auto" height="90" alt="Kraken Language" src="https://raw.githubusercontent.com/kraken-lang/.github/refs/heads/main/images/kraken-logo.png">
+        <br><sub><sup>KRAKEN LANGUAGE</sup></sub><br>
+        TRAITS
+</h1>
 
 This document provides a comprehensive specification of the trait system in Kraken, including standard traits, operator overloading traits, and trait-based patterns.
 
