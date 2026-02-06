@@ -85,15 +85,16 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-v2-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build
         run: cargo build --workspace --all-targets
         env:
           LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
+          RUST_TEST_THREADS: 1
 
       - name: Run tests
-        run: cargo test --workspace
+        run: cargo test --workspace -- --test-threads=1
         env:
           LLVM_SYS_180_PREFIX: ${{ matrix.llvm_path }}
           RUST_TEST_THREADS: 1
