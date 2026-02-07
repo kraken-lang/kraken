@@ -41,7 +41,7 @@ A conforming implementation must:
 
 ## 6. Versioning
 
-This specification corresponds to Kraken **v0.9.1**. Language changes are governed by semantic versioning: breaking changes increment the minor version during the 0.x series and the major version at 1.0+.
+This specification corresponds to Kraken **v0.9.2**. Language changes are governed by semantic versioning: breaking changes increment the minor version during the 0.x series and the major version at 1.0+.
 
 ## 7. Document Structure
 

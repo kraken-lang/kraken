@@ -1,6 +1,6 @@
 (* ============================================================================ *)
 (* Kraken Language — Formal Grammar (EBNF)                                     *)
-(* Version: 0.9.1                                                              *)
+(* Version: 0.9.2                                                              *)
 (* Status:  Complete — covers every construct accepted by the parser.           *)
 (* Notation: ISO/IEC 14977 EBNF with the following conventions:                *)
 (*   "..."   terminal string                                                   *)

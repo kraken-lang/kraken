@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-02-07
+
 ### Added
 - **Compiler Benchmark Harness** (`compiler/src/bench_harness.rs`)
   - `PhaseMetrics` — per-phase timing (nanoseconds), memory tracking, throughput calculation
@@ -22,14 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Built-in benchmark corpus: 7 entries spanning trivial, small, medium, large, and stress categories
   - `default_corpus()` with generated multi-function and deep-nesting stress programs
   - Human-readable report formatting with regression annotations
-  - 26 comprehensive unit tests covering metrics, timer, corpus, pipeline execution, comparison, regression detection, baseline roundtrip, and edge cases
+  - 26 comprehensive unit tests
 - **Benchmark Runner Script** (`scripts/bench_compiler.sh`)
   - Automated runner with `--save` (persist baseline) and `--ci` (fail on regression) modes
   - Runs criterion micro-benchmarks and harness pipeline benchmarks in sequence
   - Captures output to `build/bench_results/`
-- **Benchmark Harness Tests** (`compiler/src/bench_harness_tests.rs`)
-  - 26 tests: phase metric conversions, throughput edge cases, timer accuracy, corpus validation, pipeline execution, comparison logic (stable/regressed/improved/zero-baseline), regression detection, baseline persistence roundtrip, report formatting
-
 - **Self-Hosted Compiler** (`krakenc/src/`) — written entirely in Kraken
   - `token.kr` — 80+ token kind constants, keyword lookup, source location tracking
   - `lexer.kr` — Full tokenizer (identifiers, numbers, strings, comments, operators, delimiters)
@@ -40,43 +39,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `error.kr` — Structured diagnostics with 14 KRA-prefixed codes and 4 severity levels
   - `main.kr` — CLI driver with 7 compilation modes (compile, emit-c, check, tokens, ast, version, help)
   - 47 tests across 4 test files (test_lexer, test_parser, test_typechecker, test_codegen)
-
-### Fixed
-- **LLVM Codegen: Struct Variable Tracking Propagation**
-  - Variables initialized from other struct variables (`let current = lex;`) now inherit struct type tracking
-  - Variables initialized from function calls returning structs (`let tok = read_identifier(lex);`) now inherit struct type tracking via `function_return_structs` map
-  - Fixes `[E0013] Member access only supported on named struct variables` for non-literal struct initializers
-- **LLVM Codegen: Struct Return By-Value**
-  - Return statements now load struct values from alloca pointers before `ret` when the function signature expects a by-value struct
-  - Uses expression-level checks (struct literal, struct variable identifier, struct-returning function call) instead of fragile LLVM type introspection
-  - Fixes `Function return type does not match operand type of return inst!` LLVM verification errors
-- **LLVM Codegen: Basic Block Terminator Safety**
-  - While loop body back-branch now checks the **current** basic block (not the original `loop_bb`) for existing terminators
-  - All statement-processing loops (function body, while body, for body, for-in body, if then/else bodies) now skip remaining statements after a terminator is generated
-  - Fixes `Basic Block in function '...' does not have terminator!` and `Terminator found in the middle of a basic block!` LLVM verification errors
-- **LLVM Codegen: Struct Identifier Copy By-Value**
-  - Variable declarations initialized from struct variables (`let current: Lexer = lex;`) now load the by-value struct from the source alloca before storing into the destination alloca
-  - Assignments from struct variables (`current = lex;`) now load the by-value struct before storing
-  - Previously stored an 8-byte alloca pointer into a 40-byte struct-sized alloca, leaving `pos`, `line`, `column`, `length` fields uninitialized — caused infinite loops in compiled binaries when struct variables were copied in tight loops (e.g., the self-hosted tokenizer)
-
-### Changed
-- Registered `bench_harness` module in `compiler/src/lib.rs`
-- **Self-Hosted Compiler (`krakenc/src/`)** now compiles successfully with the Kraken compiler, producing an 89KB native Mach-O binary
-  - Fixed `str` → `string` type usage across all `.kr` source files
-  - Fixed struct field separators (semicolons, not commas)
-  - Removed diamond imports (intermediate modules no longer re-import shared dependencies)
-  - Made all structs and cross-module functions `pub` for module visibility
-  - Replaced `+` string concatenation with `str_concat()` calls
 - **Self-Hosted Compiler: Cross-Platform Support** (`krakenc/src/platform.kr`)
   - New `platform.kr` module with OS/architecture detection, target triple parsing, and platform-specific C codegen
   - 12 supported target triples: macOS (x86_64, aarch64), Linux (x86_64, aarch64, glibc/musl), Windows (x86_64, aarch64, MSVC/MinGW), FreeBSD (x86_64, aarch64), WebAssembly (WASI)
   - Shorthand aliases: `linux`, `macos`, `darwin`, `windows`, `win32`, `freebsd`, `wasm`, `wasi`
-  - Platform-aware C preamble emission: includes, typedefs, size types, and runtime shims vary per target OS
+  - Platform-aware C preamble emission with per-target includes, typedefs, and runtime shims
   - C compiler selection (`cc`, `cl.exe`, `x86_64-w64-mingw32-gcc`, `clang`) and linker flags per target
-  - Object file extension (`.o` / `.obj`) and executable extension (`.exe` / `.wasm` / none) per target
-  - `codegen.kr` updated with `CodeGen.target_*` fields and `new_codegen_with_target()` constructor
-  - `main.kr` updated with `--target <triple>`, `--targets`, host/target display, and version aligned to v0.9.2
-- **Compiled krakenc binary now runs to completion** — tokenizes, parses, and type-checks a test program (16 tokens, 16 nodes, 0 warnings)
+  - Object/executable extension handling per target
+  - `--target <triple>` and `--targets` CLI flags in `main.kr`
+
+### Fixed
+- **LLVM Codegen: Struct Variable Tracking Propagation**
+  - Variables initialized from other struct variables (`let current = lex;`) now inherit struct type tracking
+  - Variables initialized from function calls returning structs (`let tok = read_identifier(lex);`) now tracked via `function_return_structs` map
+  - Fixes `[E0013] Member access only supported on named struct variables` for non-literal struct initializers
+- **LLVM Codegen: Struct Return By-Value**
+  - Return statements now load struct values from alloca pointers before `ret` when the function signature expects a by-value struct
+  - Uses expression-level checks instead of fragile LLVM type introspection
+  - Fixes `Function return type does not match operand type of return inst!` verification errors
+- **LLVM Codegen: Basic Block Terminator Safety**
+  - While loop back-branch now checks the current basic block for existing terminators
+  - All statement-processing loops skip remaining statements after a terminator is generated
+  - Fixes `Basic Block in function '...' does not have terminator!` and `Terminator found in the middle of a basic block!` verification errors
+- **LLVM Codegen: Struct Identifier Copy By-Value**
+  - Variable declarations initialized from struct variables (`let current: Lexer = lex;`) now load the by-value struct from the source alloca before storing into the destination
+  - Assignments from struct variables (`current = lex;`) now load the by-value struct before storing
+  - Root cause: stored an 8-byte alloca pointer into a 40-byte struct alloca, leaving fields uninitialized — caused infinite loops in the compiled self-hosted tokenizer
+
+### Changed
+- Registered `bench_harness` module in `compiler/src/lib.rs`
+- Self-hosted compiler now compiles to an 89KB native Mach-O binary that runs to completion (16 tokens, 16 nodes, 0 warnings on test input)
+- Self-hosted compiler `.kr` source fixes: `str` to `string` types, struct field semicolons, diamond import removal, `pub` visibility, `str_concat()` calls
+- `codegen.kr` updated with `CodeGen.target_*` fields and `new_codegen_with_target()` constructor
+- `main.kr` updated with host/target display and version aligned to v0.9.2
 - Total tests: 822 passing, zero failures, zero warnings
 
 ## [0.9.1] - 2026-02-06
@@ -2830,7 +2825,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
-[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.9.2...HEAD
+[0.9.2]: https://github.com/kraken-lang/kraken/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/kraken-lang/kraken/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/kraken-lang/kraken/compare/v0.8.50...v0.9.0
 [0.8.50]: https://github.com/kraken-lang/kraken/compare/v0.8.49...v0.8.50

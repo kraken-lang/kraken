@@ -3,7 +3,7 @@
     <h1><sub><sup>KRAKEN LANGUAGE</sup></sub><br>Specification</h1>
 </div>
 
-This directory contains the authoritative language specification for Kraken **v0.9.1**.
+This directory contains the authoritative language specification for Kraken **v0.9.2**.
 
 ## Chapters
 
