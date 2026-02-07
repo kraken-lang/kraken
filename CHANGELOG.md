@@ -30,9 +30,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Benchmark Harness Tests** (`compiler/src/bench_harness_tests.rs`)
   - 26 tests: phase metric conversions, throughput edge cases, timer accuracy, corpus validation, pipeline execution, comparison logic (stable/regressed/improved/zero-baseline), regression detection, baseline persistence roundtrip, report formatting
 
+- **Self-Hosted Compiler** (`krakenc/src/`) — written entirely in Kraken
+  - `token.kr` — 80+ token kind constants, keyword lookup, source location tracking
+  - `lexer.kr` — Full tokenizer (identifiers, numbers, strings, comments, operators, delimiters)
+  - `ast.kr` — 28 statement kinds, 24 expression kinds, 14 type kinds, 8 pattern kinds, flat arena AST
+  - `parser.kr` — Recursive-descent parser for all Kraken constructs with operator precedence
+  - `typechecker.kr` — Two-pass semantic analysis, scope management, operator type rules, symbol table
+  - `codegen.kr` — C code emission backend for bootstrapping (type mapping, name mangling, preamble)
+  - `error.kr` — Structured diagnostics with 14 KRA-prefixed codes and 4 severity levels
+  - `main.kr` — CLI driver with 7 compilation modes (compile, emit-c, check, tokens, ast, version, help)
+  - 47 tests across 4 test files (test_lexer, test_parser, test_typechecker, test_codegen)
+
+### Fixed
+- **LLVM Codegen: Struct Variable Tracking Propagation**
+  - Variables initialized from other struct variables (`let current = lex;`) now inherit struct type tracking
+  - Variables initialized from function calls returning structs (`let tok = read_identifier(lex);`) now inherit struct type tracking via `function_return_structs` map
+  - Fixes `[E0013] Member access only supported on named struct variables` for non-literal struct initializers
+- **LLVM Codegen: Struct Return By-Value**
+  - Return statements now load struct values from alloca pointers before `ret` when the function signature expects a by-value struct
+  - Uses expression-level checks (struct literal, struct variable identifier, struct-returning function call) instead of fragile LLVM type introspection
+  - Fixes `Function return type does not match operand type of return inst!` LLVM verification errors
+- **LLVM Codegen: Basic Block Terminator Safety**
+  - While loop body back-branch now checks the **current** basic block (not the original `loop_bb`) for existing terminators
+  - All statement-processing loops (function body, while body, for body, for-in body, if then/else bodies) now skip remaining statements after a terminator is generated
+  - Fixes `Basic Block in function '...' does not have terminator!` and `Terminator found in the middle of a basic block!` LLVM verification errors
+- **LLVM Codegen: Struct Identifier Copy By-Value**
+  - Variable declarations initialized from struct variables (`let current: Lexer = lex;`) now load the by-value struct from the source alloca before storing into the destination alloca
+  - Assignments from struct variables (`current = lex;`) now load the by-value struct before storing
+  - Previously stored an 8-byte alloca pointer into a 40-byte struct-sized alloca, leaving `pos`, `line`, `column`, `length` fields uninitialized — caused infinite loops in compiled binaries when struct variables were copied in tight loops (e.g., the self-hosted tokenizer)
+
 ### Changed
 - Registered `bench_harness` module in `compiler/src/lib.rs`
-- Total tests: 710 compiler lib + 580 integration + 822 runtime = 2112 tests passing, zero warnings
+- **Self-Hosted Compiler (`krakenc/src/`)** now compiles successfully with the Kraken compiler, producing an 89KB native Mach-O binary
+  - Fixed `str` → `string` type usage across all `.kr` source files
+  - Fixed struct field separators (semicolons, not commas)
+  - Removed diamond imports (intermediate modules no longer re-import shared dependencies)
+  - Made all structs and cross-module functions `pub` for module visibility
+  - Replaced `+` string concatenation with `str_concat()` calls
+- **Self-Hosted Compiler: Cross-Platform Support** (`krakenc/src/platform.kr`)
+  - New `platform.kr` module with OS/architecture detection, target triple parsing, and platform-specific C codegen
+  - 12 supported target triples: macOS (x86_64, aarch64), Linux (x86_64, aarch64, glibc/musl), Windows (x86_64, aarch64, MSVC/MinGW), FreeBSD (x86_64, aarch64), WebAssembly (WASI)
+  - Shorthand aliases: `linux`, `macos`, `darwin`, `windows`, `win32`, `freebsd`, `wasm`, `wasi`
+  - Platform-aware C preamble emission: includes, typedefs, size types, and runtime shims vary per target OS
+  - C compiler selection (`cc`, `cl.exe`, `x86_64-w64-mingw32-gcc`, `clang`) and linker flags per target
+  - Object file extension (`.o` / `.obj`) and executable extension (`.exe` / `.wasm` / none) per target
+  - `codegen.kr` updated with `CodeGen.target_*` fields and `new_codegen_with_target()` constructor
+  - `main.kr` updated with `--target <triple>`, `--targets`, host/target display, and version aligned to v0.9.2
+- **Compiled krakenc binary now runs to completion** — tokenizes, parses, and type-checks a test program (16 tokens, 16 nodes, 0 warnings)
+- Total tests: 822 passing, zero failures, zero warnings
 
 ## [0.9.1] - 2026-02-06
 

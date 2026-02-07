@@ -52,6 +52,7 @@ pub struct LLVMCodegen {
     struct_alignments: HashMap<String, u32>, // struct name -> alignment (from repr(align(N)))
     _vtables: HashMap<String, LLVMValueRef>, // trait_name -> vtable global (used by dynamic dispatch)
     _trait_methods: HashMap<String, Vec<String>>, // trait_name -> [method_names] (used by dynamic dispatch)
+    function_return_structs: HashMap<String, String>, // fn_name -> return struct name (for struct tracking propagation)
 }
 
 impl LLVMCodegen {
@@ -100,6 +101,7 @@ impl LLVMCodegen {
                 struct_alignments: HashMap::new(),
                 _vtables: HashMap::new(),
                 _trait_methods: HashMap::new(),
+                function_return_structs: HashMap::new(),
             }
         }
     }
@@ -439,6 +441,10 @@ impl LLVMCodegen {
                     parameters,
                     return_type.as_ref().unwrap_or(&Type::Void),
                 )?;
+                // Track functions that return struct types for struct variable propagation
+                if let Some(Type::Custom(ret_struct_name)) = return_type {
+                    self.function_return_structs.insert(name.clone(), ret_struct_name.clone());
+                }
             }
         }
 
@@ -624,8 +630,44 @@ impl LLVMCodegen {
             Statement::Return { value } => {
                 unsafe {
                     if let Some(expr) = value {
+                        // Determine if this return expression produces a struct pointer
+                        // that needs to be loaded before returning by value.
+                        let needs_struct_load = match expr {
+                            Expression::StructLiteral { .. } => true,
+                            Expression::Identifier(vname) => {
+                                self.struct_variables.contains_key(vname)
+                            }
+                            Expression::Call { callee, .. } => {
+                                if let Expression::Identifier(fn_name) = &**callee {
+                                    self.function_return_structs.contains_key(fn_name)
+                                } else {
+                                    false
+                                }
+                            }
+                            _ => false,
+                        };
+
                         let val = self.codegen_expression(expr)?;
-                        LLVMBuildRet(self.builder, val);
+
+                        if needs_struct_load
+                            && LLVMGetTypeKind(LLVMTypeOf(val))
+                                == llvm_sys::LLVMTypeKind::LLVMPointerTypeKind
+                        {
+                            let pointee_ty = LLVMGetAllocatedType(val);
+                            if !pointee_ty.is_null() {
+                                let loaded = LLVMBuildLoad2(
+                                    self.builder,
+                                    pointee_ty,
+                                    val,
+                                    c"ret.load".as_ptr(),
+                                );
+                                LLVMBuildRet(self.builder, loaded);
+                            } else {
+                                LLVMBuildRet(self.builder, val);
+                            }
+                        } else {
+                            LLVMBuildRet(self.builder, val);
+                        }
                     } else {
                         LLVMBuildRetVoid(self.builder);
                     }
@@ -783,6 +825,21 @@ impl LLVMCodegen {
                             if matches!(init_expr, Expression::Array { .. }) {
                                 self.array_variables.insert(name.clone(), true);
                             }
+                        } else if let Expression::Identifier(src_name) = init_expr {
+                            // Struct variable copy: `let current = lex;`
+                            // codegen_expression(Identifier) returns the alloca pointer for struct
+                            // variables, so we must load the by-value struct before storing.
+                            if self.struct_variables.contains_key(src_name) {
+                                let loaded = LLVMBuildLoad2(
+                                    self.builder,
+                                    var_type,
+                                    init_val,
+                                    c"struct.copy.load".as_ptr(),
+                                );
+                                LLVMBuildStore(self.builder, loaded, alloca);
+                            } else {
+                                LLVMBuildStore(self.builder, init_val, alloca);
+                            }
                         } else {
                             LLVMBuildStore(self.builder, init_val, alloca);
                         }
@@ -799,6 +856,23 @@ impl LLVMCodegen {
                     // Track if this is a struct (from type annotation)
                     if let Some(sname) = struct_name {
                         self.struct_variables.insert(name.clone(), sname);
+                    } else if let Some(init_expr) = initializer {
+                        // Propagate struct tracking from identifier copies
+                        // e.g. let current = lex; where lex is a tracked struct
+                        if let Expression::Identifier(src_name) = init_expr {
+                            if let Some(src_struct) = self.struct_variables.get(src_name).cloned() {
+                                self.struct_variables.insert(name.clone(), src_struct);
+                            }
+                        }
+                        // Propagate struct tracking from function calls
+                        // e.g. let tok = read_identifier(lex); where the function returns Token
+                        if let Expression::Call { callee, .. } = init_expr {
+                            if let Expression::Identifier(fn_name) = &**callee {
+                                if let Some(ret_struct) = self.function_return_structs.get(fn_name).cloned() {
+                                    self.struct_variables.insert(name.clone(), ret_struct);
+                                }
+                            }
+                        }
                     }
                 }
                 Ok(())
@@ -844,6 +918,10 @@ impl LLVMCodegen {
                     // Generate then block
                     LLVMPositionBuilderAtEnd(self.builder, then_bb);
                     for stmt in &then_branch.statements {
+                        let bb = LLVMGetInsertBlock(self.builder);
+                        if !LLVMGetBasicBlockTerminator(bb).is_null() {
+                            break;
+                        }
                         self.codegen_statement(stmt)?;
                     }
                     // Check current block for terminator (might have changed during codegen)
@@ -858,6 +936,10 @@ impl LLVMCodegen {
                     LLVMPositionBuilderAtEnd(self.builder, else_bb);
                     if let Some(else_blk) = else_branch {
                         for stmt in &else_blk.statements {
+                            let bb = LLVMGetInsertBlock(self.builder);
+                            if !LLVMGetBasicBlockTerminator(bb).is_null() {
+                                break;
+                            }
                             self.codegen_statement(stmt)?;
                         }
                     }
@@ -920,10 +1002,17 @@ impl LLVMCodegen {
                     // Generate loop body
                     LLVMPositionBuilderAtEnd(self.builder, loop_bb);
                     for stmt in &body.statements {
+                        // Skip if current block already has a terminator (from break/return)
+                        let bb = LLVMGetInsertBlock(self.builder);
+                        if !LLVMGetBasicBlockTerminator(bb).is_null() {
+                            break;
+                        }
                         self.codegen_statement(stmt)?;
                     }
-                    // Branch back to condition if no terminator
-                    if LLVMGetBasicBlockTerminator(loop_bb).is_null() {
+                    // Branch back to condition if the current block has no terminator.
+                    // Note: after if/else/break, builder may be on a different block than loop_bb.
+                    let current_bb = LLVMGetInsertBlock(self.builder);
+                    if LLVMGetBasicBlockTerminator(current_bb).is_null() {
                         LLVMBuildBr(self.builder, cond_bb);
                     }
 
@@ -995,12 +1084,11 @@ impl LLVMCodegen {
                     // Generate loop body
                     LLVMPositionBuilderAtEnd(self.builder, loop_bb);
                     for stmt in &body.statements {
-                        self.codegen_statement(stmt)?;
-                        // Stop generating if we hit a terminator
-                        let current_bb = LLVMGetInsertBlock(self.builder);
-                        if !LLVMGetBasicBlockTerminator(current_bb).is_null() {
+                        let bb = LLVMGetInsertBlock(self.builder);
+                        if !LLVMGetBasicBlockTerminator(bb).is_null() {
                             break;
                         }
+                        self.codegen_statement(stmt)?;
                     }
                     // Branch to increment if no terminator
                     let current_bb = LLVMGetInsertBlock(self.builder);
@@ -1114,11 +1202,11 @@ impl LLVMCodegen {
                         // Generate loop body
                         LLVMPositionBuilderAtEnd(self.builder, loop_bb);
                         for stmt in &body.statements {
-                            self.codegen_statement(stmt)?;
-                            let current_bb = LLVMGetInsertBlock(self.builder);
-                            if !LLVMGetBasicBlockTerminator(current_bb).is_null() {
+                            let bb = LLVMGetInsertBlock(self.builder);
+                            if !LLVMGetBasicBlockTerminator(bb).is_null() {
                                 break;
                             }
+                            self.codegen_statement(stmt)?;
                         }
                         let current_bb = LLVMGetInsertBlock(self.builder);
                         if LLVMGetBasicBlockTerminator(current_bb).is_null() {
@@ -2330,15 +2418,19 @@ impl LLVMCodegen {
             }
 
             // Generate body
-            let mut has_terminator = false;
             for stmt in &body.statements {
-                if matches!(stmt, Statement::Return { .. }) {
-                    has_terminator = true;
+                let bb = LLVMGetInsertBlock(self.builder);
+                if !LLVMGetBasicBlockTerminator(bb).is_null() {
+                    break;
                 }
                 self.codegen_statement(stmt)?;
             }
 
             // Add default return if needed
+            let has_terminator = {
+                let bb = LLVMGetInsertBlock(self.builder);
+                !LLVMGetBasicBlockTerminator(bb).is_null()
+            };
             if !has_terminator {
                 if return_type == &Type::Void {
                     LLVMBuildRetVoid(self.builder);
@@ -3565,8 +3657,13 @@ impl LLVMCodegen {
                         None
                     }
                     .ok_or_else(|| {
+                        let obj_desc = if let Expression::Identifier(vn) = &**object {
+                            format!("variable '{vn}' not tracked as struct (known: {:?})", self.struct_variables.keys().collect::<Vec<_>>())
+                        } else {
+                            format!("non-identifier object expression accessing .{member}")
+                        };
                         CompilerError::codegen_error(
-                            "Member access only supported on named struct variables",
+                            format!("Member access only supported on named struct variables: {obj_desc}"),
                         )
                     })?;
 
@@ -3633,7 +3730,20 @@ impl LLVMCodegen {
                         // Generate the value to assign
                         let val = self.codegen_expression(value)?;
 
-                        // Store the value
+                        // If the value is a struct variable identifier, it returns an alloca
+                        // pointer. We must load the by-value struct before storing.
+                        if let Expression::Identifier(src_name) = &**value {
+                            if self.struct_variables.contains_key(src_name) {
+                                let loaded = LLVMBuildLoad2(
+                                    self.builder,
+                                    LLVMGetAllocatedType(alloca),
+                                    val,
+                                    c"struct.assign.load".as_ptr(),
+                                );
+                                LLVMBuildStore(self.builder, loaded, alloca);
+                                return Ok(loaded);
+                            }
+                        }
                         LLVMBuildStore(self.builder, val, alloca);
 
                         // Return the value (for chained assignments)
