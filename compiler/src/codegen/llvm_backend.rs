@@ -443,7 +443,8 @@ impl LLVMCodegen {
                 )?;
                 // Track functions that return struct types for struct variable propagation
                 if let Some(Type::Custom(ret_struct_name)) = return_type {
-                    self.function_return_structs.insert(name.clone(), ret_struct_name.clone());
+                    self.function_return_structs
+                        .insert(name.clone(), ret_struct_name.clone());
                 }
             }
         }
@@ -868,7 +869,9 @@ impl LLVMCodegen {
                         // e.g. let tok = read_identifier(lex); where the function returns Token
                         if let Expression::Call { callee, .. } = init_expr {
                             if let Expression::Identifier(fn_name) = &**callee {
-                                if let Some(ret_struct) = self.function_return_structs.get(fn_name).cloned() {
+                                if let Some(ret_struct) =
+                                    self.function_return_structs.get(fn_name).cloned()
+                                {
                                     self.struct_variables.insert(name.clone(), ret_struct);
                                 }
                             }
@@ -3658,13 +3661,16 @@ impl LLVMCodegen {
                     }
                     .ok_or_else(|| {
                         let obj_desc = if let Expression::Identifier(vn) = &**object {
-                            format!("variable '{vn}' not tracked as struct (known: {:?})", self.struct_variables.keys().collect::<Vec<_>>())
+                            format!(
+                                "variable '{vn}' not tracked as struct (known: {:?})",
+                                self.struct_variables.keys().collect::<Vec<_>>()
+                            )
                         } else {
                             format!("non-identifier object expression accessing .{member}")
                         };
-                        CompilerError::codegen_error(
-                            format!("Member access only supported on named struct variables: {obj_desc}"),
-                        )
+                        CompilerError::codegen_error(format!(
+                            "Member access only supported on named struct variables: {obj_desc}"
+                        ))
                     })?;
 
                     // Get struct type info
