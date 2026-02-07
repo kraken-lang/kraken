@@ -40,7 +40,7 @@ repository    = "https://github.com/kraken-lang/kraken"
 homepage      = "https://github.com/kraken-lang/kraken"
 # ========================
 authors = [
-    "James Gober <code@jamesgober.dev>"
+    "James Gober <me@jamesgober.com>"
 ]
 
 
