@@ -1,0 +1,44 @@
+struct SmallLex {
+    pos: int;
+    length: int;
+}
+
+fn new_small(len: int) -> SmallLex {
+    return SmallLex { pos: 0, length: len };
+}
+
+fn small_at_end(s: SmallLex) -> bool {
+    return s.pos >= s.length;
+}
+
+fn small_advance(s: SmallLex) -> SmallLex {
+    return SmallLex { pos: s.pos + 1, length: s.length };
+}
+
+fn tokenize_small(source: string, kinds: VecInt, lines: VecInt) -> int {
+    let lex: SmallLex = new_small(strlen(source));
+    let count = 0;
+    while (!small_at_end(lex)) {
+        let c = str_char_at(source, lex.pos);
+        vec_int_push(kinds, c);
+        vec_int_push(lines, lex.pos);
+        lex = small_advance(lex);
+        count = count + 1;
+    }
+    return count;
+}
+
+fn main() -> int {
+    let kinds: VecInt = vec_int_new();
+    let lines: VecInt = vec_int_new();
+    let count = tokenize_small("hello", kinds, lines);
+    puts(str_concat("count: ", fmt_int(count)));
+    let i = 0;
+    while (i < count) {
+        puts(fmt_int(vec_int_get(kinds, i)));
+        i = i + 1;
+    }
+    vec_int_free(kinds);
+    vec_int_free(lines);
+    return 0;
+}

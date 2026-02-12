@@ -1,0 +1,22 @@
+// Test 1: VecInt + simple while loop (no struct)
+fn fill_vec(v: VecInt, n: int) -> int {
+    let i = 0;
+    while (i < n) {
+        vec_int_push(v, i);
+        i = i + 1;
+    }
+    return n;
+}
+
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    let count = fill_vec(v, 5);
+    puts(str_concat("count: ", fmt_int(count)));
+    let i = 0;
+    while (i < count) {
+        puts(fmt_int(vec_int_get(v, i)));
+        i = i + 1;
+    }
+    vec_int_free(v);
+    return 0;
+}

@@ -876,6 +876,21 @@ mod tests {
         .await
     }
 
+    #[tokio::test]
+    async fn async_basic_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/async_basic_test.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn async_await_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/async_await_test.kr"), 0).await
+    }
+
+    #[tokio::test]
+    async fn dyn_dispatch_compile_and_run() -> Result<()> {
+        assert_program_exit_code(PathBuf::from("../tests/programs/dyn_dispatch_test.kr"), 0).await
+    }
+
     async fn assert_program_exit_code(program: PathBuf, expected_exit_code: i32) -> Result<()> {
         let executable = compile_file(&program)
             .await

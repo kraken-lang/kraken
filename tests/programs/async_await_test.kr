@@ -1,0 +1,35 @@
+// Test: Async function with await (multi-state machine)
+// Expected output:
+// chained: 52
+// pipeline: 101
+
+async fn fetch_value() -> int {
+    return 42;
+}
+
+async fn add_ten(x: int) -> int {
+    return x + 10;
+}
+
+async fn chained() -> int {
+    let a = await fetch_value();
+    let b = await add_ten(a);
+    return b;
+}
+
+async fn pipeline() -> int {
+    let x = await fetch_value();
+    let y = await add_ten(x);
+    let z = await add_ten(y);
+    return z + x - 3;
+}
+
+fn main() -> int {
+    let r1 = block_on(chained());
+    puts(str_concat("chained: ", fmt_int(r1)));
+
+    let r2 = block_on(pipeline());
+    puts(str_concat("pipeline: ", fmt_int(r2)));
+
+    return 0;
+}

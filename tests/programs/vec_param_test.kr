@@ -1,0 +1,15 @@
+fn push_test(v: VecInt, val: int) -> void {
+    vec_int_push(v, val);
+}
+
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    push_test(v, 42);
+    push_test(v, 99);
+    let a = vec_int_get(v, 0);
+    let b = vec_int_get(v, 1);
+    puts(fmt_int(a));
+    puts(fmt_int(b));
+    vec_int_free(v);
+    return 0;
+}

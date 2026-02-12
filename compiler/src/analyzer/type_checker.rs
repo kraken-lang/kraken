@@ -14,6 +14,7 @@ pub struct TypeChecker {
     file_path: PathBuf,
     current_function_return_type: Option<Type>,
     current_generic_params: Vec<String>,
+    method_return_types: HashMap<(String, String), Type>, // (type_name, method_name) -> return type
 }
 
 impl TypeChecker {
@@ -1720,6 +1721,24 @@ impl TypeChecker {
             },
         );
 
+        // Process execution
+        env.define_function(
+            "system".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "exit".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::Void,
+                is_async: false,
+            },
+        );
+
         // Sleep function
         env.define_function(
             "usleep".to_string(),
@@ -1743,6 +1762,90 @@ impl TypeChecker {
                 },
             );
         }
+
+        // File I/O (FILE* modeled as Bytes)
+        env.define_function(
+            "fopen".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::String],
+                return_type: Type::Bytes,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "fclose".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "fread".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes, Type::Int, Type::Int, Type::Bytes],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "fwrite".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes, Type::Int, Type::Int, Type::Bytes],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "fputs".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::Bytes],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "fseek".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes, Type::Int, Type::Int],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "ftell".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Bytes],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "getenv".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+
+        // File I/O helpers
+        env.define_function(
+            "file_read_string".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "str_from_char_code".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::Int],
+                return_type: Type::String,
+                is_async: false,
+            },
+        );
 
         // String utilities
         env.define_function(
@@ -1811,6 +1914,7 @@ impl TypeChecker {
             file_path,
             current_function_return_type: None,
             current_generic_params: Vec::new(),
+            method_return_types: HashMap::new(),
         }
     }
 
@@ -1926,6 +2030,25 @@ impl TypeChecker {
                     associated_types.to_vec(),
                 );
                 self.env.define_trait(name.to_string(), trait_type);
+                Ok(())
+            }
+
+            Statement::ImplBlock {
+                type_name, methods, ..
+            }
+            | Statement::TraitImpl {
+                type_name, methods, ..
+            } => {
+                for method in methods {
+                    if let Statement::FunctionDeclaration {
+                        name, return_type, ..
+                    } = method
+                    {
+                        let ret = return_type.clone().unwrap_or(Type::Void);
+                        self.method_return_types
+                            .insert((type_name.clone(), name.clone()), ret);
+                    }
+                }
                 Ok(())
             }
 
@@ -2599,6 +2722,10 @@ impl TypeChecker {
                             }
                         }
 
+                        // Async functions return a future pointer at the call site
+                        if func_type.is_async {
+                            return Ok(Type::Bytes);
+                        }
                         return Ok(func_type.return_type.clone());
                     }
 
@@ -2648,6 +2775,40 @@ impl TypeChecker {
                             self.env.function_names().join(", ")
                         ),
                     ));
+                }
+
+                // Method call: object.method(args)
+                if let Expression::MemberAccess { object, member } = callee.as_ref() {
+                    // Type-check the receiver and all arguments
+                    let obj_type = self.check_expression(object)?;
+                    for arg in arguments {
+                        self.check_expression(arg)?;
+                    }
+
+                    // Look up method return type from impl block registry
+                    if let Type::Custom(type_name) = &obj_type {
+                        let key = (type_name.clone(), member.clone());
+                        if let Some(ret_ty) = self.method_return_types.get(&key) {
+                            return Ok(ret_ty.clone());
+                        }
+                    }
+
+                    // Trait object method resolution: dyn Trait → look up trait method signature
+                    if let Type::TraitObject { trait_name, .. } = &obj_type {
+                        if let Some(trait_type) = self.env.lookup_trait(trait_name) {
+                            for method in &trait_type.methods {
+                                if method.name == *member {
+                                    return Ok(method
+                                        .return_type
+                                        .clone()
+                                        .unwrap_or(Type::Void));
+                                }
+                            }
+                        }
+                    }
+
+                    // Fallback: return the object's own type (common for builder patterns)
+                    return Ok(obj_type);
                 }
 
                 Err(CompilerError::type_error(
@@ -2854,9 +3015,22 @@ impl TypeChecker {
             }
 
             Expression::Await { expression } => {
-                // For now, await returns the inner type (Future<T> -> T)
-                // Full implementation will check for Future type
-                self.check_expression(expression)
+                // await unwraps a future: if the inner expression is a call to an async fn,
+                // return the async fn's original declared return type (not the Bytes future ptr)
+                if let Expression::Call { callee, .. } = expression.as_ref() {
+                    if let Expression::Identifier(func_name) = callee.as_ref() {
+                        if let Some(func_type) = self.env.lookup_function(func_name) {
+                            if func_type.is_async {
+                                // Check the call arguments for side effects
+                                let _ = self.check_expression(expression)?;
+                                return Ok(func_type.return_type.clone());
+                            }
+                        }
+                    }
+                }
+                // Fallback: check the inner expression and return Int
+                let _ = self.check_expression(expression)?;
+                Ok(Type::Int)
             }
 
             Expression::Spawn { body } => {
@@ -2987,6 +3161,11 @@ impl TypeChecker {
                 }
 
                 // Type check closure body
+                let saved_return_type = self.current_function_return_type.clone();
+                if let Some(ret_type) = return_type {
+                    self.current_function_return_type = Some(ret_type.clone());
+                }
+
                 let body_type = match body {
                     ClosureBody::Expression(expr) => {
                         // Temporarily swap environment
@@ -3005,10 +3184,13 @@ impl TypeChecker {
                     }
                 };
 
+                self.current_function_return_type = saved_return_type;
+
                 // Determine return type
                 let inferred_return_type = if let Some(ret_type) = return_type {
-                    // Verify body type matches declared return type
-                    if body_type != *ret_type && *ret_type != Type::Void {
+                    // Block closures with explicit return type use return statements
+                    // so body_type == Void is expected
+                    if body_type != Type::Void && body_type != *ret_type && *ret_type != Type::Void {
                         return Err(CompilerError::type_error(
                             SourceLocation::new(self.file_path.clone(), 0, 0),
                             format!("Closure body type {body_type} does not match declared return type {ret_type}"),
@@ -3404,6 +3586,26 @@ impl TypeChecker {
             return true;
         }
 
+        // Self in trait declarations matches any concrete type in trait impls
+        if let Type::Custom(name) = expected {
+            if name == "Self" {
+                return matches!(actual, Type::Custom(_));
+            }
+        }
+        if let Type::Custom(name) = actual {
+            if name == "Self" {
+                return matches!(expected, Type::Custom(_));
+            }
+        }
+
+        // dyn Trait is compatible with concrete struct types (for assignment and param passing)
+        if matches!(expected, Type::TraitObject { .. }) && matches!(actual, Type::Custom(_)) {
+            return true;
+        }
+        if matches!(expected, Type::Custom(_)) && matches!(actual, Type::TraitObject { .. }) {
+            return true;
+        }
+
         matches!(
             (expected, actual),
             (Type::String, Type::Bytes) | (Type::Bytes, Type::String)
@@ -3504,6 +3706,11 @@ impl TypeChecker {
             }
         }
 
+        // Add 'Self' as a recognized type parameter within trait context
+        let previous_generic_params = std::mem::take(&mut self.current_generic_params);
+        self.current_generic_params = _generic_params.to_vec();
+        self.current_generic_params.push("Self".to_string());
+
         // Validate method signatures
         for method in methods {
             // Check parameter types
@@ -3527,6 +3734,8 @@ impl TypeChecker {
             }
         }
 
+        self.current_generic_params = previous_generic_params;
+
         // Trait already registered during predeclaration phase.
         // Re-register with validated method bodies if needed.
         Ok(())
@@ -3542,6 +3751,11 @@ impl TypeChecker {
     ) -> CompilerResult<()> {
         use super::types::{FunctionType, TraitImpl};
         use std::collections::HashMap;
+
+        // Add 'Self' as a recognized type parameter within trait impl context
+        let previous_generic_params = std::mem::take(&mut self.current_generic_params);
+        self.current_generic_params = generic_params.to_vec();
+        self.current_generic_params.push("Self".to_string());
 
         // Check that the trait exists
         let trait_def = self
@@ -3617,7 +3831,13 @@ impl TypeChecker {
 
                 let mut method_env = self.env.child();
                 for param in parameters {
-                    self.bind_pattern_to_env(&param.pattern, &param.param_type, &mut method_env)?;
+                    // Resolve Self → concrete type for method body checking
+                    let resolved_type = if param.param_type == Type::Custom("Self".to_string()) {
+                        Type::Custom(type_name.to_string())
+                    } else {
+                        param.param_type.clone()
+                    };
+                    self.bind_pattern_to_env(&param.pattern, &resolved_type, &mut method_env)?;
                 }
                 let saved_env = std::mem::replace(&mut self.env, method_env);
                 self.check_block(body)?;
@@ -3653,6 +3873,8 @@ impl TypeChecker {
         );
         self.env
             .define_trait_impl(trait_name.to_string(), type_name.to_string(), trait_impl);
+
+        self.current_generic_params = previous_generic_params;
 
         Ok(())
     }

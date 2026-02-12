@@ -1,0 +1,49 @@
+// Test struct sizes to find corruption threshold
+
+struct S5 { a: int; b: int; c: int; d: int; e: VecInt; }
+struct S6 { a: int; b: int; c: int; d: int; e: int; f: VecInt; }
+struct S7 { a: int; b: int; c: int; d: int; e: int; f: int; g: VecInt; }
+
+fn adv5(s: S5) -> S5 {
+    return S5 { a: s.a + 1, b: s.b, c: s.c, d: s.d, e: s.e };
+}
+
+fn adv6(s: S6) -> S6 {
+    return S6 { a: s.a + 1, b: s.b, c: s.c, d: s.d, e: s.e, f: s.f };
+}
+
+fn adv7(s: S7) -> S7 {
+    return S7 { a: s.a + 1, b: s.b, c: s.c, d: s.d, e: s.e, f: s.f, g: s.g };
+}
+
+fn main() -> int {
+    let v5: VecInt = vec_int_new();
+    let v6: VecInt = vec_int_new();
+    let v7: VecInt = vec_int_new();
+
+    // Test S5 (40 bytes)
+    let s5: S5 = S5 { a: 0, b: 10, c: 20, d: 30, e: v5 };
+    s5 = adv5(s5);
+    puts(str_concat("S5 a=", fmt_int(s5.a)));
+    vec_int_push(s5.e, 42);
+    puts(str_concat("S5 vec ok, val=", fmt_int(vec_int_get(s5.e, 0))));
+
+    // Test S6 (48 bytes)
+    let s6: S6 = S6 { a: 0, b: 10, c: 20, d: 30, e: 40, f: v6 };
+    s6 = adv6(s6);
+    puts(str_concat("S6 a=", fmt_int(s6.a)));
+    vec_int_push(s6.f, 42);
+    puts(str_concat("S6 vec ok, val=", fmt_int(vec_int_get(s6.f, 0))));
+
+    // Test S7 (56 bytes)
+    let s7: S7 = S7 { a: 0, b: 10, c: 20, d: 30, e: 40, f: 50, g: v7 };
+    s7 = adv7(s7);
+    puts(str_concat("S7 a=", fmt_int(s7.a)));
+    vec_int_push(s7.g, 42);
+    puts(str_concat("S7 vec ok, val=", fmt_int(vec_int_get(s7.g, 0))));
+
+    vec_int_free(v5);
+    vec_int_free(v6);
+    vec_int_free(v7);
+    return 0;
+}

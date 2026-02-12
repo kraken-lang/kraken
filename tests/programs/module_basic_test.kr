@@ -1,0 +1,15 @@
+import modules.math_utils;
+
+fn main() -> int {
+    let sum: int = add(3, 4);
+    puts(str_concat("add: ", fmt_int(sum)));
+
+    let prod: int = multiply(5, 6);
+    puts(str_concat("multiply: ", fmt_int(prod)));
+
+    let v: Vec2 = Vec2 { x: 10, y: 20 };
+    puts(str_concat("v.x: ", fmt_int(v.x)));
+    puts(str_concat("v.y: ", fmt_int(v.y)));
+
+    return 0;
+}

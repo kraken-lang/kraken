@@ -1053,6 +1053,26 @@ impl Parser {
                     }
                 }
 
+                // Handle 'self' parameter in impl block methods
+                if self.match_keyword(Keyword::Self_) {
+                    // self parameter — type will be resolved by codegen
+                    // Accept optional type annotation: self: Type
+                    let param_type = if self.match_token(TokenKind::Colon) {
+                        self.parse_type()?
+                    } else {
+                        Type::Custom("Self".to_string())
+                    };
+                    parameters.push(Parameter {
+                        pattern: Pattern::Identifier("self".to_string()),
+                        param_type,
+                        is_reference: true,
+                    });
+                    if !self.match_token(TokenKind::Comma) {
+                        break;
+                    }
+                    continue;
+                }
+
                 let is_reference = self.match_keyword(Keyword::Ref);
 
                 // Parse pattern for parameter (supports destructuring)
@@ -1866,6 +1886,10 @@ impl Parser {
             TokenKind::Keyword(Keyword::Null) => {
                 self.advance();
                 Ok(Expression::NullLiteral)
+            }
+            TokenKind::Keyword(Keyword::Self_) => {
+                self.advance();
+                Ok(Expression::Identifier("self".to_string()))
             }
             TokenKind::Identifier => {
                 let name = token.lexeme.clone();

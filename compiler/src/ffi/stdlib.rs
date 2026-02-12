@@ -556,6 +556,35 @@ pub fn stdlib_functions() -> &'static [StdlibFnSig] {
             errno: ErrnoConvention::None,
             c_int_widening: Some(CIntWidening::Signed),
         },
+        // Process execution
+        StdlibFnSig {
+            name: "system",
+            kraken_params: &[Type::String],
+            kraken_return: Type::Int,
+            is_vararg: false,
+            c_abi_params: &[AbiType::I8Ptr],
+            c_abi_param_nullability: &[Nullability::NonNull],
+            c_abi_param_ownership: &[Ownership::Borrowed],
+            c_abi_return: AbiType::I32,
+            c_abi_return_nullability: Nullability::NonNull,
+            c_abi_return_ownership: Ownership::Borrowed,
+            errno: ErrnoConvention::ReturnsNegOne,
+            c_int_widening: Some(CIntWidening::Signed),
+        },
+        StdlibFnSig {
+            name: "exit",
+            kraken_params: &[Type::Int],
+            kraken_return: Type::Void,
+            is_vararg: false,
+            c_abi_params: &[AbiType::I32],
+            c_abi_param_nullability: &[Nullability::NonNull],
+            c_abi_param_ownership: &[Ownership::Borrowed],
+            c_abi_return: AbiType::Void,
+            c_abi_return_nullability: Nullability::NonNull,
+            c_abi_return_ownership: Ownership::Borrowed,
+            errno: ErrnoConvention::None,
+            c_int_widening: None,
+        },
     ]
 }
 

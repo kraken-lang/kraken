@@ -1,0 +1,53 @@
+// Test: Dynamic dispatch via dyn Trait and vtables
+// Expected output:
+// circle area: 314
+// rect area: 200
+// print circle: 314
+// print rect: 200
+
+trait Shape {
+    fn area(self: Self) -> int;
+}
+
+struct Circle {
+    radius: int;
+}
+
+struct Rect {
+    width: int;
+    height: int;
+}
+
+impl Shape for Circle {
+    fn area(self: Circle) -> int {
+        return self.radius * self.radius * 314 / 100;
+    }
+}
+
+impl Shape for Rect {
+    fn area(self: Rect) -> int {
+        return self.width * self.height;
+    }
+}
+
+fn print_area(s: dyn Shape) -> int {
+    return s.area();
+}
+
+fn main() -> int {
+    let c = Circle { radius: 10 };
+    let r = Rect { width: 20, height: 10 };
+
+    let dc: dyn Shape = c;
+    let dr: dyn Shape = r;
+
+    // Direct dyn dispatch
+    puts(str_concat("circle area: ", fmt_int(dc.area())));
+    puts(str_concat("rect area: ", fmt_int(dr.area())));
+
+    // Dispatch via function taking dyn Trait parameter
+    puts(str_concat("print circle: ", fmt_int(print_area(dc))));
+    puts(str_concat("print rect: ", fmt_int(print_area(dr))));
+
+    return 0;
+}

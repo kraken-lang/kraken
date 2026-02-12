@@ -1,0 +1,38 @@
+struct Big {
+    a: int;
+    b: int;
+    c: int;
+    d: int;
+    e: int;
+}
+
+fn make_big(x: int) -> Big {
+    return Big { a: x, b: x + 1, c: x + 2, d: x + 3, e: x + 4 };
+}
+
+fn sum_big(s: Big) -> int {
+    return s.a + s.b + s.c + s.d + s.e;
+}
+
+fn modify_big(s: Big) -> Big {
+    return Big { a: s.a * 2, b: s.b * 2, c: s.c * 2, d: s.d * 2, e: s.e * 2 };
+}
+
+fn use_vec_and_struct(v: VecInt, s: Big) -> void {
+    vec_int_push(v, s.a);
+    vec_int_push(v, s.b);
+}
+
+fn main() -> int {
+    let s: Big = make_big(10);
+    puts(fmt_int(sum_big(s)));
+    let s2: Big = modify_big(s);
+    puts(fmt_int(sum_big(s2)));
+
+    let v: VecInt = vec_int_new();
+    use_vec_and_struct(v, s);
+    puts(fmt_int(vec_int_get(v, 0)));
+    puts(fmt_int(vec_int_get(v, 1)));
+    vec_int_free(v);
+    return 0;
+}

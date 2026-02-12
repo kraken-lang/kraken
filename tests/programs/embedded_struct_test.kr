@@ -1,0 +1,50 @@
+struct State {
+    pos: int;
+    len: int;
+    data: VecInt;
+    out: VecString;
+}
+
+fn new_state(d: VecInt, o: VecString, n: int) -> State {
+    return State { pos: 0, len: n, data: d, out: o };
+}
+
+fn state_done(s: State) -> bool {
+    return s.pos >= s.len;
+}
+
+fn state_next(s: State) -> State {
+    return State { pos: s.pos + 1, len: s.len, data: s.data, out: s.out };
+}
+
+fn process(s: State) -> State {
+    let current: State = s;
+    while (!state_done(current)) {
+        let val = vec_int_get(current.data, current.pos);
+        vec_string_push(current.out, fmt_int(val));
+        current = state_next(current);
+    }
+    return current;
+}
+
+fn main() -> int {
+    let d: VecInt = vec_int_new();
+    let o: VecString = vec_string_new();
+    vec_int_push(d, 10);
+    vec_int_push(d, 20);
+    vec_int_push(d, 30);
+
+    let s: State = new_state(d, o, 3);
+    s = process(s);
+
+    let i = 0;
+    let len = vec_string_len(o);
+    while (i < len) {
+        puts(vec_string_get(o, i));
+        i = i + 1;
+    }
+
+    vec_int_free(d);
+    vec_string_free(o);
+    return 0;
+}

@@ -1,0 +1,33 @@
+fn identity<T>(x: T) -> T {
+    return x;
+}
+
+fn add_generic<T>(a: T, b: T) -> T {
+    return a + b;
+}
+
+struct Pair<T> {
+    first: T;
+    second: T;
+}
+
+fn main() -> int {
+    let a: int = identity<int>(42);
+    puts(str_concat("identity int: ", fmt_int(a)));
+
+    let b: string = identity<string>("hello");
+    puts(str_concat("identity str: ", b));
+
+    let c: int = add_generic<int>(10, 20);
+    puts(str_concat("add_generic: ", fmt_int(c)));
+
+    let p: Pair<int> = Pair<int> { first: 1, second: 2 };
+    puts(str_concat("pair.first: ", fmt_int(p.first)));
+    puts(str_concat("pair.second: ", fmt_int(p.second)));
+
+    // Test type inference (no explicit type args)
+    let d: int = identity(99);
+    puts(str_concat("inferred identity: ", fmt_int(d)));
+
+    return 0;
+}

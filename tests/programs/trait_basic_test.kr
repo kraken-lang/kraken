@@ -1,0 +1,42 @@
+trait Describable {
+    fn describe(self) -> string;
+}
+
+struct Dog {
+    name: string;
+    age: int;
+}
+
+impl Describable for Dog {
+    fn describe(self) -> string {
+        return str_concat(self.name, " the dog");
+    }
+}
+
+struct Cat {
+    name: string;
+    lives: int;
+}
+
+impl Describable for Cat {
+    fn describe(self) -> string {
+        return str_concat(self.name, " the cat");
+    }
+}
+
+impl Cat {
+    fn remaining_lives(self) -> int {
+        return self.lives;
+    }
+}
+
+fn main() -> int {
+    let d: Dog = Dog { name: "Rex", age: 5 };
+    puts(d.describe());
+
+    let c: Cat = Cat { name: "Whiskers", lives: 9 };
+    puts(c.describe());
+    puts(str_concat("lives: ", fmt_int(c.remaining_lives())));
+
+    return 0;
+}

@@ -1,0 +1,61 @@
+// Test: 64-byte struct with 8 fields, copy via function return
+struct Big {
+    a: int;
+    b: int;
+    c: int;
+    d: int;
+    e: string;
+    f: VecInt;
+    g: VecString;
+    h: VecString;
+}
+
+fn big_new(v: VecInt, s: VecString, o: VecString) -> Big {
+    return Big { a: 0, b: 10, c: 0, d: 0, e: "hello", f: v, g: s, h: o };
+}
+
+fn big_advance(b: Big) -> Big {
+    return Big { a: b.a + 1, b: b.b, c: b.c, d: b.d, e: b.e, f: b.f, g: b.g, h: b.h };
+}
+
+fn big_check(b: Big) -> void {
+    puts(str_concat("a=", fmt_int(b.a)));
+    puts(str_concat("b=", fmt_int(b.b)));
+    puts(str_concat("e=", b.e));
+    // Check if vec handles survived the copy
+    vec_int_push(b.f, b.a);
+    vec_string_push(b.h, fmt_int(b.a));
+}
+
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    let s: VecString = vec_string_new();
+    let o: VecString = vec_string_new();
+
+    let x: Big = big_new(v, s, o);
+    puts("--- initial ---");
+    big_check(x);
+
+    x = big_advance(x);
+    puts("--- after advance 1 ---");
+    big_check(x);
+
+    x = big_advance(x);
+    puts("--- after advance 2 ---");
+    big_check(x);
+
+    // Verify the vecs got the pushes
+    puts(str_concat("vec_int len: ", fmt_int(vec_int_len(v))));
+    puts(str_concat("vec_string len: ", fmt_int(vec_string_len(o))));
+
+    let i = 0;
+    while (i < vec_int_len(v)) {
+        puts(str_concat("  v[", str_concat(fmt_int(i), str_concat("]=", fmt_int(vec_int_get(v, i))))));
+        i = i + 1;
+    }
+
+    vec_int_free(v);
+    vec_string_free(s);
+    vec_string_free(o);
+    return 0;
+}

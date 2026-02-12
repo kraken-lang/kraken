@@ -50,9 +50,16 @@ pub struct LLVMCodegen {
     file_path: PathBuf,
     debug_bounds_checks: bool, // Enable bounds checking when KRAKEN_DEBUG_BOUNDS=1
     struct_alignments: HashMap<String, u32>, // struct name -> alignment (from repr(align(N)))
-    _vtables: HashMap<String, LLVMValueRef>, // trait_name -> vtable global (used by dynamic dispatch)
-    _trait_methods: HashMap<String, Vec<String>>, // trait_name -> [method_names] (used by dynamic dispatch)
+    vtables: HashMap<(String, String), LLVMValueRef>, // (trait_name, type_name) -> vtable global constant
+    trait_methods: HashMap<String, Vec<String>>, // trait_name -> [method_names] in declaration order
+    dyn_trait_vars: HashMap<String, String>, // variable_name -> trait_name (for dyn dispatch)
     function_return_structs: HashMap<String, String>, // fn_name -> return struct name (for struct tracking propagation)
+    method_map: HashMap<(String, String), String>, // (type_name, method_name) -> mangled fn name
+    defer_stack: Vec<Statement>, // LIFO stack of deferred statements for current function
+    closure_captured_values: HashMap<String, Vec<LLVMValueRef>>, // variable_name -> captured values for indirect calls
+    last_closure_captures: Option<Vec<LLVMValueRef>>, // temporary: set by closure codegen, consumed by variable decl
+    future_header_type: LLVMTypeRef, // common header: { ptr, i64, i64, ptr } shared by all futures
+    async_poll_context: Option<(LLVMValueRef, LLVMTypeRef)>, // (future_ptr_alloca, future_struct_type) when generating poll fn
 }
 
 impl LLVMCodegen {
@@ -99,9 +106,16 @@ impl LLVMCodegen {
                 file_path,
                 debug_bounds_checks,
                 struct_alignments: HashMap::new(),
-                _vtables: HashMap::new(),
-                _trait_methods: HashMap::new(),
+                vtables: HashMap::new(),
+                trait_methods: HashMap::new(),
+                dyn_trait_vars: HashMap::new(),
                 function_return_structs: HashMap::new(),
+                method_map: HashMap::new(),
+                defer_stack: Vec::new(),
+                closure_captured_values: HashMap::new(),
+                last_closure_captures: None,
+                future_header_type: std::ptr::null_mut(),
+                async_poll_context: None,
             }
         }
     }
@@ -302,17 +316,39 @@ impl LLVMCodegen {
                     where_constraints: _,
                     parameters,
                     return_type,
-                    is_async: _,
+                    is_async,
                     is_unsafe: _,
                     is_public: _,
                     ..
                 } = statement
                 {
-                    self.declare_function(
-                        name,
-                        parameters,
-                        return_type.as_ref().unwrap_or(&Type::Void),
-                    )?;
+                    // Async functions return a future pointer (ptr) instead of their declared type
+                    if *is_async {
+                        self.declare_function(name, parameters, &Type::Bytes)?;
+                    } else {
+                        self.declare_function(
+                            name,
+                            parameters,
+                            return_type.as_ref().unwrap_or(&Type::Void),
+                        )?;
+                    }
+                }
+            }
+
+            // Pass 1b: Forward-declare all impl block and trait impl methods
+            for statement in &program.statements {
+                match statement {
+                    Statement::ImplBlock {
+                        type_name, methods, ..
+                    } => {
+                        self.declare_impl_methods(type_name, methods)?;
+                    }
+                    Statement::TraitImpl {
+                        type_name, methods, ..
+                    } => {
+                        self.declare_impl_methods(type_name, methods)?;
+                    }
+                    _ => {}
                 }
             }
 
@@ -338,6 +374,12 @@ impl LLVMCodegen {
                 return Err(CompilerError::codegen_error(format!(
                     "Module verification failed: {error_str}"
                 )));
+            }
+
+            // Optionally dump LLVM IR for debugging
+            if std::env::var("KRAKEN_DUMP_IR").is_ok() {
+                let ir = self.get_ir_string();
+                eprintln!("{ir}");
             }
 
             // Get target triple
@@ -449,6 +491,23 @@ impl LLVMCodegen {
             }
         }
 
+        // Pass 1b: Forward-declare all impl block and trait impl methods
+        for statement in &program.statements {
+            match statement {
+                Statement::ImplBlock {
+                    type_name, methods, ..
+                } => {
+                    self.declare_impl_methods(type_name, methods)?;
+                }
+                Statement::TraitImpl {
+                    type_name, methods, ..
+                } => {
+                    self.declare_impl_methods(type_name, methods)?;
+                }
+                _ => {}
+            }
+        }
+
         // Pass 2: Generate function bodies
         for statement in &program.statements {
             self.codegen_statement(statement)?;
@@ -478,17 +537,26 @@ impl LLVMCodegen {
                 parameters,
                 return_type,
                 body,
-                is_async: _,
+                is_async,
                 is_unsafe: _,
                 is_public: _,
                 is_variadic: _,
             } => {
-                self.codegen_function(
-                    name,
-                    parameters,
-                    return_type.as_ref().unwrap_or(&Type::Void),
-                    body,
-                )?;
+                if *is_async {
+                    self.codegen_async_function(
+                        name,
+                        parameters,
+                        return_type.as_ref().unwrap_or(&Type::Void),
+                        body,
+                    )?;
+                } else {
+                    self.codegen_function(
+                        name,
+                        parameters,
+                        return_type.as_ref().unwrap_or(&Type::Void),
+                        body,
+                    )?;
+                }
                 Ok(())
             }
 
@@ -509,23 +577,37 @@ impl LLVMCodegen {
                     let struct_name = CString::new(name.as_str()).expect("CString failed");
                     let struct_type = LLVMStructCreateNamed(self.context, struct_name.as_ptr());
 
-                    // Get field types
+                    // Get field types — keep original LLVM types for boundary
+                    // conversions, but use i64 in the struct body for pointer-typed
+                    // fields. This works around an LLVM 18 x86_64 ABI bug where
+                    // ptr-typed fields in returned structs are corrupted.
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
                     let mut field_types: Vec<LLVMTypeRef> = Vec::new();
+                    let mut body_types: Vec<LLVMTypeRef> = Vec::new();
                     let mut field_names: Vec<String> = Vec::new();
 
                     for field in fields {
-                        field_types.push(self.get_llvm_type(&field.field_type));
+                        let ft = self.get_llvm_type(&field.field_type);
+                        field_types.push(ft);
+                        // Replace ptr with i64 in the actual LLVM struct layout
+                        if ft == ptr_ty {
+                            body_types.push(i64_ty);
+                        } else {
+                            body_types.push(ft);
+                        }
                         field_names.push(field.name.clone());
                     }
 
                     // Determine if struct should be packed based on repr attribute
                     let is_packed = matches!(repr, Some(StructRepr::Packed));
 
-                    // Set struct body with packing flag
+                    // Set struct body with packing flag (using body_types with i64
+                    // in place of ptr to avoid ABI corruption)
                     LLVMStructSetBody(
                         struct_type,
-                        field_types.as_mut_ptr(),
-                        field_types.len() as u32,
+                        body_types.as_mut_ptr(),
+                        body_types.len() as u32,
                         if is_packed { 1 } else { 0 },
                     );
 
@@ -534,7 +616,8 @@ impl LLVMCodegen {
                         self.struct_alignments.insert(name.clone(), *n);
                     }
 
-                    // Store struct type, field names, and field types
+                    // Store struct type, field names, and ORIGINAL field types
+                    // (with ptr) so we know which fields need ptrtoint/inttoptr
                     self.struct_types
                         .insert(name.clone(), (struct_type, field_names, field_types));
                 }
@@ -630,6 +713,53 @@ impl LLVMCodegen {
 
             Statement::Return { value } => {
                 unsafe {
+                    // Inside async poll function: store result in future struct and return READY (1)
+                    if let Some((future_alloca, future_struct_ty)) = self.async_poll_context {
+                        let i64_ty = LLVMInt64TypeInContext(self.context);
+                        let ptr_ty =
+                            LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                        let ret_val = if let Some(expr) = value {
+                            self.codegen_expression(expr)?
+                        } else {
+                            LLVMConstInt(i64_ty, 0, 0)
+                        };
+
+                        let fp = LLVMBuildLoad2(
+                            self.builder,
+                            ptr_ty,
+                            future_alloca,
+                            c"fp.ret".as_ptr(),
+                        );
+                        // Store result in field 1
+                        let res_gep = LLVMBuildStructGEP2(
+                            self.builder,
+                            future_struct_ty,
+                            fp,
+                            1,
+                            c"result_ret".as_ptr(),
+                        );
+                        LLVMBuildStore(self.builder, ret_val, res_gep);
+                        // Mark state as done (-1)
+                        let st_gep = LLVMBuildStructGEP2(
+                            self.builder,
+                            future_struct_ty,
+                            fp,
+                            2,
+                            c"state_done_ret".as_ptr(),
+                        );
+                        LLVMBuildStore(
+                            self.builder,
+                            LLVMConstInt(i64_ty, u64::MAX, 0),
+                            st_gep,
+                        );
+                        // Return READY
+                        LLVMBuildRet(self.builder, LLVMConstInt(i64_ty, 1, 0));
+                        return Ok(());
+                    }
+
+                    // Execute deferred statements in LIFO order before returning
+                    self.emit_deferred_statements()?;
+
                     if let Some(expr) = value {
                         // Determine if this return expression produces a struct pointer
                         // that needs to be loaded before returning by value.
@@ -795,6 +925,69 @@ impl LLVMCodegen {
                         }
                     }
 
+                    // === dyn Trait: construct fat pointer and skip normal init ===
+                    if let Some(Type::TraitObject { trait_name, .. }) = type_annotation {
+                        self.dyn_trait_vars.insert(name.clone(), trait_name.clone());
+
+                        if let Some(init_expr) = initializer {
+                            let concrete_type_name = match init_expr {
+                                Expression::StructLiteral { name: sname, .. } => Some(sname.clone()),
+                                Expression::Identifier(vname) => {
+                                    self.struct_variables.get(vname).cloned()
+                                }
+                                _ => None,
+                            };
+                            if let Some(ref ctype) = concrete_type_name {
+                                let vtable_key = (trait_name.clone(), ctype.clone());
+                                if let Some(&vtable_global) = self.vtables.get(&vtable_key) {
+                                    let ptr_ty = LLVMPointerType(
+                                        LLVMInt8TypeInContext(self.context),
+                                        0,
+                                    );
+
+                                    // Get the data pointer (the struct alloca as i8*)
+                                    let data_ptr = self.codegen_expression(init_expr)?;
+                                    let data_cast = LLVMBuildBitCast(
+                                        self.builder,
+                                        data_ptr,
+                                        ptr_ty,
+                                        c"dyn.data".as_ptr(),
+                                    );
+
+                                    // Get the vtable pointer (global array as i8*)
+                                    let vtable_cast = LLVMBuildBitCast(
+                                        self.builder,
+                                        vtable_global,
+                                        ptr_ty,
+                                        c"dyn.vtable".as_ptr(),
+                                    );
+
+                                    // Store data_ptr and vtable_ptr into the fat pointer struct
+                                    let data_gep = LLVMBuildStructGEP2(
+                                        self.builder,
+                                        var_type,
+                                        alloca,
+                                        0,
+                                        c"fat.data".as_ptr(),
+                                    );
+                                    LLVMBuildStore(self.builder, data_cast, data_gep);
+                                    let vtable_gep = LLVMBuildStructGEP2(
+                                        self.builder,
+                                        var_type,
+                                        alloca,
+                                        1,
+                                        c"fat.vtable".as_ptr(),
+                                    );
+                                    LLVMBuildStore(self.builder, vtable_cast, vtable_gep);
+
+                                    self.named_values.insert(name.clone(), alloca);
+                                    return Ok(());
+                                }
+                            }
+                        }
+                        // No vtable found — fall through to normal init (shouldn't happen)
+                    }
+
                     // Store initial value if provided
                     if let Some(init_expr) = initializer {
                         let init_val = if let Some(pregen) = pregenerated_value {
@@ -848,6 +1041,13 @@ impl LLVMCodegen {
 
                     // Store the alloca pointer in named_values
                     self.named_values.insert(name.clone(), alloca);
+
+                    // If this variable was initialized from a closure with captures,
+                    // associate the captured values with the variable name for indirect calls.
+                    if let Some(captures) = self.last_closure_captures.take() {
+                        self.closure_captured_values
+                            .insert(name.clone(), captures);
+                    }
 
                     // Track if this is an array (from type annotation)
                     if is_array {
@@ -1699,6 +1899,128 @@ impl LLVMCodegen {
                 Ok(())
             }
 
+            Statement::ImplBlock {
+                type_name,
+                methods,
+                ..
+            } => {
+                self.codegen_impl_block(type_name, methods)?;
+                Ok(())
+            }
+
+            Statement::Defer { statement } => {
+                // Push onto defer stack — executed in LIFO order before returns
+                self.defer_stack.push(*statement.clone());
+                Ok(())
+            }
+
+            Statement::Unsafe { block } => {
+                // Unsafe blocks just execute their contents (no special LLVM treatment)
+                unsafe {
+                    for stmt in &block.statements {
+                        let bb = LLVMGetInsertBlock(self.builder);
+                        if !LLVMGetBasicBlockTerminator(bb).is_null() {
+                            break;
+                        }
+                        self.codegen_statement(stmt)?;
+                    }
+                }
+                Ok(())
+            }
+
+            Statement::ConstantDeclaration {
+                name,
+                type_annotation,
+                initializer,
+            } => {
+                // Treat constants like variable declarations with an initializer
+                unsafe {
+                    let init_val = self.codegen_expression(initializer)?;
+                    let var_type = if let Some(ty) = type_annotation {
+                        self.get_llvm_type(ty)
+                    } else {
+                        LLVMTypeOf(init_val)
+                    };
+                    let alloca = self.create_entry_block_alloca(var_type, name)?;
+                    LLVMBuildStore(self.builder, init_val, alloca);
+                    self.named_values.insert(name.clone(), alloca);
+                }
+                Ok(())
+            }
+
+            Statement::TypeAlias { .. } => {
+                // Type aliases are resolved during type checking, no codegen needed
+                Ok(())
+            }
+
+            Statement::TraitDeclaration { name, methods, .. } => {
+                // Store trait method names in declaration order for vtable slot assignment
+                let method_names: Vec<String> = methods.iter().map(|m| m.name.clone()).collect();
+                self.trait_methods.insert(name.clone(), method_names);
+                Ok(())
+            }
+
+            Statement::TraitImpl {
+                trait_name,
+                type_name,
+                methods,
+                ..
+            } => {
+                // Trait impls generate methods just like regular impl blocks
+                self.codegen_impl_block(type_name, methods)?;
+
+                // Generate vtable: a global constant array of function pointers
+                // ordered by the trait's method declaration order
+                if let Some(trait_method_names) = self.trait_methods.get(trait_name).cloned() {
+                    unsafe {
+                        let ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                        let num_methods = trait_method_names.len();
+
+                        // Build array of function pointers matching trait method order
+                        let mut fn_ptrs: Vec<LLVMValueRef> = Vec::with_capacity(num_methods);
+                        for method_name in &trait_method_names {
+                            let mangled = format!("{type_name}__{method_name}");
+                            if let Some(&func) = self.functions.get(&mangled) {
+                                // Const-cast function to generic ptr for the vtable
+                                let cast = LLVMConstBitCast(func, ptr_ty);
+                                fn_ptrs.push(cast);
+                            } else {
+                                // Missing method — use null as placeholder
+                                fn_ptrs.push(LLVMConstNull(ptr_ty));
+                            }
+                        }
+
+                        // Create vtable as a global constant array of pointers
+                        let vtable_arr_ty = LLVMArrayType(ptr_ty, num_methods as u32);
+                        let vtable_const = LLVMConstArray(
+                            ptr_ty,
+                            fn_ptrs.as_mut_ptr(),
+                            num_methods as u32,
+                        );
+                        let vtable_name = format!("__vtable_{trait_name}_{type_name}");
+                        let vtable_name_c =
+                            CString::new(vtable_name.as_str()).expect("CString failed");
+                        let vtable_global = LLVMAddGlobal(
+                            self.module,
+                            vtable_arr_ty,
+                            vtable_name_c.as_ptr(),
+                        );
+                        LLVMSetInitializer(vtable_global, vtable_const);
+                        LLVMSetGlobalConstant(vtable_global, 1);
+                        LLVMSetLinkage(
+                            vtable_global,
+                            llvm_sys::LLVMLinkage::LLVMPrivateLinkage,
+                        );
+
+                        self.vtables.insert(
+                            (trait_name.clone(), type_name.clone()),
+                            vtable_global,
+                        );
+                    }
+                }
+                Ok(())
+            }
+
             _ => {
                 // Other statements not yet implemented
                 Ok(())
@@ -1837,6 +2159,46 @@ impl LLVMCodegen {
             self.functions
                 .insert("kraken_str_join".to_string(), kraken_str_join_func);
 
+            // kraken_getenv_safe: const char* kraken_getenv_safe(const char* name)
+            // Returns "" instead of NULL when var is not set
+            let kraken_getenv_type =
+                LLVMFunctionType(i8_ptr_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let kraken_getenv_name =
+                CString::new("kraken_getenv_safe").expect("CString failed");
+            let kraken_getenv_func = LLVMAddFunction(
+                self.module,
+                kraken_getenv_name.as_ptr(),
+                kraken_getenv_type,
+            );
+            self.functions
+                .insert("getenv".to_string(), kraken_getenv_func);
+
+            // kraken_file_read_string: char* kraken_file_read_string(const char* path)
+            let kraken_frs_type =
+                LLVMFunctionType(i8_ptr_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let kraken_frs_name =
+                CString::new("kraken_file_read_string").expect("CString failed");
+            let kraken_frs_func = LLVMAddFunction(
+                self.module,
+                kraken_frs_name.as_ptr(),
+                kraken_frs_type,
+            );
+            self.functions
+                .insert("file_read_string".to_string(), kraken_frs_func);
+
+            // kraken_str_from_char_code: char* kraken_str_from_char_code(int64_t code)
+            let kraken_sfcc_type =
+                LLVMFunctionType(i8_ptr_type, [int_type].as_mut_ptr(), 1, 0);
+            let kraken_sfcc_name =
+                CString::new("kraken_str_from_char_code").expect("CString failed");
+            let kraken_sfcc_func = LLVMAddFunction(
+                self.module,
+                kraken_sfcc_name.as_ptr(),
+                kraken_sfcc_type,
+            );
+            self.functions
+                .insert("str_from_char_code".to_string(), kraken_sfcc_func);
+
             // Memory functions
             // Core memory functions are declared via the shared stdlib table above.
 
@@ -1942,18 +2304,7 @@ impl LLVMCodegen {
             let time_func = LLVMAddFunction(self.module, time_name.as_ptr(), time_type);
             self.functions.insert("time".to_string(), time_func);
 
-            // System & Process functions
-            // exit: void exit(int status)
-            let exit_type = LLVMFunctionType(void_type, [int_type].as_mut_ptr(), 1, 0);
-            let exit_name = CString::new("exit").expect("CString failed");
-            let exit_func = LLVMAddFunction(self.module, exit_name.as_ptr(), exit_type);
-            self.functions.insert("exit".to_string(), exit_func);
-
-            // system: int system(const char* command)
-            let system_type = LLVMFunctionType(int_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
-            let system_name = CString::new("system").expect("CString failed");
-            let system_func = LLVMAddFunction(self.module, system_name.as_ptr(), system_type);
-            self.functions.insert("system".to_string(), system_func);
+            // system & exit are declared via the stdlib table with correct C ABI types.
 
             // Additional string conversion functions
             // atoi: int atoi(const char* str)
@@ -2342,10 +2693,17 @@ impl LLVMCodegen {
                 return Ok(func);
             }
 
-            // Build parameter types
+            // Build parameter types (reference params use pointer type)
             let mut param_types: Vec<LLVMTypeRef> = parameters
                 .iter()
-                .map(|p| self.get_llvm_type(&p.param_type))
+                .map(|p| {
+                    if p.is_reference {
+                        if let Type::Custom(_) = &p.param_type {
+                            return LLVMPointerType(self.get_llvm_type(&p.param_type), 0);
+                        }
+                    }
+                    self.get_llvm_type(&p.param_type)
+                })
                 .collect();
 
             // Create function type
@@ -2365,6 +2723,648 @@ impl LLVMCodegen {
             self.functions.insert(name.to_string(), function);
 
             Ok(function)
+        }
+    }
+
+    /// Get or create the common future header struct type: { ptr, i64, i64, ptr }.
+    /// Field 0: poll function pointer, Field 1: result, Field 2: state, Field 3: sub_future.
+    fn get_or_create_future_header_type(&mut self) -> LLVMTypeRef {
+        if !self.future_header_type.is_null() {
+            return self.future_header_type;
+        }
+        unsafe {
+            let i64_ty = LLVMInt64TypeInContext(self.context);
+            let ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+            let name = CString::new("__KrakenFutureHeader").expect("CString failed");
+            let header = LLVMStructCreateNamed(self.context, name.as_ptr());
+            let mut fields = [ptr_ty, i64_ty, i64_ty, ptr_ty];
+            LLVMStructSetBody(header, fields.as_mut_ptr(), 4, 0);
+            self.future_header_type = header;
+            header
+        }
+    }
+
+    /// Find indices of statements that contain a top-level await expression.
+    /// Matches: `let x = await expr;` and `await expr;` (expression statement).
+    fn find_await_stmt_indices(stmts: &[Statement]) -> Vec<usize> {
+        let mut indices = Vec::new();
+        for (i, stmt) in stmts.iter().enumerate() {
+            match stmt {
+                Statement::VariableDeclaration {
+                    initializer: Some(Expression::Await { .. }),
+                    ..
+                } => indices.push(i),
+                Statement::Expression(Expression::Await { .. }) => indices.push(i),
+                Statement::Return {
+                    value: Some(Expression::Await { .. }),
+                } => indices.push(i),
+                _ => {}
+            }
+        }
+        indices
+    }
+
+    /// Extract the inner expression from an await statement.
+    fn extract_await_inner_expr(stmt: &Statement) -> Option<&Expression> {
+        match stmt {
+            Statement::VariableDeclaration {
+                initializer: Some(Expression::Await { expression }),
+                ..
+            } => Some(expression),
+            Statement::Expression(Expression::Await { expression }) => Some(expression),
+            Statement::Return {
+                value: Some(Expression::Await { expression }),
+            } => Some(expression),
+            _ => None,
+        }
+    }
+
+    /// Collect all local variable names declared in a list of statements.
+    fn collect_async_local_names(stmts: &[Statement]) -> Vec<String> {
+        let mut names = Vec::new();
+        for stmt in stmts {
+            if let Statement::VariableDeclaration { pattern, .. } = stmt {
+                if let Some(name) = Self::extract_pattern_name(pattern) {
+                    names.push(name);
+                }
+            }
+        }
+        names
+    }
+
+    /// Generate code for an async function: creates a future struct, poll function, and wrapper.
+    fn codegen_async_function(
+        &mut self,
+        name: &str,
+        parameters: &[Parameter],
+        _return_type: &Type,
+        body: &Block,
+    ) -> CompilerResult<LLVMValueRef> {
+        unsafe {
+            let i64_ty = LLVMInt64TypeInContext(self.context);
+            let ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+            let future_header = self.get_or_create_future_header_type();
+
+            // === Step 1: Analyze the body ===
+            let await_indices = Self::find_await_stmt_indices(&body.statements);
+            let local_names = Self::collect_async_local_names(&body.statements);
+
+            // === Step 2: Create future struct type ===
+            // Layout: [poll_fn: ptr, result: i64, state: i64, sub_future: ptr, params..., locals...]
+            let header_fields = 4u32;
+            let param_count = parameters.len() as u32;
+
+            let mut struct_field_types: Vec<LLVMTypeRef> = vec![
+                ptr_ty, // 0: poll_fn
+                i64_ty, // 1: result
+                i64_ty, // 2: state
+                ptr_ty, // 3: sub_future
+            ];
+            for param in parameters {
+                struct_field_types.push(self.get_llvm_type(&param.param_type));
+            }
+            for _ in &local_names {
+                struct_field_types.push(i64_ty);
+            }
+
+            let struct_name = format!("__async_{name}_state");
+            let struct_name_c = CString::new(struct_name.as_str()).expect("CString failed");
+            let future_struct = LLVMStructCreateNamed(self.context, struct_name_c.as_ptr());
+            LLVMStructSetBody(
+                future_struct,
+                struct_field_types.as_mut_ptr(),
+                struct_field_types.len() as u32,
+                0,
+            );
+
+            // Build field maps
+            let mut param_field_map: Vec<(String, u32)> = Vec::new();
+            for (i, param) in parameters.iter().enumerate() {
+                let pname = Self::extract_pattern_name(&param.pattern)
+                    .unwrap_or_else(|| format!("param_{i}"));
+                param_field_map.push((pname, header_fields + i as u32));
+            }
+
+            let mut local_field_map: HashMap<String, u32> = HashMap::new();
+            for (i, lname) in local_names.iter().enumerate() {
+                local_field_map.insert(lname.clone(), header_fields + param_count + i as u32);
+            }
+
+            // === Step 3: Create the poll function ===
+            let poll_fn_name = format!("__async_{name}_poll");
+            let poll_fn_c = CString::new(poll_fn_name.as_str()).expect("CString failed");
+            let poll_fn_type = LLVMFunctionType(i64_ty, [ptr_ty].as_mut_ptr(), 1, 0);
+            let poll_fn = LLVMAddFunction(self.module, poll_fn_c.as_ptr(), poll_fn_type);
+            self.functions.insert(poll_fn_name.clone(), poll_fn);
+
+            // Save state
+            let saved_function = self.current_function;
+            let saved_block = LLVMGetInsertBlock(self.builder);
+            let saved_named_values = std::mem::take(&mut self.named_values);
+            let saved_struct_variables = std::mem::take(&mut self.struct_variables);
+            let saved_array_variables = std::mem::take(&mut self.array_variables);
+            let saved_defer_stack = std::mem::take(&mut self.defer_stack);
+
+            self.current_function = Some(poll_fn);
+
+            // Create entry block
+            let entry_bb =
+                LLVMAppendBasicBlockInContext(self.context, poll_fn, c"entry".as_ptr());
+            LLVMPositionBuilderAtEnd(self.builder, entry_bb);
+
+            // Store future pointer param
+            let future_param = LLVMGetParam(poll_fn, 0);
+            let future_alloca = self.create_entry_block_alloca(ptr_ty, "future_ptr")?;
+            LLVMBuildStore(self.builder, future_param, future_alloca);
+
+            // Set async poll context so Return statements know to store result in struct
+            self.async_poll_context = Some((future_alloca, future_struct));
+
+            // Load future ptr and state
+            let fp = LLVMBuildLoad2(self.builder, ptr_ty, future_alloca, c"fp".as_ptr());
+            let state_gep =
+                LLVMBuildStructGEP2(self.builder, future_struct, fp, 2, c"state_ptr".as_ptr());
+            let state_val =
+                LLVMBuildLoad2(self.builder, i64_ty, state_gep, c"state".as_ptr());
+
+            // Create state blocks
+            let num_states = await_indices.len() + 1;
+            let mut state_bbs: Vec<LLVMBasicBlockRef> = Vec::new();
+            for i in 0..num_states {
+                let bn = CString::new(format!("state_{i}")).expect("CString failed");
+                state_bbs.push(LLVMAppendBasicBlockInContext(
+                    self.context,
+                    poll_fn,
+                    bn.as_ptr(),
+                ));
+            }
+            let done_bb =
+                LLVMAppendBasicBlockInContext(self.context, poll_fn, c"done".as_ptr());
+
+            // Switch dispatch
+            let switch_inst =
+                LLVMBuildSwitch(self.builder, state_val, done_bb, num_states as u32);
+            for (i, &bb) in state_bbs.iter().enumerate() {
+                LLVMAddCase(switch_inst, LLVMConstInt(i64_ty, i as u64, 0), bb);
+            }
+
+            // Generate done block (already completed, return READY)
+            LLVMPositionBuilderAtEnd(self.builder, done_bb);
+            LLVMBuildRet(self.builder, LLVMConstInt(i64_ty, 1, 0));
+
+            // === Step 4: Generate code for each state ===
+            // Split statements into segments at await points
+            let mut segments: Vec<(usize, usize, Option<usize>)> = Vec::new();
+            let mut prev = 0;
+            for &await_idx in &await_indices {
+                segments.push((prev, await_idx, Some(await_idx)));
+                prev = await_idx + 1;
+            }
+            segments.push((prev, body.statements.len(), None));
+
+            for (seg_idx, &(start, end, await_idx)) in segments.iter().enumerate() {
+                LLVMPositionBuilderAtEnd(self.builder, state_bbs[seg_idx]);
+
+                // Reload future pointer
+                let fp = LLVMBuildLoad2(
+                    self.builder,
+                    ptr_ty,
+                    future_alloca,
+                    c"fp".as_ptr(),
+                );
+
+                // Clear named_values for this state
+                self.named_values.clear();
+                self.array_variables.clear();
+                self.struct_variables.clear();
+
+                // Load parameters from struct into allocas
+                for (pname, field_idx) in &param_field_map {
+                    let gep_name =
+                        CString::new(format!("{pname}.field")).expect("CString failed");
+                    let field_gep = LLVMBuildStructGEP2(
+                        self.builder,
+                        future_struct,
+                        fp,
+                        *field_idx,
+                        gep_name.as_ptr(),
+                    );
+                    let field_ty = struct_field_types[*field_idx as usize];
+                    let load_name =
+                        CString::new(format!("{pname}.load")).expect("CString failed");
+                    let val = LLVMBuildLoad2(
+                        self.builder,
+                        field_ty,
+                        field_gep,
+                        load_name.as_ptr(),
+                    );
+                    let alloca = self.create_entry_block_alloca(field_ty, pname)?;
+                    LLVMBuildStore(self.builder, val, alloca);
+                    self.named_values.insert(pname.clone(), alloca);
+                }
+
+                // If state > 0: poll sub-future from previous await and load saved locals
+                if seg_idx > 0 {
+                    // Load previously saved locals from struct
+                    for (lname, &field_idx) in &local_field_map {
+                        let gep_name =
+                            CString::new(format!("{lname}.restore")).expect("CString failed");
+                        let field_gep = LLVMBuildStructGEP2(
+                            self.builder,
+                            future_struct,
+                            fp,
+                            field_idx,
+                            gep_name.as_ptr(),
+                        );
+                        let load_name =
+                            CString::new(format!("{lname}.load")).expect("CString failed");
+                        let val = LLVMBuildLoad2(
+                            self.builder,
+                            i64_ty,
+                            field_gep,
+                            load_name.as_ptr(),
+                        );
+                        let alloca = self.create_entry_block_alloca(i64_ty, lname)?;
+                        LLVMBuildStore(self.builder, val, alloca);
+                        self.named_values.insert(lname.clone(), alloca);
+                    }
+
+                    // Poll sub-future
+                    let sub_gep = LLVMBuildStructGEP2(
+                        self.builder,
+                        future_struct,
+                        fp,
+                        3,
+                        c"sub_future_ptr".as_ptr(),
+                    );
+                    let sub_future = LLVMBuildLoad2(
+                        self.builder,
+                        ptr_ty,
+                        sub_gep,
+                        c"sub_future".as_ptr(),
+                    );
+
+                    // Load poll function from sub-future header (field 0)
+                    let sub_poll_gep = LLVMBuildStructGEP2(
+                        self.builder,
+                        future_header,
+                        sub_future,
+                        0,
+                        c"sub_poll_fn_ptr".as_ptr(),
+                    );
+                    let sub_poll_fn = LLVMBuildLoad2(
+                        self.builder,
+                        ptr_ty,
+                        sub_poll_gep,
+                        c"sub_poll_fn".as_ptr(),
+                    );
+
+                    // Call sub_poll_fn(sub_future)
+                    let sub_poll_fn_type =
+                        LLVMFunctionType(i64_ty, [ptr_ty].as_mut_ptr(), 1, 0);
+                    let sub_status = LLVMBuildCall2(
+                        self.builder,
+                        sub_poll_fn_type,
+                        sub_poll_fn,
+                        [sub_future].as_mut_ptr(),
+                        1,
+                        c"sub_status".as_ptr(),
+                    );
+
+                    // Check if ready
+                    let is_ready = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntEQ,
+                        sub_status,
+                        LLVMConstInt(i64_ty, 1, 0),
+                        c"is_ready".as_ptr(),
+                    );
+
+                    let ready_bb_name =
+                        CString::new(format!("s{seg_idx}_ready")).expect("CString failed");
+                    let pending_bb_name =
+                        CString::new(format!("s{seg_idx}_pending")).expect("CString failed");
+                    let ready_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        poll_fn,
+                        ready_bb_name.as_ptr(),
+                    );
+                    let pending_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        poll_fn,
+                        pending_bb_name.as_ptr(),
+                    );
+
+                    LLVMBuildCondBr(self.builder, is_ready, ready_bb, pending_bb);
+
+                    // Pending: return 0
+                    LLVMPositionBuilderAtEnd(self.builder, pending_bb);
+                    LLVMBuildRet(self.builder, LLVMConstInt(i64_ty, 0, 0));
+
+                    // Ready: extract result from sub-future
+                    LLVMPositionBuilderAtEnd(self.builder, ready_bb);
+                    let sub_result_gep = LLVMBuildStructGEP2(
+                        self.builder,
+                        future_header,
+                        sub_future,
+                        1,
+                        c"sub_result_ptr".as_ptr(),
+                    );
+                    let sub_result = LLVMBuildLoad2(
+                        self.builder,
+                        i64_ty,
+                        sub_result_gep,
+                        c"sub_result".as_ptr(),
+                    );
+
+                    // Bind await result to variable (from previous segment's await stmt)
+                    let prev_await_idx = segments[seg_idx - 1].2.unwrap();
+                    let prev_await_stmt = &body.statements[prev_await_idx];
+                    if let Statement::VariableDeclaration { pattern, .. } = prev_await_stmt {
+                        if let Some(var_name) = Self::extract_pattern_name(pattern) {
+                            if let Some(&alloca) = self.named_values.get(&var_name) {
+                                LLVMBuildStore(self.builder, sub_result, alloca);
+                            }
+                        }
+                    }
+                    // For `return await expr;` the result is already in sub_result
+                    if let Statement::Return { .. } = prev_await_stmt {
+                        // Store result and return READY
+                        let fp2 = LLVMBuildLoad2(
+                            self.builder,
+                            ptr_ty,
+                            future_alloca,
+                            c"fp2".as_ptr(),
+                        );
+                        let res_gep = LLVMBuildStructGEP2(
+                            self.builder,
+                            future_struct,
+                            fp2,
+                            1,
+                            c"result_await_ret".as_ptr(),
+                        );
+                        LLVMBuildStore(self.builder, sub_result, res_gep);
+                        let st_gep = LLVMBuildStructGEP2(
+                            self.builder,
+                            future_struct,
+                            fp2,
+                            2,
+                            c"state_done_await".as_ptr(),
+                        );
+                        LLVMBuildStore(
+                            self.builder,
+                            LLVMConstInt(i64_ty, u64::MAX, 0),
+                            st_gep,
+                        );
+                        LLVMBuildRet(self.builder, LLVMConstInt(i64_ty, 1, 0));
+                        // This state is terminal; skip remaining code generation
+                        continue;
+                    }
+                }
+
+                // Generate non-await statements in this segment
+                for stmt_idx in start..end {
+                    let stmt = &body.statements[stmt_idx];
+                    if Some(stmt_idx) == await_idx {
+                        continue; // await handled below
+                    }
+                    let bb = LLVMGetInsertBlock(self.builder);
+                    if !LLVMGetBasicBlockTerminator(bb).is_null() {
+                        break;
+                    }
+                    self.codegen_statement(stmt)?;
+                }
+
+                // Handle the await at the end of this segment (if any)
+                if let Some(ai) = await_idx {
+                    let await_stmt = &body.statements[ai];
+                    let inner_expr = Self::extract_await_inner_expr(await_stmt);
+
+                    if let Some(inner_expr) = inner_expr {
+                        let bb = LLVMGetInsertBlock(self.builder);
+                        if LLVMGetBasicBlockTerminator(bb).is_null() {
+                            // Generate the inner future expression
+                            let inner_future = self.codegen_expression(inner_expr)?;
+
+                            // Save all current locals to struct
+                            let fp3 = LLVMBuildLoad2(
+                                self.builder,
+                                ptr_ty,
+                                future_alloca,
+                                c"fp3".as_ptr(),
+                            );
+                            for (lname, &field_idx) in &local_field_map {
+                                if let Some(&alloca) = self.named_values.get(lname) {
+                                    let save_name = CString::new(format!("{lname}.save"))
+                                        .expect("CString failed");
+                                    let val = LLVMBuildLoad2(
+                                        self.builder,
+                                        i64_ty,
+                                        alloca,
+                                        save_name.as_ptr(),
+                                    );
+                                    let save_gep_name =
+                                        CString::new(format!("{lname}.save_ptr"))
+                                            .expect("CString failed");
+                                    let field_gep = LLVMBuildStructGEP2(
+                                        self.builder,
+                                        future_struct,
+                                        fp3,
+                                        field_idx,
+                                        save_gep_name.as_ptr(),
+                                    );
+                                    LLVMBuildStore(self.builder, val, field_gep);
+                                }
+                            }
+
+                            // Store inner future in sub_future field
+                            let sub_gep = LLVMBuildStructGEP2(
+                                self.builder,
+                                future_struct,
+                                fp3,
+                                3,
+                                c"sub_future_store".as_ptr(),
+                            );
+                            LLVMBuildStore(self.builder, inner_future, sub_gep);
+
+                            // Set next state
+                            let state_gep = LLVMBuildStructGEP2(
+                                self.builder,
+                                future_struct,
+                                fp3,
+                                2,
+                                c"state_next".as_ptr(),
+                            );
+                            let next_state =
+                                LLVMConstInt(i64_ty, (seg_idx + 1) as u64, 0);
+                            LLVMBuildStore(self.builder, next_state, state_gep);
+
+                            // Fall through to next state to try polling immediately
+                            LLVMBuildBr(self.builder, state_bbs[seg_idx + 1]);
+                        }
+                    }
+                } else {
+                    // Last segment (no await) - add default return if no terminator
+                    let bb = LLVMGetInsertBlock(self.builder);
+                    if LLVMGetBasicBlockTerminator(bb).is_null() {
+                        let fp4 = LLVMBuildLoad2(
+                            self.builder,
+                            ptr_ty,
+                            future_alloca,
+                            c"fp4".as_ptr(),
+                        );
+                        let res_gep = LLVMBuildStructGEP2(
+                            self.builder,
+                            future_struct,
+                            fp4,
+                            1,
+                            c"result_default".as_ptr(),
+                        );
+                        LLVMBuildStore(
+                            self.builder,
+                            LLVMConstInt(i64_ty, 0, 0),
+                            res_gep,
+                        );
+                        let st_gep = LLVMBuildStructGEP2(
+                            self.builder,
+                            future_struct,
+                            fp4,
+                            2,
+                            c"state_done_dflt".as_ptr(),
+                        );
+                        LLVMBuildStore(
+                            self.builder,
+                            LLVMConstInt(i64_ty, u64::MAX, 0),
+                            st_gep,
+                        );
+                        LLVMBuildRet(self.builder, LLVMConstInt(i64_ty, 1, 0));
+                    }
+                }
+            }
+
+            // Clear async poll context
+            self.async_poll_context = None;
+
+            // Restore state
+            self.current_function = saved_function;
+            self.named_values = saved_named_values;
+            self.struct_variables = saved_struct_variables;
+            self.array_variables = saved_array_variables;
+            self.defer_stack = saved_defer_stack;
+            if !saved_block.is_null() {
+                LLVMPositionBuilderAtEnd(self.builder, saved_block);
+            }
+
+            // === Step 5: Generate wrapper function ===
+            // The wrapper was forward-declared with the async signature (returns ptr)
+            let wrapper_fn = *self.functions.get(name).ok_or_else(|| {
+                CompilerError::codegen_error(format!("Async function {name} not declared"))
+            })?;
+
+            // Save and set up wrapper
+            let saved_function2 = self.current_function;
+            let saved_block2 = LLVMGetInsertBlock(self.builder);
+            self.current_function = Some(wrapper_fn);
+            let wrapper_entry = LLVMAppendBasicBlockInContext(
+                self.context,
+                wrapper_fn,
+                c"entry".as_ptr(),
+            );
+            LLVMPositionBuilderAtEnd(self.builder, wrapper_entry);
+
+            // Allocate future struct via malloc
+            let struct_size = LLVMSizeOf(future_struct);
+            let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
+                CompilerError::codegen_error("Missing malloc")
+            })?;
+            let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
+            let future_mem = LLVMBuildCall2(
+                self.builder,
+                malloc_ty,
+                malloc_fn,
+                [struct_size].as_mut_ptr(),
+                1,
+                c"future".as_ptr(),
+            );
+
+            // Store poll function pointer (field 0)
+            let poll_fn_gep = LLVMBuildStructGEP2(
+                self.builder,
+                future_struct,
+                future_mem,
+                0,
+                c"poll_fn_init".as_ptr(),
+            );
+            LLVMBuildStore(self.builder, poll_fn, poll_fn_gep);
+
+            // Initialize result to 0 (field 1)
+            let result_gep = LLVMBuildStructGEP2(
+                self.builder,
+                future_struct,
+                future_mem,
+                1,
+                c"result_init".as_ptr(),
+            );
+            LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), result_gep);
+
+            // Initialize state to 0 (field 2)
+            let state_init_gep = LLVMBuildStructGEP2(
+                self.builder,
+                future_struct,
+                future_mem,
+                2,
+                c"state_init".as_ptr(),
+            );
+            LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), state_init_gep);
+
+            // Initialize sub_future to null (field 3)
+            let sub_init_gep = LLVMBuildStructGEP2(
+                self.builder,
+                future_struct,
+                future_mem,
+                3,
+                c"sub_future_init".as_ptr(),
+            );
+            LLVMBuildStore(self.builder, LLVMConstNull(ptr_ty), sub_init_gep);
+
+            // Store parameters (fields 4+)
+            for (i, _param) in parameters.iter().enumerate() {
+                let param_val = LLVMGetParam(wrapper_fn, i as u32);
+                let field_idx = header_fields + i as u32;
+                let gep_name =
+                    CString::new(format!("param_{i}_init")).expect("CString failed");
+                let gep = LLVMBuildStructGEP2(
+                    self.builder,
+                    future_struct,
+                    future_mem,
+                    field_idx,
+                    gep_name.as_ptr(),
+                );
+                LLVMBuildStore(self.builder, param_val, gep);
+            }
+
+            // Initialize local fields to 0
+            for (_lname, &field_idx) in &local_field_map {
+                let gep = LLVMBuildStructGEP2(
+                    self.builder,
+                    future_struct,
+                    future_mem,
+                    field_idx,
+                    c"local_init".as_ptr(),
+                );
+                LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), gep);
+            }
+
+            // Return future pointer
+            LLVMBuildRet(self.builder, future_mem);
+
+            // Restore
+            self.current_function = saved_function2;
+            if !saved_block2.is_null() {
+                LLVMPositionBuilderAtEnd(self.builder, saved_block2);
+            }
+
+            Ok(wrapper_fn)
         }
     }
 
@@ -2409,6 +3409,20 @@ impl LLVMCodegen {
                         .insert(param_name.clone(), struct_name.clone());
                 }
 
+                // Track dyn Trait parameters for dynamic dispatch
+                if let Type::TraitObject { trait_name, .. } = &param.param_type {
+                    self.dyn_trait_vars
+                        .insert(param_name.clone(), trait_name.clone());
+                }
+
+                // Reference parameters (e.g. self) are already pointers — use directly
+                if param.is_reference {
+                    if let Type::Custom(_) = &param.param_type {
+                        self.named_values.insert(param_name, param_val);
+                        continue;
+                    }
+                }
+
                 // Allocate stack space for parameter
                 let param_type = self.get_llvm_type(&param.param_type);
                 let alloca = self.create_entry_block_alloca(param_type, &param_name)?;
@@ -2419,6 +3433,9 @@ impl LLVMCodegen {
                 // Store alloca in named_values
                 self.named_values.insert(param_name, alloca);
             }
+
+            // Clear defer stack for this function
+            self.defer_stack.clear();
 
             // Generate body
             for stmt in &body.statements {
@@ -2435,6 +3452,9 @@ impl LLVMCodegen {
                 !LLVMGetBasicBlockTerminator(bb).is_null()
             };
             if !has_terminator {
+                // Execute deferred statements before implicit return
+                self.emit_deferred_statements()?;
+
                 if return_type == &Type::Void {
                     LLVMBuildRetVoid(self.builder);
                 } else {
@@ -2445,8 +3465,104 @@ impl LLVMCodegen {
                 }
             }
 
+            self.defer_stack.clear();
             Ok(function)
         }
+    }
+
+    /// Execute all deferred statements in LIFO order.
+    fn emit_deferred_statements(&mut self) -> CompilerResult<()> {
+        let deferred: Vec<Statement> = self.defer_stack.iter().rev().cloned().collect();
+        for stmt in &deferred {
+            self.codegen_statement(stmt)?;
+        }
+        Ok(())
+    }
+
+    /// Forward-declare all methods in an impl block.
+    /// Methods are mangled as `TypeName__method_name`. The parser already includes
+    /// `self` as a parameter with type `Custom("Self")`, which we rewrite to the
+    /// actual struct type.
+    fn declare_impl_methods(
+        &mut self,
+        type_name: &str,
+        methods: &[Statement],
+    ) -> CompilerResult<()> {
+        for method in methods {
+            if let Statement::FunctionDeclaration {
+                name,
+                parameters,
+                return_type,
+                ..
+            } = method
+            {
+                let mangled = format!("{type_name}__{name}");
+
+                // Rewrite Self type to concrete type in parameters
+                let resolved_params: Vec<Parameter> = parameters
+                    .iter()
+                    .map(|p| {
+                        let mut p = p.clone();
+                        if p.param_type == Type::Custom("Self".to_string()) {
+                            p.param_type = Type::Custom(type_name.to_string());
+                        }
+                        p
+                    })
+                    .collect();
+
+                let ret = return_type.as_ref().unwrap_or(&Type::Void);
+                self.declare_function(&mangled, &resolved_params, ret)?;
+
+                // Track return struct type for struct variable propagation
+                if let Some(Type::Custom(ret_struct_name)) = return_type {
+                    self.function_return_structs
+                        .insert(mangled.clone(), ret_struct_name.clone());
+                }
+
+                // Register in method_map so method calls can resolve
+                self.method_map.insert(
+                    (type_name.to_string(), name.clone()),
+                    mangled,
+                );
+            }
+        }
+        Ok(())
+    }
+
+    /// Generate code for an impl block: codegen each method body.
+    fn codegen_impl_block(
+        &mut self,
+        type_name: &str,
+        methods: &[Statement],
+    ) -> CompilerResult<()> {
+        for method in methods {
+            if let Statement::FunctionDeclaration {
+                name,
+                parameters,
+                return_type,
+                body,
+                ..
+            } = method
+            {
+                let mangled = format!("{type_name}__{name}");
+
+                // Rewrite Self type to concrete type in parameters
+                let resolved_params: Vec<Parameter> = parameters
+                    .iter()
+                    .map(|p| {
+                        let mut p = p.clone();
+                        if p.param_type == Type::Custom("Self".to_string()) {
+                            p.param_type = Type::Custom(type_name.to_string());
+                        }
+                        p
+                    })
+                    .collect();
+
+                let ret = return_type.as_ref().unwrap_or(&Type::Void);
+                self.codegen_function(&mangled, &resolved_params, ret, body)?;
+            }
+        }
+        Ok(())
     }
 
     /// Generate code for an expression.
@@ -2634,7 +3750,215 @@ impl LLVMCodegen {
                     type_args: _,
                     arguments,
                 } => {
-                    // For now, only support direct function calls (identifier)
+                    // Method call dispatch: foo.bar(x) → TypeName__bar(foo, x)
+                    if let Expression::MemberAccess { object, member } = &**callee {
+                        // === Dynamic dispatch: dyn Trait vtable lookup ===
+                        if let Expression::Identifier(var_name) = &**object {
+                            if let Some(trait_name) = self.dyn_trait_vars.get(var_name).cloned() {
+                                if let Some(method_names) =
+                                    self.trait_methods.get(&trait_name).cloned()
+                                {
+                                    // Find the method's slot index in the vtable
+                                    if let Some(slot) =
+                                        method_names.iter().position(|m| m == member)
+                                    {
+                                        let ptr_ty = LLVMPointerType(
+                                            LLVMInt8TypeInContext(self.context),
+                                            0,
+                                        );
+                                        let i64_ty = LLVMInt64TypeInContext(self.context);
+                                        let fat_ptr_ty = self.get_llvm_type(
+                                            &Type::TraitObject {
+                                                trait_name: trait_name.clone(),
+                                                bounds: vec![],
+                                            },
+                                        );
+
+                                        // Load fat pointer from alloca
+                                        let fat_alloca = *self
+                                            .named_values
+                                            .get(var_name)
+                                            .ok_or_else(|| {
+                                                CompilerError::codegen_error(format!(
+                                                    "Undefined variable: {var_name}"
+                                                ))
+                                            })?;
+
+                                        // Extract data_ptr (field 0)
+                                        let data_gep = LLVMBuildStructGEP2(
+                                            self.builder,
+                                            fat_ptr_ty,
+                                            fat_alloca,
+                                            0,
+                                            c"dyn.data.ptr".as_ptr(),
+                                        );
+                                        let data_ptr = LLVMBuildLoad2(
+                                            self.builder,
+                                            ptr_ty,
+                                            data_gep,
+                                            c"dyn.data".as_ptr(),
+                                        );
+
+                                        // Extract vtable_ptr (field 1)
+                                        let vtable_gep = LLVMBuildStructGEP2(
+                                            self.builder,
+                                            fat_ptr_ty,
+                                            fat_alloca,
+                                            1,
+                                            c"dyn.vtable.ptr".as_ptr(),
+                                        );
+                                        let vtable_ptr = LLVMBuildLoad2(
+                                            self.builder,
+                                            ptr_ty,
+                                            vtable_gep,
+                                            c"dyn.vtable".as_ptr(),
+                                        );
+
+                                        // GEP into vtable array at slot index
+                                        let vtable_arr_ty = LLVMArrayType(
+                                            ptr_ty,
+                                            method_names.len() as u32,
+                                        );
+                                        let slot_idx =
+                                            LLVMConstInt(i64_ty, slot as u64, 0);
+                                        let zero = LLVMConstInt(i64_ty, 0, 0);
+                                        let fn_slot_gep = LLVMBuildGEP2(
+                                            self.builder,
+                                            vtable_arr_ty,
+                                            vtable_ptr,
+                                            [zero, slot_idx].as_mut_ptr(),
+                                            2,
+                                            c"vtable.slot".as_ptr(),
+                                        );
+                                        let fn_ptr = LLVMBuildLoad2(
+                                            self.builder,
+                                            ptr_ty,
+                                            fn_slot_gep,
+                                            c"vtable.fn".as_ptr(),
+                                        );
+
+                                        // Build args: data_ptr (as self) + explicit args
+                                        let mut arg_vals = vec![data_ptr];
+                                        let mut arg_types = vec![ptr_ty];
+                                        for arg in arguments {
+                                            let arg_val =
+                                                self.codegen_expression(arg)?;
+                                            arg_vals.push(arg_val);
+                                            arg_types.push(LLVMTypeOf(arg_val));
+                                        }
+
+                                        // Build function type for the indirect call
+                                        // Default return type: i64 (most common)
+                                        let fn_ret_ty = i64_ty;
+                                        let fn_type = LLVMFunctionType(
+                                            fn_ret_ty,
+                                            arg_types.as_mut_ptr(),
+                                            arg_types.len() as u32,
+                                            0,
+                                        );
+
+                                        let call_name = CString::new(format!(
+                                            "dyn.{member}.ret"
+                                        ))
+                                        .expect("CString failed");
+                                        let call_val = LLVMBuildCall2(
+                                            self.builder,
+                                            fn_type,
+                                            fn_ptr,
+                                            arg_vals.as_mut_ptr(),
+                                            arg_vals.len() as u32,
+                                            call_name.as_ptr(),
+                                        );
+
+                                        return Ok(call_val);
+                                    }
+                                }
+                            }
+                        }
+
+                        // === Static dispatch: concrete struct method call ===
+                        // Determine the struct type of the object
+                        let struct_name = if let Expression::Identifier(var_name) = &**object {
+                            self.struct_variables.get(var_name).cloned()
+                        } else {
+                            None
+                        };
+
+                        if let Some(ref sname) = struct_name {
+                            let key = (sname.clone(), member.clone());
+                            if let Some(mangled) = self.method_map.get(&key).cloned() {
+                                let func = *self.functions.get(&mangled).ok_or_else(|| {
+                                    CompilerError::codegen_error(format!(
+                                        "Method {sname}.{member} not found"
+                                    ))
+                                })?;
+                                let func_ty = LLVMGlobalGetValueType(func);
+
+                                // Build args: self pointer + explicit arguments
+                                let self_val = self.codegen_expression(object)?;
+                                let mut arg_vals = vec![self_val];
+                                for arg in arguments {
+                                    let arg_val = self.codegen_expression(arg)?;
+                                    // Load struct args by value if needed
+                                    let arg_val = match arg {
+                                        Expression::Identifier(var_name)
+                                            if self.struct_variables.contains_key(var_name) =>
+                                        {
+                                            let load_name = CString::new(format!("{var_name}.load"))
+                                                .expect("CString failed");
+                                            LLVMBuildLoad2(
+                                                self.builder,
+                                                LLVMGetAllocatedType(arg_val),
+                                                arg_val,
+                                                load_name.as_ptr(),
+                                            )
+                                        }
+                                        Expression::StructLiteral { .. } => {
+                                            let load_name =
+                                                CString::new("struct.load").expect("CString failed");
+                                            LLVMBuildLoad2(
+                                                self.builder,
+                                                LLVMGetAllocatedType(arg_val),
+                                                arg_val,
+                                                load_name.as_ptr(),
+                                            )
+                                        }
+                                        _ => arg_val,
+                                    };
+                                    arg_vals.push(arg_val);
+                                }
+
+                                let call_name =
+                                    CString::new(format!("{member}.ret")).expect("CString failed");
+                                let call_val = LLVMBuildCall2(
+                                    self.builder,
+                                    func_ty,
+                                    func,
+                                    arg_vals.as_mut_ptr(),
+                                    arg_vals.len() as u32,
+                                    call_name.as_ptr(),
+                                );
+
+                                // Propagate struct return tracking
+                                if let Some(ret_struct) =
+                                    self.function_return_structs.get(&mangled).cloned()
+                                {
+                                    // Caller can track via expression context
+                                    let _ = ret_struct;
+                                }
+
+                                return Ok(call_val);
+                            }
+                        }
+
+                        // Not a known method — fall through to field access error
+                        return Err(CompilerError::codegen_error(format!(
+                            "No method '{member}' found on type '{}'",
+                            struct_name.as_deref().unwrap_or("<unknown>")
+                        )));
+                    }
+
+                    // Direct function calls (identifier)
                     if let Expression::Identifier(name) = &**callee {
                         if name == "cstr" {
                             if arguments.len() != 1 {
@@ -2747,18 +4071,113 @@ impl LLVMCodegen {
                         }
 
                         if name == "block_on" {
-                            // For now, block_on just returns 0 since async executes inline
-                            // Full implementation will run the executor until completion
+                            // Poll the future in a loop until ready, then return result
                             if arguments.len() != 1 {
                                 return Err(CompilerError::codegen_error(
                                     "block_on expects exactly 1 argument (future/handle)",
                                 ));
                             }
-                            // Evaluate the future argument (for side effects)
-                            let _future = self.codegen_expression(&arguments[0])?;
-                            // Return 0 as placeholder result
                             let i64_ty = LLVMInt64TypeInContext(self.context);
-                            return Ok(LLVMConstInt(i64_ty, 0, 0));
+                            let ptr_ty = LLVMPointerType(
+                                LLVMInt8TypeInContext(self.context),
+                                0,
+                            );
+                            let future_header = self.get_or_create_future_header_type();
+
+                            // Evaluate the future expression (call to async fn returns ptr)
+                            let future_ptr = self.codegen_expression(&arguments[0])?;
+                            let future_alloca =
+                                self.create_entry_block_alloca(ptr_ty, "block_on_future")?;
+                            LLVMBuildStore(self.builder, future_ptr, future_alloca);
+
+                            let current_fn = self.current_function.unwrap();
+
+                            // Create poll loop blocks
+                            let poll_bb = LLVMAppendBasicBlockInContext(
+                                self.context,
+                                current_fn,
+                                c"block_on_poll".as_ptr(),
+                            );
+                            let done_bb = LLVMAppendBasicBlockInContext(
+                                self.context,
+                                current_fn,
+                                c"block_on_done".as_ptr(),
+                            );
+
+                            LLVMBuildBr(self.builder, poll_bb);
+                            LLVMPositionBuilderAtEnd(self.builder, poll_bb);
+
+                            // Load future pointer
+                            let fp = LLVMBuildLoad2(
+                                self.builder,
+                                ptr_ty,
+                                future_alloca,
+                                c"bo_fp".as_ptr(),
+                            );
+
+                            // Load poll function from future header field 0
+                            let poll_fn_gep = LLVMBuildStructGEP2(
+                                self.builder,
+                                future_header,
+                                fp,
+                                0,
+                                c"bo_poll_fn_ptr".as_ptr(),
+                            );
+                            let poll_fn_val = LLVMBuildLoad2(
+                                self.builder,
+                                ptr_ty,
+                                poll_fn_gep,
+                                c"bo_poll_fn".as_ptr(),
+                            );
+
+                            // Call poll_fn(future_ptr)
+                            let poll_fn_type = LLVMFunctionType(
+                                i64_ty,
+                                [ptr_ty].as_mut_ptr(),
+                                1,
+                                0,
+                            );
+                            let status = LLVMBuildCall2(
+                                self.builder,
+                                poll_fn_type,
+                                poll_fn_val,
+                                [fp].as_mut_ptr(),
+                                1,
+                                c"bo_status".as_ptr(),
+                            );
+
+                            // Check if ready (status == 1)
+                            let is_ready = LLVMBuildICmp(
+                                self.builder,
+                                LLVMIntPredicate::LLVMIntEQ,
+                                status,
+                                LLVMConstInt(i64_ty, 1, 0),
+                                c"bo_ready".as_ptr(),
+                            );
+                            LLVMBuildCondBr(self.builder, is_ready, done_bb, poll_bb);
+
+                            // Done: load result from future header field 1
+                            LLVMPositionBuilderAtEnd(self.builder, done_bb);
+                            let fp2 = LLVMBuildLoad2(
+                                self.builder,
+                                ptr_ty,
+                                future_alloca,
+                                c"bo_fp2".as_ptr(),
+                            );
+                            let result_gep = LLVMBuildStructGEP2(
+                                self.builder,
+                                future_header,
+                                fp2,
+                                1,
+                                c"bo_result_ptr".as_ptr(),
+                            );
+                            let result_val = LLVMBuildLoad2(
+                                self.builder,
+                                i64_ty,
+                                result_gep,
+                                c"bo_result".as_ptr(),
+                            );
+                            return Ok(result_val);
                         }
 
                         // Mutex intrinsics - spinlock implementation using LLVM atomics
@@ -3256,13 +4675,63 @@ impl LLVMCodegen {
                             return Ok(result);
                         }
 
-                        // Look up the function
-                        let function = self.functions.get(name).copied().ok_or_else(|| {
-                            CompilerError::type_error(
+                        // Look up the function (direct or indirect via variable)
+                        let function = if let Some(&f) = self.functions.get(name) {
+                            f
+                        } else if let Some(&alloca) = self.named_values.get(name) {
+                            // Indirect call: load function pointer from variable
+                            let i64_ty = LLVMInt64TypeInContext(self.context);
+                            let ptr_ty = LLVMPointerType(i64_ty, 0);
+                            let fn_ptr_name = CString::new(format!("{name}.fnptr"))
+                                .expect("CString failed");
+                            let fn_ptr = LLVMBuildLoad2(
+                                self.builder,
+                                ptr_ty,
+                                alloca,
+                                fn_ptr_name.as_ptr(),
+                            );
+
+                            // Generate code for explicit arguments
+                            let mut arg_values: Vec<LLVMValueRef> = Vec::new();
+                            for arg in arguments {
+                                let arg_val = self.codegen_expression(arg)?;
+                                arg_values.push(arg_val);
+                            }
+
+                            // Append captured values as hidden trailing arguments
+                            if let Some(captures) =
+                                self.closure_captured_values.get(name).cloned()
+                            {
+                                arg_values.extend(captures);
+                            }
+
+                            // Build indirect call with inferred function type
+                            let mut param_types: Vec<LLVMTypeRef> =
+                                arg_values.iter().map(|v| LLVMTypeOf(*v)).collect();
+                            let ret_ty = i64_ty; // Default return type for closures
+                            let fn_type = LLVMFunctionType(
+                                ret_ty,
+                                param_types.as_mut_ptr(),
+                                param_types.len() as u32,
+                                0,
+                            );
+                            let call_name = CString::new(format!("{name}.call"))
+                                .expect("CString failed");
+                            let call = LLVMBuildCall2(
+                                self.builder,
+                                fn_type,
+                                fn_ptr,
+                                arg_values.as_mut_ptr(),
+                                arg_values.len() as u32,
+                                call_name.as_ptr(),
+                            );
+                            return Ok(call);
+                        } else {
+                            return Err(CompilerError::type_error(
                                 SourceLocation::new(self.file_path.clone(), 0, 0),
                                 format!("Undefined function: {name}"),
-                            )
-                        })?;
+                            ));
+                        };
 
                         // Generate code for arguments
                         let mut arg_values: Vec<LLVMValueRef> = Vec::new();
@@ -3600,7 +5069,7 @@ impl LLVMCodegen {
                     fields,
                 } => {
                     // Get the struct type (clone to avoid borrow issues)
-                    let (struct_type, field_names, _) =
+                    let (struct_type, field_names, field_types) =
                         self.struct_types.get(name).cloned().ok_or_else(|| {
                             CompilerError::codegen_error(format!("Undefined struct: {name}"))
                         })?;
@@ -3642,8 +5111,24 @@ impl LLVMCodegen {
                             field_ptr_name.as_ptr(),
                         );
 
-                        // Store field value
-                        LLVMBuildStore(self.builder, field_val, field_ptr);
+                        // If the original field type is ptr but the struct body
+                        // uses i64, insert ptrtoint before storing.
+                        let i64_ty = LLVMInt64TypeInContext(self.context);
+                        let ptr_ty =
+                            LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                        let orig_ft = field_types[field_idx as usize];
+                        let actual_val =
+                            if orig_ft == ptr_ty && LLVMTypeOf(field_val) == ptr_ty {
+                                LLVMBuildPtrToInt(
+                                    self.builder,
+                                    field_val,
+                                    i64_ty,
+                                    c"sf.p2i".as_ptr(),
+                                )
+                            } else {
+                                field_val
+                            };
+                        LLVMBuildStore(self.builder, actual_val, field_ptr);
                     }
 
                     Ok(struct_alloca)
@@ -3712,15 +5197,34 @@ impl LLVMCodegen {
                         field_ptr_name.as_ptr(),
                     );
 
-                    // Load field value
-                    let field_type = field_types[field_idx as usize];
+                    // Load field value. The struct body uses i64 for pointer
+                    // fields, so load as the actual body type then inttoptr if needed.
+                    let orig_field_type = field_types[field_idx as usize];
+                    let ptr_ty =
+                        LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    let i64_ty = LLVMInt64TypeInContext(self.context);
+                    let load_type = if orig_field_type == ptr_ty {
+                        i64_ty
+                    } else {
+                        orig_field_type
+                    };
                     let load_name = CString::new(format!("{member}.load")).expect("CString failed");
-                    Ok(LLVMBuildLoad2(
+                    let loaded = LLVMBuildLoad2(
                         self.builder,
-                        field_type,
+                        load_type,
                         field_ptr,
                         load_name.as_ptr(),
-                    ))
+                    );
+                    if orig_field_type == ptr_ty {
+                        Ok(LLVMBuildIntToPtr(
+                            self.builder,
+                            loaded,
+                            ptr_ty,
+                            c"sf.i2p".as_ptr(),
+                        ))
+                    } else {
+                        Ok(loaded)
+                    }
                 }
 
                 Expression::Assignment { target, value } => {
@@ -3750,6 +5254,7 @@ impl LLVMCodegen {
                                 return Ok(loaded);
                             }
                         }
+
                         LLVMBuildStore(self.builder, val, alloca);
 
                         // Return the value (for chained assignments)
@@ -4103,27 +5608,55 @@ impl LLVMCodegen {
                     body,
                     is_move: _,
                 } => {
-                    // Closure codegen: generate an anonymous LLVM function for the closure body
-                    // and return a pointer to it. Captured variables are passed via the
-                    // enclosing scope's named_values (closures without captures work directly;
-                    // closures with captures use the parent scope's allocas).
                     let i64_ty = LLVMInt64TypeInContext(self.context);
 
-                    // Build parameter types
+                    // Collect parameter names for free variable analysis
+                    let param_names: Vec<String> = parameters
+                        .iter()
+                        .enumerate()
+                        .map(|(i, p)| {
+                            Self::extract_pattern_name(&p.pattern)
+                                .unwrap_or_else(|| format!("arg{i}"))
+                        })
+                        .collect();
+
+                    // Detect captured variables (free vars that exist in parent scope)
+                    let free_vars = Self::collect_free_variables(body, &param_names);
+                    let captured_names: Vec<String> = free_vars
+                        .into_iter()
+                        .filter(|name| self.named_values.contains_key(name))
+                        .collect();
+
+                    // Load captured values from parent allocas (while still in parent context)
+                    let mut captured_values: Vec<LLVMValueRef> = Vec::new();
+                    let mut captured_types: Vec<LLVMTypeRef> = Vec::new();
+                    for cap_name in &captured_names {
+                        let alloca = *self.named_values.get(cap_name).unwrap();
+                        let cap_ty = LLVMGetAllocatedType(alloca);
+                        let load_name =
+                            CString::new(format!("{cap_name}.cap.load")).expect("CString failed");
+                        let val =
+                            LLVMBuildLoad2(self.builder, cap_ty, alloca, load_name.as_ptr());
+                        captured_values.push(val);
+                        captured_types.push(cap_ty);
+                    }
+
+                    // Build parameter types: explicit params + hidden capture params
                     let mut param_types: Vec<LLVMTypeRef> = Vec::new();
                     for param in parameters {
-                        let param_ty = self.get_llvm_type(&param.param_type);
-                        param_types.push(param_ty);
+                        param_types.push(self.get_llvm_type(&param.param_type));
                     }
+                    let explicit_param_count = param_types.len();
+                    param_types.extend_from_slice(&captured_types);
 
                     // Determine return type
                     let ret_ty = if let Some(rt) = return_type {
                         self.get_llvm_type(rt)
                     } else {
-                        i64_ty // Default to i64 for closures without explicit return type
+                        i64_ty
                     };
 
-                    // Create function type
+                    // Create function type (includes hidden capture params)
                     let fn_type = LLVMFunctionType(
                         ret_ty,
                         param_types.as_mut_ptr(),
@@ -4138,12 +5671,14 @@ impl LLVMCodegen {
                     let closure_fn =
                         LLVMAddFunction(self.module, closure_name_cstr.as_ptr(), fn_type);
 
-                    // Save current state
+                    // Save current state and clear scope
                     let saved_function = self.current_function;
                     let saved_block = LLVMGetInsertBlock(self.builder);
-                    let saved_named_values = self.named_values.clone();
+                    let saved_named_values = std::mem::take(&mut self.named_values);
+                    let saved_struct_variables = std::mem::take(&mut self.struct_variables);
+                    let saved_array_variables = std::mem::take(&mut self.array_variables);
 
-                    // Set up closure function
+                    // Set up closure function (clean scope)
                     self.current_function = Some(closure_fn);
                     let entry_name = CString::new("entry").expect("CString failed");
                     let entry_bb = LLVMAppendBasicBlockInContext(
@@ -4153,7 +5688,7 @@ impl LLVMCodegen {
                     );
                     LLVMPositionBuilderAtEnd(self.builder, entry_bb);
 
-                    // Bind parameters
+                    // Bind explicit parameters
                     for (idx, param) in parameters.iter().enumerate() {
                         let param_val = LLVMGetParam(closure_fn, idx as u32);
                         let param_name = Self::extract_pattern_name(&param.pattern)
@@ -4164,7 +5699,19 @@ impl LLVMCodegen {
                         self.named_values.insert(param_name, alloca);
                     }
 
-                    // Generate body based on ClosureBody variant
+                    // Bind captured variables from hidden parameters
+                    for (i, cap_name) in captured_names.iter().enumerate() {
+                        let param_idx = (explicit_param_count + i) as u32;
+                        let cap_val = LLVMGetParam(closure_fn, param_idx);
+                        let alloca = self.create_entry_block_alloca(
+                            captured_types[i],
+                            cap_name,
+                        )?;
+                        LLVMBuildStore(self.builder, cap_val, alloca);
+                        self.named_values.insert(cap_name.clone(), alloca);
+                    }
+
+                    // Generate body
                     match body {
                         crate::parser::ast::ClosureBody::Expression(expr) => {
                             let result = self.codegen_expression(expr)?;
@@ -4174,7 +5721,6 @@ impl LLVMCodegen {
                             for stmt in &block.statements {
                                 self.codegen_statement(stmt)?;
                             }
-                            // Add implicit return if block doesn't end with a terminator
                             let current_bb = LLVMGetInsertBlock(self.builder);
                             if LLVMGetBasicBlockTerminator(current_bb).is_null() {
                                 let undef = LLVMGetUndef(ret_ty);
@@ -4186,19 +5732,238 @@ impl LLVMCodegen {
                     // Restore state
                     self.current_function = saved_function;
                     self.named_values = saved_named_values;
+                    self.struct_variables = saved_struct_variables;
+                    self.array_variables = saved_array_variables;
                     if !saved_block.is_null() {
                         LLVMPositionBuilderAtEnd(self.builder, saved_block);
                     }
 
-                    // Register the closure function
-                    self.functions.insert(closure_name, closure_fn);
+                    // Register the closure function and store capture info
+                    self.functions
+                        .insert(closure_name.clone(), closure_fn);
 
-                    // Return function pointer
+                    // Store captured values so indirect calls can pass them
+                    if !captured_values.is_empty() {
+                        self.closure_captured_values
+                            .insert(closure_name, captured_values.clone());
+                        self.last_closure_captures = Some(captured_values);
+                    } else {
+                        self.last_closure_captures = None;
+                    }
+
                     Ok(closure_fn as LLVMValueRef)
                 }
 
                 _ => Err(CompilerError::codegen_error("Unsupported expression type")),
             }
+        }
+    }
+
+    /// Collect free variables referenced in a closure body that are not parameters.
+    /// Returns a deduplicated, sorted list of variable names.
+    fn collect_free_variables(
+        body: &crate::parser::ast::ClosureBody,
+        param_names: &[String],
+    ) -> Vec<String> {
+        use std::collections::BTreeSet;
+        let mut free = BTreeSet::new();
+        let mut locals = param_names.iter().cloned().collect::<BTreeSet<_>>();
+        match body {
+            crate::parser::ast::ClosureBody::Expression(expr) => {
+                Self::collect_expr_free_vars(expr, &locals, &mut free);
+            }
+            crate::parser::ast::ClosureBody::Block(block) => {
+                Self::collect_block_free_vars(block, &mut locals, &mut free);
+            }
+        }
+        free.into_iter().collect()
+    }
+
+    fn collect_expr_free_vars(
+        expr: &Expression,
+        locals: &std::collections::BTreeSet<String>,
+        free: &mut std::collections::BTreeSet<String>,
+    ) {
+        match expr {
+            Expression::Identifier(name) => {
+                if !locals.contains(name) {
+                    free.insert(name.clone());
+                }
+            }
+            Expression::Binary { left, right, .. } => {
+                Self::collect_expr_free_vars(left, locals, free);
+                Self::collect_expr_free_vars(right, locals, free);
+            }
+            Expression::Unary { operand, .. } => {
+                Self::collect_expr_free_vars(operand, locals, free);
+            }
+            Expression::Call {
+                callee, arguments, ..
+            } => {
+                Self::collect_expr_free_vars(callee, locals, free);
+                for arg in arguments {
+                    Self::collect_expr_free_vars(arg, locals, free);
+                }
+            }
+            Expression::Array { elements } | Expression::Tuple { elements } => {
+                for e in elements {
+                    Self::collect_expr_free_vars(e, locals, free);
+                }
+            }
+            Expression::Index { array, index } => {
+                Self::collect_expr_free_vars(array, locals, free);
+                Self::collect_expr_free_vars(index, locals, free);
+            }
+            Expression::Slice { array, start, end } => {
+                Self::collect_expr_free_vars(array, locals, free);
+                Self::collect_expr_free_vars(start, locals, free);
+                Self::collect_expr_free_vars(end, locals, free);
+            }
+            Expression::MemberAccess { object, .. } => {
+                Self::collect_expr_free_vars(object, locals, free);
+            }
+            Expression::StructLiteral { fields, .. } => {
+                for (_, v) in fields {
+                    Self::collect_expr_free_vars(v, locals, free);
+                }
+            }
+            Expression::Assignment { target, value } => {
+                Self::collect_expr_free_vars(target, locals, free);
+                Self::collect_expr_free_vars(value, locals, free);
+            }
+            Expression::Reference { expression }
+            | Expression::Dereference { expression }
+            | Expression::Await { expression }
+            | Expression::Try { expression } => {
+                Self::collect_expr_free_vars(expression, locals, free);
+            }
+            Expression::TupleIndex { tuple, .. } => {
+                Self::collect_expr_free_vars(tuple, locals, free);
+            }
+            Expression::Range { start, end, .. } => {
+                Self::collect_expr_free_vars(start, locals, free);
+                Self::collect_expr_free_vars(end, locals, free);
+            }
+            Expression::EnumVariant { payload, .. } => {
+                if let Some(args) = payload {
+                    for a in args {
+                        Self::collect_expr_free_vars(a, locals, free);
+                    }
+                }
+            }
+            Expression::Spawn { body } => {
+                Self::collect_block_free_vars(body, &mut locals.clone(), free);
+            }
+            Expression::Closure {
+                parameters, body, ..
+            } => {
+                let mut inner_locals = locals.clone();
+                for p in parameters {
+                    if let Some(name) = Self::extract_pattern_name(&p.pattern) {
+                        inner_locals.insert(name);
+                    }
+                }
+                match body {
+                    crate::parser::ast::ClosureBody::Expression(e) => {
+                        Self::collect_expr_free_vars(e, &inner_locals, free);
+                    }
+                    crate::parser::ast::ClosureBody::Block(b) => {
+                        Self::collect_block_free_vars(b, &mut inner_locals, free);
+                    }
+                }
+            }
+            Expression::IntLiteral(_)
+            | Expression::FloatLiteral(_)
+            | Expression::StringLiteral(_)
+            | Expression::BoolLiteral(_)
+            | Expression::NullLiteral => {}
+        }
+    }
+
+    fn collect_block_free_vars(
+        block: &crate::parser::ast::Block,
+        locals: &mut std::collections::BTreeSet<String>,
+        free: &mut std::collections::BTreeSet<String>,
+    ) {
+        for stmt in &block.statements {
+            Self::collect_stmt_free_vars(stmt, locals, free);
+        }
+    }
+
+    fn collect_stmt_free_vars(
+        stmt: &Statement,
+        locals: &mut std::collections::BTreeSet<String>,
+        free: &mut std::collections::BTreeSet<String>,
+    ) {
+        match stmt {
+            Statement::VariableDeclaration {
+                pattern,
+                initializer,
+                ..
+            } => {
+                if let Some(init) = initializer {
+                    Self::collect_expr_free_vars(init, locals, free);
+                }
+                if let Some(name) = Self::extract_pattern_name(pattern) {
+                    locals.insert(name);
+                }
+            }
+            Statement::Expression(e) => Self::collect_expr_free_vars(e, locals, free),
+            Statement::Return { value } => {
+                if let Some(v) = value {
+                    Self::collect_expr_free_vars(v, locals, free);
+                }
+            }
+            Statement::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                Self::collect_expr_free_vars(condition, locals, free);
+                Self::collect_block_free_vars(then_branch, &mut locals.clone(), free);
+                if let Some(eb) = else_branch {
+                    Self::collect_block_free_vars(eb, &mut locals.clone(), free);
+                }
+            }
+            Statement::While { condition, body } => {
+                Self::collect_expr_free_vars(condition, locals, free);
+                Self::collect_block_free_vars(body, &mut locals.clone(), free);
+            }
+            Statement::For {
+                initializer,
+                condition,
+                increment,
+                body,
+            } => {
+                let mut loop_locals = locals.clone();
+                if let Some(init) = initializer {
+                    Self::collect_stmt_free_vars(init, &mut loop_locals, free);
+                }
+                if let Some(cond) = condition {
+                    Self::collect_expr_free_vars(cond, &loop_locals, free);
+                }
+                if let Some(inc) = increment {
+                    Self::collect_expr_free_vars(inc, &loop_locals, free);
+                }
+                Self::collect_block_free_vars(body, &mut loop_locals, free);
+            }
+            Statement::ForIn {
+                variable,
+                iterable,
+                body,
+            } => {
+                Self::collect_expr_free_vars(iterable, locals, free);
+                let mut loop_locals = locals.clone();
+                loop_locals.insert(variable.clone());
+                Self::collect_block_free_vars(body, &mut loop_locals, free);
+            }
+            Statement::Defer { statement } => {
+                Self::collect_stmt_free_vars(statement, locals, free);
+            }
+            Statement::Unsafe { block } => {
+                Self::collect_block_free_vars(block, &mut locals.clone(), free);
+            }
+            _ => {}
         }
     }
 
@@ -4219,6 +5984,40 @@ impl LLVMCodegen {
             Type::Reference { .. } | Type::Pointer { .. } | Type::RawPointer { .. } => 8,
             Type::Custom(_) => 8, // struct pointer or opaque — assume pointer-sized
             _ => 8,
+        }
+    }
+
+    /// Store a struct value to a destination alloca field-by-field using volatile stores.
+    /// This prevents LLVM from merging the individual stores back into a single large
+    /// aggregate store, which is miscompiled on x86_64 for structs > 40 bytes in LLVM 18.
+    unsafe fn store_struct_fields_from_value(
+        &self,
+        val: LLVMValueRef,
+        dest: LLVMValueRef,
+        struct_type: LLVMTypeRef,
+        field_names: &[String],
+    ) {
+        let i32_ty = LLVMInt32TypeInContext(self.context);
+        for i in 0..field_names.len() {
+            let extracted = LLVMBuildExtractValue(
+                self.builder,
+                val,
+                i as u32,
+                c"sf.ex".as_ptr(),
+            );
+            let zero = LLVMConstInt(i32_ty, 0, 0);
+            let idx = LLVMConstInt(i32_ty, i as u64, 0);
+            let mut indices = [zero, idx];
+            let field_ptr = LLVMBuildInBoundsGEP2(
+                self.builder,
+                struct_type,
+                dest,
+                indices.as_mut_ptr(),
+                2,
+                c"sf.ptr".as_ptr(),
+            );
+            let store = LLVMBuildStore(self.builder, extracted, field_ptr);
+            LLVMSetVolatile(store, 1);
         }
     }
 
@@ -4334,7 +6133,8 @@ impl LLVMCodegen {
         unsafe {
             let i64_ty = LLVMInt64TypeInContext(self.context);
             let i64_ptr_ty = LLVMPointerType(i64_ty, 0);
-            let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+            let i8_ty = LLVMInt8TypeInContext(self.context);
+            let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
 
             match name {
                 "vec_int_new" => {
@@ -4370,7 +6170,7 @@ impl LLVMCodegen {
                     LLVMBuildStore(self.builder, array_typed, ptr_field);
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         struct_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -4385,7 +6185,7 @@ impl LLVMCodegen {
                     LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
                     let cap_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         struct_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -4404,7 +6204,7 @@ impl LLVMCodegen {
                     let vec_ptr = self.codegen_expression(&arguments[0])?;
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -4435,7 +6235,7 @@ impl LLVMCodegen {
                     );
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -4449,7 +6249,7 @@ impl LLVMCodegen {
                     );
                     let cap_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -4592,7 +6392,7 @@ impl LLVMCodegen {
                     // Get length field (offset 8 bytes from struct start)
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -4683,7 +6483,7 @@ impl LLVMCodegen {
                     let vec_ptr = self.codegen_expression(&arguments[0])?;
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -4702,7 +6502,7 @@ impl LLVMCodegen {
                     let vec_ptr = self.codegen_expression(&arguments[0])?;
                     let cap_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -4725,7 +6525,7 @@ impl LLVMCodegen {
                     // Get current capacity
                     let cap_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -4823,7 +6623,7 @@ impl LLVMCodegen {
                     // Get len
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -4840,7 +6640,7 @@ impl LLVMCodegen {
                     // Get capacity
                     let cap_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -4991,7 +6791,7 @@ impl LLVMCodegen {
                     // Store len = 0
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         struct_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -5008,7 +6808,7 @@ impl LLVMCodegen {
                     // Store cap = capacity
                     let cap_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         struct_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -5042,7 +6842,7 @@ impl LLVMCodegen {
                     // Get len
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -5115,7 +6915,7 @@ impl LLVMCodegen {
                     // Get len
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -5212,7 +7012,7 @@ impl LLVMCodegen {
                     // Get len
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -5596,7 +7396,7 @@ impl LLVMCodegen {
                     );
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -5633,7 +7433,7 @@ impl LLVMCodegen {
                     let vec_ptr = self.codegen_expression(&arguments[0])?;
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -5733,7 +7533,7 @@ impl LLVMCodegen {
                     LLVMBuildStore(self.builder, array_ptr, ptr_field);
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         struct_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -5748,7 +7548,7 @@ impl LLVMCodegen {
                     LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
                     let cap_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         struct_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -5767,7 +7567,7 @@ impl LLVMCodegen {
                     let vec_ptr = self.codegen_expression(&arguments[0])?;
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -5798,7 +7598,7 @@ impl LLVMCodegen {
                     );
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -5812,7 +7612,7 @@ impl LLVMCodegen {
                     );
                     let cap_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -5939,7 +7739,7 @@ impl LLVMCodegen {
                     );
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -5980,7 +7780,7 @@ impl LLVMCodegen {
                     let vec_ptr = self.codegen_expression(&arguments[0])?;
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         vec_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -6040,7 +7840,8 @@ impl LLVMCodegen {
     ) -> CompilerResult<Option<LLVMValueRef>> {
         unsafe {
             let i64_ty = LLVMInt64TypeInContext(self.context);
-            let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+            let i8_ty = LLVMInt8TypeInContext(self.context);
+            let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
             let str_ptr_ty = LLVMPointerType(i8_ptr_ty, 0);
             let i64_ptr_ty = LLVMPointerType(i64_ty, 0);
 
@@ -6092,7 +7893,7 @@ impl LLVMCodegen {
                     // Store values pointer at offset 8
                     let vals_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -6108,7 +7909,7 @@ impl LLVMCodegen {
                     // Store len=0 at offset 16
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -6124,7 +7925,7 @@ impl LLVMCodegen {
                     // Store cap=8 at offset 24
                     let cap_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 24, 0)].as_mut_ptr(),
                         1,
@@ -6143,7 +7944,7 @@ impl LLVMCodegen {
                     let map_ptr = self.codegen_expression(&arguments[0])?;
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -6166,7 +7967,7 @@ impl LLVMCodegen {
                     let map_ptr = self.codegen_expression(&arguments[0])?;
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -6209,7 +8010,7 @@ impl LLVMCodegen {
                     // Free values array
                     let vals_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -6262,7 +8063,7 @@ impl LLVMCodegen {
                         LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -6402,7 +8203,7 @@ impl LLVMCodegen {
                         LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
                     let vals_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -6418,7 +8219,7 @@ impl LLVMCodegen {
                         LLVMBuildLoad2(self.builder, i64_ptr_ty, vals_field, c"".as_ptr());
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -6548,7 +8349,7 @@ impl LLVMCodegen {
                         LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
                     let vals_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -6564,7 +8365,7 @@ impl LLVMCodegen {
                         LLVMBuildLoad2(self.builder, i64_ptr_ty, vals_field, c"".as_ptr());
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -6703,7 +8504,7 @@ impl LLVMCodegen {
                     let _ = self.codegen_expression(&arguments[1])?; // key - unused in v1
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -6731,7 +8532,8 @@ impl LLVMCodegen {
     ) -> CompilerResult<Option<LLVMValueRef>> {
         unsafe {
             let i64_ty = LLVMInt64TypeInContext(self.context);
-            let i8_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+            let i8_ty = LLVMInt8TypeInContext(self.context);
+            let i8_ptr_ty = LLVMPointerType(i8_ty, 0);
             let str_ptr_ty = LLVMPointerType(i8_ptr_ty, 0);
 
             match name {
@@ -6779,7 +8581,7 @@ impl LLVMCodegen {
                     LLVMBuildStore(self.builder, keys_typed, keys_field);
                     let vals_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -6794,7 +8596,7 @@ impl LLVMCodegen {
                     LLVMBuildStore(self.builder, vals_typed, vals_field);
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -6809,7 +8611,7 @@ impl LLVMCodegen {
                     LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), len_field);
                     let cap_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 24, 0)].as_mut_ptr(),
                         1,
@@ -6828,7 +8630,7 @@ impl LLVMCodegen {
                     let map_ptr = self.codegen_expression(&arguments[0])?;
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -6851,7 +8653,7 @@ impl LLVMCodegen {
                     let map_ptr = self.codegen_expression(&arguments[0])?;
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -6892,7 +8694,7 @@ impl LLVMCodegen {
                     );
                     let vals_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -6943,7 +8745,7 @@ impl LLVMCodegen {
                         LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -7070,7 +8872,7 @@ impl LLVMCodegen {
                         LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
                     let vals_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -7086,7 +8888,7 @@ impl LLVMCodegen {
                         LLVMBuildLoad2(self.builder, str_ptr_ty, vals_field, c"".as_ptr());
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -7220,7 +9022,7 @@ impl LLVMCodegen {
                         LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
                     let vals_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 8, 0)].as_mut_ptr(),
                         1,
@@ -7236,7 +9038,7 @@ impl LLVMCodegen {
                         LLVMBuildLoad2(self.builder, str_ptr_ty, vals_field, c"".as_ptr());
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,
@@ -7372,7 +9174,7 @@ impl LLVMCodegen {
                     let _ = self.codegen_expression(&arguments[1])?;
                     let len_addr = LLVMBuildGEP2(
                         self.builder,
-                        i8_ptr_ty,
+                        i8_ty,
                         map_ptr,
                         [LLVMConstInt(i64_ty, 16, 0)].as_mut_ptr(),
                         1,

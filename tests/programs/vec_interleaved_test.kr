@@ -1,0 +1,50 @@
+struct Pos {
+    idx: int;
+    len: int;
+}
+
+fn new_pos(n: int) -> Pos {
+    return Pos { idx: 0, len: n };
+}
+
+fn pos_done(p: Pos) -> bool {
+    return p.idx >= p.len;
+}
+
+fn pos_next(p: Pos) -> Pos {
+    return Pos { idx: p.idx + 1, len: p.len };
+}
+
+fn scan(source: string, int_data: VecInt, lexemes: VecString) -> int {
+    let p: Pos = new_pos(strlen(source));
+    let count = 0;
+    while (!pos_done(p)) {
+        let c = str_char_at(source, p.idx);
+        // Interleaved: kind, line, col
+        vec_int_push(int_data, c);
+        vec_int_push(int_data, 1);
+        vec_int_push(int_data, p.idx);
+        vec_string_push(lexemes, "x");
+        p = pos_next(p);
+        count = count + 1;
+    }
+    return count;
+}
+
+fn main() -> int {
+    let int_data: VecInt = vec_int_new();
+    let lexemes: VecString = vec_string_new();
+    let count = scan("hello", int_data, lexemes);
+    puts(str_concat("count: ", fmt_int(count)));
+    let i = 0;
+    while (i < count) {
+        let kind = vec_int_get(int_data, i * 3);
+        let line = vec_int_get(int_data, i * 3 + 1);
+        let col = vec_int_get(int_data, i * 3 + 2);
+        puts(str_concat(str_concat("char=", fmt_int(kind)), str_concat(" line=", str_concat(fmt_int(line), str_concat(" col=", fmt_int(col))))));
+        i = i + 1;
+    }
+    vec_int_free(int_data);
+    vec_string_free(lexemes);
+    return 0;
+}

@@ -532,15 +532,79 @@ fn rewrite_statement(
             block: rewrite_block(block, private_mangle)?,
         }),
 
+        Statement::ImplBlock {
+            type_name,
+            generic_params,
+            methods,
+        } => {
+            let new_type_name = private_mangle
+                .get(&type_name)
+                .cloned()
+                .unwrap_or(type_name);
+            let mut new_methods = Vec::with_capacity(methods.len());
+            for m in methods {
+                new_methods.push(rewrite_statement(file, m, private_mangle)?);
+            }
+            Ok(Statement::ImplBlock {
+                type_name: new_type_name,
+                generic_params,
+                methods: new_methods,
+            })
+        }
+
+        Statement::TraitImpl {
+            trait_name,
+            type_name,
+            generic_params,
+            where_constraints,
+            methods,
+        } => {
+            let new_type_name = private_mangle
+                .get(&type_name)
+                .cloned()
+                .unwrap_or(type_name);
+            let new_trait_name = private_mangle
+                .get(&trait_name)
+                .cloned()
+                .unwrap_or(trait_name);
+            let mut new_methods = Vec::with_capacity(methods.len());
+            for m in methods {
+                new_methods.push(rewrite_statement(file, m, private_mangle)?);
+            }
+            Ok(Statement::TraitImpl {
+                trait_name: new_trait_name,
+                type_name: new_type_name,
+                generic_params,
+                where_constraints,
+                methods: new_methods,
+            })
+        }
+
+        Statement::TraitDeclaration {
+            name,
+            generic_params,
+            super_traits,
+            methods,
+            associated_types,
+            is_public,
+        } => {
+            let new_name = private_mangle.get(&name).cloned().unwrap_or(name);
+            Ok(Statement::TraitDeclaration {
+                name: new_name,
+                generic_params,
+                super_traits,
+                methods,
+                associated_types,
+                is_public,
+            })
+        }
+
         Statement::Break
         | Statement::Continue
         | Statement::InterfaceDeclaration { .. }
         | Statement::EnumDeclaration { .. }
         | Statement::UnionDeclaration { .. }
         | Statement::TypeAlias { .. }
-        | Statement::ImplBlock { .. }
-        | Statement::TraitDeclaration { .. }
-        | Statement::TraitImpl { .. }
         | Statement::MacroDeclaration { .. }
         | Statement::ConstFunctionDeclaration { .. }
         | Statement::StaticAssert { .. }
@@ -850,13 +914,26 @@ fn rewrite_type(ty: Type, private_mangle: &HashMap<String, String>) -> Type {
             inner_type: Box::new(rewrite_type(*inner_type, private_mangle)),
             is_mutable,
         },
-        Type::Generic { name, type_params } => Type::Generic {
-            name,
-            type_params: type_params
-                .into_iter()
-                .map(|t| rewrite_type(t, private_mangle))
-                .collect(),
-        },
+        Type::Generic { name, type_params } => {
+            let mangled_name = private_mangle.get(&name).cloned().unwrap_or(name);
+            Type::Generic {
+                name: mangled_name,
+                type_params: type_params
+                    .into_iter()
+                    .map(|t| rewrite_type(t, private_mangle))
+                    .collect(),
+            }
+        }
+        Type::TraitObject { trait_name, bounds } => {
+            let new_trait = private_mangle
+                .get(&trait_name)
+                .cloned()
+                .unwrap_or(trait_name);
+            Type::TraitObject {
+                trait_name: new_trait,
+                bounds,
+            }
+        }
         _ => ty,
     }
 }

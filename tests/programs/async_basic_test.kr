@@ -1,0 +1,22 @@
+// Test: Basic async function with block_on (no await)
+// Expected output:
+// result: 7
+// done: 42
+
+async fn add_async(x: int, y: int) -> int {
+    return x + y;
+}
+
+async fn get_value() -> int {
+    return 42;
+}
+
+fn main() -> int {
+    let result = block_on(add_async(3, 4));
+    puts(str_concat("result: ", fmt_int(result)));
+
+    let val = block_on(get_value());
+    puts(str_concat("done: ", fmt_int(val)));
+
+    return 0;
+}

@@ -10,6 +10,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Async Runtime & State Machine Codegen** (`compiler/src/codegen/llvm_backend.rs`)
+  - `codegen_async_function()` — transforms async functions into future struct + poll function + wrapper function
+  - Future struct layout: `{ poll_fn: ptr, result: i64, state: i64, sub_future: ptr, params..., locals... }`
+  - Multi-state machine codegen splitting function bodies at `await` points into discrete state blocks
+  - State transitions: save locals to future struct, store sub-future pointer, set next state, branch to poll entry
+  - Re-entry: load locals from struct, poll sub-future, extract result on ready, continue execution
+  - `block_on` intrinsic — inline poll loop requiring no C runtime (loads poll_fn from field 0, loops until ready, extracts result from field 1)
+  - `await` expression codegen — sub-future allocation, polling, and result extraction with state machine wiring
+- **Dynamic Dispatch (Vtables, dyn Trait)** (`compiler/src/codegen/llvm_backend.rs`)
+  - Vtable generation from `impl Trait for Type` — global constant arrays of function pointers using `LLVMConstBitCast` + `LLVMConstArray`
+  - Trait method ordering stored from `TraitDeclaration` for deterministic vtable slot indexing
+  - Fat pointer construction for `dyn Trait` variables — `{ data_ptr: *i8, vtable_ptr: *i8 }` struct with data and vtable pointers
+  - Dynamic method dispatch via vtable slot lookup, function pointer load, and indirect `LLVMBuildCall2`
+  - `dyn Trait` variable tracking (`dyn_trait_vars` HashMap) for both local variables and function parameters
+- **Parser: `self` Parameter Support** (`compiler/src/parser/parser.rs`)
+  - `self` keyword recognized as a parameter in impl block methods with optional `: Type` annotation
+  - `self` keyword as primary expression — resolves to `Expression::Identifier("self")`
+- **FFI Stdlib Signatures** (`compiler/src/ffi/stdlib.rs`)
+  - `system()` — process execution via C `system()` with `ReturnsNegOne` errno convention
+  - `exit()` — process termination via C `exit()`
+- **C Runtime Functions** (`runtime/kraken_string.c`)
+  - `kraken_getenv_safe()` — safe `getenv` wrapper returning `""` instead of NULL when variable is unset
+  - `kraken_file_read_string()` — read entire file into a heap-allocated null-terminated string
+  - `kraken_str_from_char_code()` — create a 1-character string from an ASCII/Unicode code point
+- **Test Programs**
+  - `tests/programs/async_basic_test.kr` — async function + `block_on` without await (result: 7, done: 42)
+  - `tests/programs/async_await_test.kr` — multi-state machine with chained awaits (chained: 52, pipeline: 101)
+  - `tests/programs/dyn_dispatch_test.kr` — vtable dispatch on two struct types implementing a trait, plus function parameter dispatch
+- **Integration Tests** (`compiler/src/main.rs`)
+  - `async_basic_compile_and_run`, `async_await_compile_and_run`, `dyn_dispatch_compile_and_run`
+
+### Fixed
+- **Type Checker: Async Function Type Resolution** (`compiler/src/analyzer/type_checker.rs`)
+  - Async function calls now return `Type::Bytes` (future pointer) at the call site while preserving the original declared return type
+  - `await` expressions resolve to the async function's original declared return type (not `Type::Bytes`)
+- **Type Checker: Trait Type Compatibility** (`compiler/src/analyzer/type_checker.rs`)
+  - `Self` type in trait method declarations now compatible with concrete `Custom` types in trait impls
+  - `dyn Trait` types compatible with concrete struct types for assignment and parameter passing
+  - Method calls on `dyn Trait` objects resolve return types from trait method signatures via `lookup_trait`
+- **LLVM Codegen: Vtable Global Construction** (`compiler/src/codegen/llvm_backend.rs`)
+  - `LLVMConstBitCast` used instead of `LLVMBuildBitCast` for vtable entries — builder instructions cannot be emitted outside a function context
+- **Module Loader: Name Mangling Completeness** (`compiler/src/modules/loader.rs`)
+  - `TraitDeclaration` names now mangled consistently with `TraitImpl` and `StructDeclaration`
+  - `TraitObject` types (`dyn Trait`) rewritten during module mangling for consistent trait name resolution
+  - `ImplBlock` and `TraitImpl` type names and methods now properly rewritten during module mangling (previously passed through unmodified)
+  - `Type::Generic` names now mangled through the `private_mangle` map
+
+### Changed
+- Total tests: 583 integration + 710 library + 822 runtime = 2115 tests passing, zero failures, zero warnings
+
 ## [0.9.2] - 2026-02-07
 
 ### Added

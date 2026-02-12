@@ -1,0 +1,50 @@
+// Test exact struct size corruption boundary (all int fields, no pointers)
+
+struct S3 { a: int; b: int; c: int; }
+struct S4 { a: int; b: int; c: int; d: int; }
+struct S5 { a: int; b: int; c: int; d: int; e: int; }
+struct S6 { a: int; b: int; c: int; d: int; e: int; f: int; }
+
+fn adv3(s: S3) -> S3 {
+    return S3 { a: s.a + 1, b: s.b, c: s.c };
+}
+
+fn adv4(s: S4) -> S4 {
+    return S4 { a: s.a + 1, b: s.b, c: s.c, d: s.d };
+}
+
+fn adv5(s: S5) -> S5 {
+    return S5 { a: s.a + 1, b: s.b, c: s.c, d: s.d, e: s.e };
+}
+
+fn adv6(s: S6) -> S6 {
+    return S6 { a: s.a + 1, b: s.b, c: s.c, d: s.d, e: s.e, f: s.f };
+}
+
+fn main() -> int {
+    // S3: 24 bytes
+    let s3: S3 = S3 { a: 0, b: 10, c: 20 };
+    s3 = adv3(s3);
+    puts(str_concat("S3 a=", fmt_int(s3.a)));
+    puts(str_concat("S3 c=", fmt_int(s3.c)));
+
+    // S4: 32 bytes
+    let s4: S4 = S4 { a: 0, b: 10, c: 20, d: 30 };
+    s4 = adv4(s4);
+    puts(str_concat("S4 a=", fmt_int(s4.a)));
+    puts(str_concat("S4 d=", fmt_int(s4.d)));
+
+    // S5: 40 bytes
+    let s5: S5 = S5 { a: 0, b: 10, c: 20, d: 30, e: 40 };
+    s5 = adv5(s5);
+    puts(str_concat("S5 a=", fmt_int(s5.a)));
+    puts(str_concat("S5 e=", fmt_int(s5.e)));
+
+    // S6: 48 bytes
+    let s6: S6 = S6 { a: 0, b: 10, c: 20, d: 30, e: 40, f: 50 };
+    s6 = adv6(s6);
+    puts(str_concat("S6 a=", fmt_int(s6.a)));
+    puts(str_concat("S6 f=", fmt_int(s6.f)));
+
+    return 0;
+}

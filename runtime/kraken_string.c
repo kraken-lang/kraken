@@ -360,3 +360,35 @@ char* kraken_strrchr(const char* s, int c) {
     if (!s) return NULL;
     return strrchr(s, c);
 }
+
+// Safe getenv wrapper - returns "" instead of NULL when var is not set
+const char* kraken_getenv_safe(const char* name) {
+    if (!name) return "";
+    const char* val = getenv(name);
+    return val ? val : "";
+}
+
+// Read entire file into a heap-allocated null-terminated string
+char* kraken_file_read_string(const char* path) {
+    if (!path) return NULL;
+    FILE* f = fopen(path, "rb");
+    if (!f) return NULL;
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char* buf = (char*)malloc((size_t)size + 1);
+    if (!buf) { fclose(f); return NULL; }
+    size_t read = fread(buf, 1, (size_t)size, f);
+    buf[read] = '\0';
+    fclose(f);
+    return buf;
+}
+
+// Create a 1-character string from an ASCII/Unicode code point
+char* kraken_str_from_char_code(int64_t code) {
+    char* buf = (char*)malloc(2);
+    if (!buf) return NULL;
+    buf[0] = (char)code;
+    buf[1] = '\0';
+    return buf;
+}

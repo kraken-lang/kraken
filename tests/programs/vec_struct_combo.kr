@@ -1,0 +1,36 @@
+struct Pair {
+    x: int;
+    y: int;
+}
+
+fn make_pair(a: int, b: int) -> Pair {
+    return Pair { x: a, y: b };
+}
+
+fn next_pair(p: Pair) -> Pair {
+    return Pair { x: p.x + 1, y: p.y + 1 };
+}
+
+fn fill_with_struct(v: VecInt, n: int) -> int {
+    let p: Pair = make_pair(0, 100);
+    let i = 0;
+    while (i < n) {
+        vec_int_push(v, p.x);
+        p = next_pair(p);
+        i = i + 1;
+    }
+    return n;
+}
+
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    let count = fill_with_struct(v, 5);
+    puts(str_concat("count: ", fmt_int(count)));
+    let i = 0;
+    while (i < count) {
+        puts(fmt_int(vec_int_get(v, i)));
+        i = i + 1;
+    }
+    vec_int_free(v);
+    return 0;
+}

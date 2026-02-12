@@ -1,0 +1,10 @@
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    vec_int_push(v, 42);
+    vec_int_push(v, 99);
+    puts(str_concat("len=", fmt_int(vec_int_len(v))));
+    puts(str_concat("v[0]=", fmt_int(vec_int_get(v, 0))));
+    puts(str_concat("v[1]=", fmt_int(vec_int_get(v, 1))));
+    vec_int_free(v);
+    return 0;
+}

@@ -1,0 +1,8 @@
+fn main() -> int {
+    puts("start");
+    defer puts("deferred 1");
+    defer puts("deferred 2");
+    defer puts("deferred 3");
+    puts("before return");
+    return 0;
+}

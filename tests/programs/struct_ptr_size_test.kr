@@ -1,0 +1,62 @@
+// Find exact size threshold where ptr fields corrupt in struct returns
+
+struct P1 { a: VecInt; }
+struct P2 { a: int; b: VecInt; }
+struct P3 { a: int; b: int; c: VecInt; }
+struct P4 { a: int; b: int; c: int; d: VecInt; }
+struct P5 { a: int; b: int; c: int; d: int; e: VecInt; }
+
+fn ret1(s: P1) -> P1 { return P1 { a: s.a }; }
+fn ret2(s: P2) -> P2 { return P2 { a: s.a + 1, b: s.b }; }
+fn ret3(s: P3) -> P3 { return P3 { a: s.a + 1, b: s.b, c: s.c }; }
+fn ret4(s: P4) -> P4 { return P4 { a: s.a + 1, b: s.b, c: s.c, d: s.d }; }
+fn ret5(s: P5) -> P5 { return P5 { a: s.a + 1, b: s.b, c: s.c, d: s.d, e: s.e }; }
+
+fn main() -> int {
+    let v1: VecInt = vec_int_new();
+    let v2: VecInt = vec_int_new();
+    let v3: VecInt = vec_int_new();
+    let v4: VecInt = vec_int_new();
+    let v5: VecInt = vec_int_new();
+
+    // P1: 8 bytes { ptr }
+    let s1: P1 = P1 { a: v1 };
+    s1 = ret1(s1);
+    vec_int_push(s1.a, 1);
+    puts(str_concat("P1 (8B) ok val=", fmt_int(vec_int_get(s1.a, 0))));
+
+    // P2: 16 bytes { i64, ptr }
+    let s2: P2 = P2 { a: 0, b: v2 };
+    s2 = ret2(s2);
+    puts(str_concat("P2 a=", fmt_int(s2.a)));
+    vec_int_push(s2.b, 2);
+    puts(str_concat("P2 (16B) ok val=", fmt_int(vec_int_get(s2.b, 0))));
+
+    // P3: 24 bytes { i64, i64, ptr }
+    let s3: P3 = P3 { a: 0, b: 10, c: v3 };
+    s3 = ret3(s3);
+    puts(str_concat("P3 a=", fmt_int(s3.a)));
+    vec_int_push(s3.c, 3);
+    puts(str_concat("P3 (24B) ok val=", fmt_int(vec_int_get(s3.c, 0))));
+
+    // P4: 32 bytes { i64, i64, i64, ptr }
+    let s4: P4 = P4 { a: 0, b: 10, c: 20, d: v4 };
+    s4 = ret4(s4);
+    puts(str_concat("P4 a=", fmt_int(s4.a)));
+    vec_int_push(s4.d, 4);
+    puts(str_concat("P4 (32B) ok val=", fmt_int(vec_int_get(s4.d, 0))));
+
+    // P5: 40 bytes { i64, i64, i64, i64, ptr }
+    let s5: P5 = P5 { a: 0, b: 10, c: 20, d: 30, e: v5 };
+    s5 = ret5(s5);
+    puts(str_concat("P5 a=", fmt_int(s5.a)));
+    vec_int_push(s5.e, 5);
+    puts(str_concat("P5 (40B) ok val=", fmt_int(vec_int_get(s5.e, 0))));
+
+    vec_int_free(v1);
+    vec_int_free(v2);
+    vec_int_free(v3);
+    vec_int_free(v4);
+    vec_int_free(v5);
+    return 0;
+}

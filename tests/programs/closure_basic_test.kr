@@ -1,0 +1,19 @@
+fn apply(f: fn(int) -> int, x: int) -> int {
+    return f(x);
+}
+
+fn main() -> int {
+    // Simple closure without captures
+    let double: fn(int) -> int = |x: int| -> int { return x * 2; };
+    puts(str_concat("double(5): ", fmt_int(double(5))));
+
+    // Closure passed to higher-order function
+    let result: int = apply(|x: int| -> int { return x + 10; }, 32);
+    puts(str_concat("apply(+10, 32): ", fmt_int(result)));
+
+    // Expression closure (no block)
+    let triple: fn(int) -> int = |x: int| -> int { return x * 3; };
+    puts(str_concat("triple(4): ", fmt_int(triple(4))));
+
+    return 0;
+}

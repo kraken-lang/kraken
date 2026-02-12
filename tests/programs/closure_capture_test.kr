@@ -1,0 +1,19 @@
+fn main() -> int {
+    // Simple capture: closure captures a local variable
+    let offset: int = 10;
+    let add_offset: fn(int) -> int = |x: int| -> int { return x + offset; };
+    puts(str_concat("add_offset(5): ", fmt_int(add_offset(5))));
+
+    // Multiple captures
+    let base: int = 100;
+    let scale: int = 3;
+    let compute: fn(int) -> int = |x: int| -> int { return base + x * scale; };
+    puts(str_concat("compute(7): ", fmt_int(compute(7))));
+
+    // Capture in expression closure (block body with return)
+    let factor: int = 4;
+    let multiply: fn(int) -> int = |x: int| -> int { return x * factor; };
+    puts(str_concat("multiply(8): ", fmt_int(multiply(8))));
+
+    return 0;
+}

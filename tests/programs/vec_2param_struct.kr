@@ -1,0 +1,41 @@
+struct Pos {
+    idx: int;
+    len: int;
+}
+
+fn new_pos(n: int) -> Pos {
+    return Pos { idx: 0, len: n };
+}
+
+fn pos_done(p: Pos) -> bool {
+    return p.idx >= p.len;
+}
+
+fn pos_next(p: Pos) -> Pos {
+    return Pos { idx: p.idx + 1, len: p.len };
+}
+
+fn scan2(source: string, kinds: VecInt) -> int {
+    let p: Pos = new_pos(strlen(source));
+    let count = 0;
+    while (!pos_done(p)) {
+        let c = str_char_at(source, p.idx);
+        vec_int_push(kinds, c);
+        p = pos_next(p);
+        count = count + 1;
+    }
+    return count;
+}
+
+fn main() -> int {
+    let kinds: VecInt = vec_int_new();
+    let count = scan2("hello", kinds);
+    puts(str_concat("count: ", fmt_int(count)));
+    let i = 0;
+    while (i < count) {
+        puts(fmt_int(vec_int_get(kinds, i)));
+        i = i + 1;
+    }
+    vec_int_free(kinds);
+    return 0;
+}

@@ -1,0 +1,24 @@
+struct Point {
+    x: int;
+    y: int;
+}
+
+impl Point {
+    fn sum(self) -> int {
+        return self.x + self.y;
+    }
+
+    fn scale(self, factor: int) -> Point {
+        return Point { x: self.x * factor, y: self.y * factor };
+    }
+}
+
+fn main() -> int {
+    let p: Point = Point { x: 3, y: 4 };
+    puts(str_concat("sum=", fmt_int(p.sum())));
+    let q: Point = p.scale(10);
+    puts(str_concat("scaled x=", fmt_int(q.x)));
+    puts(str_concat("scaled y=", fmt_int(q.y)));
+    puts(str_concat("scaled sum=", fmt_int(q.sum())));
+    return 0;
+}

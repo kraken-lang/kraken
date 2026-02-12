@@ -1,0 +1,34 @@
+// Diagnose WHERE ptr corruption happens: parameter passing vs return
+
+struct Sp { a: VecInt; }
+
+fn check_inside(s: Sp) -> int {
+    // Test if ptr is valid INSIDE the function
+    vec_int_push(s.a, 99);
+    let val: int = vec_int_get(s.a, 0);
+    return val;
+}
+
+fn identity(s: Sp) -> Sp {
+    return Sp { a: s.a };
+}
+
+fn main() -> int {
+    let v: VecInt = vec_int_new();
+    vec_int_push(v, 42);
+
+    // Test 1: direct access (no function call)
+    let s: Sp = Sp { a: v };
+    puts(str_concat("direct s.a[0]=", fmt_int(vec_int_get(s.a, 0))));
+
+    // Test 2: pass struct to function, check ptr INSIDE function
+    let inside_val: int = check_inside(s);
+    puts(str_concat("inside val=", fmt_int(inside_val)));
+
+    // Test 3: pass struct to function that RETURNS struct, check ptr AFTER
+    s = identity(s);
+    puts(str_concat("after return s.a[0]=", fmt_int(vec_int_get(s.a, 0))));
+
+    vec_int_free(v);
+    return 0;
+}

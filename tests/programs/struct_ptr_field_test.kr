@@ -1,0 +1,63 @@
+// Test ptr field corruption in struct returns
+// Hypothesis: mixed i64/ptr struct types are miscompiled
+
+struct S1p { a: VecInt; }
+struct S2p { a: int; b: VecInt; }
+struct S3p { a: int; b: int; c: VecInt; }
+struct S2pi { a: VecInt; b: int; }
+
+fn adv1p(s: S1p) -> S1p {
+    return S1p { a: s.a };
+}
+
+fn adv2p(s: S2p) -> S2p {
+    return S2p { a: s.a + 1, b: s.b };
+}
+
+fn adv3p(s: S3p) -> S3p {
+    return S3p { a: s.a + 1, b: s.b, c: s.c };
+}
+
+fn adv2pi(s: S2pi) -> S2pi {
+    return S2pi { a: s.a, b: s.b + 1 };
+}
+
+fn main() -> int {
+    let v1: VecInt = vec_int_new();
+    let v2: VecInt = vec_int_new();
+    let v3: VecInt = vec_int_new();
+    let v4: VecInt = vec_int_new();
+
+    // S1p: just a ptr (8 bytes)
+    let s1: S1p = S1p { a: v1 };
+    s1 = adv1p(s1);
+    vec_int_push(s1.a, 11);
+    puts(str_concat("S1p ok, val=", fmt_int(vec_int_get(s1.a, 0))));
+
+    // S2p: int + ptr (16 bytes)
+    let s2: S2p = S2p { a: 0, b: v2 };
+    s2 = adv2p(s2);
+    puts(str_concat("S2p a=", fmt_int(s2.a)));
+    vec_int_push(s2.b, 22);
+    puts(str_concat("S2p ok, val=", fmt_int(vec_int_get(s2.b, 0))));
+
+    // S3p: int + int + ptr (24 bytes)
+    let s3: S3p = S3p { a: 0, b: 10, c: v3 };
+    s3 = adv3p(s3);
+    puts(str_concat("S3p a=", fmt_int(s3.a)));
+    vec_int_push(s3.c, 33);
+    puts(str_concat("S3p ok, val=", fmt_int(vec_int_get(s3.c, 0))));
+
+    // S2pi: ptr + int (ptr first, 16 bytes)
+    let s2i: S2pi = S2pi { a: v4, b: 0 };
+    s2i = adv2pi(s2i);
+    puts(str_concat("S2pi b=", fmt_int(s2i.b)));
+    vec_int_push(s2i.a, 44);
+    puts(str_concat("S2pi ok, val=", fmt_int(vec_int_get(s2i.a, 0))));
+
+    vec_int_free(v1);
+    vec_int_free(v2);
+    vec_int_free(v3);
+    vec_int_free(v4);
+    return 0;
+}
