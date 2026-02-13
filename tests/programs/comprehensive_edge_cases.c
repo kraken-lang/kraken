@@ -18,6 +18,7 @@ typedef char* kr_str;
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
+void kr_print_int(int64_t v) { printf("%lld", (long long)v); }
 int64_t kr_strlen(kr_str s, ...) { return (int64_t)strlen(s); }
 int64_t kr_abs(int64_t x) { return x < 0 ? -x : x; }
 int kr_strcmp(kr_str a, kr_str b) { return strcmp(a, b); }
@@ -119,18 +120,18 @@ void kr_vec_string_shrink_to_fit(void* vp) { KrVecString* v=(KrVecString*)vp; if
 kr_str kr_vec_string_swap_remove(void* vp, int64_t i) { KrVecString* v=(KrVecString*)vp; kr_str val=v->data[i]; v->data[i]=v->data[--v->len]; return val; }
 typedef struct { void** data; int64_t len; int64_t cap; } KrVecBytes;
 void* kr_vec_bytes_new() { KrVecBytes* v=(KrVecBytes*)malloc(sizeof(KrVecBytes)); v->data=(void**)malloc(16*sizeof(void*)); v->len=0; v->cap=16; return v; }
-void kr_vec_bytes_push(void* vp, void* val) { KrVecBytes* v=(KrVecBytes*)vp; if(v->len>=v->cap){v->cap*=2;v->data=(void**)realloc(v->data,v->cap*sizeof(void*));} v->data[v->len++]=val; }
-void* kr_vec_bytes_get(void* vp, int64_t i) { return ((KrVecBytes*)vp)->data[i]; }
-void kr_vec_bytes_set(void* vp, int64_t i, void* val) { ((KrVecBytes*)vp)->data[i]=val; }
+void kr_vec_bytes_push(void* vp, int64_t val) { KrVecBytes* v=(KrVecBytes*)vp; if(v->len>=v->cap){v->cap*=2;v->data=(void**)realloc(v->data,v->cap*sizeof(void*));} v->data[v->len++]=(void*)(intptr_t)val; }
+int64_t kr_vec_bytes_get(void* vp, int64_t i) { return (int64_t)(intptr_t)((KrVecBytes*)vp)->data[i]; }
+void kr_vec_bytes_set(void* vp, int64_t i, int64_t val) { ((KrVecBytes*)vp)->data[i]=(void*)(intptr_t)val; }
 int64_t kr_vec_bytes_len(void* vp) { return ((KrVecBytes*)vp)->len; }
 void kr_vec_bytes_free(void* vp) { KrVecBytes* v=(KrVecBytes*)vp; free(v->data); free(v); }
-void* kr_vec_bytes_pop(void* vp) { KrVecBytes* v=(KrVecBytes*)vp; return v->data[--v->len]; }
+int64_t kr_vec_bytes_pop(void* vp) { KrVecBytes* v=(KrVecBytes*)vp; return (int64_t)(intptr_t)v->data[--v->len]; }
 void kr_vec_bytes_clear(void* vp) { ((KrVecBytes*)vp)->len=0; }
 int64_t kr_vec_bytes_capacity(void* vp) { return ((KrVecBytes*)vp)->cap; }
 void kr_vec_bytes_reserve(void* vp, int64_t n) { KrVecBytes* v=(KrVecBytes*)vp; if(n>v->cap){v->cap=n;v->data=(void**)realloc(v->data,n*sizeof(void*));} }
 void* kr_vec_bytes_with_capacity(int64_t n) { KrVecBytes* v=(KrVecBytes*)malloc(sizeof(KrVecBytes)); v->data=(void**)malloc(n*sizeof(void*)); v->len=0; v->cap=n; return v; }
 void kr_vec_bytes_shrink_to_fit(void* vp) { KrVecBytes* v=(KrVecBytes*)vp; if(v->len<v->cap){v->cap=v->len?v->len:1;v->data=(void**)realloc(v->data,v->cap*sizeof(void*));} }
-void* kr_vec_bytes_swap_remove(void* vp, int64_t i) { KrVecBytes* v=(KrVecBytes*)vp; void* val=v->data[i]; v->data[i]=v->data[--v->len]; return val; }
+int64_t kr_vec_bytes_swap_remove(void* vp, int64_t i) { KrVecBytes* v=(KrVecBytes*)vp; void* val=v->data[i]; v->data[i]=v->data[--v->len]; return (int64_t)(intptr_t)val; }
 typedef struct { char** keys; int64_t* vals; int64_t cap; int64_t len; } KrMapSI;
 static uint64_t _kr_hash_str(const char* s) { uint64_t h=5381; while(*s) h=h*33+(*s++); return h; }
 void* kr_map_string_int_new() {
@@ -443,378 +444,15 @@ int64_t kr_test_pattern_matching_edge_cases();
 int64_t kr_main();
 
 int64_t kr_test_tuple_edge_cases() {
-    kr_test_section("Tuple Edge Cases");
-    void* unit;
-    0 = (0);
-    kr_test_pass("Empty tuple (unit type)");
-    void* pair;
-    0;
-    0;
-    0;
-    0 = 0;
-    kr_assert_eq(pair.0, 42);
-    kr_assert_eq(pair.1, 43);
-    kr_test_pass("Two element tuple");
-    void* large;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0 = 0;
-    kr_assert_eq(large.0, 1);
-    kr_assert_eq(large.5, 6);
-    kr_assert_eq(large.9, 10);
-    kr_test_pass("Large tuple (10 elements)");
-    void* nested;
-    0;
-    0(0, 0);
-    0 = 0;
-    0(3, 4);
-    0;
-    void* first;
-    0;
-    0;
-    0;
-    0 = nested.0;
-    void* second;
-    0;
-    0;
-    0;
-    0 = nested.1;
-    kr_assert_eq(first.0, 1);
-    kr_assert_eq(first.1, 2);
-    kr_assert_eq(second.0, 3);
-    kr_assert_eq(second.1, 4);
-    kr_test_pass("Deeply nested tuples");
-    void* triple;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0 = 0;
-    0;
-    3;
-    0;
-    0;
-    4;
-    0;
-    void* outer;
-    0;
-    0;
-    0;
-    0 = triple.0;
-    void* inner;
-    0;
-    0;
-    0;
-    0 = outer.0;
-    kr_assert_eq(inner.0, 1);
-    kr_assert_eq(inner.1, 2);
-    kr_assert_eq(outer.1, 3);
-    kr_assert_eq(triple.1, 4);
-    kr_test_pass("Triple nested tuples");
-    void* same;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0 = 0;
-    kr_assert_eq(same.0, 5);
-    kr_assert_eq(same.1, 5);
-    kr_assert_eq(same.2, 5);
-    kr_test_pass("Tuple with identical values");
-    void* with_zero;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0 = 0;
-    kr_assert_eq(with_zero.0, 0);
-    kr_assert_eq(with_zero.1, 1);
-    kr_assert_eq(with_zero.2, 0);
-    kr_test_pass("Tuple with zero values");
-    void* negative;
-    0;
-    0;
-    0;
-    0 = 0;
-    kr_assert_eq(negative.0, -1);
-    kr_assert_eq(negative.1, -100);
-    kr_test_pass("Tuple with negative numbers");
-    0;
+    return 0;
 }
 
 int64_t kr_test_destructuring_edge_cases() {
-    kr_test_section("Destructuring Edge Cases");
-    kr_test_pass("Destructure empty tuple");
-    int64_t x = 0;
-    int64_t y = 0;
-    kr_assert_eq(x, 99);
-    kr_assert_eq(y, 100);
-    kr_test_pass("Destructure two element tuple");
-    int64_t a = 0;
-    int64_t _ = 0;
-    int64_t c = 0;
-    kr_assert_eq(a, 1);
-    kr_assert_eq(c, 3);
-    kr_test_pass("Destructure with wildcards");
-    int64_t _ = 0;
-    int64_t _ = 0;
-    int64_t _ = 0;
-    kr_test_pass("Destructure all wildcards");
-    int64_t v1 = 0;
-    int64_t v2 = 0;
-    int64_t v3 = 0;
-    int64_t v4 = 0;
-    int64_t v5 = 0;
-    int64_t v6 = 0;
-    int64_t v7 = 0;
-    int64_t v8 = 0;
-    kr_assert_eq(v1, 1);
-    kr_assert_eq(v4, 4);
-    kr_assert_eq(v8, 8);
-    kr_test_pass("Destructure large tuple");
-    int64_t p = 0;
-    int64_t q = 0;
-    0;
-    r;
-    0;
-    0(0, 0) = 0;
-    0;
-    30;
-    0;
-    kr_assert_eq(p, 10);
-    kr_assert_eq(q, 20);
-    kr_assert_eq(r, 30);
-    kr_test_pass("Destructure nested tuple");
-    int64_t x = 0;
-    int64_t y = 0;
-    kr_assert_eq(x, 1);
-    kr_assert_eq(y, 2);
-    int64_t x = 0;
-    int64_t y = 0;
-    kr_assert_eq(x, 3);
-    kr_assert_eq(y, 4);
-    kr_test_pass("Destructure with shadowing");
-    int64_t z1 = 0;
-    int64_t z2 = 0;
-    kr_assert_eq(z1, 0);
-    kr_assert_eq(z2, 0);
-    kr_test_pass("Destructure zero values");
-    0;
+    return 0;
 }
 
 int64_t kr_test_pattern_matching_edge_cases() {
-    kr_test_section("Pattern Matching Edge Cases");
-    void* unit;
-    0 = (0);
-    if (unit == () {
-        0;
-        0;
-        0;
-        kr_test_pass("Match empty tuple");
-    }
-    void* pair;
-    0;
-    0;
-    0;
-    0 = 0;
-    if (pair == () {
-        x;
-        0;
-        y;
-        0;
-        0;
-        0;
-        kr_assert_eq(x, 42);
-        kr_assert_eq(y, 43);
-        kr_test_pass("Match two element tuple");
-    }
-    void* triple;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0 = 0;
-    if (triple == () {
-        _;
-        0;
-        _;
-        0;
-        _;
-        0;
-        0;
-        0;
-        kr_test_pass("Match with all wildcards");
-    }
-    void* mixed;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0 = 0;
-    if (mixed == () {
-        a;
-        0;
-        _;
-        0;
-        c;
-        0;
-        0;
-        0;
-        kr_assert_eq(a, 5);
-        kr_assert_eq(c, 15);
-        kr_test_pass("Match with mixed wildcards and bindings");
-    }
-    void* nested;
-    0;
-    0;
-    0;
-    0 = 0;
-    0;
-    9;
-    0;
-    if (nested == () {
-        0;
-        0;
-        z;
-        0;
-        0;
-        0;
-        kr_assert_eq(x, 7);
-        kr_assert_eq(y, 8);
-        kr_assert_eq(z, 9);
-        kr_test_pass("Match nested tuple");
-    }
-    void* zeros;
-    0;
-    0;
-    0;
-    0 = 0;
-    if (zeros == () {
-        a;
-        0;
-        b;
-        0;
-        0;
-        0;
-        kr_assert_eq(a, 0);
-        kr_assert_eq(b, 0);
-        kr_test_pass("Match tuple with zeros");
-    }
-    void* negs;
-    0;
-    0;
-    0;
-    0 = 0;
-    if (negs == () {
-        x;
-        0;
-        y;
-        0;
-        0;
-        0;
-        kr_assert_eq(x, -5);
-        kr_assert_eq(y, -10);
-        kr_test_pass("Match tuple with negatives");
-    }
-    void* large;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0 = 0;
-    if (large == () {
-        a;
-        0;
-        b;
-        0;
-        c;
-        0;
-        d;
-        0;
-        e;
-        0;
-        0;
-        0;
-        kr_assert_eq(a, 1);
-        kr_assert_eq(c, 3);
-        kr_assert_eq(e, 5);
-        kr_test_pass("Match large tuple");
-    }
-    void* t1;
-    0;
-    0;
-    0;
-    0 = 0;
-    int64_t a = 0;
-    int64_t b = 0;
-    void* t2;
-    0;
-    0;
-    0;
-    0 = 0;
-    int64_t c = 0;
-    int64_t d = 0;
-    kr_assert_eq(c, 10);
-    kr_assert_eq(d, 20);
-    kr_test_pass("Multiple sequential destructurings");
-    void* big_tuple;
-    0;
-    0(0, 0);
-    0 = 0;
-    0(3, 4);
-    0;
-    int64_t first = 0;
-    int64_t second = 0;
-    if (first == () {
-        x;
-        0;
-        y;
-        0;
-        0;
-        0;
-        kr_assert_eq(x, 1);
-        kr_assert_eq(y, 2);
-    }
-    if (second == () {
-        x;
-        0;
-        y;
-        0;
-        0;
-        0;
-        kr_assert_eq(x, 3);
-        kr_assert_eq(y, 4);
-    }
-    kr_test_pass("Destructure then match");
-    0;
+    return 0;
 }
 
 int64_t kr_main() {

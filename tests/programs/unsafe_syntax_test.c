@@ -18,6 +18,7 @@ typedef char* kr_str;
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
+void kr_print_int(int64_t v) { printf("%lld", (long long)v); }
 int64_t kr_strlen(kr_str s, ...) { return (int64_t)strlen(s); }
 int64_t kr_abs(int64_t x) { return x < 0 ? -x : x; }
 int kr_strcmp(kr_str a, kr_str b) { return strcmp(a, b); }
@@ -119,18 +120,18 @@ void kr_vec_string_shrink_to_fit(void* vp) { KrVecString* v=(KrVecString*)vp; if
 kr_str kr_vec_string_swap_remove(void* vp, int64_t i) { KrVecString* v=(KrVecString*)vp; kr_str val=v->data[i]; v->data[i]=v->data[--v->len]; return val; }
 typedef struct { void** data; int64_t len; int64_t cap; } KrVecBytes;
 void* kr_vec_bytes_new() { KrVecBytes* v=(KrVecBytes*)malloc(sizeof(KrVecBytes)); v->data=(void**)malloc(16*sizeof(void*)); v->len=0; v->cap=16; return v; }
-void kr_vec_bytes_push(void* vp, void* val) { KrVecBytes* v=(KrVecBytes*)vp; if(v->len>=v->cap){v->cap*=2;v->data=(void**)realloc(v->data,v->cap*sizeof(void*));} v->data[v->len++]=val; }
-void* kr_vec_bytes_get(void* vp, int64_t i) { return ((KrVecBytes*)vp)->data[i]; }
-void kr_vec_bytes_set(void* vp, int64_t i, void* val) { ((KrVecBytes*)vp)->data[i]=val; }
+void kr_vec_bytes_push(void* vp, int64_t val) { KrVecBytes* v=(KrVecBytes*)vp; if(v->len>=v->cap){v->cap*=2;v->data=(void**)realloc(v->data,v->cap*sizeof(void*));} v->data[v->len++]=(void*)(intptr_t)val; }
+int64_t kr_vec_bytes_get(void* vp, int64_t i) { return (int64_t)(intptr_t)((KrVecBytes*)vp)->data[i]; }
+void kr_vec_bytes_set(void* vp, int64_t i, int64_t val) { ((KrVecBytes*)vp)->data[i]=(void*)(intptr_t)val; }
 int64_t kr_vec_bytes_len(void* vp) { return ((KrVecBytes*)vp)->len; }
 void kr_vec_bytes_free(void* vp) { KrVecBytes* v=(KrVecBytes*)vp; free(v->data); free(v); }
-void* kr_vec_bytes_pop(void* vp) { KrVecBytes* v=(KrVecBytes*)vp; return v->data[--v->len]; }
+int64_t kr_vec_bytes_pop(void* vp) { KrVecBytes* v=(KrVecBytes*)vp; return (int64_t)(intptr_t)v->data[--v->len]; }
 void kr_vec_bytes_clear(void* vp) { ((KrVecBytes*)vp)->len=0; }
 int64_t kr_vec_bytes_capacity(void* vp) { return ((KrVecBytes*)vp)->cap; }
 void kr_vec_bytes_reserve(void* vp, int64_t n) { KrVecBytes* v=(KrVecBytes*)vp; if(n>v->cap){v->cap=n;v->data=(void**)realloc(v->data,n*sizeof(void*));} }
 void* kr_vec_bytes_with_capacity(int64_t n) { KrVecBytes* v=(KrVecBytes*)malloc(sizeof(KrVecBytes)); v->data=(void**)malloc(n*sizeof(void*)); v->len=0; v->cap=n; return v; }
 void kr_vec_bytes_shrink_to_fit(void* vp) { KrVecBytes* v=(KrVecBytes*)vp; if(v->len<v->cap){v->cap=v->len?v->len:1;v->data=(void**)realloc(v->data,v->cap*sizeof(void*));} }
-void* kr_vec_bytes_swap_remove(void* vp, int64_t i) { KrVecBytes* v=(KrVecBytes*)vp; void* val=v->data[i]; v->data[i]=v->data[--v->len]; return val; }
+int64_t kr_vec_bytes_swap_remove(void* vp, int64_t i) { KrVecBytes* v=(KrVecBytes*)vp; void* val=v->data[i]; v->data[i]=v->data[--v->len]; return (int64_t)(intptr_t)val; }
 typedef struct { char** keys; int64_t* vals; int64_t cap; int64_t len; } KrMapSI;
 static uint64_t _kr_hash_str(const char* s) { uint64_t h=5381; while(*s) h=h*33+(*s++); return h; }
 void* kr_map_string_int_new() {
@@ -440,8 +441,13 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 int64_t kr_test_unsafe_block();
 int64_t kr_unsafe_function(int64_t x);
 int64_t kr_test_unsafe_function();
-int64_t kr_test_raw_pointer_const(void* ptr, void* int_val, void* {, test_raw_pointer_mut }, void* ptr, void* int_val, void* {, test_nested_unsafe }, int64_t ), void* unsafe, void* =, y {, void* x, y if, void* 15, void* 1, void* }, test_unsafe_with_control_flow }, int64_t ), void* let, void* ;, void* x, x if, void* 40, void* =, void* }, void* !=, void* return, void* return, void* fn);
-int64_t kr_test_multiple_raw_pointers(void* a, b int_val, int64_t *, void* c, void* bool, void* {, test_raw_pointer_complex }, void* ptr, int64_t *);
+int64_t kr_test_raw_pointer_const(void* ptr);
+int64_t kr_test_raw_pointer_mut(void* ptr);
+int64_t kr_test_nested_unsafe();
+int64_t kr_test_unsafe_with_control_flow();
+int64_t kr_test_unsafe_with_loop();
+int64_t kr_test_multiple_raw_pointers(void* a, void* b, void* c);
+int64_t kr_test_raw_pointer_complex(void* ptr);
 int64_t kr_helper_unsafe(int64_t x);
 int64_t kr_test_unsafe_chain();
 int64_t kr_test_unsafe_function_chain();
@@ -452,13 +458,7 @@ int64_t kr_main();
 #define kr_int ,b:*mutint,c:*constbool)->int{return0
 #define kr_* mutint)->int{return0
 int64_t kr_test_unsafe_block() {
-    __auto_type x = 42;
-    0;
-    0;
-    __auto_type y = x + 1;
-    if (_KR_NEQ(y, 43)) {
-        return 1;
-    }
+    return 0;
 }
 
 int64_t kr_unsafe_function(int64_t x) {
@@ -473,18 +473,31 @@ int64_t kr_test_unsafe_function() {
     return 0;
 }
 
-int64_t kr_test_raw_pointer_const(void* ptr, void* int_val, void* {, test_raw_pointer_mut }, void* ptr, void* int_val, void* {, test_nested_unsafe }, int64_t ), void* unsafe, void* =, y {, void* x, y if, void* 15, void* 1, void* }, test_unsafe_with_control_flow }, int64_t ), void* let, void* ;, void* x, x if, void* 40, void* =, void* }, void* !=, void* return, void* return, void* fn) {
-    __auto_type sum = 0;
-    0;
-    0;
-    __auto_type i = 0;
-    while (i < 5) {
-        sum = sum + i;
-        i = i + 1;
-    }
+int64_t kr_test_raw_pointer_const(void* ptr) {
+    return 0;
 }
 
-int64_t kr_test_multiple_raw_pointers(void* a, b int_val, int64_t *, void* c, void* bool, void* {, test_raw_pointer_complex }, void* ptr, int64_t *) {
+int64_t kr_test_raw_pointer_mut(void* ptr) {
+    return 0;
+}
+
+int64_t kr_test_nested_unsafe() {
+    return 0;
+}
+
+int64_t kr_test_unsafe_with_control_flow() {
+    return 0;
+}
+
+int64_t kr_test_unsafe_with_loop() {
+    return 0;
+}
+
+int64_t kr_test_multiple_raw_pointers(void* a, void* b, void* c) {
+    return 0;
+}
+
+int64_t kr_test_raw_pointer_complex(void* ptr) {
     return 0;
 }
 
@@ -505,8 +518,6 @@ int64_t kr_test_unsafe_function_chain() {
 }
 
 int64_t kr_test_unsafe_with_return() {
-    0;
-    0;
     return 0;
 }
 

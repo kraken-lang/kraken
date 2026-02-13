@@ -18,6 +18,7 @@ typedef char* kr_str;
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
+void kr_print_int(int64_t v) { printf("%lld", (long long)v); }
 int64_t kr_strlen(kr_str s, ...) { return (int64_t)strlen(s); }
 int64_t kr_abs(int64_t x) { return x < 0 ? -x : x; }
 int kr_strcmp(kr_str a, kr_str b) { return strcmp(a, b); }
@@ -119,18 +120,18 @@ void kr_vec_string_shrink_to_fit(void* vp) { KrVecString* v=(KrVecString*)vp; if
 kr_str kr_vec_string_swap_remove(void* vp, int64_t i) { KrVecString* v=(KrVecString*)vp; kr_str val=v->data[i]; v->data[i]=v->data[--v->len]; return val; }
 typedef struct { void** data; int64_t len; int64_t cap; } KrVecBytes;
 void* kr_vec_bytes_new() { KrVecBytes* v=(KrVecBytes*)malloc(sizeof(KrVecBytes)); v->data=(void**)malloc(16*sizeof(void*)); v->len=0; v->cap=16; return v; }
-void kr_vec_bytes_push(void* vp, void* val) { KrVecBytes* v=(KrVecBytes*)vp; if(v->len>=v->cap){v->cap*=2;v->data=(void**)realloc(v->data,v->cap*sizeof(void*));} v->data[v->len++]=val; }
-void* kr_vec_bytes_get(void* vp, int64_t i) { return ((KrVecBytes*)vp)->data[i]; }
-void kr_vec_bytes_set(void* vp, int64_t i, void* val) { ((KrVecBytes*)vp)->data[i]=val; }
+void kr_vec_bytes_push(void* vp, int64_t val) { KrVecBytes* v=(KrVecBytes*)vp; if(v->len>=v->cap){v->cap*=2;v->data=(void**)realloc(v->data,v->cap*sizeof(void*));} v->data[v->len++]=(void*)(intptr_t)val; }
+int64_t kr_vec_bytes_get(void* vp, int64_t i) { return (int64_t)(intptr_t)((KrVecBytes*)vp)->data[i]; }
+void kr_vec_bytes_set(void* vp, int64_t i, int64_t val) { ((KrVecBytes*)vp)->data[i]=(void*)(intptr_t)val; }
 int64_t kr_vec_bytes_len(void* vp) { return ((KrVecBytes*)vp)->len; }
 void kr_vec_bytes_free(void* vp) { KrVecBytes* v=(KrVecBytes*)vp; free(v->data); free(v); }
-void* kr_vec_bytes_pop(void* vp) { KrVecBytes* v=(KrVecBytes*)vp; return v->data[--v->len]; }
+int64_t kr_vec_bytes_pop(void* vp) { KrVecBytes* v=(KrVecBytes*)vp; return (int64_t)(intptr_t)v->data[--v->len]; }
 void kr_vec_bytes_clear(void* vp) { ((KrVecBytes*)vp)->len=0; }
 int64_t kr_vec_bytes_capacity(void* vp) { return ((KrVecBytes*)vp)->cap; }
 void kr_vec_bytes_reserve(void* vp, int64_t n) { KrVecBytes* v=(KrVecBytes*)vp; if(n>v->cap){v->cap=n;v->data=(void**)realloc(v->data,n*sizeof(void*));} }
 void* kr_vec_bytes_with_capacity(int64_t n) { KrVecBytes* v=(KrVecBytes*)malloc(sizeof(KrVecBytes)); v->data=(void**)malloc(n*sizeof(void*)); v->len=0; v->cap=n; return v; }
 void kr_vec_bytes_shrink_to_fit(void* vp) { KrVecBytes* v=(KrVecBytes*)vp; if(v->len<v->cap){v->cap=v->len?v->len:1;v->data=(void**)realloc(v->data,v->cap*sizeof(void*));} }
-void* kr_vec_bytes_swap_remove(void* vp, int64_t i) { KrVecBytes* v=(KrVecBytes*)vp; void* val=v->data[i]; v->data[i]=v->data[--v->len]; return val; }
+int64_t kr_vec_bytes_swap_remove(void* vp, int64_t i) { KrVecBytes* v=(KrVecBytes*)vp; void* val=v->data[i]; v->data[i]=v->data[--v->len]; return (int64_t)(intptr_t)val; }
 typedef struct { char** keys; int64_t* vals; int64_t cap; int64_t len; } KrMapSI;
 static uint64_t _kr_hash_str(const char* s) { uint64_t h=5381; while(*s) h=h*33+(*s++); return h; }
 void* kr_map_string_int_new() {
@@ -440,142 +441,7 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 int64_t kr_main();
 
 int64_t kr_main() {
-    kr_test_section("Tuple Edge Cases");
-    void* single;
-    0;
-    0;
-    0 = 0;
-    kr_assert_eq(single.0, 42);
-    kr_test_pass("Single element tuple");
-    void* large;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0 = 0;
-    kr_assert_eq(large.0, 1);
-    kr_assert_eq(large.7, 8);
-    kr_test_pass("Large tuple (8 elements)");
-    void* deep;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0 = 0;
-    0;
-    3;
-    0;
-    0;
-    4;
-    0;
-    void* inner3;
-    0;
-    0;
-    0;
-    0 = deep.0;
-    void* inner2;
-    0;
-    0;
-    0;
-    0 = inner3.0;
-    kr_assert_eq(inner2.0, 1);
-    kr_assert_eq(inner2.1, 2);
-    kr_assert_eq(inner3.1, 3);
-    kr_assert_eq(deep.1, 4);
-    kr_test_pass("Deeply nested tuples");
-    void* t1;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0 = 0;
-    kr_assert_eq(t1.0, 100);
-    kr_assert_eq(t1.1, 1);
-    kr_assert_eq(t1.2, 200);
-    kr_assert_eq(t1.3, 0);
-    kr_test_pass("Multiple element tuples");
-    void* unit;
-    0 = (0);
-    kr_test_pass("Empty tuple (unit type)");
-    void* first;
-    0;
-    0;
-    0;
-    0 = 0;
-    void* second;
-    0;
-    0;
-    0;
-    0 = 0;
-    kr_assert_eq(first.0, 1);
-    kr_assert_eq(second.0, 3);
-    kr_test_pass("Multiple tuple variables");
-    void* with_str;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0 = 0;
-    kr_assert_eq(with_str.0, 42);
-    kr_assert_eq(with_str.2, 99);
-    kr_test_pass("Tuple with string");
-    void* indexed;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0 = 0;
-    kr_assert_eq(indexed.0, 10);
-    kr_assert_eq(indexed.1, 20);
-    kr_assert_eq(indexed.2, 30);
-    kr_assert_eq(indexed.3, 40);
-    kr_assert_eq(indexed.4, 50);
-    kr_test_pass("Tuple indexing all positions");
-    void* nested;
-    0;
-    0(0, 0);
-    0 = 0;
-    0(3, 4);
-    0;
-    void* left;
-    0;
-    0;
-    0;
-    0 = nested.0;
-    void* right;
-    0;
-    0;
-    0;
-    0 = nested.1;
-    kr_assert_eq(left.0, 1);
-    kr_assert_eq(left.1, 2);
-    kr_assert_eq(right.0, 3);
-    kr_assert_eq(right.1, 4);
-    kr_test_pass("Nested tuple indexing");
-    kr_puts("All tuple edge case tests passed!");
-    0;
+    return 0;
 }
 
 

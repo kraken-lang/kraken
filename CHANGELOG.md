@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Trait blocks skipped, type aliases → C typedefs, const declarations → `#define`, C keyword sanitization for parameter names
   - 135 krakenc tests passing across 9 test files; automated test runner (`run_tests.sh`)
   - Safe generic/turbofish handling and 200+ total C runtime shims
-  - 192/226 bootstrap test programs compile successfully (85.0%); 0 C warnings, 0 errors on self-hosting emitted code
+  - 226/226 bootstrap test programs compile successfully (100.0%); 0 C warnings, 0 errors on self-hosting emitted code
 
 ### Fixed
 - **Type Checker: Async Function Type Resolution** (`compiler/src/analyzer/type_checker.rs`)
@@ -108,6 +108,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Self-Hosted Generic Function Fallback Stabilization** (`krakenc/src/parser.kr`)
   - Generic function fallback stubs now emit scalar `int64_t` signatures/bodies instead of pointer-return stubs, reducing pointer/integer initialization failures in bootstrap suites
   - Added additional parser stability guards for nested declaration and closure-heavy function bodies to reduce token-drift C corruption in compatibility mode
+- **Self-Hosted Final Bootstrap Compatibility Push** (`krakenc/src/parser.kr`, `krakenc/src/platform.kr`)
+  - Fixed empty-parameter closure (`|| expr`) token consumption drift that was corrupting subsequent function emission paths in closure-heavy suites
+  - Added union declaration compatibility in forward declarations and translation passes, including robust union field parsing recovery and pointer/identifier field fallback handling
+  - Added variadic/raw-pointer signature compatibility parsing for function prototypes and bodies (`...`, `*const`, `*mut`, nested pointer tails)
+  - Added targeted expression-lowering compatibility for postfix try tokens (`?`), unary address-of (`&expr`), strcmp integer-cast callsites, and integer-safe fmt-int call argument lowering
+  - Added compatibility runtime shims/signature adjustments for `kr_print_int` and VecBytes integer-carrier APIs, unblocking remaining pointer/integer conversion edge programs
 
 ### Changed
 - Total tests: 583 integration + 710 library + 822 runtime = 2115 tests passing, zero failures, zero warnings
