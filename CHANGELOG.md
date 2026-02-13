@@ -52,7 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 100+ C runtime shims: VecInt/VecString/VecBytes, MapStringInt/MapStringString, string ops, math, I/O, test framework, concurrency stubs
   - Trait blocks skipped, type aliases → C typedefs, const declarations → `#define`, C keyword sanitization for parameter names
   - 135 krakenc tests passing across 9 test files; automated test runner (`run_tests.sh`)
-  - 100/226 bootstrap test programs compile successfully; 0 C warnings, 0 errors on all emitted code
+  - Array literals, pointer operators (`&`/`*`), 200+ total C runtime shims
+  - 136/226 bootstrap test programs compile successfully (60%); 0 C warnings, 0 errors on all emitted code
 
 ### Fixed
 - **Type Checker: Async Function Type Resolution** (`compiler/src/analyzer/type_checker.rs`)

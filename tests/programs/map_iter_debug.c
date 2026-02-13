@@ -53,7 +53,7 @@ kr_str kr_getenv(kr_str name) {
 int64_t kr_system(kr_str cmd) { return (int64_t)system(cmd); }
 void kr_exit(int64_t code) { exit((int)code); }
 void* kr_fopen(kr_str path, kr_str mode) { return (void*)fopen(path, mode); }
-void kr_fclose(void* f) { fclose((FILE*)f); }
+int64_t kr_fclose(void* f) { return (int64_t)fclose((FILE*)f); }
 void kr_fputs(kr_str s, void* f) { fputs(s, (FILE*)f); }
 kr_str kr_file_read_string(kr_str path) {
   FILE* f = fopen(path, "rb"); if(!f) return "";
@@ -186,7 +186,7 @@ void kr_map_string_string_clear(void* mp) { KrMapSS* m=(KrMapSS*)mp; for(int64_t
 void kr_map_string_string_free(void* mp) { KrMapSS* m=(KrMapSS*)mp; for(int64_t i=0;i<m->cap;i++){if(m->keys[i]){free(m->keys[i]);free(m->vals[i]);}} free(m->keys);free(m->vals);free(m); }
 void* kr_map_string_string_keys(void* mp) { KrMapSS* m=(KrMapSS*)mp; void* v=kr_vec_string_new(); for(int64_t i=0;i<m->cap;i++)if(m->keys[i])kr_vec_string_push(v,m->keys[i]); return v; }
 void* kr_map_string_string_values(void* mp) { KrMapSS* m=(KrMapSS*)mp; void* v=kr_vec_string_new(); for(int64_t i=0;i<m->cap;i++)if(m->keys[i])kr_vec_string_push(v,m->vals[i]); return v; }
-kr_str kr_fmt_float(double v) { char* r=(char*)malloc(64); snprintf(r,64,"%g",v); return r; }
+kr_str kr_fmt_float(double v, ...) { char* r=(char*)malloc(64); snprintf(r,64,"%g",v); return r; }
 kr_str kr_fmt_bool(int64_t v) { return v ? "true" : "false"; }
 kr_str kr_fmt_hex(int64_t v) { char* r=(char*)malloc(32); snprintf(r,32,"0x%llx",(unsigned long long)v); return r; }
 #define kr_printf(...) printf(__VA_ARGS__)
@@ -284,6 +284,83 @@ int64_t kr_toupper(int64_t c) { return (int64_t)toupper((int)c); }
 int64_t kr_atoi(kr_str s) { return (int64_t)atoi(s); }
 double kr_atof(kr_str s) { return atof(s); }
 void kr_abort() { abort(); }
+kr_str kr_fgets(kr_str buf, int64_t n, void* f) { return fgets(buf,(int)n,(FILE*)f); }
+int64_t kr_fwrite(void* ptr, int64_t size, int64_t count, void* f) { return (int64_t)fwrite(ptr,(size_t)size,(size_t)count,(FILE*)f); }
+int64_t kr_fread(void* ptr, int64_t size, int64_t count, void* f) { return (int64_t)fread(ptr,(size_t)size,(size_t)count,(FILE*)f); }
+int64_t kr_feof(void* f) { return (int64_t)feof((FILE*)f); }
+int64_t kr_ferror(void* f) { return (int64_t)ferror((FILE*)f); }
+int64_t kr_fflush(void* f) { return (int64_t)fflush((FILE*)f); }
+int64_t kr_fgetc(void* f) { return (int64_t)fgetc((FILE*)f); }
+int64_t kr_fputc(int64_t c, void* f) { return (int64_t)fputc((int)c,(FILE*)f); }
+int64_t kr_fseek(void* f, int64_t off, int64_t w) { return (int64_t)fseek((FILE*)f,(long)off,(int)w); }
+int64_t kr_ftell(void* f) { return (int64_t)ftell((FILE*)f); }
+void kr_rewind(void* f) { rewind((FILE*)f); }
+int64_t kr_memcmp(void* a, void* b, int64_t n) { return (int64_t)memcmp(a,b,(size_t)n); }
+void* kr_memcpy(void* dst, void* src, int64_t n) { return memcpy(dst,src,(size_t)n); }
+void* kr_memmove(void* dst, void* src, int64_t n) { return memmove(dst,src,(size_t)n); }
+void* kr_memset(void* p, int64_t c, int64_t n) { return memset(p,(int)c,(size_t)n); }
+void kr_setenv(kr_str name, kr_str val, ...) { setenv(name,val,1); }
+void kr_unsetenv(kr_str name) { unsetenv(name); }
+kr_str kr_strstr(kr_str haystack, kr_str needle) { char* p=strstr(haystack,needle); return p?p:""; }
+kr_str kr_strchr(kr_str s, int64_t c) { char* p=strchr(s,(int)c); return p?p:""; }
+kr_str kr_strncpy(kr_str dst, kr_str src, int64_t n) { return strncpy(dst,src,(size_t)n); }
+kr_str kr_strcat(kr_str dst, kr_str src) { return strcat(dst,src); }
+kr_str kr_strcpy(kr_str dst, kr_str src) { return strcpy(dst,src); }
+int64_t kr_strncmp(kr_str a, kr_str b, int64_t n) { return (int64_t)strncmp(a,b,(size_t)n); }
+kr_str kr_strtok(kr_str s, kr_str d) { return strtok(s,d); }
+int64_t kr_str_is_valid_utf8(kr_str s) { while(*s){unsigned char c=*s;if(c<0x80)s++;else if((c&0xE0)==0xC0){if((s[1]&0xC0)!=0x80)return 0;s+=2;}else if((c&0xF0)==0xE0){if((s[1]&0xC0)!=0x80||(s[2]&0xC0)!=0x80)return 0;s+=3;}else if((c&0xF8)==0xF0){if((s[1]&0xC0)!=0x80||(s[2]&0xC0)!=0x80||(s[3]&0xC0)!=0x80)return 0;s+=4;}else return 0;} return 1; }
+int64_t kr_str_char_at_utf8(kr_str s, int64_t idx) { return (int64_t)(unsigned char)s[idx]; }
+int64_t kr_block_on(void* future) { (void)future; return 0; }
+#define kr_sprintf(...) sprintf(__VA_ARGS__)
+#define kr_sscanf(...) sscanf(__VA_ARGS__)
+#define kr_snprintf(...) snprintf(__VA_ARGS__)
+int64_t kr_rand_int(int64_t lo, int64_t hi) { return lo + (rand() % (hi - lo + 1)); }
+double kr_rand_float() { return (double)rand() / (double)RAND_MAX; }
+void kr_rand_seed(int64_t seed) { srand((unsigned)seed); }
+int64_t kr_math_abs(int64_t x) { return x<0?-x:x; }
+int64_t kr_math_min(int64_t a, int64_t b) { return a<b?a:b; }
+int64_t kr_math_max(int64_t a, int64_t b) { return a>b?a:b; }
+double kr_math_sqrt(double x) { return sqrt(x); }
+double kr_math_floor(double x) { return floor(x); }
+double kr_math_ceil(double x) { return ceil(x); }
+double kr_math_round(double x) { return round(x); }
+double kr_math_sin(double x) { return sin(x); }
+double kr_math_cos(double x) { return cos(x); }
+double kr_math_tan(double x) { return tan(x); }
+double kr_math_pow(double x, double y) { return pow(x,y); }
+void kr_log_debug(kr_str msg) { fprintf(stderr,"[DEBUG] %s\n",msg); }
+void kr_log_info(kr_str msg) { fprintf(stderr,"[INFO] %s\n",msg); }
+void kr_log_warn(kr_str msg) { fprintf(stderr,"[WARN] %s\n",msg); }
+void kr_log_error(kr_str msg) { fprintf(stderr,"[ERROR] %s\n",msg); }
+void kr_log_set_level(int64_t lvl) { (void)lvl; }
+int64_t kr_bench_start() { return (int64_t)clock(); }
+int64_t kr_bench_end(int64_t start, ...) { return (int64_t)clock() - start; }
+int64_t kr_remove(kr_str path) { return (int64_t)remove(path); }
+int64_t kr_rename(kr_str old, kr_str new_path) { return (int64_t)rename(old,new_path); }
+void* kr_rand_bytes(int64_t n) { void* buf=malloc((size_t)n); for(int64_t i=0;i<n;i++)((char*)buf)[i]=(char)rand(); return buf; }
+int64_t kr_bytes_eq(void* a, void* b, int64_t n) { return memcmp(a,b,(size_t)n)==0; }
+void kr_println(kr_str s) { printf("%s\n",s); }
+void* kr_mutex_new() { return malloc(64); }
+void kr_mutex_free(void* m) { free(m); }
+void* kr_channel_new() { return NULL; }
+void* kr_channel_create(int64_t cap) { (void)cap; return NULL; }
+void kr_channel_send(void* ch, int64_t val) { (void)ch; (void)val; }
+int64_t kr_channel_recv(void* ch) { (void)ch; return 0; }
+int64_t kr_channel_try_send(void* ch, int64_t val) { (void)ch; (void)val; return 0; }
+int64_t kr_channel_try_recv(void* ch) { (void)ch; return 0; }
+void kr_channel_close(void* ch) { (void)ch; }
+void* kr_condvar_create() { return malloc(64); }
+void kr_condvar_destroy(void* cv) { free(cv); }
+void kr_condvar_signal(void* cv) { (void)cv; }
+void kr_condvar_broadcast(void* cv) { (void)cv; }
+void* kr_pool_new(int64_t n) { (void)n; return malloc(8); }
+void kr_pool_shutdown(void* p) { free(p); }
+void* kr_executor_new() { return malloc(8); }
+void kr_executor_run(void* e) { (void)e; }
+void kr_executor_shutdown(void* e) { free(e); }
+void* kr_cancel_token_new() { return calloc(1,sizeof(int64_t)); }
+void kr_cancel_token_cancel(void* t) { *(int64_t*)t=1; }
+int64_t kr_cancel_token_is_cancelled(void* t) { return *(int64_t*)t; }
 
 /* Forward declarations */
 int64_t kr_main();
@@ -304,5 +381,6 @@ int64_t kr_main() {
 
 
 int main(int argc, char* argv[]) {
-    return (int)kr_main();
+    kr_main();
+    return 0;
 }
