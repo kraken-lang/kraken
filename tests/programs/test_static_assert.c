@@ -444,15 +444,9 @@ bool kr_is_power_of_two(int64_t n) {
 
 int64_t kr_main() {
     static_assert;
-    !(_KR_EQ(1 + 1, 2));
-    ,;
-    "Basic arithmetic failed";
-    );
+    !0;
     static_assert;
-    !(10 > 5);
-    ,;
-    "Comparison failed";
-    );
+    !0;
     return 0;
 }
 

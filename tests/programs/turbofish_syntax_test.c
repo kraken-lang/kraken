@@ -451,10 +451,7 @@ void* kr_pair(int64_t first, int64_t second) {
     U;
     );
     {;
-    return (first);
-    ,;
-    second;
-    );
+    return 0;
 }
 
 int64_t kr_test_turbofish_function_call() {
@@ -475,10 +472,7 @@ int64_t kr_test_turbofish_multiple_params() {
     __auto_type p = pair_<;
     int;
     ,;
-    bool > (42);
-    ,;
-    true;
-    );
+    bool > 0;
     int64_t (;
     x;
     ,;

@@ -442,10 +442,7 @@ int64_t kr_main() {
     int;
     ,;
     int;
-    ) = (10);
-    ,;
-    20;
-    );
+    ) = 0;
     {
         kr_puts("Matched");
     }

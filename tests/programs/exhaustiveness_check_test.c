@@ -513,68 +513,73 @@ int64_t kr_test_exhaustive_or_pattern_with_wildcard() {
     kr_test_section("Exhaustive: Or Pattern with Wildcard");
     int64_t x = 999;
     if (x == 1) {
-        |;
-        2 | _;
+        0;
+    }
+    else if (x == 0) {
+    }
+    else if (x == fn) {
+        kr_test_exhaustive_guard_with_wildcard();
         ->;
+        int;
         {;
-        kr_test_pass("Or pattern with wildcard is exhaustive");
+        kr_test_section("Exhaustive: Guard with Wildcard Fallback");
+        int64_t x = 15;
+        {
+            x > 10;
+            ->;
+            {;
+            kr_test_pass("Guard matches");
+        }
+        else {
+            kr_test_pass("Wildcard fallback ensures exhaustiveness");
+        }
+        0;
     }
-    0;
-}
-
-int64_t kr_test_exhaustive_guard_with_wildcard() {
-    kr_test_section("Exhaustive: Guard with Wildcard Fallback");
-    int64_t x = 15;
-    {
-        x > 10;
+    else if (x == fn) {
+        kr_test_exhaustive_nested_patterns();
         ->;
+        int;
         {;
-        kr_test_pass("Guard matches");
-    }
-    else {
-        kr_test_pass("Wildcard fallback ensures exhaustiveness");
-    }
-    0;
-}
-
-int64_t kr_test_exhaustive_nested_patterns() {
-    kr_test_section("Exhaustive: Nested Patterns");
-    void* pair;
-    int;
-    ,;
-    int;
-    ) = (1);
-    ,;
-    2;
-    );
-    if (pair == () {
-        1;
+        kr_test_section("Exhaustive: Nested Patterns");
+        void* pair;
+        int;
         ,;
-        2;
-        );
+        int;
+        ) = 0;
+        if (pair == () {
+            1;
+            ,;
+            2;
+            );
+            ->;
+            {;
+            kr_test_pass("Exact match");
+        }
+        else {
+            kr_test_pass("Wildcard covers all other tuples");
+        }
+        0;
+    }
+    else if (x == fn) {
+        kr_main();
         ->;
+        int;
         {;
-        kr_test_pass("Exact match");
+        kr_puts("=== EXHAUSTIVENESS CHECKING TESTS ===");
+        kr_puts("");
+        kr_test_exhaustive_with_wildcard();
+        kr_test_exhaustive_with_identifier();
+        kr_test_exhaustive_multiple_literals();
+        kr_test_exhaustive_range_with_wildcard();
+        kr_test_exhaustive_or_pattern_with_wildcard();
+        kr_test_exhaustive_guard_with_wildcard();
+        kr_test_exhaustive_nested_patterns();
+        kr_puts("");
+        kr_puts("=== ALL EXHAUSTIVENESS TESTS PASSED ===");
+        0;
     }
-    else {
-        kr_test_pass("Wildcard covers all other tuples");
+    else if (x == ) {
     }
-    0;
-}
-
-int64_t kr_main() {
-    kr_puts("=== EXHAUSTIVENESS CHECKING TESTS ===");
-    kr_puts("");
-    kr_test_exhaustive_with_wildcard();
-    kr_test_exhaustive_with_identifier();
-    kr_test_exhaustive_multiple_literals();
-    kr_test_exhaustive_range_with_wildcard();
-    kr_test_exhaustive_or_pattern_with_wildcard();
-    kr_test_exhaustive_guard_with_wildcard();
-    kr_test_exhaustive_nested_patterns();
-    kr_puts("");
-    kr_puts("=== ALL EXHAUSTIVENESS TESTS PASSED ===");
-    0;
 }
 
 

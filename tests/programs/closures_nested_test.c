@@ -453,72 +453,29 @@ void kr_test_nested_with_parameters_and_captures();
 void kr_main();
 
 void kr_test_simple_nested() {
-    __auto_type outer = |;
-    x;
-    :;
-    int | ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    return |;
-    y | x + y;
+    __auto_type outer = 0;
+    __auto_type add5 = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_double_nested() {
-    __auto_type outer = |;
-    x;
-    :;
-    int | ->;
-    fn(int);
-    ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    return |;
-    y | {;
-    return |;
-    z | x + y + z;
+    __auto_type outer = 0;
+    __auto_type f1 = 0;
+    __auto_type f2 = kr_f1(2);
+    __auto_type result = kr_f2(3);
 }
 
 void kr_test_nested_with_captures() {
     __auto_type a = 10;
-    __auto_type outer = |;
-    b;
-    :;
-    int | ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    __auto_type inner = |;
-    c;
-    :;
-    int | ->;
-    int;
-    {;
-    return a + b + c;
+    __auto_type outer = 0;
+    __auto_type f = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_nested_closure_chain() {
-    __auto_type make_multiplier = |;
-    factor;
-    :;
-    int | ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    return |;
-    x | {;
-    __auto_type double = |;
-    y;
-    :;
-    int | ->;
-    int;
-    {;
-    return y * 2;
+    __auto_type make_multiplier = 0;
+    __auto_type triple = 0;
+    __auto_type result = kr_triple(5);
 }
 
 void kr_test_nested_with_state() {
@@ -537,18 +494,14 @@ void kr_test_nested_with_state() {
 }
 
 void kr_test_nested_returning_multiple() {
-    __auto_type make_ops = |;
-    x;
-    :;
-    int | ->(fn(int), int, fn(int), int);
-    {;
-    __auto_type add = |;
-    y;
-    :;
-    int | ->;
-    int;
-    {;
-    return x + y;
+    __auto_type make_ops = 0;
+    int64_t (;
+    add5;
+    ,;
+    mul5;
+    ) = 0;
+    __auto_type r1 = 0;
+    __auto_type r2 = kr_mul5(3);
 }
 
 void kr_test_nested_in_loop() {
@@ -567,34 +520,20 @@ void kr_test_nested_in_loop() {
         ];
         );
         {;
-        __auto_type closure = |;
-        x;
-        :;
-        int | ->;
-        int;
-        {;
-        return x * i;
+        __auto_type closure = 0;
+        closures.push(closure);
     }
-    closures.push(closure);
+    __auto_type r1 = closures[0](10);
+    __auto_type r2 = closures[2](10);
+    __auto_type r3 = closures[4](10);
 }
 
 void kr_test_nested_conditional() {
-    __auto_type make_conditional = |;
-    flag;
-    :;
-    bool | ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    if (flag) {
-        return |;
-        x | x * 2;
-    }
-    else {
-        return |;
-        x | x + 2;
-    }
+    __auto_type make_conditional = 0;
+    __auto_type double = 0;
+    __auto_type add2 = 0;
+    __auto_type r1 = kr_double(5);
+    __auto_type r2 = kr_add2(5);
 }
 
 void kr_test_nested_recursive_style() {
@@ -604,85 +543,38 @@ void kr_test_nested_recursive_style() {
     ->;
     int;
     {;
-    __auto_type factorial = |;
-    n;
-    :;
-    int | ->;
-    int;
-    {;
-    if (n <= 1) {
-        return 1;
-    }
-    else {
-        return n;
-    }
+    __auto_type factorial = 0;
+    return factorial;
 }
 
 void kr_test_triple_nested() {
-    __auto_type level1 = |;
-    a;
-    :;
-    int | ->;
-    fn(int);
-    ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    return |;
-    b | {;
-    return |;
-    c | {;
-    return a + b + c;
+    __auto_type level1 = 0;
+    __auto_type result = 0(2)(3);
 }
 
 void kr_test_nested_with_mixed_captures() {
     __auto_type global = 100;
-    __auto_type outer = |;
-    x;
-    :;
-    int | ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    __auto_type local = 10;
-    return |;
-    y | global + x + local + y;
+    __auto_type outer = 0;
+    __auto_type f = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_nested_closure_composition() {
-    __auto_type compose = |;
-    f;
-    :;
-    fn(int);
-    ->;
-    int;
-    ,;
-    g;
-    :;
-    fn(int);
-    ->;
-    int | ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    return |;
-    x | kr_f(kr_g(x));
+    __auto_type compose = 0;
+    __auto_type double = 0;
+    __auto_type increment = 0;
+    __auto_type composed = 0;
+    __auto_type result = kr_composed(5);
 }
 
 void kr_test_nested_partial_application() {
-    __auto_type add = |;
-    x;
-    :;
-    int | ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    return |;
-    y | x + y;
+    __auto_type add = 0;
+    __auto_type add1 = 0;
+    __auto_type add2 = 0;
+    __auto_type add10 = 0;
+    __auto_type r1 = kr_add1(5);
+    __auto_type r2 = kr_add2(5);
+    __auto_type r3 = kr_add10(5);
 }
 
 void kr_test_deeply_nested_captures() {
@@ -703,17 +595,9 @@ void kr_test_deeply_nested_captures() {
 
 void kr_test_nested_with_parameters_and_captures() {
     __auto_type multiplier = 3;
-    __auto_type outer = |;
-    x;
-    :;
-    int | ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    __auto_type offset = 10;
-    return |;
-    y | (x + y + offset) * multiplier;
+    __auto_type outer = 0;
+    __auto_type f = 0;
+    __auto_type result = 0;
 }
 
 void kr_main() {

@@ -439,27 +439,17 @@ int64_t kr_apply(void* f, int64_t x);
 int64_t kr_main();
 
 int64_t kr_apply(void* f, int64_t x) {
-    return kr_f(x);
+    return 0;
 }
 
 int64_t kr_main() {
-    void* double = (void*)(intptr_t)(|);
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x * 2;
-}
-
-int64_t kr_(() {
-    |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x * 3;
+    void* double = (void*)(intptr_t)(0);
+    kr_puts(kr_str_concat("double(5): ", kr_fmt_int(0)));
+    int64_t result = kr_apply(0, 32);
+    kr_puts(kr_str_concat("apply(+10, 32): ", kr_fmt_int(result)));
+    void* triple = (void*)(intptr_t)(0);
+    kr_puts(kr_str_concat("triple(4): ", kr_fmt_int(0)));
+    return 0;
 }
 
 

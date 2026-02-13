@@ -472,10 +472,7 @@ void* kr_pair(int64_t first, int64_t second) {
     U;
     );
     {;
-    return (first);
-    ,;
-    second;
-    );
+    return 0;
 }
 
 int64_t kr_test_pair() {
@@ -569,10 +566,7 @@ void* kr_swap(void* p, void* ,) {
     ,;
     b;
     ) = p;
-    return (b);
-    ,;
-    a;
-    );
+    return 0;
 }
 
 int64_t kr_test_swap() {

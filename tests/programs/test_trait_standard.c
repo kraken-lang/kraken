@@ -482,7 +482,7 @@ Config kr_Default_default() {
 
 int64_t kr_main() {
     Counter c1 = (Counter){.count = 5};
-    Counter c2 = c1.clone();
+    Counter c2 = kr_Counter_clone(c1);
     Counter c3 = kr_Counter_default();
     Config cfg = kr_Config_default();
     return 0;

@@ -448,88 +448,45 @@ int64_t kr_test_void_return();
 int64_t kr_main();
 
 int64_t kr_test_simple_closure() {
-    __auto_type add_one = |;
-    x;
-    :;
-    int | x + 1;
+    __auto_type add_one = 0;
     0;
 }
 
 int64_t kr_test_closure_with_return_type() {
-    __auto_type multiply = |;
-    x;
-    :;
-    int;
-    ,;
-    y;
-    :;
-    int | ->;
-    int;
-    x * y;
+    __auto_type multiply = 0;
     0;
 }
 
 int64_t kr_test_closure_with_block() {
-    __auto_type complex_calc = |;
-    x;
-    :;
-    int | {;
-    __auto_type doubled = x * 2;
-    __auto_type result = doubled + 10;
-    result;
+    __auto_type complex_calc = 0;
+    0;
 }
 
 int64_t kr_test_multi_param_closure() {
-    __auto_type add_three = |;
-    a;
-    :;
-    int;
-    ,;
-    b;
-    :;
-    int;
-    ,;
-    c;
-    :;
-    int | a + b + c;
+    __auto_type add_three = 0;
     0;
 }
 
 int64_t kr_test_type_inference() {
-    __auto_type square = |;
-    x;
-    :;
-    int | x * x;
+    __auto_type square = 0;
     0;
 }
 
 int64_t kr_test_move_closure() {
     __auto_type x = 10;
-    __auto_type capture_x = move | y;
-    :;
-    int | x + y;
+    __auto_type capture_x = 0;
     0;
 }
 
 int64_t kr_test_capture_by_reference() {
     __auto_type x = 20;
-    __auto_type use_x = |;
-    y;
-    :;
-    int | x + y;
+    __auto_type use_x = 0;
     0;
 }
 
 int64_t kr_test_nested_closures() {
-    __auto_type outer = |;
-    x;
-    :;
-    int | {;
-    __auto_type inner = |;
-    y;
-    :;
-    int | x + y;
-    x;
+    __auto_type outer = 0;
+    0;
 }
 
 int64_t kr_test_no_params() {

@@ -487,11 +487,34 @@ int64_t kr_test_explicit_type_args() {
 }
 
 int64_t kr_apply_int(int64_t x, void* f) {
-    return kr_f(x);
+    return 0;
 }
 
 int64_t kr_test_higher_order_basic() {
-    __auto_type result = kr_apply_int(5, |, |, *, ), if(_KR_NEQ(result, 10)), return, ;, return, ;, fn, ()), int, let, =, ;, result, kr_apply_int(5, |, |, *, ), if(_KR_NEQ(result, 15)), return, ;, return, ;, fn, (f), fn(int), int, g, fn(int), int), fn(int), int, return | x | kr_f(kr_g(x)), }, kr_test_composition(), int, let, = | x, int | x * 2, let, = | x, int | x + 1, let, =, (double), add_one);
+    __auto_type result = kr_apply_int(5, 0);
+    if (_KR_NEQ(result, 10)) {
+        return 1;
+    }
+    return 0;
+}
+
+int64_t kr_test_higher_order_capture() {
+    __auto_type multiplier = 3;
+    __auto_type result = kr_apply_int(5, 0);
+    if (_KR_NEQ(result, 15)) {
+        return 1;
+    }
+    return 0;
+}
+
+void* kr_compose_int(void* f, void* g) {
+    return 0;
+}
+
+int64_t kr_test_composition() {
+    __auto_type double = 0;
+    __auto_type add_one = 0;
+    __auto_type composed = kr_compose_int(double, add_one);
     __auto_type result = kr_composed(5);
     if (_KR_NEQ(result, 12)) {
         return 1;
@@ -504,10 +527,7 @@ void* kr_pair(int64_t first, int64_t second) {
     U;
     );
     {;
-    return (first);
-    ,;
-    second;
-    );
+    return 0;
 }
 
 int64_t kr_test_multiple_generics() {

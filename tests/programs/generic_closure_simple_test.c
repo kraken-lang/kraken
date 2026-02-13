@@ -464,11 +464,33 @@ int64_t kr_test_type_inference() {
 }
 
 int64_t kr_apply_int(int64_t x, void* f) {
-    return kr_f(x);
+    return 0;
 }
 
 int64_t kr_test_higher_order() {
-    __auto_type result = kr_apply_int(5, |, |, *, ), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_test_closure_capture(), int, let, =, ;, result, kr_apply_int(5, |, |, *, ), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_main(), int, let, =, ;, =, +, ()), failures, failures + kr_test_type_inference(), failures, failures + kr_test_higher_order(), failures, failures + kr_test_closure_capture(), return, ;, ));
+    __auto_type result = kr_apply_int(5, 0);
+    if (_KR_NEQ(result, 10)) {
+        return 1;
+    }
+    return 0;
+}
+
+int64_t kr_test_closure_capture() {
+    __auto_type multiplier = 3;
+    __auto_type result = kr_apply_int(5, 0);
+    if (_KR_NEQ(result, 15)) {
+        return 1;
+    }
+    return 0;
+}
+
+int64_t kr_main() {
+    __auto_type failures = 0;
+    failures = failures + kr_test_explicit_types();
+    failures = failures + kr_test_type_inference();
+    failures = failures + kr_test_higher_order();
+    failures = failures + kr_test_closure_capture();
+    return failures;
 }
 
 

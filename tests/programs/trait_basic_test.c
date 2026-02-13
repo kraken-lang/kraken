@@ -466,10 +466,10 @@ int64_t kr_Cat_remaining_lives(Cat self) {
 
 int64_t kr_main() {
     Dog d = (Dog){.name = "Rex", .age = 5};
-    kr_puts(d.describe());
+    kr_puts(kr_Dog_describe(d));
     Cat c = (Cat){.name = "Whiskers", .lives = 9};
-    kr_puts(c.describe());
-    kr_puts(kr_str_concat("lives: ", kr_fmt_int(c.remaining_lives())));
+    kr_puts(kr_Cat_describe(c));
+    kr_puts(kr_str_concat("lives: ", kr_fmt_int(kr_Cat_remaining_lives(c))));
     return 0;
 }
 

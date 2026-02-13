@@ -451,7 +451,7 @@ int64_t kr_callback_multiply(int64_t a, int64_t b) {
 }
 
 int64_t kr_apply_operation(int64_t a, int64_t b, void* op) {
-    return kr_op(a, b);
+    return 0;
 }
 
 int64_t kr_callback_hello() {

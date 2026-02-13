@@ -453,16 +453,16 @@ void kr_test_multiple_closures();
 void kr_main();
 
 int64_t kr_apply(int64_t x, void* f) {
-    return kr_f(x);
+    return 0;
 }
 
 int64_t kr_apply_twice(int64_t x, void* f) {
-    return kr_f(kr_f(x));
+    return 0;
+    );
 }
 
 void* kr_compose(void* f, void* g) {
-    return |;
-    x | kr_f(kr_g(x));
+    return 0;
 }
 
 int64_t kr_map_array(void* arr, f ], int64_t fn) {
@@ -473,7 +473,7 @@ int64_t kr_map_array(void* arr, f ], int64_t fn) {
     ] = (int64_t[]){};
     for (int64_t i = arr; i < {; i++) {
         .;
-        kr_push(kr_f(i));
+        kr_push(0);
     }
     return result;
 }
@@ -495,38 +495,65 @@ void kr_reduce_array(void* arr, initial ], reducer int_val, int64_t fn, void* in
 }
 
 void kr_test_apply() {
-    __auto_type double = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x * 2;
+    __auto_type double = 0;
+    __auto_type result = kr_apply(5, double);
 }
 
 void kr_test_apply_twice() {
-    __auto_type increment = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x + 1;
+    __auto_type increment = 0;
+    __auto_type result = kr_apply_twice(5, increment);
 }
 
 void kr_test_compose() {
-    __auto_type double = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x * 2;
+    __auto_type double = 0;
+    __auto_type increment = 0;
+    __auto_type composed = kr_compose(double, increment);
+    __auto_type result = kr_composed(5);
 }
 
 void kr_test_map() {
     __auto_type arr = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type doubled = kr_map_array(arr, |, |, *, ), }, kr_test_filter(), let, =[1], ,, ,, ,, ,, ], let, =, (arr), |, |, _KR_EQ(%, ==), ), }, kr_test_reduce(), let, =[1], ,, ,, ,, ], let, =, (arr), 0, |, ,, |, +, ), }, kr_test_inline_closures(), let, =, (10), |, |, *, ), let, =, (5), |, |, +, ), }, kr_test_closure_with_captures(), let, =, ;, result, kr_apply(5, |, |, *, ), }, kr_test_multiple_closures(), let, = | x, int, y, int | ->, {, x + y, }, let, = | x, int, y, int | ->, {, x * y, }, let, =[1], ,, ], let, =, (arr), |, |, +, ), let, =, (arr), |, |, *, ), }, kr_main(), kr_test_apply(), kr_test_apply_twice(), kr_test_compose(), kr_test_map(), kr_test_filter(), kr_test_reduce(), kr_test_inline_closures(), kr_test_closure_with_captures(), kr_test_multiple_closures(), }, ));
+    __auto_type doubled = kr_map_array(arr, 0);
+}
+
+void kr_test_filter() {
+    __auto_type arr = (int64_t[]){1, 2, 3, 4, 5, 6};
+    __auto_type evens = kr_filter_array(arr, 0);
+}
+
+void kr_test_reduce() {
+    __auto_type arr = (int64_t[]){1, 2, 3, 4, 5};
+    __auto_type sum = kr_reduce_array(arr, 0, 0);
+}
+
+void kr_test_inline_closures() {
+    __auto_type result1 = kr_apply(10, 0);
+    __auto_type result2 = kr_apply_twice(5, 0);
+}
+
+void kr_test_closure_with_captures() {
+    __auto_type multiplier = 3;
+    __auto_type result = kr_apply(5, 0);
+}
+
+void kr_test_multiple_closures() {
+    __auto_type add = 0;
+    __auto_type multiply = 0;
+    __auto_type arr = (int64_t[]){1, 2, 3};
+    __auto_type sums = kr_map_array(arr, 0);
+    __auto_type products = kr_map_array(arr, 0);
+}
+
+void kr_main() {
+    kr_test_apply();
+    kr_test_apply_twice();
+    kr_test_compose();
+    kr_test_map();
+    kr_test_filter();
+    kr_test_reduce();
+    kr_test_inline_closures();
+    kr_test_closure_with_captures();
+    kr_test_multiple_closures();
 }
 
 

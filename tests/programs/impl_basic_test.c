@@ -455,11 +455,11 @@ Point kr_Point_scale(Point self, int64_t factor) {
 
 int64_t kr_main() {
     Point p = (Point){.x = 3, .y = 4};
-    kr_puts(kr_str_concat("sum=", kr_fmt_int(p.sum())));
-    Point q = p.scale(10);
+    kr_puts(kr_str_concat("sum=", kr_fmt_int(kr_Point_sum(p))));
+    Point q = kr_Point_scale(p, 10);
     kr_puts(kr_str_concat("scaled x=", kr_fmt_int(q.x)));
     kr_puts(kr_str_concat("scaled y=", kr_fmt_int(q.y)));
-    kr_puts(kr_str_concat("scaled sum=", kr_fmt_int(q.sum())));
+    kr_puts(kr_str_concat("scaled sum=", kr_fmt_int(kr_Point_sum(q))));
     return 0;
 }
 

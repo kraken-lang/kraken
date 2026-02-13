@@ -522,12 +522,8 @@ void kr_test_struct_alias() {
 typedef void* IntFunction;
 typedef void* BinaryOp;
 void kr_test_function_type_alias() {
-    IntFunction double = |;
-    x | x * 2;
-    BinaryOp add = |;
-    a;
-    ,;
-    b | a + b;
+    IntFunction double = 0;
+    BinaryOp add = 0;
     __auto_type result1 = kr_double(21);
     __auto_type result2 = kr_add(10, 32);
 }
@@ -549,16 +545,8 @@ void kr_test_nested_aliases() {
 typedef void* IntPair;
 typedef void* IntTriple;
 void kr_test_tuple_alias() {
-    IntPair pair = (10);
-    ,;
-    20;
-    );
-    IntTriple triple = (1);
-    ,;
-    2;
-    ,;
-    3;
-    );
+    IntPair pair = 0;
+    IntTriple triple = 0;
 }
 
 MyInt kr_process(MyInt x) {

@@ -470,7 +470,7 @@ kr_str kr_Display_fmt(Display self) {
 int64_t kr_main() {
     Point p1 = (Point){.x = 10, .y = 20};
     Point p2 = (Point){.x = 5, .y = 15};
-    Point p3 = p1.add(p2);
+    Point p3 = kr_Point_add(p1, p2);
     return 0;
 }
 

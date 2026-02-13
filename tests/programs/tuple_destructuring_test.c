@@ -444,10 +444,7 @@ int64_t kr_main() {
     ,;
     y;
     );
-    :(int, int) = (10);
-    ,;
-    20;
-    );
+    :(int, int) = 0;
     kr_assert_eq(x, 10);
     kr_assert_eq(y, 20);
     kr_test_pass("Simple tuple destructuring");
@@ -458,12 +455,7 @@ int64_t kr_main() {
     ,;
     c;
     );
-    :(int, int, int) = (1);
-    ,;
-    2;
-    ,;
-    3;
-    );
+    :(int, int, int) = 0;
     kr_assert_eq(a, 1);
     kr_assert_eq(b, 2);
     kr_assert_eq(c, 3);
@@ -473,10 +465,7 @@ int64_t kr_main() {
     ,;
     n;
     );
-    :(int, int) = (100);
-    ,;
-    200;
-    );
+    :(int, int) = 0;
     kr_assert_eq(m, 100);
     kr_assert_eq(n, 200);
     kr_test_pass("Different values tuple destructuring");

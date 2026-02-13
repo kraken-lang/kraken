@@ -458,74 +458,58 @@ void kr_test_composition_memoization_style();
 void kr_main();
 
 void* kr_compose(void* f, void* g) {
-    return |;
-    x | kr_f(kr_g(x));
+    return 0;
 }
 
 void* kr_pipe(void* f, void* g) {
-    return |;
-    x | kr_g(kr_f(x));
+    return 0;
 }
 
 void kr_test_basic_composition() {
-    __auto_type double = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x * 2;
+    __auto_type double = 0;
+    __auto_type increment = 0;
+    __auto_type composed = kr_compose(double, increment);
+    __auto_type result = kr_composed(5);
 }
 
 void kr_test_pipe_composition() {
-    __auto_type double = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x * 2;
+    __auto_type double = 0;
+    __auto_type increment = 0;
+    __auto_type piped = kr_pipe(double, increment);
+    __auto_type result = kr_piped(5);
 }
 
 void kr_test_triple_composition() {
-    __auto_type f = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x + 1;
+    __auto_type f = 0;
+    __auto_type g = 0;
+    __auto_type h = 0;
+    __auto_type composed = kr_compose(f, kr_compose(g, h));
+    __auto_type result = kr_composed(10);
 }
 
 void kr_test_composition_chain() {
-    __auto_type add1 = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x + 1;
+    __auto_type add1 = 0;
+    __auto_type mul2 = 0;
+    __auto_type sub3 = 0;
+    __auto_type chain = kr_compose(add1, kr_compose(mul2, sub3));
+    __auto_type result = kr_chain(10);
 }
 
 void kr_test_identity_composition() {
-    __auto_type identity = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x;
+    __auto_type identity = 0;
+    __auto_type double = 0;
+    __auto_type composed1 = kr_compose(identity, double);
+    __auto_type composed2 = kr_compose(double, identity);
+    __auto_type r1 = kr_composed1(5);
+    __auto_type r2 = kr_composed2(5);
 }
 
 void kr_test_composition_with_captures() {
     __auto_type offset = 10;
-    __auto_type add_offset = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x + offset;
+    __auto_type add_offset = 0;
+    __auto_type double = 0;
+    __auto_type composed = kr_compose(add_offset, double);
+    __auto_type result = kr_composed(5);
 }
 
 void kr_test_composition_factory() {
@@ -536,38 +520,25 @@ void kr_test_composition_factory() {
     ->;
     int;
     {;
-    return |;
-    x | x + n;
+    return 0;
 }
 
 void* kr_make_multiplier(int64_t n) {
-    return |;
-    x | x * n;
+    return 0;
 }
 
 void kr_test_self_composition() {
-    __auto_type double = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x * 2;
+    __auto_type double = 0;
+    __auto_type quad = kr_compose(double, double);
+    __auto_type result = kr_quad(5);
 }
 
 void kr_test_composition_with_conditionals() {
-    __auto_type abs = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    if (x < 0) {
-        return -x;
-    }
-    else {
-        return x;
-    }
+    __auto_type abs = 0;
+    __auto_type double = 0;
+    __auto_type composed = kr_compose(double, abs);
+    __auto_type r1 = kr_composed(-5);
+    __auto_type r2 = kr_composed(5);
 }
 
 void kr_test_partial_application_composition() {
@@ -578,41 +549,34 @@ void kr_test_partial_application_composition() {
     ->;
     int;
     {;
-    return |;
-    y | x + y;
+    return 0;
 }
 
 void kr_test_composition_with_multiple_types() {
-    __auto_type to_string = |;
-    x;
-    :;
-    int | ->;
-    string;
-    {;
-    return "value";
+    __auto_type to_string = 0;
+    __auto_type get_length = 0;
+    __auto_type combined = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_composition_associativity() {
-    __auto_type f = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x + 1;
+    __auto_type f = 0;
+    __auto_type g = 0;
+    __auto_type h = 0;
+    __auto_type left = kr_compose(kr_compose(f, g), h);
+    __auto_type right = kr_compose(f, kr_compose(g, h));
+    __auto_type r1 = kr_left(10);
+    __auto_type r2 = kr_right(10);
 }
 
 void kr_test_composition_with_state() {
     int64_t mut;
     counter = 0;
-    __auto_type increment_counter = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    counter = counter + 1;
-    return x;
+    __auto_type increment_counter = 0;
+    __auto_type double = 0;
+    __auto_type composed = kr_compose(increment_counter, double);
+    __auto_type r1 = kr_composed(5);
+    __auto_type r2 = kr_composed(5);
 }
 
 void kr_test_higher_order_composition() {
@@ -627,85 +591,14 @@ void kr_test_higher_order_composition() {
 }
 
 void kr_test_composition_with_closures_returning_closures() {
-    __auto_type make_adder = |;
-    n;
-    :;
-    int | ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    return |;
-    x | x + n;
-}
-
-int64_t kr_(() {
-    return kr_compose(kr_make_adder(a), kr_make_adder(b));
+    __auto_type make_adder = 0;
+    __auto_type compose_adders = 0;
+    __auto_type add15 = 0;
+    __auto_type result = kr_add15(3);
 }
 
 void kr_test_composition_pipeline() {
-    __auto_type operations = (int64_t[]){|, :, |, int, return, +, ;, , | x, int | ->, {, x * 2, }, |, :, |, int, return, -3, }, |, :, |, int, return, /, ;, ,};
-    __auto_type pipeline = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    __auto_type result = x;
-    result = operations[0](result);
-    result = operations[1](result);
-    result = operations[2](result);
-    result = operations[3](result);
-    return result;
-}
-
-void kr_test_composition_with_filtering() {
-    __auto_type is_positive = |;
-    x;
-    :;
-    int | ->;
-    bool;
-    {;
-    return x > 0;
-}
-
-void kr_test_composition_memoization_style() {
-    int64_t mut;
-    cache = 0;
-    int64_t mut;
-    cached = false;
-    __auto_type expensive = |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    if (!cached) {
-        cache = x * x;
-        cached = true;
-    }
-    return cache;
-}
-
-void kr_main() {
-    kr_test_basic_composition();
-    kr_test_pipe_composition();
-    kr_test_triple_composition();
-    kr_test_composition_chain();
-    kr_test_identity_composition();
-    kr_test_composition_with_captures();
-    kr_test_composition_factory();
-    kr_test_self_composition();
-    kr_test_composition_with_conditionals();
-    kr_test_partial_application_composition();
-    kr_test_composition_with_multiple_types();
-    kr_test_composition_associativity();
-    kr_test_composition_with_state();
-    kr_test_higher_order_composition();
-    kr_test_composition_with_closures_returning_closures();
-    kr_test_composition_pipeline();
-    kr_test_composition_with_filtering();
-    kr_test_composition_memoization_style();
+    __auto_type operations = (int64_t[]){0, 0, 0, 0, ], let, = | x, int | ->, {, result, x, result, operations[0](result), result, operations[1](result), result, operations[2](result), result, operations[3](result), return, ;, ;, result, 0, }, kr_test_composition_with_filtering(), let, = | x, int | ->, {, x > 0, }, let, = | x, int | ->, {, (kr_is_positive(x)), return, *, ;, else, return, ;, }, let, = | x, int | ->, {, x + 1, }, let, =, 0, let, =, (5), let, =, (-5), }, kr_test_composition_memoization_style(), let, cache, 0, let, cached, false, let, = | x, int | ->, {, (!cached), cache, x * x, cached, true, }, cache, }, let, = | x, int | ->, {, x + 10, }, let, =, 0, let, =, (5), let, =, (6), }, kr_main(), kr_test_basic_composition(), kr_test_pipe_composition(), kr_test_triple_composition(), kr_test_composition_chain(), kr_test_identity_composition(), kr_test_composition_with_captures(), kr_test_composition_factory(), kr_test_self_composition(), kr_test_composition_with_conditionals(), kr_test_partial_application_composition(), kr_test_composition_with_multiple_types(), kr_test_composition_associativity(), kr_test_composition_with_state(), kr_test_higher_order_composition(), kr_test_composition_with_closures_returning_closures(), kr_test_composition_pipeline(), kr_test_composition_with_filtering(), kr_test_composition_memoization_style(), }, };
 }
 
 

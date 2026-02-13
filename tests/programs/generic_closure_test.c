@@ -454,11 +454,133 @@ int64_t kr_test_complex_closure();
 int64_t kr_main();
 
 int64_t kr_apply(int64_t value, void* transform) {
-    return kr_transform(value);
+    return 0;
 }
 
 int64_t kr_test_apply_int_to_int() {
-    __auto_type result = kr_apply(5, |, |, *, ), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_test_apply_int_to_bool(), int, let, =, <, ,, >(5, |, |, >, ), if, (result){.return = ;}, 0, }, kr_test_apply_inference(), int, let, =, (10), |, |, +, ), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_make_multiplier(factor, T), fn(T), (T){.return = x | x * factor}, kr_test_make_multiplier(), int, let, =, <, >(3), let, =, (7), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_test_closure_capture_generic(), int, let, :, =, ;, result, kr_apply(5, |, |, *, ), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_combine(a, T, b, U, combiner, fn(T, U), V), (V){.return = (a), .b = ;}, kr_test_combine(), int, let, =, <, ,, ,, >(3, 4, |, ,, |, +, ), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_test_combine_different_types(), int, let, =, <, ,, ,, >(5, 3, |, ,, |, >, ), if, (result){.return = ;}, 0, }, kr_test_nested_closures(), int, let, =, <, ,, (int), int > (2), |, |, return | y | x + y, }), let, =, (3), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_apply_move(value, T, transform, fn(T), U), (U){.return = (value)}, kr_test_move_closure(), int, let, :, =, ;, result, kr_apply_move(5, move | x | x + data), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_test_chained_generic(), int, let, =, <, ,, >(kr_apply(2, |, |, *, ), |, |, +, ), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_process(value, T, processor, fn(T), T), (T){.return = (value)}, kr_test_complex_closure(), int, let, =, <, >(10, |, |, let, =, *, ;, temp2, temp + 5, return, ;, ), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_main(), int, let, :, =, ;, =, +, ()), failures, failures + kr_test_apply_int_to_bool(), failures, failures + kr_test_apply_inference(), failures, failures + kr_test_make_multiplier(), failures, failures + kr_test_closure_capture_generic(), failures, failures + kr_test_combine(), failures, failures + kr_test_combine_different_types(), failures, failures + kr_test_nested_closures(), failures, failures + kr_test_move_closure(), failures, failures + kr_test_chained_generic(), failures, failures + kr_test_complex_closure(), return, ;, )))))));
+    __auto_type result = kr_apply(5, 0);
+    if (_KR_NEQ(result, 10)) {
+        return 1;
+    }
+    return 0;
+}
+
+int64_t kr_test_apply_int_to_bool() {
+    __auto_type result = kr_apply(5, 0);
+    if (!(result){.return = ;}) {
+        0;
+    }
+    fn;
+    kr_test_apply_inference();
+    ->;
+    int;
+    {;
+    __auto_type result = kr_apply(10, 0);
+    if (_KR_NEQ(result, 15)) {
+        return 1;
+    }
+    return 0;
+}
+
+void* kr_make_multiplier(int64_t factor) {
+    return 0;
+}
+
+int64_t kr_test_make_multiplier() {
+    __auto_type times_three = kr_make_multiplier(3);
+    __auto_type result = kr_times_three(7);
+    if (_KR_NEQ(result, 21)) {
+        return 1;
+    }
+    return 0;
+}
+
+int64_t kr_test_closure_capture_generic() {
+    int64_t multiplier = 4;
+    __auto_type result = kr_apply(5, 0);
+    if (_KR_NEQ(result, 20)) {
+        return 1;
+    }
+    return 0;
+}
+
+int64_t kr_combine(int64_t a, int64_t b, void* combiner) {
+    return kr_combiner(a, b);
+}
+
+int64_t kr_test_combine() {
+    __auto_type result = kr_combine(3, 4, 0);
+    if (_KR_NEQ(result, 7)) {
+        return 1;
+    }
+    return 0;
+}
+
+int64_t kr_test_combine_different_types() {
+    __auto_type result = kr_combine(5, 3, 0);
+    if (!(result){.return = ;}) {
+        0;
+    }
+    fn;
+    kr_test_nested_closures();
+    ->;
+    int;
+    {;
+    __auto_type outer = kr_apply(2, 0);
+    __auto_type result = kr_outer(3);
+    if (_KR_NEQ(result, 5)) {
+        return 1;
+    }
+    return 0;
+}
+
+int64_t kr_apply_move(int64_t value, void* transform) {
+    return 0;
+}
+
+int64_t kr_test_move_closure() {
+    int64_t data = 10;
+    __auto_type result = kr_apply_move(5, 0);
+    if (_KR_NEQ(result, 15)) {
+        return 1;
+    }
+    return 0;
+}
+
+int64_t kr_test_chained_generic() {
+    __auto_type result = kr_apply(kr_apply(2, 0), 0);
+    if (_KR_NEQ(result, 7)) {
+        return 1;
+    }
+    return 0;
+}
+
+int64_t kr_process(int64_t value, void* processor) {
+    return kr_processor(value);
+}
+
+int64_t kr_test_complex_closure() {
+    __auto_type result = kr_process(10, 0);
+    if (_KR_NEQ(result, 25)) {
+        return 1;
+    }
+    return 0;
+}
+
+int64_t kr_main() {
+    int64_t failures = 0;
+    failures = failures + kr_test_apply_int_to_int();
+    failures = failures + kr_test_apply_int_to_bool();
+    failures = failures + kr_test_apply_inference();
+    failures = failures + kr_test_make_multiplier();
+    failures = failures + kr_test_closure_capture_generic();
+    failures = failures + kr_test_combine();
+    failures = failures + kr_test_combine_different_types();
+    failures = failures + kr_test_nested_closures();
+    failures = failures + kr_test_move_closure();
+    failures = failures + kr_test_chained_generic();
+    failures = failures + kr_test_complex_closure();
+    return failures;
 }
 
 

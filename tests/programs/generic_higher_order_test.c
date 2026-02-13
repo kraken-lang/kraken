@@ -470,7 +470,7 @@ int64_t kr_map(void* arr, f ], int64_t fn) {
     U;
     ] = (int64_t[]){};
     for (in; {; .) {
-        kr_f(item);
+        0;
         );
     }
     return result;
@@ -478,7 +478,112 @@ int64_t kr_map(void* arr, f ], int64_t fn) {
 
 void kr_test_map_basic() {
     __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type doubled = kr_map(numbers, |, |, *, ), }, kr_test_map_transform(), let, =[1], ,, ], let, =, (numbers), |, |, +, ., ()), }, kr_filter(arr, (int64_t[]){T}, predicate, fn(T), bool), (int64_t[]){T}, let, :[T], (int64_t[]){}, for, in, {, kr_predicate(item), result.push(item), }, return, ;, fn, ()), let, =[1], ,, ,, ,, ,, ], let, =, (numbers), |, |, _KR_EQ(%, ==), ), }, kr_test_filter_strings(), let, =["hello"], ,, ,, ], let, =, (words), |, |, ., () > 3), }, kr_fold(arr, (int64_t[]){T}, init, U, f, fn(U, T), U), (U){.let = =, .; = item, .arr = acc, .f = acc, .item = ;}, acc, }, kr_test_fold_sum(), let, =[1], ,, ,, ,, ], let, =, (numbers), 0, |, ,, |, +, ), }, kr_test_fold_product(), let, =[1], ,, ,, ], let, =, (numbers), 1, |, ,, |, *, ), }, kr_test_fold_string_concat(), let, =["Hello"], ,, ], let, =, (words), "", |, ,, |, +, ), }, kr_test_chain_map_filter(), let, =[1], ,, ,, ,, ,, ,, ,, ,, ,, ], let, =, (numbers), |, |, *, ), let, =, (squared), |, |, _KR_EQ(%, ==), ), }, kr_test_chain_filter_map_fold(), let, =[1], ,, ,, ,, ,, ], let, =, (numbers), |, |, _KR_EQ(%, ==), ), let, =, (evens), |, |, *, ), let, =, (doubled), 0, |, ,, |, +, ), }, kr_zip(arr1, (int64_t[]){T}, arr2, (int64_t[]){U}), (int64_t[]){(T), U, ], let, :[(T)], )}, (int64_t[]){}, let, =, arr1.len() < arr2.len(), arr1.len(), else, arr2.len(), ;, i, 0, (len){.result = kr_push((arr1[i]), arr2[i]), .; = return, .; = fn, .( = {, .numbers = (int64_t[]){1, 2, 3}, .let = =["a"], ., = ], .let = =, .( = ,, .) = }, .test_closure_capture_generic = ), .let = =, .; = numbers, .[ = ,, ., = ,, ., = ], .let = =, .( = , | x | x * multiplier, .; = fn, .( = {, .offset = 10, .let = =, .; = numbers, .[ = ,, ., = ], .let = =, .( = , | x | (x * scale) + offset, .; = fn, .< = >(n, T), .fn = T, .-> = {, .| = |, .+ = ;}, kr_test_make_adder(), let, =, (5), let, =, (10), }, kr_test_make_adder_with_map(), let, =, (10), let, =[1], ,, ], let, =, (numbers), add10);
+    __auto_type doubled = kr_map(numbers, 0);
+}
+
+void kr_test_map_transform() {
+    __auto_type numbers = (int64_t[]){1, 2, 3};
+    __auto_type strings = kr_map(numbers, 0);
+}
+
+bool kr_filter(void* arr, predicate ], int64_t fn) {
+    ->[T];
+    {;
+    void* result;
+    T;
+    ] = (int64_t[]){};
+    for (in; {; kr_predicate(item)) {
+        .;
+        kr_push(item);
+    }
+}
+
+void kr_test_filter_basic() {
+    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5, 6};
+    __auto_type evens = kr_filter(numbers, 0);
+}
+
+void kr_test_filter_strings() {
+    __auto_type words = (int64_t[]){"hello", "world", "test", "hi"};
+    __auto_type long_words = kr_filter(words, 0);
+}
+
+void kr_fold(void* arr, init ], f U, int64_t fn, void* T, int64_t ), void* let, item ;, acc arr, acc f, void* item, void* return, void* fn) {
+    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5};
+    __auto_type sum = kr_fold(numbers, 0, 0);
+}
+
+void kr_test_fold_product() {
+    __auto_type numbers = (int64_t[]){1, 2, 3, 4};
+    __auto_type product = kr_fold(numbers, 1, 0);
+}
+
+void kr_test_fold_string_concat() {
+    __auto_type words = (int64_t[]){"Hello", " ", "World"};
+    __auto_type sentence = kr_fold(words, "", 0);
+}
+
+void kr_test_chain_map_filter() {
+    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    __auto_type squared = kr_map(numbers, 0);
+    __auto_type even_squares = kr_filter(squared, 0);
+}
+
+void kr_test_chain_filter_map_fold() {
+    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5, 6};
+    __auto_type evens = kr_filter(numbers, 0);
+    __auto_type doubled = kr_map(evens, 0);
+    __auto_type sum = kr_fold(doubled, 0, 0);
+}
+
+void* kr_zip(void* arr1, arr2 ], void* [) {
+    T;
+    ,;
+    U;
+    );
+    ];
+    {;
+    void* result;
+    0;
+    ] = (int64_t[]){};
+    __auto_type len = if;
+    arr1.len() < arr2.len();
+    {;
+    arr1.len();
+}
+
+void kr_test_zip_basic() {
+    __auto_type numbers = (int64_t[]){1, 2, 3};
+    __auto_type letters = (int64_t[]){"a", "b", "c"};
+    __auto_type pairs = kr_zip(numbers, letters);
+}
+
+void kr_test_closure_capture_generic() {
+    __auto_type multiplier = 3;
+    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5};
+    __auto_type result = kr_map(numbers, 0);
+}
+
+void kr_test_closure_capture_multiple() {
+    __auto_type offset = 10;
+    __auto_type scale = 2;
+    __auto_type numbers = (int64_t[]){1, 2, 3};
+    __auto_type result = kr_map(numbers, 0);
+}
+
+void* kr_make_adder(int64_t n) {
+    return 0;
+}
+
+void kr_test_make_adder() {
+    __auto_type add5 = kr_make_adder(5);
+    __auto_type result = 0;
+}
+
+void kr_test_make_adder_with_map() {
+    __auto_type add10 = kr_make_adder(10);
+    __auto_type numbers = (int64_t[]){1, 2, 3};
+    __auto_type result = kr_map(numbers, add10);
 }
 
 void* kr_flat_map(void* arr, f ], int64_t fn) {
@@ -489,7 +594,7 @@ void* kr_flat_map(void* arr, f ], int64_t fn) {
     void* result;
     U;
     ] = (int64_t[]){};
-    for (in; {; mapped = kr_f(item)) {
+    for (in; {; mapped = 0) {
         elem;
         in;
         (mapped){.result = kr_push(elem)};
@@ -499,7 +604,7 @@ void* kr_flat_map(void* arr, f ], int64_t fn) {
 
 void kr_test_flat_map() {
     __auto_type numbers = (int64_t[]){1, 2, 3};
-    __auto_type result = kr_flat_map(numbers, |, |[x], *, ]);
+    __auto_type result = kr_flat_map(numbers, 0);
 }
 
 bool kr_partition(void* arr, predicate ], int64_t fn) {
@@ -526,14 +631,55 @@ void kr_test_partition() {
     evens;
     ,;
     odds;
-    ) = kr_partition(numbers, |, |, _KR_EQ(%, ==), ), }, kr_test_move_closure_generic(), let, =[1], ,, ], let, =, (data), move | x | x * 2);
+    ) = kr_partition(numbers, 0);
+}
+
+void kr_test_move_closure_generic() {
+    __auto_type data = (int64_t[]){1, 2, 3};
+    __auto_type result = kr_map(data, 0);
 }
 
 void kr_test_inference_from_return() {
     __auto_type numbers = (int64_t[]){1, 2, 3};
     void* result;
     int;
-    ] = kr_map(numbers, |, |, +, ), }, kr_test_inference_from_argument(), let, :[int], (int64_t[]){1, 2, 3}, let, =, (numbers), |, |, *, ), }, kr_test_inference_nested(), let, =[1], ,, ], let, =, (kr_map(numbers, |, |, *, ), |, |, +, ), }, kr_main(), kr_test_map_basic(), kr_test_map_transform(), kr_test_filter_basic(), kr_test_filter_strings(), kr_test_fold_sum(), kr_test_fold_product(), kr_test_fold_string_concat(), kr_test_chain_map_filter(), kr_test_chain_filter_map_fold(), kr_test_zip_basic(), kr_test_closure_capture_generic(), kr_test_closure_capture_multiple(), kr_test_make_adder(), kr_test_make_adder_with_map(), kr_test_flat_map(), kr_test_partition(), kr_test_move_closure_generic(), kr_test_inference_from_return(), kr_test_inference_from_argument(), kr_test_inference_nested(), kr_println("All generic higher-order function tests completed!"), }, )));
+    ] = kr_map(numbers, 0);
+}
+
+void kr_test_inference_from_argument() {
+    void* numbers;
+    int;
+    ] = (int64_t[]){1, 2, 3};
+    __auto_type result = kr_map(numbers, 0);
+}
+
+void kr_test_inference_nested() {
+    __auto_type numbers = (int64_t[]){1, 2, 3};
+    __auto_type result = kr_map(kr_map(numbers, 0), 0);
+}
+
+void kr_main() {
+    kr_test_map_basic();
+    kr_test_map_transform();
+    kr_test_filter_basic();
+    kr_test_filter_strings();
+    kr_test_fold_sum();
+    kr_test_fold_product();
+    kr_test_fold_string_concat();
+    kr_test_chain_map_filter();
+    kr_test_chain_filter_map_fold();
+    kr_test_zip_basic();
+    kr_test_closure_capture_generic();
+    kr_test_closure_capture_multiple();
+    kr_test_make_adder();
+    kr_test_make_adder_with_map();
+    kr_test_flat_map();
+    kr_test_partition();
+    kr_test_move_closure_generic();
+    kr_test_inference_from_return();
+    kr_test_inference_from_argument();
+    kr_test_inference_nested();
+    kr_println("All generic higher-order function tests completed!");
 }
 
 

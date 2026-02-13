@@ -439,11 +439,15 @@ int64_t kr_apply_int(int64_t x, void* f);
 int64_t kr_main();
 
 int64_t kr_apply_int(int64_t x, void* f) {
-    return kr_f(x);
+    return 0;
 }
 
 int64_t kr_main() {
-    __auto_type result = kr_apply_int(5, |, :, |, *, ), if(_KR_NEQ(result, 10)), return, ;, return, ;, );
+    __auto_type result = kr_apply_int(5, 0);
+    if (_KR_NEQ(result, 10)) {
+        return 1;
+    }
+    return 0;
 }
 
 

@@ -439,33 +439,16 @@ int64_t kr_main();
 
 int64_t kr_main() {
     int64_t offset = 10;
-    void* add_offset = (void*)(intptr_t)(|);
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x + offset;
-}
-
-int64_t kr_(() {
-    |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return base + x * scale;
-}
-
-int64_t kr_(() {
-    |;
-    x;
-    :;
-    int | ->;
-    int;
-    {;
-    return x * factor;
+    void* add_offset = (void*)(intptr_t)(0);
+    kr_puts(kr_str_concat("add_offset(5): ", kr_fmt_int(0)));
+    int64_t base = 100;
+    int64_t scale = 3;
+    void* compute = (void*)(intptr_t)(0);
+    kr_puts(kr_str_concat("compute(7): ", kr_fmt_int(0)));
+    int64_t factor = 4;
+    void* multiply = (void*)(intptr_t)(0);
+    kr_puts(kr_str_concat("multiply(8): ", kr_fmt_int(0)));
+    return 0;
 }
 
 
