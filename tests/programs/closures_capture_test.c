@@ -460,12 +460,7 @@ void kr_main();
 
 struct Point {
 int64_t x;
-void* ,;
-void* int;
-void* let;
-x Point;
-void* :;
-void* y;
+int64_t y;
 };
 
 void kr_test_capture_by_reference() {
@@ -480,18 +475,23 @@ void kr_test_capture_multiple_vars() {
 }
 
 void kr_test_nested_capture() {
-    __auto_type outer = 10;
-    __auto_type inner_closure = 0;
-    return 0;
 }
 
 void kr_test_capture_in_loop() {
 }
 
 void kr_test_capture_mutable_reference() {
-    int64_t mut;
-    counter = 0;
-    __auto_type increment = 0;
+}
+
+void kr_test_capture_from_parameter() {
+    fn;
+    kr_make_adder(x, int);
+    ->;
+    fn(int);
+    ->;
+    int;
+    {;
+    return 0;
 }
 
 void kr_test_capture_struct_field() {
@@ -514,11 +514,9 @@ void kr_test_mixed_captures() {
 }
 
 void kr_test_capture_in_conditional() {
-    __auto_type flag = true;
-    __auto_type x = 10;
-    __auto_type y = 20;
-    __auto_type closure = 0;
-    __auto_type result = 0;
+}
+
+void kr_test_capture_shadowing() {
 }
 
 void kr_test_no_capture() {

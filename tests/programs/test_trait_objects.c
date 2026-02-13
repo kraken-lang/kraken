@@ -449,23 +449,11 @@ int64_t kr_main();
 
 struct Circle {
 int64_t radius;
-void* ,;
-Circle Drawable;
-draw {;
-void* (;
-void* ->;
-void* return;
 };
 
 struct Rectangle {
 int64_t width;
-void* ,;
-void* int;
-void* impl;
-void* Rectangle;
-void* draw;
-kr_str );
-void* {;
+int64_t height;
 };
 
 kr_str kr_Circle_draw(Circle self) {

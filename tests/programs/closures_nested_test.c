@@ -494,9 +494,6 @@ void kr_test_nested_partial_application() {
 }
 
 void kr_test_deeply_nested_captures() {
-    __auto_type a = 1;
-    __auto_type f1 = 0;
-    return 0;
 }
 
 void kr_test_nested_with_parameters_and_captures() {

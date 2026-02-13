@@ -445,24 +445,7 @@ int64_t kr_main();
 
 struct Point {
 int64_t x;
-void* ,;
-void* int;
-test #;
-test_addition ];
-void* (;
-void* int;
-int64_t result;
-void* =;
-void* 2;
-void* );
-void* result;
-void* fn;
-int64_t );
-p {;
-void* :;
-x Point;
-void* :;
-void* y;
+int64_t y;
 };
 
 int64_t kr_fast_add(int64_t a, int64_t b) {

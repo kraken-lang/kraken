@@ -457,15 +457,6 @@ int64_t kr_main();
 
 struct Box {
 int64_t value;
-void* ,;
-int64_t make_box;
-v >;
-void* :;
-void* ->;
-void* T;
-void* return;
-void* T;
-v value;
 };
 
 int64_t kr_id(int64_t x) {

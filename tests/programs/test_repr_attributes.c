@@ -444,39 +444,16 @@ int64_t kr_main();
 
 struct CCompatible {
 int64_t x;
-void* ,;
-void* int;
-repr #;
-void* (;
-PackedStruct ];
-void* {;
-b int;
-void* :;
+int64_t y;
+};
+
+struct PackedStruct {
+int64_t a;
+int64_t b;
 };
 
 struct AlignedStruct {
 int64_t data;
-void* ,;
-void* main;
-void* ->;
-void* let;
-CCompatible CCompatible;
-void* {;
-y 10;
-void* :;
-void* let;
-PackedStruct PackedStruct;
-void* {;
-b 1;
-void* :;
-void* let;
-AlignedStruct AlignedStruct;
-void* {;
-void* 42;
-void* return;
-p x;
-void* .;
-data a;
 };
 
 int64_t kr_main() {

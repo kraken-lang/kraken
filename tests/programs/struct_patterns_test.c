@@ -452,40 +452,18 @@ int64_t kr_main();
 
 struct Point {
 int64_t x;
-void* ,;
-void* int;
-void* struct;
+int64_t y;
+};
+
+struct Point3D {
 int64_t x;
-void* ,;
-z int;
-void* :;
+int64_t y;
+int64_t z;
 };
 
 struct Person {
 kr_str name;
-void* ,;
-void* int;
-void* fn;
-int64_t );
-void* {;
-void* Basic Struct Patterns;
-void* let;
-Point Point;
-void* {;
-y 10;
-void* :;
-p match;
-Point );
-void* {;
-void* y;
-void* {;
-void* x;
-void* &&;
-void* 20;
-void* test_pass;
-void* );
-test_fail else;
-void* (;
+int64_t age;
 };
 
 int64_t kr_test_basic_struct_pattern() {

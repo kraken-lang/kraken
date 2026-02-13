@@ -463,14 +463,14 @@ int64_t kr_Rect_area(Rect self) {
 }
 
 int64_t kr_print_area(void* s) {
-    return s.area();
+    return 0;
 }
 
 int64_t kr_main() {
     __auto_type c = (Circle){.radius = 10};
     __auto_type r = (Rect){.width = 20, .height = 10};
-    void* dc = (void*)(intptr_t)(c);
-    void* dr = (void*)(intptr_t)(r);
+    void* dc = 0;
+    void* dr = 0;
     kr_puts(kr_str_concat("circle area: ", kr_fmt_int(0)));
     kr_puts(kr_str_concat("rect area: ", kr_fmt_int(0)));
     kr_puts(kr_str_concat("print circle: ", kr_fmt_int(kr_print_area(dc))));

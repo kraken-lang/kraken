@@ -458,15 +458,6 @@ int64_t kr_main();
 
 struct Container {
 int64_t value;
-void* ,;
-int64_t make_container;
-v >;
-void* :;
-void* ->;
-void* T;
-void* return;
-void* T;
-v value;
 };
 
 void* kr_pair(int64_t first, int64_t second) {

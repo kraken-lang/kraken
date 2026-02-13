@@ -444,14 +444,12 @@ int64_t kr_main();
 
 struct CStruct {
 int64_t x;
-void* ,;
-void* int;
-repr #;
-void* (;
-PackedData ];
-void* {;
-b int;
-void* :;
+int64_t y;
+};
+
+struct PackedData {
+int64_t a;
+int64_t b;
 };
 
 void kr_test_variadic(kr_str format, void* .., void* int_val, void* ;, void* {, void* ,, void* ,, C repr) {

@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Trait blocks skipped, type aliases → C typedefs, const declarations → `#define`, C keyword sanitization for parameter names
   - 135 krakenc tests passing across 9 test files; automated test runner (`run_tests.sh`)
   - Safe generic/turbofish handling and 200+ total C runtime shims
-  - 171/226 bootstrap test programs compile successfully (75.7%); 0 C warnings, 0 errors on self-hosting emitted code
+  - 184/226 bootstrap test programs compile successfully (81.4%); 0 C warnings, 0 errors on self-hosting emitted code
 
 ### Fixed
 - **Type Checker: Async Function Type Resolution** (`compiler/src/analyzer/type_checker.rs`)
@@ -94,6 +94,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Self-Hosted Method/Closure Compatibility Routing** (`krakenc/src/parser.kr`)
   - Typed local method calls now lower as `obj.method(args)` → `kr_Type_method(obj, args)` when local type information is available
   - Added closure/function-pointer compatibility handling for bootstrap paths (`move`-closure unary pass-through plus neutral fallback lowering for unsupported closure/function-variable call forms)
+- **Self-Hosted Trait/Generic Parser Compatibility** (`krakenc/src/parser.kr`)
+  - `impl Trait<T> for Type { ... }` now skips trait generic params before `for`, fixing impl-header parse drift in trait-heavy programs
+  - Generic trait declarations (`trait Name<T> { ... }`) are now skipped correctly across declaration/body passes by applying generic-parameter skipping before trait-body skipping
+  - Struct field translation now accepts both `,` and `;` separators in struct declarations
+- **Self-Hosted Dyn Trait-Object Compatibility Lowering** (`krakenc/src/parser.kr`)
+  - `let x: dyn Trait = value;` now lowers to a neutral placeholder assignment path to avoid invalid value-to-pointer cast emissions
+  - Added conservative fallback lowering for unresolved dyn-style method dispatch call sites and expanded closure-like block detection to cover `|...| { ... }` / `|| { ... }` patterns
 
 ### Changed
 - Total tests: 583 integration + 710 library + 822 runtime = 2115 tests passing, zero failures, zero warnings

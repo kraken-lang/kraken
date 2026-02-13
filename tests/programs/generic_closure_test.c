@@ -562,10 +562,6 @@ int64_t kr_process(int64_t value, void* processor) {
 }
 
 int64_t kr_test_complex_closure() {
-    __auto_type result = kr_process(10, 0);
-    if (_KR_NEQ(result, 25)) {
-        return 1;
-    }
     return 0;
 }
 

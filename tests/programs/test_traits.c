@@ -445,40 +445,20 @@ kr_str kr_Point_fmt(Point self);
 typedef void* Greet;
 kr_str kr_Person_name(Person self);
 typedef void* Container;
-void kr_get(void* self, void* ;, void* {, void* ,, void* <, void* Box, void* (, void* int_val, void* ., main }, int64_t ), void* let, void* =, void* :, void* :, void* let, void* =, void* :, void* let, void* =, void* :, void* return, void* );
+int64_t kr_Box_get(Box self);
+int64_t kr_main();
 
 struct Point {
 int64_t x;
-void* ,;
-void* int;
-void* impl;
-void* Point;
-void* fmt;
-kr_str );
-void* {;
+int64_t y;
 };
 
 struct Person {
 kr_str n;
-void* ,;
-Person Greet;
-name {;
-void* (;
-void* ->;
-void* return;
-void* n;
 };
 
 struct Box {
 int64_t value;
-void* ,;
-int64_t Container;
-Box >;
-get {;
-void* (;
-void* ->;
-void* return;
-void* value;
 };
 
 kr_str kr_Point_fmt(Point self) {
@@ -489,7 +469,15 @@ kr_str kr_Person_name(Person self) {
     return self.n;
 }
 
-void kr_get(void* self, void* ;, void* {, void* ,, void* <, void* Box, void* (, void* int_val, void* ., main }, int64_t ), void* let, void* =, void* :, void* :, void* let, void* =, void* :, void* let, void* =, void* :, void* return, void* ) {
+int64_t kr_Box_get(Box self) {
+    return self.value;
+}
+
+int64_t kr_main() {
+    Point p = (Point){.x = 10, .y = 20};
+    Person person = (Person){.n = "Alice"};
+    Box b = (Box){.value = 42};
+    return 0;
 }
 
 

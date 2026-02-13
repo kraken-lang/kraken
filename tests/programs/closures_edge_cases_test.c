@@ -479,8 +479,9 @@ void* ->;
 };
 
 void kr_test_empty_closure() {
-    __auto_type empty = 0;
-    __auto_type result = 0;
+}
+
+void kr_test_empty_closure_with_return() {
 }
 
 void kr_test_no_parameters_no_captures() {
@@ -505,11 +506,9 @@ void kr_test_many_parameters_many_captures() {
 }
 
 void kr_test_closure_returning_void() {
-    int64_t mut;
-    side_effect = 0;
-    __auto_type do_something = 0;
-    __auto_type r1 = 0;
-    __auto_type r2 = 0;
+}
+
+void kr_test_closure_with_early_return() {
 }
 
 void kr_test_closure_with_multiple_returns() {
@@ -539,8 +538,9 @@ void kr_test_closure_capturing_closure() {
 }
 
 void kr_test_move_closure_empty() {
-    __auto_type empty = 0;
-    __auto_type result = 0;
+}
+
+void kr_test_move_closure_no_captures() {
 }
 
 void kr_test_move_closure_with_captures() {
@@ -556,17 +556,15 @@ void kr_test_closure_capturing_literal() {
 }
 
 void kr_test_closure_with_array_operations() {
-    __auto_type arr = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type sum = 0;
-    __auto_type result = 0;
+}
+
+void kr_test_closure_with_nested_blocks() {
 }
 
 void kr_test_closure_with_break_continue() {
-    __auto_type arr = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type find_even = 0;
-    __auto_type r1 = 0;
-    __auto_type r2 = 0;
-    __auto_type r3 = 0;
+}
+
+void kr_test_closure_with_match() {
 }
 
 void kr_test_closure_with_type_annotations() {
@@ -579,43 +577,20 @@ void kr_test_closure_passed_and_returned() {
 }
 
 void kr_test_zero_sized_closure() {
-    __auto_type f = 0;
-    __auto_type result = 0;
 }
 
-void kr_main() {
-    kr_test_empty_closure();
-    kr_test_empty_closure_with_return();
-    kr_test_no_parameters_no_captures();
-    kr_test_no_parameters_with_captures();
-    kr_test_all_captures_no_parameters();
-    kr_test_single_parameter_no_captures();
-    kr_test_many_parameters_no_captures();
-    kr_test_many_parameters_many_captures();
-    kr_test_closure_returning_void();
-    kr_test_closure_with_early_return();
-    kr_test_closure_with_multiple_returns();
-    kr_test_closure_immediately_invoked();
-    kr_test_closure_in_expression();
-    kr_test_closure_as_struct_field();
-    kr_test_closure_in_tuple();
-    kr_test_closure_with_complex_body();
-    kr_test_closure_capturing_closure();
-    kr_test_move_closure_empty();
-    kr_test_move_closure_no_captures();
-    kr_test_move_closure_with_captures();
-    kr_test_closure_with_same_param_and_capture_names();
-    kr_test_closure_capturing_literal();
-    kr_test_closure_with_string_operations();
-    kr_test_closure_with_array_operations();
-    kr_test_closure_with_nested_blocks();
-    kr_test_closure_with_break_continue();
-    kr_test_closure_with_match();
-    kr_test_closure_with_type_annotations();
-    kr_test_closure_assigned_to_variable();
-    kr_test_closure_passed_and_returned();
-    kr_test_zero_sized_closure();
-    kr_test_large_capture_list();
+void kr_test_large_capture_list() {
+    __auto_type v1 = 1;
+    __auto_type v2 = 2;
+    __auto_type v3 = 3;
+    __auto_type v4 = 4;
+    __auto_type v5 = 5;
+    __auto_type v6 = 6;
+    __auto_type v7 = 7;
+    __auto_type v8 = 8;
+    __auto_type v9 = 9;
+    __auto_type v10 = 10;
+    __auto_type sum_all = 0;
 }
 
 

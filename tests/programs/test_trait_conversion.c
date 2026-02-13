@@ -440,40 +440,29 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 typedef struct Wrapper Wrapper;
 typedef struct Number Number;
 typedef void* From;
-void* kr_from(int64_t value);
 typedef void* Into;
-void kr_into(void* self, void* ;, void* {, void* ,, void* <, void* Wrapper, void* (, Wrapper ), void* return, void* :, void* }, void* {, void* ,, void* <, void* Number, void* (, Number ), void* return, void* :, void* }, void* (, w {, Wrapper Wrapper, void* from);
+Wrapper kr_Wrapper_from(int64_t value);
+Number kr_Number_from(int64_t value);
+int64_t kr_main();
 
 struct Wrapper {
 int64_t value;
-void* ,;
-int64_t From;
-Wrapper >;
-from {;
-void* (;
-void* int;
-void* Wrapper;
-value Wrapper;
-void* :;
 };
 
 struct Number {
 int64_t n;
-void* ,;
-int64_t From;
-Number >;
-from {;
-void* (;
-void* int;
-void* Number;
-n Number;
-void* :;
 };
 
-void* kr_from(int64_t value) {
+Wrapper kr_Wrapper_from(int64_t value) {
+    return (Wrapper){.value = value};
 }
 
-void kr_into(void* self, void* ;, void* {, void* ,, void* <, void* Wrapper, void* (, Wrapper ), void* return, void* :, void* }, void* {, void* ,, void* <, void* Number, void* (, Number ), void* return, void* :, void* }, void* (, w {, Wrapper Wrapper, void* from) {
+Number kr_Number_from(int64_t value) {
+    return (Number){.n = value};
+}
+
+int64_t kr_main() {
+    Wrapper w = kr_Wrapper_from(42);
     Number n = kr_Number_from(100);
     return 0;
 }

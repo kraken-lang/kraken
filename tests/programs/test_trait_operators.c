@@ -446,21 +446,7 @@ int64_t kr_main();
 
 struct Point {
 int64_t x;
-void* ,;
-void* int;
-void* impl;
-void* Point;
-void* add;
-void* ,;
-void* Point;
-void* Point;
-x Point;
-void* :;
-other x;
-void* .;
-void* y;
-void* .;
-y other;
+int64_t y;
 };
 
 Point kr_Point_add(Point self, Point other) {

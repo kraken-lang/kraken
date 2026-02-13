@@ -448,28 +448,11 @@ int64_t kr_main();
 
 struct Counter {
 int64_t count;
-void* ,;
-Counter Clone;
-clone {;
-void* (;
-void* ->;
-void* return;
-void* count;
-void* .;
 };
 
 struct Config {
 bool enabled;
-void* ,;
-void* int;
-void* impl;
-void* Config;
-void* default;
-void* ->;
-void* return;
-void* enabled;
-void* ,;
-void* 100;
+int64_t value;
 };
 
 Counter kr_Counter_clone(Counter self) {

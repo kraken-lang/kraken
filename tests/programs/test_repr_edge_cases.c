@@ -447,34 +447,27 @@ int64_t kr_main();
 
 struct Outer {
 int64_t x;
-void* ,;
-void* Inner;
-repr #;
-void* (;
-Inner ];
-void* {;
-b int;
-void* :;
+Inner inner;
+};
+
+struct Inner {
+int64_t a;
+int64_t b;
 };
 
 struct Align8 {
 int64_t data;
-void* ,;
-void* [;
-void* align;
-void* );
-void* struct;
+};
+
+struct Align16 {
 int64_t data;
-void* ,;
-void* [;
-void* align;
-void* );
-void* struct;
+};
+
+struct Align32 {
 int64_t data;
-void* ,;
-void* [;
-void* C;
-void* struct;
+};
+
+struct Empty {
 };
 
 int64_t kr_main() {

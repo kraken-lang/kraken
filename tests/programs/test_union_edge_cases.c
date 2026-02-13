@@ -442,31 +442,7 @@ int64_t kr_main();
 
 struct Point {
 int64_t x;
-void* ,;
-void* int;
-void* union;
-Point point;
-void* ,;
-void* int;
-void* fn;
-int64_t );
-s {;
-void* :;
-value Single;
-void* :;
-void* let;
-Large Large;
-void* {;
-void* 8;
-void* let;
-Nested Nested;
-void* {;
-void* 100;
-void* let;
-Mixed Mixed;
-void* {;
-void* 50;
-void* return;
+int64_t y;
 };
 
 int64_t kr_main() {
