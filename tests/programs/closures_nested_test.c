@@ -428,6 +428,8 @@ kr_str kr_kraken_str_to_lower(kr_str s){ return kr_str_to_lower(s); }
 kr_str kr_kraken_str_to_upper(kr_str s){ return kr_str_to_upper(s); }
 kr_str kr_kraken_str_trim(kr_str s){ return kr_str_trim(s); }
 kr_str kr_kraken_str_substring(kr_str s,int64_t a,int64_t b){ return kr_str_slice(s,a,b); }
+int64_t kr_kraken_vprintf(kr_str fmt, ...){ return (int64_t)printf("%s", fmt); }
+int64_t kr_kraken_vsprintf(kr_str buf, kr_str fmt, ...){ return (int64_t)sprintf(buf, "%s", fmt); }
 int64_t kr_kraken_union_create(int64_t tag, void* data, ...){ (void)data; int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=tag; return (int64_t)(intptr_t)p; }
 void kr_kraken_union_free(int64_t u){ free((void*)(intptr_t)u); }
 int64_t kr_kraken_union_get_tag(int64_t u){ void* p=(void*)(intptr_t)u; return p?*(int64_t*)p:0; }
@@ -453,151 +455,51 @@ void kr_test_nested_with_parameters_and_captures();
 void kr_main();
 
 void kr_test_simple_nested() {
-    __auto_type outer = 0;
-    __auto_type add5 = 0;
-    __auto_type result = 0;
 }
 
 void kr_test_double_nested() {
-    __auto_type outer = 0;
-    __auto_type f1 = 0;
-    __auto_type f2 = kr_f1(2);
-    __auto_type result = kr_f2(3);
 }
 
 void kr_test_nested_with_captures() {
-    __auto_type a = 10;
-    __auto_type outer = 0;
-    __auto_type f = 0;
-    __auto_type result = 0;
 }
 
 void kr_test_nested_closure_chain() {
-    __auto_type make_multiplier = 0;
-    __auto_type triple = 0;
-    __auto_type result = kr_triple(5);
 }
 
 void kr_test_nested_with_state() {
-    __auto_type make_counter = ||;
-    ->;
-    fn();
-    ->;
-    int;
-    {;
-    int64_t mut;
-    count = 0;
-    return ||;
-    {;
-    count = count + 1;
-    return count;
 }
 
 void kr_test_nested_returning_multiple() {
-    __auto_type make_ops = 0;
-    int64_t (;
-    add5;
-    ,;
-    mul5;
-    ) = 0;
-    __auto_type r1 = 0;
-    __auto_type r2 = kr_mul5(3);
 }
 
 void kr_test_nested_in_loop() {
-    void* closures;
-    fn(int);
-    ->;
-    int;
-    ] = (int64_t[]){};
-    for (int64_t i = [; i < ,; i++) {
-        ,;
-        3;
-        ,;
-        4;
-        ,;
-        5;
-        ];
-        );
-        {;
-        __auto_type closure = 0;
-        closures.push(closure);
-    }
-    __auto_type r1 = closures[0](10);
-    __auto_type r2 = closures[2](10);
-    __auto_type r3 = closures[4](10);
 }
 
 void kr_test_nested_conditional() {
-    __auto_type make_conditional = 0;
-    __auto_type double = 0;
-    __auto_type add2 = 0;
-    __auto_type r1 = kr_double(5);
-    __auto_type r2 = kr_add2(5);
 }
 
 void kr_test_nested_recursive_style() {
-    __auto_type make_factorial = ||;
-    ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    __auto_type factorial = 0;
-    return factorial;
 }
 
 void kr_test_triple_nested() {
-    __auto_type level1 = 0;
-    __auto_type result = 0(2)(3);
 }
 
 void kr_test_nested_with_mixed_captures() {
-    __auto_type global = 100;
-    __auto_type outer = 0;
-    __auto_type f = 0;
-    __auto_type result = 0;
 }
 
 void kr_test_nested_closure_composition() {
-    __auto_type compose = 0;
-    __auto_type double = 0;
-    __auto_type increment = 0;
-    __auto_type composed = 0;
-    __auto_type result = kr_composed(5);
 }
 
 void kr_test_nested_partial_application() {
-    __auto_type add = 0;
-    __auto_type add1 = 0;
-    __auto_type add2 = 0;
-    __auto_type add10 = 0;
-    __auto_type r1 = kr_add1(5);
-    __auto_type r2 = kr_add2(5);
-    __auto_type r3 = kr_add10(5);
 }
 
 void kr_test_deeply_nested_captures() {
     __auto_type a = 1;
-    __auto_type f1 = ||;
-    {;
-    __auto_type b = 2;
-    __auto_type f2 = ||;
-    {;
-    __auto_type c = 3;
-    __auto_type f3 = ||;
-    {;
-    __auto_type d = 4;
-    __auto_type f4 = ||;
-    {;
-    return a + b + c + d;
+    __auto_type f1 = 0;
+    return 0;
 }
 
 void kr_test_nested_with_parameters_and_captures() {
-    __auto_type multiplier = 3;
-    __auto_type outer = 0;
-    __auto_type f = 0;
-    __auto_type result = 0;
 }
 
 void kr_main() {

@@ -428,6 +428,8 @@ kr_str kr_kraken_str_to_lower(kr_str s){ return kr_str_to_lower(s); }
 kr_str kr_kraken_str_to_upper(kr_str s){ return kr_str_to_upper(s); }
 kr_str kr_kraken_str_trim(kr_str s){ return kr_str_trim(s); }
 kr_str kr_kraken_str_substring(kr_str s,int64_t a,int64_t b){ return kr_str_slice(s,a,b); }
+int64_t kr_kraken_vprintf(kr_str fmt, ...){ return (int64_t)printf("%s", fmt); }
+int64_t kr_kraken_vsprintf(kr_str buf, kr_str fmt, ...){ return (int64_t)sprintf(buf, "%s", fmt); }
 int64_t kr_kraken_union_create(int64_t tag, void* data, ...){ (void)data; int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=tag; return (int64_t)(intptr_t)p; }
 void kr_kraken_union_free(int64_t u){ free((void*)(intptr_t)u); }
 int64_t kr_kraken_union_get_tag(int64_t u){ void* p=(void*)(intptr_t)u; return p?*(int64_t*)p:0; }
@@ -466,50 +468,21 @@ void* kr_pipe(void* f, void* g) {
 }
 
 void kr_test_basic_composition() {
-    __auto_type double = 0;
-    __auto_type increment = 0;
-    __auto_type composed = kr_compose(double, increment);
-    __auto_type result = kr_composed(5);
 }
 
 void kr_test_pipe_composition() {
-    __auto_type double = 0;
-    __auto_type increment = 0;
-    __auto_type piped = kr_pipe(double, increment);
-    __auto_type result = kr_piped(5);
 }
 
 void kr_test_triple_composition() {
-    __auto_type f = 0;
-    __auto_type g = 0;
-    __auto_type h = 0;
-    __auto_type composed = kr_compose(f, kr_compose(g, h));
-    __auto_type result = kr_composed(10);
 }
 
 void kr_test_composition_chain() {
-    __auto_type add1 = 0;
-    __auto_type mul2 = 0;
-    __auto_type sub3 = 0;
-    __auto_type chain = kr_compose(add1, kr_compose(mul2, sub3));
-    __auto_type result = kr_chain(10);
 }
 
 void kr_test_identity_composition() {
-    __auto_type identity = 0;
-    __auto_type double = 0;
-    __auto_type composed1 = kr_compose(identity, double);
-    __auto_type composed2 = kr_compose(double, identity);
-    __auto_type r1 = kr_composed1(5);
-    __auto_type r2 = kr_composed2(5);
 }
 
 void kr_test_composition_with_captures() {
-    __auto_type offset = 10;
-    __auto_type add_offset = 0;
-    __auto_type double = 0;
-    __auto_type composed = kr_compose(add_offset, double);
-    __auto_type result = kr_composed(5);
 }
 
 void kr_test_composition_factory() {
@@ -528,17 +501,9 @@ void* kr_make_multiplier(int64_t n) {
 }
 
 void kr_test_self_composition() {
-    __auto_type double = 0;
-    __auto_type quad = kr_compose(double, double);
-    __auto_type result = kr_quad(5);
 }
 
 void kr_test_composition_with_conditionals() {
-    __auto_type abs = 0;
-    __auto_type double = 0;
-    __auto_type composed = kr_compose(double, abs);
-    __auto_type r1 = kr_composed(-5);
-    __auto_type r2 = kr_composed(5);
 }
 
 void kr_test_partial_application_composition() {
@@ -553,52 +518,48 @@ void kr_test_partial_application_composition() {
 }
 
 void kr_test_composition_with_multiple_types() {
-    __auto_type to_string = 0;
-    __auto_type get_length = 0;
-    __auto_type combined = 0;
-    __auto_type result = 0;
 }
 
 void kr_test_composition_associativity() {
-    __auto_type f = 0;
-    __auto_type g = 0;
-    __auto_type h = 0;
-    __auto_type left = kr_compose(kr_compose(f, g), h);
-    __auto_type right = kr_compose(f, kr_compose(g, h));
-    __auto_type r1 = kr_left(10);
-    __auto_type r2 = kr_right(10);
 }
 
 void kr_test_composition_with_state() {
-    int64_t mut;
-    counter = 0;
-    __auto_type increment_counter = 0;
-    __auto_type double = 0;
-    __auto_type composed = kr_compose(increment_counter, double);
-    __auto_type r1 = kr_composed(5);
-    __auto_type r2 = kr_composed(5);
 }
 
 void kr_test_higher_order_composition() {
-    fn;
-    kr_compose_twice(f, fn(int), int);
-    ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    return kr_compose(f, f);
 }
 
 void kr_test_composition_with_closures_returning_closures() {
-    __auto_type make_adder = 0;
-    __auto_type compose_adders = 0;
-    __auto_type add15 = 0;
-    __auto_type result = kr_add15(3);
 }
 
 void kr_test_composition_pipeline() {
-    __auto_type operations = (int64_t[]){0, 0, 0, 0, ], let, = | x, int | ->, {, result, x, result, operations[0](result), result, operations[1](result), result, operations[2](result), result, operations[3](result), return, ;, ;, result, 0, }, kr_test_composition_with_filtering(), let, = | x, int | ->, {, x > 0, }, let, = | x, int | ->, {, (kr_is_positive(x)), return, *, ;, else, return, ;, }, let, = | x, int | ->, {, x + 1, }, let, =, 0, let, =, (5), let, =, (-5), }, kr_test_composition_memoization_style(), let, cache, 0, let, cached, false, let, = | x, int | ->, {, (!cached), cache, x * x, cached, true, }, cache, }, let, = | x, int | ->, {, x + 10, }, let, =, 0, let, =, (5), let, =, (6), }, kr_main(), kr_test_basic_composition(), kr_test_pipe_composition(), kr_test_triple_composition(), kr_test_composition_chain(), kr_test_identity_composition(), kr_test_composition_with_captures(), kr_test_composition_factory(), kr_test_self_composition(), kr_test_composition_with_conditionals(), kr_test_partial_application_composition(), kr_test_composition_with_multiple_types(), kr_test_composition_associativity(), kr_test_composition_with_state(), kr_test_higher_order_composition(), kr_test_composition_with_closures_returning_closures(), kr_test_composition_pipeline(), kr_test_composition_with_filtering(), kr_test_composition_memoization_style(), }, };
+}
+
+void kr_test_composition_with_filtering() {
+}
+
+void kr_test_composition_memoization_style() {
+}
+
+void kr_main() {
+    kr_test_basic_composition();
+    kr_test_pipe_composition();
+    kr_test_triple_composition();
+    kr_test_composition_chain();
+    kr_test_identity_composition();
+    kr_test_composition_with_captures();
+    kr_test_composition_factory();
+    kr_test_self_composition();
+    kr_test_composition_with_conditionals();
+    kr_test_partial_application_composition();
+    kr_test_composition_with_multiple_types();
+    kr_test_composition_associativity();
+    kr_test_composition_with_state();
+    kr_test_higher_order_composition();
+    kr_test_composition_with_closures_returning_closures();
+    kr_test_composition_pipeline();
+    kr_test_composition_with_filtering();
+    kr_test_composition_memoization_style();
 }
 
 

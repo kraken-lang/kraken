@@ -428,6 +428,8 @@ kr_str kr_kraken_str_to_lower(kr_str s){ return kr_str_to_lower(s); }
 kr_str kr_kraken_str_to_upper(kr_str s){ return kr_str_to_upper(s); }
 kr_str kr_kraken_str_trim(kr_str s){ return kr_str_trim(s); }
 kr_str kr_kraken_str_substring(kr_str s,int64_t a,int64_t b){ return kr_str_slice(s,a,b); }
+int64_t kr_kraken_vprintf(kr_str fmt, ...){ return (int64_t)printf("%s", fmt); }
+int64_t kr_kraken_vsprintf(kr_str buf, kr_str fmt, ...){ return (int64_t)sprintf(buf, "%s", fmt); }
 int64_t kr_kraken_union_create(int64_t tag, void* data, ...){ (void)data; int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=tag; return (int64_t)(intptr_t)p; }
 void kr_kraken_union_free(int64_t u){ free((void*)(intptr_t)u); }
 int64_t kr_kraken_union_get_tag(int64_t u){ void* p=(void*)(intptr_t)u; return p?*(int64_t*)p:0; }
@@ -477,30 +479,13 @@ void* ->;
 };
 
 void kr_test_empty_closure() {
-    __auto_type empty = ||;
-    {;
-}
-
-void kr_test_empty_closure_with_return() {
-    __auto_type empty = ||;
-    ->;
-    int;
-    {;
-    return 0;
+    __auto_type empty = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_no_parameters_no_captures() {
-    __auto_type constant = ||;
-    42;
-    __auto_type result = kr_constant();
-}
-
-void kr_test_no_parameters_with_captures() {
-    __auto_type x = 10;
-    __auto_type y = 20;
-    __auto_type sum = ||;
-    x + y;
-    __auto_type result = kr_sum();
+    __auto_type constant = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_all_captures_no_parameters() {
@@ -509,57 +494,31 @@ void kr_test_all_captures_no_parameters() {
     __auto_type c = 3;
     __auto_type d = 4;
     __auto_type e = 5;
-    __auto_type sum_all = ||;
-    a + b + c + d + e;
-    __auto_type result = kr_sum_all();
-}
-
-void kr_test_single_parameter_no_captures() {
-    __auto_type identity = 0;
+    __auto_type sum_all = 0;
     __auto_type result = 0;
 }
 
 void kr_test_many_parameters_no_captures() {
-    __auto_type sum5 = 0;
-    __auto_type result = 0;
 }
 
 void kr_test_many_parameters_many_captures() {
-    __auto_type x1 = 1;
-    __auto_type x2 = 2;
-    __auto_type x3 = 3;
-    __auto_type complex = 0;
-    __auto_type result = 0;
 }
 
 void kr_test_closure_returning_void() {
     int64_t mut;
     side_effect = 0;
-    __auto_type do_something = ||;
-    {;
-    side_effect = side_effect + 1;
-}
-
-void kr_test_closure_with_early_return() {
-    __auto_type check = 0;
+    __auto_type do_something = 0;
     __auto_type r1 = 0;
     __auto_type r2 = 0;
 }
 
 void kr_test_closure_with_multiple_returns() {
-    __auto_type classify = 0;
-    __auto_type r1 = 0;
-    __auto_type r2 = 0;
-    __auto_type r3 = 0;
 }
 
 void kr_test_closure_immediately_invoked() {
-    __auto_type result = (0)(21);
 }
 
 void kr_test_closure_in_expression() {
-    __auto_type x = 10;
-    __auto_type result = x + (0)(5);
 }
 
 void kr_test_closure_as_struct_field() {
@@ -574,134 +533,54 @@ void kr_test_closure_as_struct_field() {
 }
 
 void kr_test_closure_with_complex_body() {
-    __auto_type complex = 0;
-    __auto_type result = 0;
 }
 
 void kr_test_closure_capturing_closure() {
-    __auto_type inner = 0;
-    __auto_type outer = 0;
-    __auto_type result = 0;
 }
 
 void kr_test_move_closure_empty() {
-    __auto_type empty = ||;
-    {;
-}
-
-void kr_test_move_closure_no_captures() {
-    __auto_type f = 0;
+    __auto_type empty = 0;
     __auto_type result = 0;
 }
 
 void kr_test_move_closure_with_captures() {
     __auto_type x = 10;
     __auto_type y = 20;
-    __auto_type f = ||;
-    x + y;
-    __auto_type result = 0;
-}
-
-void kr_test_closure_with_same_param_and_capture_names() {
-    __auto_type x = 10;
     __auto_type f = 0;
     __auto_type result = 0;
 }
 
 void kr_test_closure_capturing_literal() {
-    __auto_type f = ||;
-    42;
+    __auto_type f = 0;
     __auto_type result = 0;
-}
-
-void kr_test_closure_with_string_operations() {
-    __auto_type prefix = "Hello";
-    __auto_type suffix = "World";
-    __auto_type concat = ||;
-    prefix + ", " + suffix + "!";
-    __auto_type result = kr_concat();
 }
 
 void kr_test_closure_with_array_operations() {
     __auto_type arr = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type sum = ||;
-    {;
-    __auto_type total = 0;
-    for (int64_t i = arr; i < {; i++) {
-        =;
-        total + i;
-    }
-    return total;
-}
-
-void kr_test_closure_with_nested_blocks() {
-    __auto_type x = 10;
-    __auto_type f = ||;
-    {;
-    {;
-    {;
-    return x;
+    __auto_type sum = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_closure_with_break_continue() {
     __auto_type arr = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type find_even = ||;
-    {;
-    for (int64_t i = arr; i < {; i++) {
-        (_KR_EQ(i % 2, 0));
-        {;
-        return i;
-    }
-}
-
-void kr_test_closure_with_match() {
-    __auto_type x = 5;
-    __auto_type classify = 0;
+    __auto_type find_even = 0;
     __auto_type r1 = 0;
     __auto_type r2 = 0;
     __auto_type r3 = 0;
 }
 
 void kr_test_closure_with_type_annotations() {
-    void* f = (void*)(intptr_t)(0);
-    __auto_type result = 0;
 }
 
 void kr_test_closure_assigned_to_variable() {
-    __auto_type x = 10;
-    __auto_type f = 0;
-    __auto_type g = f;
-    __auto_type result = kr_g(5);
 }
 
 void kr_test_closure_passed_and_returned() {
-    fn;
-    kr_process(f, fn(int), int, x, int);
-    ->;
-    int;
-    {;
-    return 0;
 }
 
 void kr_test_zero_sized_closure() {
-    __auto_type f = ||;
-    {;
-}
-
-void kr_test_large_capture_list() {
-    __auto_type v1 = 1;
-    __auto_type v2 = 2;
-    __auto_type v3 = 3;
-    __auto_type v4 = 4;
-    __auto_type v5 = 5;
-    __auto_type v6 = 6;
-    __auto_type v7 = 7;
-    __auto_type v8 = 8;
-    __auto_type v9 = 9;
-    __auto_type v10 = 10;
-    __auto_type sum_all = ||;
-    v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8 + v9 + v10;
-    __auto_type result = kr_sum_all();
+    __auto_type f = 0;
+    __auto_type result = 0;
 }
 
 void kr_main() {

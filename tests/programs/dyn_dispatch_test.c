@@ -428,6 +428,8 @@ kr_str kr_kraken_str_to_lower(kr_str s){ return kr_str_to_lower(s); }
 kr_str kr_kraken_str_to_upper(kr_str s){ return kr_str_to_upper(s); }
 kr_str kr_kraken_str_trim(kr_str s){ return kr_str_trim(s); }
 kr_str kr_kraken_str_substring(kr_str s,int64_t a,int64_t b){ return kr_str_slice(s,a,b); }
+int64_t kr_kraken_vprintf(kr_str fmt, ...){ return (int64_t)printf("%s", fmt); }
+int64_t kr_kraken_vsprintf(kr_str buf, kr_str fmt, ...){ return (int64_t)sprintf(buf, "%s", fmt); }
 int64_t kr_kraken_union_create(int64_t tag, void* data, ...){ (void)data; int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=tag; return (int64_t)(intptr_t)p; }
 void kr_kraken_union_free(int64_t u){ free((void*)(intptr_t)u); }
 int64_t kr_kraken_union_get_tag(int64_t u){ void* p=(void*)(intptr_t)u; return p?*(int64_t*)p:0; }
@@ -437,8 +439,11 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 /* Forward declarations */
 typedef struct Circle Circle;
 typedef struct Rect Rect;
-int64_t kr_Shape_area(Shape self, void* Circle, void* {, void* radius, void* radius, void* 100, void* impl, area {, Shape self, void* Rect, void* {, void* width, void* height, void* fn, Shape :);
-int64_t kr_Shape_main();
+typedef void* Shape;
+int64_t kr_Circle_area(Circle self);
+int64_t kr_Rect_area(Rect self);
+int64_t kr_print_area(void* s);
+int64_t kr_main();
 
 struct Circle {
 int64_t radius;
@@ -449,19 +454,25 @@ int64_t width;
 int64_t height;
 };
 
-int64_t kr_Shape_area(Shape self, void* Circle, void* {, void* radius, void* radius, void* 100, void* impl, area {, Shape self, void* Rect, void* {, void* width, void* height, void* fn, Shape :) {
+int64_t kr_Circle_area(Circle self) {
+    return self.radius * self.radius * 314 / 100;
+}
+
+int64_t kr_Rect_area(Rect self) {
+    return self.width * self.height;
+}
+
+int64_t kr_print_area(void* s) {
     return s.area();
 }
 
-int64_t kr_Shape_main() {
+int64_t kr_main() {
     __auto_type c = (Circle){.radius = 10};
     __auto_type r = (Rect){.width = 20, .height = 10};
-    void* dc;
-    Shape = c;
-    void* dr;
-    Shape = r;
-    kr_puts(kr_str_concat("circle area: ", kr_fmt_int(dc.area())));
-    kr_puts(kr_str_concat("rect area: ", kr_fmt_int(dr.area())));
+    void* dc = (void*)(intptr_t)(c);
+    void* dr = (void*)(intptr_t)(r);
+    kr_puts(kr_str_concat("circle area: ", kr_fmt_int(0)));
+    kr_puts(kr_str_concat("rect area: ", kr_fmt_int(0)));
     kr_puts(kr_str_concat("print circle: ", kr_fmt_int(kr_print_area(dc))));
     kr_puts(kr_str_concat("print rect: ", kr_fmt_int(kr_print_area(dr))));
     return 0;

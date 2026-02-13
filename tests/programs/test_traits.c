@@ -428,6 +428,8 @@ kr_str kr_kraken_str_to_lower(kr_str s){ return kr_str_to_lower(s); }
 kr_str kr_kraken_str_to_upper(kr_str s){ return kr_str_to_upper(s); }
 kr_str kr_kraken_str_trim(kr_str s){ return kr_str_trim(s); }
 kr_str kr_kraken_str_substring(kr_str s,int64_t a,int64_t b){ return kr_str_slice(s,a,b); }
+int64_t kr_kraken_vprintf(kr_str fmt, ...){ return (int64_t)printf("%s", fmt); }
+int64_t kr_kraken_vsprintf(kr_str buf, kr_str fmt, ...){ return (int64_t)sprintf(buf, "%s", fmt); }
 int64_t kr_kraken_union_create(int64_t tag, void* data, ...){ (void)data; int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=tag; return (int64_t)(intptr_t)p; }
 void kr_kraken_union_free(int64_t u){ free((void*)(intptr_t)u); }
 int64_t kr_kraken_union_get_tag(int64_t u){ void* p=(void*)(intptr_t)u; return p?*(int64_t*)p:0; }
@@ -438,8 +440,11 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 typedef struct Point Point;
 typedef struct Person Person;
 typedef struct Box Box;
-kr_str kr_Display_fmt(Display self);
-kr_str kr_Greet_name(Greet self);
+typedef void* Display;
+kr_str kr_Point_fmt(Point self);
+typedef void* Greet;
+kr_str kr_Person_name(Person self);
+typedef void* Container;
 void kr_get(void* self, void* ;, void* {, void* ,, void* <, void* Box, void* (, void* int_val, void* ., main }, int64_t ), void* let, void* =, void* :, void* :, void* let, void* =, void* :, void* let, void* =, void* :, void* return, void* );
 
 struct Point {
@@ -476,11 +481,11 @@ void* return;
 void* value;
 };
 
-kr_str kr_Display_fmt(Display self) {
+kr_str kr_Point_fmt(Point self) {
     return "Point";
 }
 
-kr_str kr_Greet_name(Greet self) {
+kr_str kr_Person_name(Person self) {
     return self.n;
 }
 

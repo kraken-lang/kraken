@@ -428,6 +428,8 @@ kr_str kr_kraken_str_to_lower(kr_str s){ return kr_str_to_lower(s); }
 kr_str kr_kraken_str_to_upper(kr_str s){ return kr_str_to_upper(s); }
 kr_str kr_kraken_str_trim(kr_str s){ return kr_str_trim(s); }
 kr_str kr_kraken_str_substring(kr_str s,int64_t a,int64_t b){ return kr_str_slice(s,a,b); }
+int64_t kr_kraken_vprintf(kr_str fmt, ...){ return (int64_t)printf("%s", fmt); }
+int64_t kr_kraken_vsprintf(kr_str buf, kr_str fmt, ...){ return (int64_t)sprintf(buf, "%s", fmt); }
 int64_t kr_kraken_union_create(int64_t tag, void* data, ...){ (void)data; int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=tag; return (int64_t)(intptr_t)p; }
 void kr_kraken_union_free(int64_t u){ free((void*)(intptr_t)u); }
 int64_t kr_kraken_union_get_tag(int64_t u){ void* p=(void*)(intptr_t)u; return p?*(int64_t*)p:0; }
@@ -437,11 +439,13 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 /* Forward declarations */
 typedef struct Circle Circle;
 typedef struct Rectangle Rectangle;
-kr_str kr_Drawable_draw(Drawable self);
-int64_t kr_Drawable_area(Drawable self);
-kr_str kr_Drawable_draw(Drawable self);
-int64_t kr_Drawable_area(Drawable self);
-int64_t kr_print_drawable(void* shape, int64_t ), void* return, void* fn);
+typedef void* Drawable;
+kr_str kr_Circle_draw(Circle self);
+int64_t kr_Circle_area(Circle self);
+kr_str kr_Rectangle_draw(Rectangle self);
+int64_t kr_Rectangle_area(Rectangle self);
+int64_t kr_print_drawable(void* shape);
+int64_t kr_main();
 
 struct Circle {
 int64_t radius;
@@ -464,23 +468,27 @@ kr_str );
 void* {;
 };
 
-kr_str kr_Drawable_draw(Drawable self) {
+kr_str kr_Circle_draw(Circle self) {
     return "Circle";
 }
 
-int64_t kr_Drawable_area(Drawable self) {
+int64_t kr_Circle_area(Circle self) {
     return self.radius * self.radius * 3;
 }
 
-kr_str kr_Drawable_draw(Drawable self) {
+kr_str kr_Rectangle_draw(Rectangle self) {
     return "Rectangle";
 }
 
-int64_t kr_Drawable_area(Drawable self) {
+int64_t kr_Rectangle_area(Rectangle self) {
     return self.width * self.height;
 }
 
-int64_t kr_print_drawable(void* shape, int64_t ), void* return, void* fn) {
+int64_t kr_print_drawable(void* shape) {
+    return 0;
+}
+
+int64_t kr_main() {
     Circle circle = (Circle){.radius = 5};
     Rectangle rect = (Rectangle){.width = 10, .height = 20};
     return 0;

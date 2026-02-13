@@ -428,6 +428,8 @@ kr_str kr_kraken_str_to_lower(kr_str s){ return kr_str_to_lower(s); }
 kr_str kr_kraken_str_to_upper(kr_str s){ return kr_str_to_upper(s); }
 kr_str kr_kraken_str_trim(kr_str s){ return kr_str_trim(s); }
 kr_str kr_kraken_str_substring(kr_str s,int64_t a,int64_t b){ return kr_str_slice(s,a,b); }
+int64_t kr_kraken_vprintf(kr_str fmt, ...){ return (int64_t)printf("%s", fmt); }
+int64_t kr_kraken_vsprintf(kr_str buf, kr_str fmt, ...){ return (int64_t)sprintf(buf, "%s", fmt); }
 int64_t kr_kraken_union_create(int64_t tag, void* data, ...){ (void)data; int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=tag; return (int64_t)(intptr_t)p; }
 void kr_kraken_union_free(int64_t u){ free((void*)(intptr_t)u); }
 int64_t kr_kraken_union_get_tag(int64_t u){ void* p=(void*)(intptr_t)u; return p?*(int64_t*)p:0; }
@@ -510,76 +512,59 @@ int64_t kr_test_exhaustive_range_with_wildcard() {
 }
 
 int64_t kr_test_exhaustive_or_pattern_with_wildcard() {
-    kr_test_section("Exhaustive: Or Pattern with Wildcard");
-    int64_t x = 999;
-    if (x == 1) {
-        0;
-    }
-    else if (x == 0) {
-    }
-    else if (x == fn) {
-        kr_test_exhaustive_guard_with_wildcard();
+    return 0;
+}
+
+int64_t kr_test_exhaustive_guard_with_wildcard() {
+    kr_test_section("Exhaustive: Guard with Wildcard Fallback");
+    int64_t x = 15;
+    {
+        x > 10;
         ->;
-        int;
         {;
-        kr_test_section("Exhaustive: Guard with Wildcard Fallback");
-        int64_t x = 15;
-        {
-            x > 10;
-            ->;
-            {;
-            kr_test_pass("Guard matches");
-        }
-        else {
-            kr_test_pass("Wildcard fallback ensures exhaustiveness");
-        }
-        0;
+        kr_test_pass("Guard matches");
     }
-    else if (x == fn) {
-        kr_test_exhaustive_nested_patterns();
-        ->;
-        int;
-        {;
-        kr_test_section("Exhaustive: Nested Patterns");
-        void* pair;
-        int;
+    else {
+        kr_test_pass("Wildcard fallback ensures exhaustiveness");
+    }
+    0;
+}
+
+int64_t kr_test_exhaustive_nested_patterns() {
+    kr_test_section("Exhaustive: Nested Patterns");
+    void* pair;
+    int;
+    ,;
+    int;
+    ) = 0;
+    if (pair == () {
+        1;
         ,;
-        int;
-        ) = 0;
-        if (pair == () {
-            1;
-            ,;
-            2;
-            );
-            ->;
-            {;
-            kr_test_pass("Exact match");
-        }
-        else {
-            kr_test_pass("Wildcard covers all other tuples");
-        }
-        0;
-    }
-    else if (x == fn) {
-        kr_main();
+        2;
+        );
         ->;
-        int;
         {;
-        kr_puts("=== EXHAUSTIVENESS CHECKING TESTS ===");
-        kr_puts("");
-        kr_test_exhaustive_with_wildcard();
-        kr_test_exhaustive_with_identifier();
-        kr_test_exhaustive_multiple_literals();
-        kr_test_exhaustive_range_with_wildcard();
-        kr_test_exhaustive_or_pattern_with_wildcard();
-        kr_test_exhaustive_guard_with_wildcard();
-        kr_test_exhaustive_nested_patterns();
-        kr_puts("");
-        kr_puts("=== ALL EXHAUSTIVENESS TESTS PASSED ===");
-        0;
+        kr_test_pass("Exact match");
     }
-    else if (x == ) {
+    else {
+        kr_test_pass("Wildcard covers all other tuples");
     }
+    0;
+}
+
+int64_t kr_main() {
+    kr_puts("=== EXHAUSTIVENESS CHECKING TESTS ===");
+    kr_puts("");
+    kr_test_exhaustive_with_wildcard();
+    kr_test_exhaustive_with_identifier();
+    kr_test_exhaustive_multiple_literals();
+    kr_test_exhaustive_range_with_wildcard();
+    kr_test_exhaustive_or_pattern_with_wildcard();
+    kr_test_exhaustive_guard_with_wildcard();
+    kr_test_exhaustive_nested_patterns();
+    kr_puts("");
+    kr_puts("=== ALL EXHAUSTIVENESS TESTS PASSED ===");
+    0;
 }
 
 

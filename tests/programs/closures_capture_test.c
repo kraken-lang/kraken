@@ -428,6 +428,8 @@ kr_str kr_kraken_str_to_lower(kr_str s){ return kr_str_to_lower(s); }
 kr_str kr_kraken_str_to_upper(kr_str s){ return kr_str_to_upper(s); }
 kr_str kr_kraken_str_trim(kr_str s){ return kr_str_trim(s); }
 kr_str kr_kraken_str_substring(kr_str s,int64_t a,int64_t b){ return kr_str_slice(s,a,b); }
+int64_t kr_kraken_vprintf(kr_str fmt, ...){ return (int64_t)printf("%s", fmt); }
+int64_t kr_kraken_vsprintf(kr_str buf, kr_str fmt, ...){ return (int64_t)sprintf(buf, "%s", fmt); }
 int64_t kr_kraken_union_create(int64_t tag, void* data, ...){ (void)data; int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=tag; return (int64_t)(intptr_t)p; }
 void kr_kraken_union_free(int64_t u){ free((void*)(intptr_t)u); }
 int64_t kr_kraken_union_get_tag(int64_t u){ void* p=(void*)(intptr_t)u; return p?*(int64_t*)p:0; }
@@ -467,149 +469,76 @@ void* y;
 };
 
 void kr_test_capture_by_reference() {
-    __auto_type x = 10;
-    __auto_type closure = 0;
-    __auto_type result = 0;
 }
 
 void kr_test_capture_multiple_vars() {
     __auto_type a = 1;
     __auto_type b = 2;
     __auto_type c = 3;
-    __auto_type closure = ||;
-    a + b + c;
-    __auto_type result = kr_closure();
-}
-
-void kr_test_capture_by_value_move() {
-    __auto_type x = 42;
     __auto_type closure = 0;
     __auto_type result = kr_closure(8);
 }
 
 void kr_test_nested_capture() {
     __auto_type outer = 10;
-    __auto_type inner_closure = ||;
-    {;
-    __auto_type middle = 20;
-    __auto_type innermost = ||;
-    outer + middle;
-    return kr_innermost();
+    __auto_type inner_closure = 0;
+    return 0;
 }
 
 void kr_test_capture_in_loop() {
-    __auto_type sum = 0;
-    __auto_type arr = (int64_t[]){1, 2, 3, 4, 5};
-    for (int64_t i = arr; i < {; i++) {
-        add_to_sum = 0;
-        sum = 0;
-    }
 }
 
 void kr_test_capture_mutable_reference() {
     int64_t mut;
     counter = 0;
-    __auto_type increment = ||;
-    {;
-    counter = counter + 1;
-    return counter;
-}
-
-void kr_test_capture_from_parameter() {
-    fn;
-    kr_make_adder(x, int);
-    ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    return 0;
+    __auto_type increment = 0;
 }
 
 void kr_test_capture_struct_field() {
     struct;
     (Point){.x = int, .y = int};
     __auto_type p = (Point){.x = 10, .y = 20};
-    __auto_type get_x = ||;
-    p.x;
-    __auto_type get_y = ||;
-    p.y;
-    __auto_type x_val = kr_get_x();
-    __auto_type y_val = kr_get_y();
+    __auto_type get_x = 0;
+    __auto_type x_val = 0;
+    __auto_type y_val = 0;
 }
 
 void kr_test_capture_array_element() {
     __auto_type arr = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type get_first = ||;
-    arr[0];
-    __auto_type get_last = ||;
-    arr[4];
-    __auto_type first = kr_get_first();
-    __auto_type last = kr_get_last();
+    __auto_type get_first = 0;
+    __auto_type first = 0;
+    __auto_type last = 0;
 }
 
 void kr_test_mixed_captures() {
-    __auto_type a = 1;
-    __auto_type b = 2;
-    __auto_type c = 3;
-    __auto_type closure = 0;
-    __auto_type result = 0;
 }
 
 void kr_test_capture_in_conditional() {
     __auto_type flag = true;
     __auto_type x = 10;
     __auto_type y = 20;
-    __auto_type closure = ||;
-    {;
-    if (flag) {
-        return x;
-    }
-    else {
-        return y;
-    }
-}
-
-void kr_test_capture_shadowing() {
-    __auto_type x = 10;
     __auto_type closure = 0;
     __auto_type result = 0;
 }
 
 void kr_test_no_capture() {
-    __auto_type closure = 0;
-    __auto_type result = 0;
 }
 
 void kr_test_capture_string() {
-    __auto_type message = "Hello";
-    __auto_type greet = 0;
-    __auto_type greeting = 0;
 }
 
 void kr_test_capture_bool() {
     __auto_type is_valid = true;
-    __auto_type check = ||;
-    is_valid;
-    __auto_type result = kr_check();
-}
-
-void kr_test_deep_nesting() {
-    __auto_type a = 1;
-    __auto_type level1 = ||;
-    {;
-    __auto_type b = 2;
-    __auto_type level2 = ||;
-    {;
-    __auto_type c = 3;
-    __auto_type level3 = ||;
-    {;
-    return a + b + c;
+    __auto_type check = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_closure_array() {
-    __auto_type x = 10;
-    __auto_type closures = (int64_t[]){0, 0, 0, ], let, =, (int64_t[]){0}(5), let, =, (int64_t[]){1}(5), let, =, (int64_t[]){2}(5), }, kr_test_move_prevents_later_use(), let, =, ;, closure, ||, ;, result, kr_closure(), }, kr_main(), kr_test_capture_by_reference(), kr_test_capture_multiple_vars(), kr_test_capture_by_value_move(), kr_test_nested_capture(), kr_test_capture_in_loop(), kr_test_capture_mutable_reference(), kr_test_capture_from_parameter(), kr_test_capture_struct_field(), kr_test_capture_array_element(), kr_test_mixed_captures(), kr_test_capture_in_conditional(), kr_test_capture_shadowing(), kr_test_no_capture(), kr_test_capture_string(), kr_test_capture_bool(), kr_test_deep_nesting(), kr_test_closure_array(), kr_test_move_prevents_later_use(), }, };
+}
+
+void kr_test_move_prevents_later_use() {
+    __auto_type x = 42;
+    __auto_type closure = 0;
 }
 
 

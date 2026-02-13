@@ -428,6 +428,8 @@ kr_str kr_kraken_str_to_lower(kr_str s){ return kr_str_to_lower(s); }
 kr_str kr_kraken_str_to_upper(kr_str s){ return kr_str_to_upper(s); }
 kr_str kr_kraken_str_trim(kr_str s){ return kr_str_trim(s); }
 kr_str kr_kraken_str_substring(kr_str s,int64_t a,int64_t b){ return kr_str_slice(s,a,b); }
+int64_t kr_kraken_vprintf(kr_str fmt, ...){ return (int64_t)printf("%s", fmt); }
+int64_t kr_kraken_vsprintf(kr_str buf, kr_str fmt, ...){ return (int64_t)sprintf(buf, "%s", fmt); }
 int64_t kr_kraken_union_create(int64_t tag, void* data, ...){ (void)data; int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=tag; return (int64_t)(intptr_t)p; }
 void kr_kraken_union_free(int64_t u){ free((void*)(intptr_t)u); }
 int64_t kr_kraken_union_get_tag(int64_t u){ void* p=(void*)(intptr_t)u; return p?*(int64_t*)p:0; }
@@ -495,20 +497,12 @@ void kr_reduce_array(void* arr, initial ], reducer int_val, int64_t fn, void* in
 }
 
 void kr_test_apply() {
-    __auto_type double = 0;
-    __auto_type result = kr_apply(5, double);
 }
 
 void kr_test_apply_twice() {
-    __auto_type increment = 0;
-    __auto_type result = kr_apply_twice(5, increment);
 }
 
 void kr_test_compose() {
-    __auto_type double = 0;
-    __auto_type increment = 0;
-    __auto_type composed = kr_compose(double, increment);
-    __auto_type result = kr_composed(5);
 }
 
 void kr_test_map() {
@@ -537,11 +531,6 @@ void kr_test_closure_with_captures() {
 }
 
 void kr_test_multiple_closures() {
-    __auto_type add = 0;
-    __auto_type multiply = 0;
-    __auto_type arr = (int64_t[]){1, 2, 3};
-    __auto_type sums = kr_map_array(arr, 0);
-    __auto_type products = kr_map_array(arr, 0);
 }
 
 void kr_main() {

@@ -428,6 +428,8 @@ kr_str kr_kraken_str_to_lower(kr_str s){ return kr_str_to_lower(s); }
 kr_str kr_kraken_str_to_upper(kr_str s){ return kr_str_to_upper(s); }
 kr_str kr_kraken_str_trim(kr_str s){ return kr_str_trim(s); }
 kr_str kr_kraken_str_substring(kr_str s,int64_t a,int64_t b){ return kr_str_slice(s,a,b); }
+int64_t kr_kraken_vprintf(kr_str fmt, ...){ return (int64_t)printf("%s", fmt); }
+int64_t kr_kraken_vsprintf(kr_str buf, kr_str fmt, ...){ return (int64_t)sprintf(buf, "%s", fmt); }
 int64_t kr_kraken_union_create(int64_t tag, void* data, ...){ (void)data; int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=tag; return (int64_t)(intptr_t)p; }
 void kr_kraken_union_free(int64_t u){ free((void*)(intptr_t)u); }
 int64_t kr_kraken_union_get_tag(int64_t u){ void* p=(void*)(intptr_t)u; return p?*(int64_t*)p:0; }
@@ -453,8 +455,7 @@ int64_t kr_test_simple_closure() {
 }
 
 int64_t kr_test_closure_with_return_type() {
-    __auto_type multiply = 0;
-    0;
+    return 0;
 }
 
 int64_t kr_test_closure_with_block() {
@@ -490,15 +491,8 @@ int64_t kr_test_nested_closures() {
 }
 
 int64_t kr_test_no_params() {
-    __auto_type get_value = ||;
-    42;
+    __auto_type get_value = 0;
     0;
-}
-
-int64_t kr_test_void_return() {
-    __auto_type print_msg = ||;
-    {;
-    kr_puts("Hello from closure");
 }
 
 int64_t kr_main() {

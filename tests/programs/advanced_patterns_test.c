@@ -428,6 +428,8 @@ kr_str kr_kraken_str_to_lower(kr_str s){ return kr_str_to_lower(s); }
 kr_str kr_kraken_str_to_upper(kr_str s){ return kr_str_to_upper(s); }
 kr_str kr_kraken_str_trim(kr_str s){ return kr_str_trim(s); }
 kr_str kr_kraken_str_substring(kr_str s,int64_t a,int64_t b){ return kr_str_slice(s,a,b); }
+int64_t kr_kraken_vprintf(kr_str fmt, ...){ return (int64_t)printf("%s", fmt); }
+int64_t kr_kraken_vsprintf(kr_str buf, kr_str fmt, ...){ return (int64_t)sprintf(buf, "%s", fmt); }
 int64_t kr_kraken_union_create(int64_t tag, void* data, ...){ (void)data; int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=tag; return (int64_t)(intptr_t)p; }
 void kr_kraken_union_free(int64_t u){ free((void*)(intptr_t)u); }
 int64_t kr_kraken_union_get_tag(int64_t u){ void* p=(void*)(intptr_t)u; return p?*(int64_t*)p:0; }
@@ -442,216 +444,94 @@ int64_t kr_test_edge_cases();
 int64_t kr_main();
 
 int64_t kr_test_or_patterns() {
-    kr_test_section("Or Patterns");
-    int64_t x = 2;
-    if (x == 1) {
-        0;
+    return 0;
+}
+
+int64_t kr_test_guard_clauses() {
+    kr_test_section("Guard Clauses");
+    int64_t x = 15;
+    {
+        x > 10;
+        ->;
+        {;
+        kr_test_pass("Guard clause x > 10 matches 15");
     }
-    else if (x == let) {
-        y;
-        :;
-        int = 5;
-        if (y == 1) {
-            0;
-        }
-        else if (y == let) {
-            z;
-            :;
-            int = 10;
-            if (z == 10) {
-                kr_test_pass("Single value pattern matches");
-            }
-            else {
-                kr_test_fail("Should match single value");
-            }
-            int64_t val = 7;
-            if (val == 1) {
-                0;
-            }
-            else if (val == 0) {
-            }
-            else if (val == fn) {
-                kr_test_guard_clauses();
-                ->;
-                int;
-                {;
-                kr_test_section("Guard Clauses");
-                int64_t x = 15;
-                {
-                    x > 10;
-                    ->;
-                    {;
-                    kr_test_pass("Guard clause x > 10 matches 15");
-                }
-                else {
-                    kr_test_fail("Should match guard");
-                }
-                int64_t y = 5;
-                {
-                    y > 10;
-                    ->;
-                    {;
-                    kr_test_fail("Guard should not match");
-                }
-                else {
-                    kr_test_pass("Wildcard matches when guard fails");
-                }
-                int64_t z = 25;
-                {
-                    z < 10;
-                    ->;
-                    {;
-                    kr_test_fail("First guard should not match");
-                }
-                else {
-                    z < 20;
-                    ->;
-                    {;
-                    kr_test_fail("Second guard should not match");
-                }
-                else {
-                    z >= 20;
-                    ->;
-                    {;
-                    kr_test_pass("Third guard matches");
-                }
-                else {
-                    kr_test_fail("Should match third guard");
-                }
-                int64_t val = 12;
-                {
-                    _KR_EQ(val % 2, 0);
-                    ->;
-                    {;
-                    kr_test_pass("Guard with modulo matches even number");
-                }
-                else {
-                    kr_test_fail("Should match even guard");
-                }
-                int64_t target = 42;
-                {
-                    _KR_EQ(target, 42);
-                    ->;
-                    {;
-                    kr_test_pass("Guard with equality matches");
-                }
-                else {
-                    kr_test_fail("Should match equality guard");
-                }
-                0;
-            }
-            else if (val == fn) {
-                kr_test_combined_patterns();
-                ->;
-                int;
-                {;
-                kr_test_section("Combined Or Patterns and Guards");
-                int64_t x = 15;
-                if (x == 10) {
-                    0;
-                }
-                else if (x == let) {
-                    y;
-                    :;
-                    int = 10;
-                    if (y == 10) {
-                        0;
-                    }
-                    else if (y == let) {
-                        z;
-                        :;
-                        int = 25;
-                        if (z == 1) {
-                            0;
-                        }
-                        else if (z == 0) {
-                        }
-                        else if (z == fn) {
-                            kr_test_edge_cases();
-                            ->;
-                            int;
-                            {;
-                            kr_test_section("Edge Cases");
-                            int64_t x = 7;
-                            if (x == 1) {
-                                0;
-                            }
-                            else if (x == let) {
-                                y;
-                                :;
-                                int = 100;
-                                int64_t threshold = 50;
-                                {
-                                    y > threshold;
-                                    ->;
-                                    {;
-                                    kr_test_pass("Guard with variable comparison works");
-                                }
-                                else {
-                                    kr_test_fail("Should match guard with variable");
-                                }
-                                int64_t outer = 5;
-                                {
-                                    outer > 0;
-                                    ->;
-                                    {;
-                                    int64_t inner = outer * 2;
-                                    {
-                                        _KR_EQ(inner, 10);
-                                        ->;
-                                        {;
-                                        kr_test_pass("Nested match with guards works");
-                                    }
-                                    else {
-                                        kr_test_fail("Inner match should succeed");
-                                    }
-                                }
-                                else {
-                                    kr_test_fail("Outer match should succeed");
-                                }
-                                int64_t zero = 0;
-                                if (zero == 0) {
-                                    0;
-                                }
-                                else if (zero == let) {
-                                    neg;
-                                    :;
-                                    int = -5;
-                                    {
-                                        neg < 0;
-                                        ->;
-                                        {;
-                                        kr_test_pass("Guard matches negative number");
-                                    }
-                                    else {
-                                        kr_test_fail("Should match negative guard");
-                                    }
-                                    0;
-                                }
-                                else if (zero == fn) {
-                                    kr_main();
-                                    ->;
-                                    int;
-                                    {;
-                                    kr_puts("=== ADVANCED PATTERNS TESTS ===");
-                                    kr_puts("");
-                                    kr_test_or_patterns();
-                                    kr_test_guard_clauses();
-                                    kr_test_combined_patterns();
-                                    kr_test_edge_cases();
-                                    kr_puts("");
-                                    kr_puts("=== ALL TESTS PASSED ===");
-                                    0;
-                                }
-                                else if (zero == ) {
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    else {
+        kr_test_fail("Should match guard");
     }
+    int64_t y = 5;
+    {
+        y > 10;
+        ->;
+        {;
+        kr_test_fail("Guard should not match");
+    }
+    else {
+        kr_test_pass("Wildcard matches when guard fails");
+    }
+    int64_t z = 25;
+    {
+        z < 10;
+        ->;
+        {;
+        kr_test_fail("First guard should not match");
+    }
+    else {
+        z < 20;
+        ->;
+        {;
+        kr_test_fail("Second guard should not match");
+    }
+    else {
+        z >= 20;
+        ->;
+        {;
+        kr_test_pass("Third guard matches");
+    }
+    else {
+        kr_test_fail("Should match third guard");
+    }
+    int64_t val = 12;
+    {
+        _KR_EQ(val % 2, 0);
+        ->;
+        {;
+        kr_test_pass("Guard with modulo matches even number");
+    }
+    else {
+        kr_test_fail("Should match even guard");
+    }
+    int64_t target = 42;
+    {
+        _KR_EQ(target, 42);
+        ->;
+        {;
+        kr_test_pass("Guard with equality matches");
+    }
+    else {
+        kr_test_fail("Should match equality guard");
+    }
+    0;
+}
+
+int64_t kr_test_combined_patterns() {
+    return 0;
+}
+
+int64_t kr_test_edge_cases() {
+    return 0;
+}
+
+int64_t kr_main() {
+    kr_puts("=== ADVANCED PATTERNS TESTS ===");
+    kr_puts("");
+    kr_test_or_patterns();
+    kr_test_guard_clauses();
+    kr_test_combined_patterns();
+    kr_test_edge_cases();
+    kr_puts("");
+    kr_puts("=== ALL TESTS PASSED ===");
+    0;
 }
 
 
