@@ -441,7 +441,7 @@ int64_t kr_single_param(int64_t x, void* .., void* int_val, void* ;, void* (, vo
 void kr_mixed_types(kr_str format, void* .., void* int_val, void* ;, void* (, r1 {, single_param int_val, void* 42, int64_t r2, void* multi_param, void* 20);
 
 int64_t kr_single_param(int64_t x, void* .., void* int_val, void* ;, void* (, void* ,, void* ,, void* ,) {
-    return a + b;
+    return 0;
 }
 
 void kr_mixed_types(kr_str format, void* .., void* int_val, void* ;, void* (, r1 {, single_param int_val, void* 42, int64_t r2, void* multi_param, void* 20) {

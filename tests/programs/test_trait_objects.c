@@ -461,7 +461,7 @@ kr_str kr_Circle_draw(Circle self) {
 }
 
 int64_t kr_Circle_area(Circle self) {
-    return self.radius * self.radius * 3;
+    return 0.radius * 0.radius * 3;
 }
 
 kr_str kr_Rectangle_draw(Rectangle self) {
@@ -469,7 +469,7 @@ kr_str kr_Rectangle_draw(Rectangle self) {
 }
 
 int64_t kr_Rectangle_area(Rectangle self) {
-    return self.width * self.height;
+    return 0.width * 0.height;
 }
 
 int64_t kr_print_drawable(void* shape) {

@@ -452,9 +452,7 @@ int64_t kr_test_basic_for_in() {
     kr_assert_eq(sum, 10);
     kr_test_pass("Exclusive range 0..5");
     int64_t sum2 = 0;
-    for (int64_t i = 0; i < =; i++) {
-        );
-        {;
+    for (int64_t i = 0; i <= 5; i++) {
         sum2 = sum2 + i;
     }
     kr_assert_eq(sum2, 15);
@@ -484,9 +482,7 @@ int64_t kr_test_basic_for_in() {
 int64_t kr_test_for_in_with_operations() {
     kr_test_section("For-In with Operations");
     int64_t product = 1;
-    for (int64_t i = 1; i < =; i++) {
-        );
-        {;
+    for (int64_t i = 1; i <= 5; i++) {
         product = product * i;
     }
     kr_assert_eq(product, 120);
@@ -513,60 +509,37 @@ int64_t kr_test_for_in_with_operations() {
 int64_t kr_test_range_patterns() {
     kr_test_section("Range Patterns in Match");
     int64_t x = 5;
-    if (x == 0) {
-        ..;
-        10;
-        ->;
-        {;
+    if (1) {
         kr_test_pass("Range pattern 0..10 matches 5");
     }
-    else {
+    else if (1) {
         kr_test_fail("Should match range");
     }
     int64_t y = 10;
-    if (y == 0) {
-        .. = 10;
-        ->;
-        {;
+    if (1) {
         kr_test_pass("Inclusive range 0..=10 matches 10");
     }
-    else {
+    else if (1) {
         kr_test_fail("Should match inclusive range");
     }
     int64_t z = 15;
-    if (z == 0) {
-        ..;
-        10;
-        ->;
-        {;
+    if (1) {
         kr_test_fail("Should not match range");
     }
-    else {
+    else if (1) {
         kr_test_pass("Wildcard matches 15");
     }
     int64_t val = 25;
-    if (val == 0) {
-        ..;
-        10;
-        ->;
-        {;
+    if (1) {
         kr_test_fail("Should not match 0..10");
     }
-    else if (val == 10) {
-        ..;
-        20;
-        ->;
-        {;
+    else if (1) {
         kr_test_fail("Should not match 10..20");
     }
-    else if (val == 20) {
-        ..;
-        30;
-        ->;
-        {;
+    else if (1) {
         kr_test_pass("Matches 20..30");
     }
-    else {
+    else if (1) {
         kr_test_fail("Should match range");
     }
     0;

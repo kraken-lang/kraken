@@ -455,11 +455,11 @@ int64_t height;
 };
 
 int64_t kr_Circle_area(Circle self) {
-    return self.radius * self.radius * 314 / 100;
+    return 0.radius * 0.radius * 314 / 100;
 }
 
 int64_t kr_Rect_area(Rect self) {
-    return self.width * self.height;
+    return 0.width * 0.height;
 }
 
 int64_t kr_print_area(void* s) {

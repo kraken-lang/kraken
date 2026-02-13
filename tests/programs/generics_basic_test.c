@@ -438,8 +438,8 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 
 /* Forward declarations */
 typedef struct Pair Pair;
-int64_t kr_identity(int64_t x);
-int64_t kr_add_generic(int64_t a, int64_t b);
+int64_t kr_identity();
+int64_t kr_add_generic();
 int64_t kr_main();
 
 struct Pair {
@@ -447,12 +447,12 @@ int64_t first;
 int64_t second;
 };
 
-int64_t kr_identity(int64_t x) {
-    return x;
+int64_t kr_identity() {
+    return 0;
 }
 
-int64_t kr_add_generic(int64_t a, int64_t b) {
-    return a + b;
+int64_t kr_add_generic() {
+    return 0;
 }
 
 int64_t kr_main() {

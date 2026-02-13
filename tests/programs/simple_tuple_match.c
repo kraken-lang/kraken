@@ -441,17 +441,17 @@ int64_t kr_main();
 
 int64_t kr_main() {
     void* pair;
-    int;
-    ,;
-    int;
-    ) = 0;
+    0;
+    0;
+    0;
+    0 = 0;
     if (pair == () {
         x;
-        ,;
+        0;
         y;
-        );
-        ->;
-        {;
+        0;
+        0;
+        0;
         kr_puts("Matched tuple");
     }
     0;

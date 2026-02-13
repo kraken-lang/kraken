@@ -440,9 +440,9 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 int64_t kr_apply(int64_t x, void* f);
 int64_t kr_apply_twice(int64_t x, void* f);
 void* kr_compose(void* f, void* g);
-int64_t kr_map_array(void* arr, f ], int64_t fn);
-bool kr_filter_array(void* arr, predicate ], int64_t fn);
-void kr_reduce_array(void* arr, initial ], reducer int_val, int64_t fn, void* int_val, int64_t ), void* let, void* ;, void* in, reducer acc, i acc);
+void* kr_map_array(void* arr, void* f);
+void* kr_filter_array(void* arr, void* predicate);
+int64_t kr_reduce_array(void* arr, int64_t initial, void* reducer);
 void kr_test_apply();
 void kr_test_apply_twice();
 void kr_test_compose();
@@ -460,40 +460,22 @@ int64_t kr_apply(int64_t x, void* f) {
 
 int64_t kr_apply_twice(int64_t x, void* f) {
     return 0;
-    );
 }
 
 void* kr_compose(void* f, void* g) {
     return 0;
 }
 
-int64_t kr_map_array(void* arr, f ], int64_t fn) {
-    ->[int];
-    {;
-    void* result;
-    int;
-    ] = (int64_t[]){};
-    for (int64_t i = arr; i < {; i++) {
-        .;
-        kr_push(0);
-    }
-    return result;
+void* kr_map_array(void* arr, void* f) {
+    return 0;
 }
 
-bool kr_filter_array(void* arr, predicate ], int64_t fn) {
-    ->[int];
-    {;
-    void* result;
-    int;
-    ] = (int64_t[]){};
-    for (int64_t i = arr; i < {; i++) {
-        (kr_predicate(i));
-        {;
-        result.push(i);
-    }
+void* kr_filter_array(void* arr, void* predicate) {
+    return 0;
 }
 
-void kr_reduce_array(void* arr, initial ], reducer int_val, int64_t fn, void* int_val, int64_t ), void* let, void* ;, void* in, reducer acc, i acc) {
+int64_t kr_reduce_array(void* arr, int64_t initial, void* reducer) {
+    return 0;
 }
 
 void kr_test_apply() {
@@ -506,28 +488,18 @@ void kr_test_compose() {
 }
 
 void kr_test_map() {
-    __auto_type arr = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type doubled = kr_map_array(arr, 0);
 }
 
 void kr_test_filter() {
-    __auto_type arr = (int64_t[]){1, 2, 3, 4, 5, 6};
-    __auto_type evens = kr_filter_array(arr, 0);
 }
 
 void kr_test_reduce() {
-    __auto_type arr = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type sum = kr_reduce_array(arr, 0, 0);
 }
 
 void kr_test_inline_closures() {
-    __auto_type result1 = kr_apply(10, 0);
-    __auto_type result2 = kr_apply_twice(5, 0);
 }
 
 void kr_test_closure_with_captures() {
-    __auto_type multiplier = 3;
-    __auto_type result = kr_apply(5, 0);
 }
 
 void kr_test_multiple_closures() {

@@ -485,18 +485,15 @@ void kr_test_empty_closure_with_return() {
 }
 
 void kr_test_no_parameters_no_captures() {
-    __auto_type constant = 0;
-    __auto_type result = 0;
+}
+
+void kr_test_no_parameters_with_captures() {
 }
 
 void kr_test_all_captures_no_parameters() {
-    __auto_type a = 1;
-    __auto_type b = 2;
-    __auto_type c = 3;
-    __auto_type d = 4;
-    __auto_type e = 5;
-    __auto_type sum_all = 0;
-    __auto_type result = 0;
+}
+
+void kr_test_single_parameter_no_captures() {
 }
 
 void kr_test_many_parameters_no_captures() {
@@ -521,14 +518,9 @@ void kr_test_closure_in_expression() {
 }
 
 void kr_test_closure_as_struct_field() {
-    struct;
-    (Container){.f = fn(int), .int = }, .c = (Container){.f = 0}, .let = =, .. = (21)};
-    fn;
-    kr_test_closure_in_tuple();
-    {;
-    __auto_type t = 0;
-    __auto_type r1 = t.0(5);
-    __auto_type r2 = t.1(5);
+}
+
+void kr_test_closure_in_tuple() {
 }
 
 void kr_test_closure_with_complex_body() {
@@ -551,8 +543,9 @@ void kr_test_move_closure_with_captures() {
 }
 
 void kr_test_closure_capturing_literal() {
-    __auto_type f = 0;
-    __auto_type result = 0;
+}
+
+void kr_test_closure_with_string_operations() {
 }
 
 void kr_test_closure_with_array_operations() {
@@ -580,17 +573,41 @@ void kr_test_zero_sized_closure() {
 }
 
 void kr_test_large_capture_list() {
-    __auto_type v1 = 1;
-    __auto_type v2 = 2;
-    __auto_type v3 = 3;
-    __auto_type v4 = 4;
-    __auto_type v5 = 5;
-    __auto_type v6 = 6;
-    __auto_type v7 = 7;
-    __auto_type v8 = 8;
-    __auto_type v9 = 9;
-    __auto_type v10 = 10;
-    __auto_type sum_all = 0;
+}
+
+void kr_main() {
+    kr_test_empty_closure();
+    kr_test_empty_closure_with_return();
+    kr_test_no_parameters_no_captures();
+    kr_test_no_parameters_with_captures();
+    kr_test_all_captures_no_parameters();
+    kr_test_single_parameter_no_captures();
+    kr_test_many_parameters_no_captures();
+    kr_test_many_parameters_many_captures();
+    kr_test_closure_returning_void();
+    kr_test_closure_with_early_return();
+    kr_test_closure_with_multiple_returns();
+    kr_test_closure_immediately_invoked();
+    kr_test_closure_in_expression();
+    kr_test_closure_as_struct_field();
+    kr_test_closure_in_tuple();
+    kr_test_closure_with_complex_body();
+    kr_test_closure_capturing_closure();
+    kr_test_move_closure_empty();
+    kr_test_move_closure_no_captures();
+    kr_test_move_closure_with_captures();
+    kr_test_closure_with_same_param_and_capture_names();
+    kr_test_closure_capturing_literal();
+    kr_test_closure_with_string_operations();
+    kr_test_closure_with_array_operations();
+    kr_test_closure_with_nested_blocks();
+    kr_test_closure_with_break_continue();
+    kr_test_closure_with_match();
+    kr_test_closure_with_type_annotations();
+    kr_test_closure_assigned_to_variable();
+    kr_test_closure_passed_and_returned();
+    kr_test_zero_sized_closure();
+    kr_test_large_capture_list();
 }
 
 

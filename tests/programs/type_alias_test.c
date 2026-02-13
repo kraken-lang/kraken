@@ -524,10 +524,6 @@ void kr_test_struct_alias() {
 typedef void* IntFunction;
 typedef void* BinaryOp;
 void kr_test_function_type_alias() {
-    IntFunction double_val = 0;
-    BinaryOp add = 0;
-    __auto_type result1 = kr_double(21);
-    __auto_type result2 = kr_add(10, 32);
 }
 
 typedef int64_t PublicInt;

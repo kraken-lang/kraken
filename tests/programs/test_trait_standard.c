@@ -456,7 +456,7 @@ int64_t value;
 };
 
 Counter kr_Counter_clone(Counter self) {
-    return (Counter){.count = self.count};
+    return (Counter){.count = 0.count};
 }
 
 Counter kr_Counter_default() {

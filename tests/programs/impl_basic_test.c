@@ -448,11 +448,11 @@ int64_t y;
 };
 
 int64_t kr_Point_sum(Point self) {
-    return self.x + self.y;
+    return 0.x + 0.y;
 }
 
 Point kr_Point_scale(Point self, int64_t factor) {
-    return (Point){.x = self.x * factor, .y = self.y * factor};
+    return (Point){.x = 0.x * factor, .y = 0.y * factor};
 }
 
 int64_t kr_main() {

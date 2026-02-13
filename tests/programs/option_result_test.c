@@ -466,6 +466,7 @@ int64_t kr_main() {
 int64_t kr_test_option_some() {
     Option some_val = Option_Some;
     if (some_val == Option_Some) {
+        int64_t n = 0;
         kr_assert_eq(n, 42);
         kr_test_pass("Option::Some pattern match");
     }
@@ -489,6 +490,7 @@ int64_t kr_test_option_none() {
 int64_t kr_test_result_ok() {
     Result ok_val = Result_Ok;
     if (ok_val == Result_Ok) {
+        int64_t n = 0;
         kr_assert_eq(n, 100);
         kr_test_pass("Result::Ok pattern match");
     }
@@ -504,6 +506,7 @@ int64_t kr_test_result_err() {
         kr_test_fail("Should not match Ok");
     }
     else if (err_val == Result_Err) {
+        int64_t msg = 0;
         kr_test_pass("Result::Err pattern match");
     }
     0;

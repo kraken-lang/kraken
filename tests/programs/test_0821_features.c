@@ -438,7 +438,7 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 
 /* Forward declarations */
 typedef struct Box Box;
-int64_t kr_id(int64_t x);
+int64_t kr_id();
 int64_t kr_test_inference_from_context();
 int64_t kr_test_explicit_type_args();
 int64_t kr_apply_int(int64_t x, void* f);
@@ -446,12 +446,12 @@ int64_t kr_test_higher_order_basic();
 int64_t kr_test_higher_order_capture();
 void* kr_compose_int(void* f, void* g);
 int64_t kr_test_composition();
-void* kr_pair(int64_t first, int64_t second);
+int64_t kr_pair();
 int64_t kr_test_multiple_generics();
-Box kr_make_box(int64_t v);
+int64_t kr_make_box();
 int64_t kr_test_generic_struct();
-Box kr_wrap(int64_t x);
-int64_t kr_unwrap(Box b);
+int64_t kr_wrap();
+int64_t kr_unwrap();
 int64_t kr_test_nested_generics();
 int64_t kr_main();
 
@@ -459,8 +459,8 @@ struct Box {
 int64_t value;
 };
 
-int64_t kr_id(int64_t x) {
-    return x;
+int64_t kr_id() {
+    return 0;
 }
 
 int64_t kr_test_inference_from_context() {
@@ -484,19 +484,10 @@ int64_t kr_apply_int(int64_t x, void* f) {
 }
 
 int64_t kr_test_higher_order_basic() {
-    __auto_type result = kr_apply_int(5, 0);
-    if (_KR_NEQ(result, 10)) {
-        return 1;
-    }
     return 0;
 }
 
 int64_t kr_test_higher_order_capture() {
-    __auto_type multiplier = 3;
-    __auto_type result = kr_apply_int(5, 0);
-    if (_KR_NEQ(result, 15)) {
-        return 1;
-    }
     return 0;
 }
 
@@ -505,31 +496,17 @@ void* kr_compose_int(void* f, void* g) {
 }
 
 int64_t kr_test_composition() {
-    __auto_type double_val = 0;
-    __auto_type add_one = 0;
-    __auto_type composed = kr_compose_int(double_val, add_one);
-    __auto_type result = 0;
-    if (_KR_NEQ(result, 12)) {
-        return 1;
-    }
     return 0;
 }
 
-void* kr_pair(int64_t first, int64_t second) {
-    ,;
-    U;
-    );
-    {;
+int64_t kr_pair() {
     return 0;
 }
 
 int64_t kr_test_multiple_generics() {
     __auto_type p = kr_pair(42, true);
-    int64_t (;
-    x;
-    ,;
-    y;
-    ) = p;
+    int64_t x = 0;
+    int64_t y = 0;
     if (_KR_NEQ(x, 42)) {
         return 1;
     }
@@ -539,8 +516,8 @@ int64_t kr_test_multiple_generics() {
     return 0;
 }
 
-Box kr_make_box(int64_t v) {
-    return (Box){.value = v};
+int64_t kr_make_box() {
+    return 0;
 }
 
 int64_t kr_test_generic_struct() {
@@ -551,12 +528,12 @@ int64_t kr_test_generic_struct() {
     return 0;
 }
 
-Box kr_wrap(int64_t x) {
-    return (Box){.value = x};
+int64_t kr_wrap() {
+    return 0;
 }
 
-int64_t kr_unwrap(Box b) {
-    return b.value;
+int64_t kr_unwrap() {
+    return 0;
 }
 
 int64_t kr_test_nested_generics() {

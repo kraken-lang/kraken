@@ -454,7 +454,7 @@ void kr_main() {
     __auto_type cv = kr_condvar_create();
     kr_condvar_destroy(cv);
     kr_puts("Condvar: PASS");
-    __auto_type t = kr_thread_spawn(&, ), kr_thread_join(t), kr_puts("Thread spawn/join: PASS"), kr_puts("All thread tests complete!"), }, );
+    __auto_type t = kr_thread_spawn(0, 0, kr_thread_join(t), kr_puts("Thread spawn/join: PASS"), kr_puts("All thread tests complete!"), 0, );
 }
 
 

@@ -466,11 +466,11 @@ kr_str kr_Point_fmt(Point self) {
 }
 
 kr_str kr_Person_name(Person self) {
-    return self.n;
+    return 0.n;
 }
 
 int64_t kr_Box_get(Box self) {
-    return self.value;
+    return 0.value;
 }
 
 int64_t kr_main() {

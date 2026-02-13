@@ -450,7 +450,7 @@ int64_t kr_test_match(int64_t x) {
     else if (x == 3) {
         return 30;
     }
-    else {
+    else if (1) {
         return 99;
     }
 }

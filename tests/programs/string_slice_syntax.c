@@ -443,21 +443,21 @@ int64_t kr_main() {
     kr_str s = "hello world";
     kr_str hello = s[0];
     5;
-    ];
+    0;
     int64_t hello_len = kr_strlen(hello);
     if (_KR_NEQ(hello_len, 5)) {
         return 1;
     }
     kr_str world = s[6];
     11;
-    ];
+    0;
     int64_t world_len = kr_strlen(world);
     if (_KR_NEQ(world_len, 5)) {
         return 2;
     }
     kr_str h = s[0];
     1;
-    ];
+    0;
     int64_t h_len = kr_strlen(h);
     if (_KR_NEQ(h_len, 1)) {
         return 3;
@@ -466,7 +466,7 @@ int64_t kr_main() {
     int64_t end = 7;
     kr_str sub = s[start];
     end;
-    ];
+    0;
     int64_t sub_len = kr_strlen(sub);
     if (_KR_NEQ(sub_len, 5)) {
         return 4;

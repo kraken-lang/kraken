@@ -437,11 +437,11 @@ void kr_kraken_union_set_tag(int64_t u,int64_t t){ void* p=(void*)(intptr_t)u; i
 int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(intptr_t)u; return p && *(int64_t*)p==t; }
 
 /* Forward declarations */
-int64_t kr_id(int64_t x);
+int64_t kr_id();
 int64_t kr_main();
 
-int64_t kr_id(int64_t x) {
-    return x;
+int64_t kr_id() {
+    return 0;
 }
 
 int64_t kr_main() {

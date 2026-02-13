@@ -467,11 +467,9 @@ void kr_test_capture_by_reference() {
 }
 
 void kr_test_capture_multiple_vars() {
-    __auto_type a = 1;
-    __auto_type b = 2;
-    __auto_type c = 3;
-    __auto_type closure = 0;
-    __auto_type result = kr_closure(8);
+}
+
+void kr_test_capture_by_value_move() {
 }
 
 void kr_test_nested_capture() {
@@ -484,30 +482,12 @@ void kr_test_capture_mutable_reference() {
 }
 
 void kr_test_capture_from_parameter() {
-    fn;
-    kr_make_adder(x, int);
-    ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    return 0;
 }
 
 void kr_test_capture_struct_field() {
-    struct;
-    (Point){.x = int, .y = int};
-    __auto_type p = (Point){.x = 10, .y = 20};
-    __auto_type get_x = 0;
-    __auto_type x_val = 0;
-    __auto_type y_val = 0;
 }
 
 void kr_test_capture_array_element() {
-    __auto_type arr = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type get_first = 0;
-    __auto_type first = 0;
-    __auto_type last = 0;
 }
 
 void kr_test_mixed_captures() {
@@ -526,9 +506,9 @@ void kr_test_capture_string() {
 }
 
 void kr_test_capture_bool() {
-    __auto_type is_valid = true;
-    __auto_type check = 0;
-    __auto_type result = 0;
+}
+
+void kr_test_deep_nesting() {
 }
 
 void kr_test_closure_array() {

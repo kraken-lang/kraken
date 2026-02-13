@@ -445,11 +445,11 @@ void kr_greet() {
 }
 
 void kr_main() {
-    __auto_type ptr1 = &;
+    __auto_type ptr1 = 0;
     kr_main;
     kr_puts("Got main pointer!");
     kr_puts(kr_fmt_int(ptr1));
-    __auto_type ptr2 = &;
+    __auto_type ptr2 = 0;
     kr_greet;
     kr_puts("Got greet pointer!");
     kr_puts(kr_fmt_int(ptr2));

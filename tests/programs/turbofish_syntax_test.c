@@ -437,33 +437,29 @@ void kr_kraken_union_set_tag(int64_t u,int64_t t){ void* p=(void*)(intptr_t)u; i
 int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(intptr_t)u; return p && *(int64_t*)p==t; }
 
 /* Forward declarations */
-int64_t kr_identity(int64_t x);
-void* kr_pair(int64_t first, int64_t second);
+int64_t kr_identity();
+int64_t kr_pair();
 int64_t kr_test_turbofish_function_call();
 int64_t kr_test_turbofish_multiple_params();
 int64_t kr_test_regular_syntax_still_works();
 int64_t kr_main();
 
-int64_t kr_identity(int64_t x) {
-    return x;
+int64_t kr_identity() {
+    return 0;
 }
 
-void* kr_pair(int64_t first, int64_t second) {
-    ,;
-    U;
-    );
-    {;
+int64_t kr_pair() {
     return 0;
 }
 
 int64_t kr_test_turbofish_function_call() {
     __auto_type x = identity_<;
-    int > (42);
+    0 > (42);
     if (_KR_NEQ(x, 42)) {
         return 1;
     }
     __auto_type y = identity_<;
-    bool > (true);
+    0 > (true);
     if (!y) {
         return 2;
     }
@@ -472,14 +468,11 @@ int64_t kr_test_turbofish_function_call() {
 
 int64_t kr_test_turbofish_multiple_params() {
     __auto_type p = pair_<;
-    int;
-    ,;
-    bool > 0;
-    int64_t (;
-    x;
-    ,;
-    y;
-    ) = p;
+    0;
+    0;
+    0 > 0;
+    int64_t x = 0;
+    int64_t y = 0;
     if (_KR_NEQ(x, 42)) {
         return 1;
     }

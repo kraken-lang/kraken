@@ -441,11 +441,11 @@ int64_t kr_main();
 
 int64_t kr_main() {
     void* pair;
-    int;
-    ,;
-    int;
-    ) = 0;
-    {
+    0;
+    0;
+    0;
+    0 = 0;
+    if (1) {
         kr_puts("Matched");
     }
     0;

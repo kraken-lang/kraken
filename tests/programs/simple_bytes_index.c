@@ -441,11 +441,11 @@ int64_t kr_main();
 
 int64_t kr_main() {
     uint8_t* b = (uint8_t*)(intptr_t)("abc");
-    if (_KR_NEQ(b[_KR_NEQ(0, !=)], {)) {
+    if (_KR_NEQ(b[_KR_NEQ(0, 0)], 0)) {
         1;
     }
     kr_str s = "abc";
-    if (_KR_NEQ(s[_KR_NEQ(1, !=)], {)) {
+    if (_KR_NEQ(s[_KR_NEQ(1, 0)], 0)) {
         2;
     }
     return 0;

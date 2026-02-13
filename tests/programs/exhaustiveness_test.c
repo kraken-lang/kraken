@@ -466,7 +466,7 @@ int64_t kr_test_non_exhaustive(Color c) {
     else if (c == Color_Green) {
         2;
     }
-    else {
+    else if (1) {
         0;
     }
 }

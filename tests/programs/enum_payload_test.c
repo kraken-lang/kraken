@@ -456,6 +456,7 @@ void kr_main() {
         kr_test_pass("Option::None matches correctly");
     }
     else if (none == Option_Some) {
+        int64_t x = 0;
         kr_test_fail("Should not match Some");
     }
     __auto_type some_val = Option_Some;
@@ -463,13 +464,16 @@ void kr_main() {
         kr_test_fail("Should not match None");
     }
     else if (some_val == Option_Some) {
+        int64_t x = 0;
         kr_test_pass("Option::Some matches correctly");
     }
     __auto_type ok_val = Result_Ok;
     if (ok_val == Result_Ok) {
+        int64_t n = 0;
         kr_test_pass("Result::Ok matches correctly");
     }
     else if (ok_val == Result_Err) {
+        int64_t msg = 0;
         kr_test_fail("Should not match Err");
     }
     kr_puts("Enum payload tests complete!");

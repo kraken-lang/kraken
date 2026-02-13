@@ -456,15 +456,15 @@ int64_t lives;
 };
 
 kr_str kr_Dog_describe(Dog self) {
-    return kr_str_concat(self.name, " the dog");
+    return kr_str_concat(0.name, " the dog");
 }
 
 kr_str kr_Cat_describe(Cat self) {
-    return kr_str_concat(self.name, " the cat");
+    return kr_str_concat(0.name, " the cat");
 }
 
 int64_t kr_Cat_remaining_lives(Cat self) {
-    return self.lives;
+    return 0.lives;
 }
 
 int64_t kr_main() {

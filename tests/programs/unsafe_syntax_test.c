@@ -453,8 +453,8 @@ int64_t kr_main();
 #define kr_* mutint)->int{return0
 int64_t kr_test_unsafe_block() {
     __auto_type x = 42;
-    unsafe;
-    {;
+    0;
+    0;
     __auto_type y = x + 1;
     if (_KR_NEQ(y, 43)) {
         return 1;
@@ -475,8 +475,8 @@ int64_t kr_test_unsafe_function() {
 
 int64_t kr_test_raw_pointer_const(void* ptr, void* int_val, void* {, test_raw_pointer_mut }, void* ptr, void* int_val, void* {, test_nested_unsafe }, int64_t ), void* unsafe, void* =, y {, void* x, y if, void* 15, void* 1, void* }, test_unsafe_with_control_flow }, int64_t ), void* let, void* ;, void* x, x if, void* 40, void* =, void* }, void* !=, void* return, void* return, void* fn) {
     __auto_type sum = 0;
-    unsafe;
-    {;
+    0;
+    0;
     __auto_type i = 0;
     while (i < 5) {
         sum = sum + i;
@@ -505,8 +505,8 @@ int64_t kr_test_unsafe_function_chain() {
 }
 
 int64_t kr_test_unsafe_with_return() {
-    unsafe;
-    {;
+    0;
+    0;
     return 0;
 }
 

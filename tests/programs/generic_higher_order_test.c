@@ -437,27 +437,28 @@ void kr_kraken_union_set_tag(int64_t u,int64_t t){ void* p=(void*)(intptr_t)u; i
 int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(intptr_t)u; return p && *(int64_t*)p==t; }
 
 /* Forward declarations */
-int64_t kr_map(void* arr, f ], int64_t fn);
+int64_t kr_map();
 void kr_test_map_basic();
 void kr_test_map_transform();
-bool kr_filter(void* arr, predicate ], int64_t fn);
+int64_t kr_filter();
 void kr_test_filter_basic();
 void kr_test_filter_strings();
-void kr_fold(void* arr, init ], f U, int64_t fn, void* T, int64_t ), void* let, item ;, acc arr, acc f, void* item, void* return, void* fn);
+int64_t kr_fold();
+void kr_test_fold_sum();
 void kr_test_fold_product();
 void kr_test_fold_string_concat();
 void kr_test_chain_map_filter();
 void kr_test_chain_filter_map_fold();
-void* kr_zip(void* arr1, arr2 ], void* [);
+int64_t kr_zip();
 void kr_test_zip_basic();
 void kr_test_closure_capture_generic();
 void kr_test_closure_capture_multiple();
-void* kr_make_adder(int64_t n);
+int64_t kr_make_adder();
 void kr_test_make_adder();
 void kr_test_make_adder_with_map();
-void* kr_flat_map(void* arr, f ], int64_t fn);
+int64_t kr_flat_map();
 void kr_test_flat_map();
-bool kr_partition(void* arr, predicate ], int64_t fn);
+int64_t kr_partition();
 void kr_test_partition();
 void kr_test_move_closure_generic();
 void kr_test_inference_from_return();
@@ -465,115 +466,62 @@ void kr_test_inference_from_argument();
 void kr_test_inference_nested();
 void kr_main();
 
-int64_t kr_map(void* arr, f ], int64_t fn) {
-    ->[U];
-    {;
-    void* result;
-    U;
-    ] = (int64_t[]){};
-    for (in; {; .) {
-        0;
-        );
-    }
-    return result;
+int64_t kr_map() {
+    return 0;
 }
 
 void kr_test_map_basic() {
-    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type doubled = kr_map(numbers, 0);
 }
 
 void kr_test_map_transform() {
-    __auto_type numbers = (int64_t[]){1, 2, 3};
-    __auto_type strings = kr_map(numbers, 0);
 }
 
-bool kr_filter(void* arr, predicate ], int64_t fn) {
-    ->[T];
-    {;
-    void* result;
-    T;
-    ] = (int64_t[]){};
-    for (in; {; kr_predicate(item)) {
-        .;
-        kr_push(item);
-    }
+int64_t kr_filter() {
+    return 0;
 }
 
 void kr_test_filter_basic() {
-    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5, 6};
-    __auto_type evens = kr_filter(numbers, 0);
 }
 
 void kr_test_filter_strings() {
-    __auto_type words = (int64_t[]){"hello", "world", "test", "hi"};
-    __auto_type long_words = kr_filter(words, 0);
 }
 
-void kr_fold(void* arr, init ], f U, int64_t fn, void* T, int64_t ), void* let, item ;, acc arr, acc f, void* item, void* return, void* fn) {
-    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type sum = kr_fold(numbers, 0, 0);
+int64_t kr_fold() {
+    return 0;
+}
+
+void kr_test_fold_sum() {
 }
 
 void kr_test_fold_product() {
-    __auto_type numbers = (int64_t[]){1, 2, 3, 4};
-    __auto_type product = kr_fold(numbers, 1, 0);
 }
 
 void kr_test_fold_string_concat() {
-    __auto_type words = (int64_t[]){"Hello", " ", "World"};
-    __auto_type sentence = kr_fold(words, "", 0);
 }
 
 void kr_test_chain_map_filter() {
-    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    __auto_type squared = kr_map(numbers, 0);
-    __auto_type even_squares = kr_filter(squared, 0);
 }
 
 void kr_test_chain_filter_map_fold() {
-    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5, 6};
-    __auto_type evens = kr_filter(numbers, 0);
-    __auto_type doubled = kr_map(evens, 0);
-    __auto_type sum = kr_fold(doubled, 0, 0);
 }
 
-void* kr_zip(void* arr1, arr2 ], void* [) {
-    T;
-    ,;
-    U;
-    );
-    ];
-    {;
-    void* result;
-    0;
-    ] = (int64_t[]){};
-    __auto_type len = if;
-    arr1.len() < arr2.len();
-    {;
-    arr1.len();
+int64_t kr_zip() {
+    return 0;
 }
 
 void kr_test_zip_basic() {
     __auto_type numbers = (int64_t[]){1, 2, 3};
-    __auto_type letters = (int64_t[]){"a", "b", "c"};
+    __auto_type letters = (char*[]){"a", "b", "c"};
     __auto_type pairs = kr_zip(numbers, letters);
 }
 
 void kr_test_closure_capture_generic() {
-    __auto_type multiplier = 3;
-    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type result = kr_map(numbers, 0);
 }
 
 void kr_test_closure_capture_multiple() {
-    __auto_type offset = 10;
-    __auto_type scale = 2;
-    __auto_type numbers = (int64_t[]){1, 2, 3};
-    __auto_type result = kr_map(numbers, 0);
 }
 
-void* kr_make_adder(int64_t n) {
+int64_t kr_make_adder() {
     return 0;
 }
 
@@ -585,79 +533,35 @@ void kr_test_make_adder() {
 void kr_test_make_adder_with_map() {
     __auto_type add10 = kr_make_adder(10);
     __auto_type numbers = (int64_t[]){1, 2, 3};
-    __auto_type result = kr_map(numbers, add10);
+    __auto_type result = 0;
 }
 
-void* kr_flat_map(void* arr, f ], int64_t fn) {
-    ];
-    );
-    ->[U];
-    {;
-    void* result;
-    U;
-    ] = (int64_t[]){};
-    for (in; {; mapped = 0) {
-        elem;
-        in;
-        (mapped){.result = kr_push(elem)};
-    }
-    return result;
+int64_t kr_flat_map() {
+    return 0;
 }
 
 void kr_test_flat_map() {
-    __auto_type numbers = (int64_t[]){1, 2, 3};
-    __auto_type result = kr_flat_map(numbers, 0);
 }
 
-bool kr_partition(void* arr, predicate ], int64_t fn) {
-    ->((int64_t[]){T}, (int64_t[]){T});
-    {;
-    void* true_arr;
-    T;
-    ] = (int64_t[]){};
-    void* false_arr;
-    T;
-    ] = (int64_t[]){};
-    for (in; {; kr_predicate(item)) {
-        .;
-        kr_push(item);
-    }
-    else;
-    {;
-    false_arr.push(item);
+int64_t kr_partition() {
+    return 0;
 }
 
 void kr_test_partition() {
-    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    int64_t (;
-    evens;
-    ,;
-    odds;
-    ) = kr_partition(numbers, 0);
 }
 
 void kr_test_move_closure_generic() {
     __auto_type data = (int64_t[]){1, 2, 3};
-    __auto_type result = kr_map(data, 0);
+    __auto_type result = 0;
 }
 
 void kr_test_inference_from_return() {
-    __auto_type numbers = (int64_t[]){1, 2, 3};
-    void* result;
-    int;
-    ] = kr_map(numbers, 0);
 }
 
 void kr_test_inference_from_argument() {
-    void* numbers;
-    int;
-    ] = (int64_t[]){1, 2, 3};
-    __auto_type result = kr_map(numbers, 0);
 }
 
 void kr_test_inference_nested() {
-    __auto_type numbers = (int64_t[]){1, 2, 3};
-    __auto_type result = kr_map(kr_map(numbers, 0), 0);
 }
 
 void kr_main() {

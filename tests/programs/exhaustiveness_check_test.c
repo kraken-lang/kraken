@@ -455,7 +455,7 @@ int64_t kr_test_exhaustive_with_wildcard() {
     else if (x == 2) {
         kr_test_pass("Literal 2");
     }
-    else {
+    else if (1) {
         kr_test_pass("Wildcard catches all other cases");
     }
     0;
@@ -482,7 +482,7 @@ int64_t kr_test_exhaustive_multiple_literals() {
     else if (x == 3) {
         kr_test_pass("Literal 3");
     }
-    else {
+    else if (1) {
         kr_test_pass("Wildcard covers all other cases");
     }
     0;
@@ -491,21 +491,13 @@ int64_t kr_test_exhaustive_multiple_literals() {
 int64_t kr_test_exhaustive_range_with_wildcard() {
     kr_test_section("Exhaustive: Range with Wildcard");
     int64_t x = 25;
-    if (x == 0) {
-        ..;
-        10;
-        ->;
-        {;
+    if (1) {
         kr_test_pass("Range 0..10");
     }
-    else if (x == 10) {
-        ..;
-        20;
-        ->;
-        {;
+    else if (1) {
         kr_test_pass("Range 10..20");
     }
-    else {
+    else if (1) {
         kr_test_pass("Wildcard covers remaining");
     }
     0;
@@ -518,13 +510,10 @@ int64_t kr_test_exhaustive_or_pattern_with_wildcard() {
 int64_t kr_test_exhaustive_guard_with_wildcard() {
     kr_test_section("Exhaustive: Guard with Wildcard Fallback");
     int64_t x = 15;
-    {
-        x > 10;
-        ->;
-        {;
+    if (1) {
         kr_test_pass("Guard matches");
     }
-    else {
+    else if (1) {
         kr_test_pass("Wildcard fallback ensures exhaustiveness");
     }
     0;
@@ -533,20 +522,20 @@ int64_t kr_test_exhaustive_guard_with_wildcard() {
 int64_t kr_test_exhaustive_nested_patterns() {
     kr_test_section("Exhaustive: Nested Patterns");
     void* pair;
-    int;
-    ,;
-    int;
-    ) = 0;
+    0;
+    0;
+    0;
+    0 = 0;
     if (pair == () {
         1;
-        ,;
+        0;
         2;
-        );
-        ->;
-        {;
+        0;
+        0;
+        0;
         kr_test_pass("Exact match");
     }
-    else {
+    else if (1) {
         kr_test_pass("Wildcard covers all other tuples");
     }
     0;

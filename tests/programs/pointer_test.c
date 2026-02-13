@@ -441,9 +441,9 @@ int64_t kr_main();
 
 int64_t kr_main() {
     __auto_type x = 42;
-    __auto_type ptr = &;
+    __auto_type ptr = 0;
     x;
-    __auto_type val = *;
+    __auto_type val = 0;
     ptr;
     kr_puts("Pointer test works\!");
     return val;

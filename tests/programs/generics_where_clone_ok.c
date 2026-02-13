@@ -437,18 +437,14 @@ void kr_kraken_union_set_tag(int64_t u,int64_t t){ void* p=(void*)(intptr_t)u; i
 int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(intptr_t)u; return p && *(int64_t*)p==t; }
 
 /* Forward declarations */
-int64_t kr_id_clone(int64_t x);
+int64_t kr_id_clone();
 int64_t kr_main();
 
-int64_t kr_id_clone(int64_t x) {
-    T;
-    :;
-    (Clone){.return = ;};
-    fn;
-    kr_main();
-    ->;
-    int;
-    {;
+int64_t kr_id_clone() {
+    return 0;
+}
+
+int64_t kr_main() {
     __auto_type a = kr_id_clone(123);
     if (_KR_NEQ(a, 123)) {
         return 1;

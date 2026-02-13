@@ -447,7 +447,7 @@ int64_t kr_test_match(int64_t x) {
     else if (x == 2) {
         return 20;
     }
-    else {
+    else if (1) {
         return 99;
     }
 }

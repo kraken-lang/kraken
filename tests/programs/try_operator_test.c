@@ -440,7 +440,14 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 typedef int64_t Result;
 typedef int64_t Option;
 Result kr_divide(int64_t a, int64_t b);
-void kr_find_value(void* arr, target ], void* int_val, i {, void* int_val, i while);
+Option kr_find_value(void* arr, int64_t target);
+int64_t kr_test_result_propagation();
+int64_t kr_test_error_propagation();
+int64_t kr_test_option_some();
+int64_t kr_test_option_none();
+Result kr_test_chained_results();
+int64_t kr_test_mixed_types();
+int64_t kr_main();
 
 typedef int64_t Result;
 #define Result_Ok 0
@@ -459,7 +466,131 @@ Result kr_divide(int64_t a, int64_t b) {
     }
 }
 
-void kr_find_value(void* arr, target ], void* int_val, i {, void* int_val, i while) {
+Option kr_find_value(void* arr, int64_t target) {
+    int64_t i = 0;
+    while (i < 5) {
+        if (_KR_EQ(arr[_KR_EQ(i, 0)], 0)) {
+            Option_Some;
+        }
+        i = i + 1;
+    }
+    Option_None;
+}
+
+int64_t kr_test_result_propagation() {
+    Result result = kr_divide(10, 2);
+    if (result == Result_Ok) {
+        int64_t value = 0;
+        kr_puts("Test 1 passed: Result propagation");
+        value;
+    }
+    else if (result == Result_Err) {
+        int64_t e = 0;
+        kr_puts("Test 1 failed: Unexpected error");
+        -1;
+    }
+}
+
+int64_t kr_test_error_propagation() {
+    Result result = kr_divide(10, 0);
+    if (result == Result_Ok) {
+        int64_t value = 0;
+        kr_puts("Test 2 failed: Should have errored");
+        -1;
+    }
+    else if (result == Result_Err) {
+        int64_t e = 0;
+        kr_puts("Test 2 passed: Error propagated correctly");
+        e;
+    }
+}
+
+int64_t kr_test_option_some() {
+    void* arr = (void*)(intptr_t)((int64_t[]){1, 2, 3, 4, 5});
+    Option result = kr_find_value(arr, 3);
+    if (result == Option_Some) {
+        int64_t index = 0;
+        kr_puts("Test 3 passed: Found value at index");
+        kr_print_int(index);
+        index;
+    }
+    else if (result == Option_None) {
+        kr_puts("Test 3 failed: Should have found value");
+        -1;
+    }
+}
+
+int64_t kr_test_option_none() {
+    void* arr = (void*)(intptr_t)((int64_t[]){1, 2, 3, 4, 5});
+    Option result = kr_find_value(arr, 10);
+    if (result == Option_Some) {
+        int64_t index = 0;
+        kr_puts("Test 4 failed: Should not have found value");
+        -1;
+    }
+    else if (result == Option_None) {
+        kr_puts("Test 4 passed: None propagated correctly");
+        0;
+    }
+}
+
+Result kr_test_chained_results() {
+    Result r1 = kr_divide(20, 2);
+    if (r1 == Result_Ok) {
+        int64_t v1 = 0;
+        Result r2 = kr_divide(v1, 2);
+        if (r2 == Result_Ok) {
+            int64_t v2 = 0;
+            kr_puts("Test 5 passed: Chained results");
+            kr_print_int(v2);
+            Result_Ok;
+        }
+        else if (r2 == Result_Err) {
+            int64_t e = 0;
+            Result_Err;
+        }
+    }
+    else if (r1 == Result_Err) {
+        int64_t e = 0;
+        Result_Err;
+    }
+}
+
+int64_t kr_test_mixed_types() {
+    void* arr = (void*)(intptr_t)((int64_t[]){10, 20, 30, 40, 50});
+    Option opt = kr_find_value(arr, 30);
+    if (opt == Option_Some) {
+        int64_t index = 0;
+        int64_t value = arr[index];
+        Result result = kr_divide(value, 3);
+        if (result == Result_Ok) {
+            int64_t v = 0;
+            kr_puts("Test 6 passed: Mixed types");
+            kr_print_int(v);
+            v;
+        }
+        else if (result == Result_Err) {
+            int64_t e = 0;
+            -1;
+        }
+    }
+    else if (opt == Option_None) {
+        -1;
+    }
+}
+
+int64_t kr_main() {
+    kr_puts("=== Try Operator Tests ===");
+    kr_puts("");
+    kr_test_result_propagation();
+    kr_test_error_propagation();
+    kr_test_option_some();
+    kr_test_option_none();
+    Result r = kr_test_chained_results();
+    kr_test_mixed_types();
+    kr_puts("");
+    kr_puts("=== All Tests Complete ===");
+    0;
 }
 
 

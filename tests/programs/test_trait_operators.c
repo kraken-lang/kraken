@@ -450,7 +450,7 @@ int64_t y;
 };
 
 Point kr_Point_add(Point self, Point other) {
-    return (Point){.x = self.x + other.x, .y = self.y + other.y};
+    return (Point){.x = 0.x + other.x, .y = 0.y + other.y};
 }
 
 kr_str kr_Point_fmt(Point self) {

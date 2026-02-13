@@ -486,18 +486,6 @@ void kr_test_composition_with_captures() {
 }
 
 void kr_test_composition_factory() {
-    fn;
-    kr_make_adder(n, int);
-    ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    return 0;
-}
-
-void* kr_make_multiplier(int64_t n) {
-    return 0;
 }
 
 void kr_test_self_composition() {
@@ -507,14 +495,6 @@ void kr_test_composition_with_conditionals() {
 }
 
 void kr_test_partial_application_composition() {
-    fn;
-    kr_curry_add(x, int);
-    ->;
-    fn(int);
-    ->;
-    int;
-    {;
-    return 0;
 }
 
 void kr_test_composition_with_multiple_types() {

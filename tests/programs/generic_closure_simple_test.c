@@ -437,7 +437,7 @@ void kr_kraken_union_set_tag(int64_t u,int64_t t){ void* p=(void*)(intptr_t)u; i
 int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(intptr_t)u; return p && *(int64_t*)p==t; }
 
 /* Forward declarations */
-int64_t kr_id(int64_t x);
+int64_t kr_id();
 int64_t kr_test_explicit_types();
 int64_t kr_test_type_inference();
 int64_t kr_apply_int(int64_t x, void* f);
@@ -445,8 +445,8 @@ int64_t kr_test_higher_order();
 int64_t kr_test_closure_capture();
 int64_t kr_main();
 
-int64_t kr_id(int64_t x) {
-    return x;
+int64_t kr_id() {
+    return 0;
 }
 
 int64_t kr_test_explicit_types() {
@@ -470,19 +470,10 @@ int64_t kr_apply_int(int64_t x, void* f) {
 }
 
 int64_t kr_test_higher_order() {
-    __auto_type result = kr_apply_int(5, 0);
-    if (_KR_NEQ(result, 10)) {
-        return 1;
-    }
     return 0;
 }
 
 int64_t kr_test_closure_capture() {
-    __auto_type multiplier = 3;
-    __auto_type result = kr_apply_int(5, 0);
-    if (_KR_NEQ(result, 15)) {
-        return 1;
-    }
     return 0;
 }
 

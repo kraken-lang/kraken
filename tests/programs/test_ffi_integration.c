@@ -453,16 +453,16 @@ int64_t b;
 };
 
 void kr_test_variadic(kr_str format, void* .., void* int_val, void* ;, void* {, void* ,, void* ,, C repr) {
-    struct;
-    (CStruct){.x = int, .y = int};
-    #[kr_repr(packed)];
-    struct;
-    (PackedData){.a = int, .b = int};
-    fn;
+    0;
+    (CStruct){.x = 0, .y = 0};
+    0[kr_repr(packed)];
+    0;
+    (PackedData){.a = 0, .b = 0};
+    0;
     kr_main();
-    ->;
-    int;
-    {;
+    0;
+    0;
+    0;
     int64_t result = kr_test_variadic("test");
     IntOrFloat u = (IntOrFloat){.i = 42};
     CStruct c = (CStruct){.x = 10, .y = 20};

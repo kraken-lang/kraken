@@ -438,21 +438,21 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 
 /* Forward declarations */
 typedef struct Container Container;
-void* kr_pair(int64_t first, int64_t second);
+int64_t kr_pair();
 int64_t kr_test_pair();
-int64_t kr_identity(int64_t x);
+int64_t kr_identity();
 int64_t kr_test_inference_from_context();
 int64_t kr_test_explicit_type_args();
-Container kr_make_container(int64_t v);
-int64_t kr_get_value(Container c);
+int64_t kr_make_container();
+int64_t kr_get_value();
 int64_t kr_test_generic_struct();
-Container kr_wrap(int64_t x);
-int64_t kr_unwrap(Container c);
+int64_t kr_wrap();
+int64_t kr_unwrap();
 int64_t kr_test_nested_generics();
-void* kr_swap(void* p, void* ,);
+int64_t kr_swap();
 int64_t kr_test_swap();
-int64_t kr_max(int64_t a, int64_t b, void* compare);
-int64_t kr_double(int64_t x);
+int64_t kr_max();
+int64_t kr_double();
 int64_t kr_test_chained();
 int64_t kr_main();
 
@@ -460,21 +460,14 @@ struct Container {
 int64_t value;
 };
 
-void* kr_pair(int64_t first, int64_t second) {
-    ,;
-    U;
-    );
-    {;
+int64_t kr_pair() {
     return 0;
 }
 
 int64_t kr_test_pair() {
     __auto_type p = kr_pair(42, true);
-    int64_t (;
-    x;
-    ,;
-    y;
-    ) = p;
+    int64_t x = 0;
+    int64_t y = 0;
     if (_KR_NEQ(x, 42)) {
         return 1;
     }
@@ -484,8 +477,8 @@ int64_t kr_test_pair() {
     return 0;
 }
 
-int64_t kr_identity(int64_t x) {
-    return x;
+int64_t kr_identity() {
+    return 0;
 }
 
 int64_t kr_test_inference_from_context() {
@@ -512,12 +505,12 @@ int64_t kr_test_explicit_type_args() {
     return 0;
 }
 
-Container kr_make_container(int64_t v) {
-    return (Container){.value = v};
+int64_t kr_make_container() {
+    return 0;
 }
 
-int64_t kr_get_value(Container c) {
-    return c.value;
+int64_t kr_get_value() {
+    return 0;
 }
 
 int64_t kr_test_generic_struct() {
@@ -532,12 +525,12 @@ int64_t kr_test_generic_struct() {
     return 0;
 }
 
-Container kr_wrap(int64_t x) {
-    return (Container){.value = x};
+int64_t kr_wrap() {
+    return 0;
 }
 
-int64_t kr_unwrap(Container c) {
-    return c.value;
+int64_t kr_unwrap() {
+    return 0;
 }
 
 int64_t kr_test_nested_generics() {
@@ -549,27 +542,15 @@ int64_t kr_test_nested_generics() {
     return 0;
 }
 
-void* kr_swap(void* p, void* ,) {
-    ,;
-    T;
-    );
-    {;
-    int64_t (;
-    a;
-    ,;
-    b;
-    ) = p;
+int64_t kr_swap() {
     return 0;
 }
 
 int64_t kr_test_swap() {
     __auto_type p1 = kr_pair(42, true);
     __auto_type p2 = kr_swap(p1);
-    int64_t (;
-    b;
-    ,;
-    i;
-    ) = p2;
+    int64_t b = 0;
+    int64_t i = 0;
     if (!b) {
         return 1;
     }
@@ -579,17 +560,12 @@ int64_t kr_test_swap() {
     return 0;
 }
 
-int64_t kr_max(int64_t a, int64_t b, void* compare) {
-    if (kr_compare(a, b)) {
-        return a;
-    }
-    else {
-        return b;
-    }
+int64_t kr_max() {
+    return 0;
 }
 
-int64_t kr_double(int64_t x) {
-    return x;
+int64_t kr_double() {
+    return 0;
 }
 
 int64_t kr_test_chained() {

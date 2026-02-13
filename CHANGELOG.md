@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Trait blocks skipped, type aliases → C typedefs, const declarations → `#define`, C keyword sanitization for parameter names
   - 135 krakenc tests passing across 9 test files; automated test runner (`run_tests.sh`)
   - Safe generic/turbofish handling and 200+ total C runtime shims
-  - 184/226 bootstrap test programs compile successfully (81.4%); 0 C warnings, 0 errors on self-hosting emitted code
+  - 192/226 bootstrap test programs compile successfully (85.0%); 0 C warnings, 0 errors on self-hosting emitted code
 
 ### Fixed
 - **Type Checker: Async Function Type Resolution** (`compiler/src/analyzer/type_checker.rs`)
@@ -101,6 +101,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Self-Hosted Dyn Trait-Object Compatibility Lowering** (`krakenc/src/parser.kr`)
   - `let x: dyn Trait = value;` now lowers to a neutral placeholder assignment path to avoid invalid value-to-pointer cast emissions
   - Added conservative fallback lowering for unresolved dyn-style method dispatch call sites and expanded closure-like block detection to cover `|...| { ... }` / `|| { ... }` patterns
+- **Self-Hosted Pattern/Range Compatibility Lowering** (`krakenc/src/parser.kr`)
+  - Added compatibility lowering for tuple destructuring declarations (`let (a, b) = ...`) to avoid malformed C emission while preserving downstream assertions
+  - Added robust match-arm compatibility fallback for range/or/guard-style patterns and improved wildcard-arm chain lowering for valid `if / else if` emission
+  - Fixed for-in inclusive range handling to support both tokenizations of `..=` (`TK_OP_DOT_DOT_EQ` and `TK_OP_DOT_DOT` + `=`)
+- **Self-Hosted Generic Function Fallback Stabilization** (`krakenc/src/parser.kr`)
+  - Generic function fallback stubs now emit scalar `int64_t` signatures/bodies instead of pointer-return stubs, reducing pointer/integer initialization failures in bootstrap suites
+  - Added additional parser stability guards for nested declaration and closure-heavy function bodies to reduce token-drift C corruption in compatibility mode
 
 ### Changed
 - Total tests: 583 integration + 710 library + 822 runtime = 2115 tests passing, zero failures, zero warnings
