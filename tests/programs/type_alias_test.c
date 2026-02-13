@@ -372,16 +372,35 @@ int64_t kr_atomic_cas(void* p, int64_t expected, int64_t desired) { if(*(int64_t
 typedef struct Point Point;
 typedef int64_t Color;
 typedef struct Container Container;
+typedef int64_t MyInt;
+typedef double MyFloat;
+typedef kr_str MyString;
+typedef bool MyBool;
 void kr_test_basic_type_aliases();
+typedef Point Coordinate;
 void kr_test_struct_alias();
+typedef void* IntFunction;
+typedef void* BinaryOp;
 void kr_test_function_type_alias();
+typedef int64_t PublicInt;
+typedef int64_t PrivateInt;
 void kr_test_visibility();
+typedef int64_t Level1;
+typedef Level1 Level2;
+typedef Level2 Level3;
 void kr_test_nested_aliases();
+typedef void* IntPair;
+typedef void* IntTriple;
 void kr_test_tuple_alias();
 MyInt kr_process(MyInt x);
 void kr_test_alias_in_signature();
+typedef Color Hue;
 void kr_test_enum_alias();
+typedef int64_t Integer;
+typedef int64_t Number;
+typedef int64_t Count;
 void kr_test_multiple_aliases();
+typedef Container Box;
 void kr_test_complex_alias();
 void kr_main();
 
@@ -418,6 +437,10 @@ int64_t value;
 };
 
 typedef Container Box;
+typedef int64_t MyInt;
+typedef double MyFloat;
+typedef kr_str MyString;
+typedef bool MyBool;
 void kr_test_basic_type_aliases() {
     MyInt x = 42;
     MyFloat y = 3.14;
@@ -425,10 +448,13 @@ void kr_test_basic_type_aliases() {
     MyBool b = true;
 }
 
+typedef Point Coordinate;
 void kr_test_struct_alias() {
     Coordinate p = (Point){.x = 10, .y = 20};
 }
 
+typedef void* IntFunction;
+typedef void* BinaryOp;
 void kr_test_function_type_alias() {
     IntFunction double = |;
     x | x * 2;
@@ -440,15 +466,22 @@ void kr_test_function_type_alias() {
     __auto_type result2 = kr_add(10, 32);
 }
 
+typedef int64_t PublicInt;
+typedef int64_t PrivateInt;
 void kr_test_visibility() {
     PublicInt x = 42;
     PrivateInt y = 42;
 }
 
+typedef int64_t Level1;
+typedef Level1 Level2;
+typedef Level2 Level3;
 void kr_test_nested_aliases() {
     Level3 x = 42;
 }
 
+typedef void* IntPair;
+typedef void* IntTriple;
 void kr_test_tuple_alias() {
     IntPair pair = (10);
     ,;
@@ -470,10 +503,14 @@ void kr_test_alias_in_signature() {
     __auto_type result = kr_process(21);
 }
 
+typedef Color Hue;
 void kr_test_enum_alias() {
     Hue c = Color_Red;
 }
 
+typedef int64_t Integer;
+typedef int64_t Number;
+typedef int64_t Count;
 void kr_test_multiple_aliases() {
     Integer a = 1;
     Number b = 2;
@@ -481,6 +518,7 @@ void kr_test_multiple_aliases() {
     __auto_type sum = a + b + c;
 }
 
+typedef Container Box;
 void kr_test_complex_alias() {
     Box b = (Container){.value = 42};
 }

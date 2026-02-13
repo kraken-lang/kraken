@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Trait blocks skipped, type aliases → C typedefs, const declarations → `#define`, C keyword sanitization for parameter names
   - 135 krakenc tests passing across 9 test files; automated test runner (`run_tests.sh`)
   - Safe generic/turbofish handling and 200+ total C runtime shims
-  - 142/226 bootstrap test programs compile successfully (62.8%); 0 C warnings, 0 errors on self-hosting emitted code
+  - 147/226 bootstrap test programs compile successfully (65.0%); 0 C warnings, 0 errors on self-hosting emitted code
 
 ### Fixed
 - **Type Checker: Async Function Type Resolution** (`compiler/src/analyzer/type_checker.rs`)
@@ -77,6 +77,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `TraitObject` types (`dyn Trait`) rewritten during module mangling for consistent trait name resolution
   - `ImplBlock` and `TraitImpl` type names and methods now properly rewritten during module mangling (previously passed through unmodified)
   - `Type::Generic` names now mangled through the `private_mangle` map
+- **Self-Hosted Parser: Associated Function + Generic Type Compatibility** (`krakenc/src/parser.kr`)
+  - `Type::method(...)` now lowers to `kr_Type_method(...)` for associated function calls while preserving enum variant lowering (`Type::Variant`)
+  - Generic container base identifiers `Vec` and `Map` now erase to `void*` in C type mapping, fixing undeclared-type emissions for `Vec<T>` / `Map<K,V>` annotations
+- **Self-Hosted Parser: `const fn` Translation Routing** (`krakenc/src/parser.kr`)
+  - Top-level `const fn` is now routed through function prototype/body translation instead of being emitted as malformed const macros
+  - Function body duplication from `const fn` handling in the type-definition pass was removed
 
 ### Changed
 - Total tests: 583 integration + 710 library + 822 runtime = 2115 tests passing, zero failures, zero warnings

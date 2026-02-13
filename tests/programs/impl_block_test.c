@@ -455,8 +455,8 @@ Point kr_Point_origin() {
 }
 
 void kr_test_associated_functions() {
-    __auto_type p1 = Point_new;
-    __auto_type p2 = Point_origin;
+    __auto_type p1 = kr_Point_new(10, 20);
+    __auto_type p2 = kr_Point_origin();
 }
 
 Counter kr_Counter_new() {
@@ -468,8 +468,8 @@ Counter kr_Counter_with_value(int64_t v) {
 }
 
 void kr_test_multiple_impl_blocks() {
-    __auto_type c1 = Counter_new;
-    __auto_type c2 = Counter_with_value;
+    __auto_type c1 = kr_Counter_new();
+    __auto_type c2 = kr_Counter_with_value(42);
 }
 
 Rectangle kr_Rectangle_new(int64_t w, int64_t h) {
@@ -481,7 +481,7 @@ int64_t kr_Rectangle_area(int64_t w, int64_t h) {
 }
 
 void kr_test_visibility() {
-    __auto_type r = Rectangle_new;
+    __auto_type r = kr_Rectangle_new(10, 20);
 }
 
 Option kr_Option_some(int64_t value) {
@@ -493,8 +493,8 @@ Option kr_Option_none() {
 }
 
 void kr_test_enum_impl() {
-    __auto_type opt1 = Option_some;
-    __auto_type opt2 = Option_none;
+    __auto_type opt1 = kr_Option_some(42);
+    __auto_type opt2 = kr_Option_none();
 }
 
 Calculator kr_Calculator_new() {
@@ -510,9 +510,9 @@ int64_t kr_Calculator_multiply(int64_t a, int64_t b, int64_t c) {
 }
 
 void kr_test_multiple_params() {
-    __auto_type calc = Calculator_new;
-    __auto_type sum = Calculator_add;
-    __auto_type product = Calculator_multiply;
+    __auto_type calc = kr_Calculator_new();
+    __auto_type sum = kr_Calculator_add(10, 32);
+    __auto_type product = kr_Calculator_multiply(2, 3, 7);
 }
 
 Pair kr_Pair_create(int64_t a, int64_t b) {
@@ -524,8 +524,8 @@ Pair kr_Pair_swap(Pair p) {
 }
 
 void kr_test_complex_returns() {
-    __auto_type p1 = Pair_create;
-    __auto_type p2 = Pair_swap;
+    __auto_type p1 = kr_Pair_create(10, 20);
+    __auto_type p2 = kr_Pair_swap(p1);
 }
 
 int64_t kr_Math_double(int64_t x) {
@@ -533,12 +533,11 @@ int64_t kr_Math_double(int64_t x) {
 }
 
 int64_t kr_Math_quadruple(int64_t x) {
-    return Math_double;
-    );
+    return kr_Math_double(kr_Math_double(x));
 }
 
 void kr_test_nested_calls() {
-    __auto_type result = Math_quadruple;
+    __auto_type result = kr_Math_quadruple(10);
 }
 
 bool kr_Validator_is_positive(int64_t x) {
@@ -560,8 +559,8 @@ int64_t kr_Validator_max(int64_t a, int64_t b) {
 }
 
 void kr_test_conditional_methods() {
-    __auto_type is_pos = Validator_is_positive;
-    __auto_type maximum = Validator_max;
+    __auto_type is_pos = kr_Validator_is_positive(42);
+    __auto_type maximum = kr_Validator_max(10, 20);
 }
 
 int64_t kr_ArrayHelper_sum_range(int64_t start, int64_t end) {
@@ -575,7 +574,7 @@ int64_t kr_ArrayHelper_sum_range(int64_t start, int64_t end) {
 }
 
 void kr_test_loop_methods() {
-    __auto_type sum = ArrayHelper_sum_range;
+    __auto_type sum = kr_ArrayHelper_sum_range(1, 11);
 }
 
 void kr_main() {

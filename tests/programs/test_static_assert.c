@@ -369,9 +369,13 @@ int64_t kr_atomic_sub(void* p, int64_t v) { int64_t old=*(int64_t*)p; *(int64_t*
 int64_t kr_atomic_cas(void* p, int64_t expected, int64_t desired) { if(*(int64_t*)p==expected){*(int64_t*)p=desired; return 1;} return 0; }
 
 /* Forward declarations */
+bool kr_is_power_of_two(int64_t n);
 int64_t kr_main();
 
-#define kr_fn is_power_of_two(n:int)->bool{returnn>0&&(n&(n-1))==0
+bool kr_is_power_of_two(int64_t n) {
+    return n > 0 && _KR_EQ((n & (n - 1)), 0);
+}
+
 int64_t kr_main() {
     static_assert;
     !(_KR_EQ(1 + 1, 2));

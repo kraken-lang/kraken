@@ -394,10 +394,7 @@ int64_t kr_main() {
     kr_puts(kr_str_concat("identity str: ", b));
     int64_t c = kr_add_generic(10, 20);
     kr_puts(kr_str_concat("add_generic: ", kr_fmt_int(c)));
-    Pair p;
-    <;
-    int > =;
-    (Pair){.first = 1, .second = 2};
+    Pair p = (Pair){.first = 1, .second = 2};
     kr_puts(kr_str_concat("pair.first: ", kr_fmt_int(p.first)));
     kr_puts(kr_str_concat("pair.second: ", kr_fmt_int(p.second)));
     int64_t d = kr_identity(99);

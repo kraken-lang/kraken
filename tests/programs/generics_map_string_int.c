@@ -372,12 +372,7 @@ int64_t kr_atomic_cas(void* p, int64_t expected, int64_t desired) { if(*(int64_t
 int64_t kr_main();
 
 int64_t kr_main() {
-    Map m;
-    <;
-    string;
-    ,;
-    int > =;
-    kr_map_string_int_new();
+    void* m = kr_map_string_int_new();
     kr_map_string_int_set(m, "a", 10);
     kr_map_string_int_set(m, "b", 20);
     if (_KR_NEQ(kr_map_string_int_len(m), 2)) {

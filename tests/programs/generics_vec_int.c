@@ -372,10 +372,7 @@ int64_t kr_atomic_cas(void* p, int64_t expected, int64_t desired) { if(*(int64_t
 int64_t kr_main();
 
 int64_t kr_main() {
-    Vec v;
-    <;
-    int > =;
-    kr_vec_int_new();
+    void* v = kr_vec_int_new();
     kr_vec_int_push(v, 10);
     kr_vec_int_push(v, 20);
     kr_vec_int_push(v, 30);

@@ -369,11 +369,26 @@ int64_t kr_atomic_sub(void* p, int64_t v) { int64_t old=*(int64_t*)p; *(int64_t*
 int64_t kr_atomic_cas(void* p, int64_t expected, int64_t desired) { if(*(int64_t*)p==expected){*(int64_t*)p=desired; return 1;} return 0; }
 
 /* Forward declarations */
+int64_t kr_add(int64_t a, int64_t b);
+int64_t kr_multiply(int64_t x, int64_t y);
+int64_t kr_factorial(int64_t n);
 int64_t kr_main();
 
-#define kr_fn add(a:int,b:int)->int{returna+b
-#define kr_fn multiply(x:int,y:int)->int{returnx*y
-#define kr_fn factorial(n:int)->int{if(n<=1){return1
+int64_t kr_add(int64_t a, int64_t b) {
+    return a + b;
+}
+
+int64_t kr_multiply(int64_t x, int64_t y) {
+    return x * y;
+}
+
+int64_t kr_factorial(int64_t n) {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * kr_factorial(n - 1);
+}
+
 int64_t kr_main() {
     int64_t sum = kr_add(10, 20);
     int64_t product = kr_multiply(5, 6);

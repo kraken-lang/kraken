@@ -404,7 +404,7 @@ void* kr_from(int64_t value) {
 }
 
 void kr_into(void* self, void* ;, void* {, void* ,, void* <, void* Wrapper, void* (, Wrapper ), void* return, void* :, void* }, void* {, void* ,, void* <, void* Number, void* (, Number ), void* return, void* :, void* }, void* (, w {, Wrapper Wrapper, void* from) {
-    Number n = Number_from;
+    Number n = kr_Number_from(100);
     return 0;
 }
 

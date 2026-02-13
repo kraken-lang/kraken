@@ -372,10 +372,7 @@ int64_t kr_atomic_cas(void* p, int64_t expected, int64_t desired) { if(*(int64_t
 int64_t kr_main();
 
 int64_t kr_main() {
-    Vec v;
-    <;
-    string > =;
-    kr_vec_string_new();
+    void* v = kr_vec_string_new();
     kr_vec_string_push(v, "hello");
     kr_vec_string_push(v, "world");
     __auto_type len = kr_vec_string_len(v);

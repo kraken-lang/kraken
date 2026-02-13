@@ -417,8 +417,8 @@ Config kr_Default_default() {
 int64_t kr_main() {
     Counter c1 = (Counter){.count = 5};
     Counter c2 = c1.clone();
-    Counter c3 = Counter_default;
-    Config cfg = Config_default;
+    Counter c3 = kr_Counter_default();
+    Config cfg = kr_Config_default();
     return 0;
 }
 
