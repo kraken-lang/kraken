@@ -18,7 +18,7 @@ typedef char* kr_str;
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
-int64_t kr_strlen(kr_str s) { return (int64_t)strlen(s); }
+int64_t kr_strlen(kr_str s, ...) { return (int64_t)strlen(s); }
 int64_t kr_abs(int64_t x) { return x < 0 ? -x : x; }
 int kr_strcmp(kr_str a, kr_str b) { return strcmp(a, b); }
 static inline bool _kr_str_eq(kr_str a, kr_str b) { return strcmp(a,b)==0; }
@@ -299,7 +299,7 @@ int64_t kr_memcmp(void* a, void* b, int64_t n) { return (int64_t)memcmp(a,b,(siz
 void* kr_memcpy(void* dst, void* src, int64_t n) { return memcpy(dst,src,(size_t)n); }
 void* kr_memmove(void* dst, void* src, int64_t n) { return memmove(dst,src,(size_t)n); }
 void* kr_memset(void* p, int64_t c, int64_t n) { return memset(p,(int)c,(size_t)n); }
-void kr_setenv(kr_str name, kr_str val, ...) { setenv(name,val,1); }
+int64_t kr_setenv(kr_str name, kr_str val, ...) { return (int64_t)setenv(name,val,1); }
 void kr_unsetenv(kr_str name) { unsetenv(name); }
 kr_str kr_strstr(kr_str haystack, kr_str needle) { char* p=strstr(haystack,needle); return p?p:""; }
 kr_str kr_strchr(kr_str s, int64_t c) { char* p=strchr(s,(int)c); return p?p:""; }
@@ -342,8 +342,8 @@ int64_t kr_bytes_eq(void* a, void* b, int64_t n) { return memcmp(a,b,(size_t)n)=
 void kr_println(kr_str s) { printf("%s\n",s); }
 void* kr_mutex_new() { return malloc(64); }
 void kr_mutex_free(void* m) { free(m); }
-void* kr_channel_new() { return NULL; }
-void* kr_channel_create(int64_t cap) { (void)cap; return NULL; }
+#define kr_channel_new(...) ((void*)0)
+#define kr_channel_create(...) ((void*)0)
 void kr_channel_send(void* ch, int64_t val) { (void)ch; (void)val; }
 int64_t kr_channel_recv(void* ch) { (void)ch; return 0; }
 int64_t kr_channel_try_send(void* ch, int64_t val) { (void)ch; (void)val; return 0; }
@@ -361,26 +361,35 @@ void kr_executor_shutdown(void* e) { free(e); }
 void* kr_cancel_token_new() { return calloc(1,sizeof(int64_t)); }
 void kr_cancel_token_cancel(void* t) { *(int64_t*)t=1; }
 int64_t kr_cancel_token_is_cancelled(void* t) { return *(int64_t*)t; }
+void* kr_atomic_new(int64_t v) { int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=v; return p; }
+void kr_atomic_store(void* p, int64_t v) { *(int64_t*)p=v; }
+int64_t kr_atomic_load(void* p) { return *(int64_t*)p; }
+int64_t kr_atomic_add(void* p, int64_t v) { int64_t old=*(int64_t*)p; *(int64_t*)p=old+v; return old; }
+int64_t kr_atomic_sub(void* p, int64_t v) { int64_t old=*(int64_t*)p; *(int64_t*)p=old-v; return old; }
+int64_t kr_atomic_cas(void* p, int64_t expected, int64_t desired) { if(*(int64_t*)p==expected){*(int64_t*)p=desired; return 1;} return 0; }
 
 /* Forward declarations */
-void* kr_map(U T, void* (, void* T, void* :, U ));
+int64_t kr_map(void* arr, f ], int64_t fn);
 void kr_test_map_basic();
 void kr_test_map_transform();
-U kr_filter(void* T, T :, void* ,, void* (, void* bool, void* T, void* result, void* ], item ;, void* arr, void* (, push result, void* item, result }, test_filter_basic }, void* ), void* =, void* 2, void* 4, void* 6, filter evens, void* numbers, void* |, void* ==, test_filter_strings }, void* ), void* =, void* world, void* hi, filter long_words, void* words, void* |, void* (, void* ), T fold, void* U, T :, void* ,, void* ,, void* (, U ));
-void kr_test_fold_sum();
+bool kr_filter(void* arr, predicate ], int64_t fn);
+void kr_test_filter_basic();
+void kr_test_filter_strings();
+void kr_fold(void* arr, init ], f U, int64_t fn, void* T, int64_t ), void* let, item ;, acc arr, acc f, void* item, void* return, void* fn);
 void kr_test_fold_product();
 void kr_test_fold_string_concat();
 void kr_test_chain_map_filter();
 void kr_test_chain_filter_map_fold();
-void kr_zip(U T, void* (, void* T, U :, void* ), U T);
+void* kr_zip(void* arr1, arr2 ], void* [);
 void kr_test_zip_basic();
 void kr_test_closure_capture_generic();
 void kr_test_closure_capture_multiple();
-T kr_make_adder(void* T, void* :, T fn);
+void* kr_make_adder(int64_t n);
 void kr_test_make_adder();
 void kr_test_make_adder_with_map();
-void kr_flat_map(U T, void* (, void* T, void* :, void* ), void* ], void* U, void* result, void* ], item ;, void* arr, void* =, void* ), void* in, void* ., void* ), void* return, void* fn);
-void kr_partition(void* T, T :, void* ,, void* (, void* bool, void* [, void* [);
+void* kr_flat_map(void* arr, f ], int64_t fn);
+void kr_test_flat_map();
+bool kr_partition(void* arr, predicate ], int64_t fn);
 void kr_test_partition();
 void kr_test_move_closure_generic();
 void kr_test_inference_from_return();
@@ -388,8 +397,8 @@ void kr_test_inference_from_argument();
 void kr_test_inference_nested();
 void kr_main();
 
-void* kr_map(U T, void* (, void* T, void* :, U )) {
-    ];
+int64_t kr_map(void* arr, f ], int64_t fn) {
+    ->[U];
     {;
     void* result;
     U;
@@ -403,96 +412,31 @@ void* kr_map(U T, void* (, void* T, void* :, U )) {
 
 void kr_test_map_basic() {
     __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type doubled = kr_map(numbers, |, |, *2);
+    __auto_type doubled = kr_map(numbers, |, |, *, ), }, kr_test_map_transform(), let, =[1], ,, ], let, =, (numbers), |, |, +, ., ()), }, kr_filter(arr, (int64_t[]){T}, predicate, fn(T), bool), (int64_t[]){T}, let, :[T], (int64_t[]){}, for, in, {, kr_predicate(item), result.push(item), }, return, ;, fn, ()), let, =[1], ,, ,, ,, ,, ], let, =, (numbers), |, |, _KR_EQ(%, ==), ), }, kr_test_filter_strings(), let, =["hello"], ,, ,, ], let, =, (words), |, |, ., () > 3), }, kr_fold(arr, (int64_t[]){T}, init, U, f, fn(U, T), U), (U){.let = =, .; = item, .arr = acc, .f = acc, .item = ;}, acc, }, kr_test_fold_sum(), let, =[1], ,, ,, ,, ], let, =, (numbers), 0, |, ,, |, +, ), }, kr_test_fold_product(), let, =[1], ,, ,, ], let, =, (numbers), 1, |, ,, |, *, ), }, kr_test_fold_string_concat(), let, =["Hello"], ,, ], let, =, (words), "", |, ,, |, +, ), }, kr_test_chain_map_filter(), let, =[1], ,, ,, ,, ,, ,, ,, ,, ,, ], let, =, (numbers), |, |, *, ), let, =, (squared), |, |, _KR_EQ(%, ==), ), }, kr_test_chain_filter_map_fold(), let, =[1], ,, ,, ,, ,, ], let, =, (numbers), |, |, _KR_EQ(%, ==), ), let, =, (evens), |, |, *, ), let, =, (doubled), 0, |, ,, |, +, ), }, kr_zip(arr1, (int64_t[]){T}, arr2, (int64_t[]){U}), (int64_t[]){(T), U, ], let, :[(T)], )}, (int64_t[]){}, let, =, arr1.len() < arr2.len(), arr1.len(), else, arr2.len(), ;, i, 0, (len){.result = kr_push((arr1[i]), arr2[i]), .; = return, .; = fn, .( = {, .numbers = (int64_t[]){1, 2, 3}, .let = =["a"], ., = ], .let = =, .( = ,, .) = }, .test_closure_capture_generic = ), .let = =, .; = numbers, .[ = ,, ., = ,, ., = ], .let = =, .( = , | x | x * multiplier, .; = fn, .( = {, .offset = 10, .let = =, .; = numbers, .[ = ,, ., = ], .let = =, .( = , | x | (x * scale) + offset, .; = fn, .< = >(n, T), .fn = T, .-> = {, .| = |, .+ = ;}, kr_test_make_adder(), let, =, (5), let, =, (10), }, kr_test_make_adder_with_map(), let, =, (10), let, =[1], ,, ], let, =, (numbers), add10);
 }
 
-void kr_test_map_transform() {
-    __auto_type numbers = (int64_t[]){1, 2, 3};
-    __auto_type strings = kr_map(numbers, |, |, +, ., ()), }, filter < T > (arr), (int64_t[]){T}, predicate, fn(T), bool);
-    ->[T];
-    {;
-    void* result;
-    T;
-    ] = (int64_t[]){};
-    for (in; {; kr_predicate(item)) {
-        .;
-        kr_push(item);
-    }
-}
-
-void kr_test_filter_basic() {
-    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5, 6};
-    __auto_type evens = kr_filter(numbers, |, |, _KR_EQ(%, ==), ), }, kr_test_filter_strings(), let, =["hello"], ,, ,, ], let, =, (words), |, |, ., () > 3), }, fold < T, U > (arr), (int64_t[]){T}, init, U, f, fn(U, T), U);
-    ->;
-    (U){.let = =, .; = item, .arr = acc, .f = acc, .item = ;};
-    return acc;
-}
-
-void kr_test_fold_sum() {
-    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type sum = kr_fold(numbers, 0, |, ,, |, +, ), }, kr_test_fold_product(), let, =[1], ,, ,, ], let, =, (numbers), 1, |, ,, |, *x);
-}
-
-void kr_test_fold_string_concat() {
-    __auto_type words = (int64_t[]){"Hello", " ", "World"};
-    __auto_type sentence = kr_fold(words, "", |, ,, |, +, ), }, kr_test_chain_map_filter(), let, =[1], ,, ,, ,, ,, ,, ,, ,, ,, ], let, =, (numbers), |, |, *x);
-    __auto_type even_squares = kr_filter(squared, |, |, _KR_EQ(%, ==), ), }, kr_test_chain_filter_map_fold(), let, =[1], ,, ,, ,, ,, ], let, =, (numbers), |, |, _KR_EQ(%, ==), ), let, =, (evens), |, |, *2);
-    __auto_type sum = kr_fold(doubled, 0, |, ,, |, +, ), }, zip < T, U > (arr1), (int64_t[]){T}, arr2, (int64_t[]){U});
-    ->[(T)];
-    U;
-    );
+void* kr_flat_map(void* arr, f ], int64_t fn) {
     ];
+    );
+    ->[U];
     {;
     void* result;
-    (T);
-    ,;
     U;
-    );
     ] = (int64_t[]){};
-    __auto_type len = if;
-    arr1.len() < arr2.len();
-    {;
-    arr1.len();
+    for (in; {; mapped = kr_f(item)) {
+        elem;
+        in;
+        (mapped){.result = kr_push(elem)};
+    }
+    return result;
 }
 
-void kr_test_zip_basic() {
+void kr_test_flat_map() {
     __auto_type numbers = (int64_t[]){1, 2, 3};
-    __auto_type letters = (int64_t[]){"a", "b", "c"};
-    __auto_type pairs = kr_zip(numbers, letters);
+    __auto_type result = kr_flat_map(numbers, |, |[x], *, ]);
 }
 
-void kr_test_closure_capture_generic() {
-    __auto_type multiplier = 3;
-    __auto_type numbers = (int64_t[]){1, 2, 3, 4, 5};
-    __auto_type result = kr_map(numbers, |, |, *multiplier);
-}
-
-void kr_test_closure_capture_multiple() {
-    __auto_type offset = 10;
-    __auto_type scale = 2;
-    __auto_type numbers = (int64_t[]){1, 2, 3};
-    __auto_type result = kr_map(numbers, |, |(x * scale) + offset);
-}
-
-T kr_make_adder(void* T, void* :, T fn) {
-    return |;
-    x | x + n;
-}
-
-void kr_test_make_adder() {
-    __auto_type add5 = kr_make_adder(5);
-    __auto_type result = kr_add5(10);
-}
-
-void kr_test_make_adder_with_map() {
-    __auto_type add10 = kr_make_adder(10);
-    __auto_type numbers = (int64_t[]){1, 2, 3};
-    __auto_type result = kr_map(numbers, add10);
-}
-
-void kr_flat_map(U T, void* (, void* T, void* :, void* ), void* ], void* U, void* result, void* ], item ;, void* arr, void* =, void* ), void* in, void* ., void* ), void* return, void* fn) {
-    __auto_type numbers = (int64_t[]){1, 2, 3};
-    __auto_type result = kr_flat_map(numbers, |, |[x], *10, ), }, partition < T > (arr), (int64_t[]){T}, predicate, fn(T), bool);
+bool kr_partition(void* arr, predicate ], int64_t fn) {
     ->((int64_t[]){T}, (int64_t[]){T});
     {;
     void* true_arr;
@@ -523,12 +467,7 @@ void kr_test_inference_from_return() {
     __auto_type numbers = (int64_t[]){1, 2, 3};
     void* result;
     int;
-    ] = kr_map(numbers, |, |, +, ), }, kr_test_inference_from_argument(), let, :[int], (int64_t[]){1, 2, 3}, let, =, (numbers), |, |, *2);
-}
-
-void kr_test_inference_nested() {
-    __auto_type numbers = (int64_t[]){1, 2, 3};
-    __auto_type result = kr_map(kr_map(numbers, |, |, *2), |, |, +, ), }, kr_main(), kr_test_map_basic(), kr_test_map_transform(), kr_test_filter_basic(), kr_test_filter_strings(), kr_test_fold_sum(), kr_test_fold_product(), kr_test_fold_string_concat(), kr_test_chain_map_filter(), kr_test_chain_filter_map_fold(), kr_test_zip_basic(), kr_test_closure_capture_generic(), kr_test_closure_capture_multiple(), kr_test_make_adder(), kr_test_make_adder_with_map(), kr_test_flat_map(), kr_test_partition(), kr_test_move_closure_generic(), kr_test_inference_from_return(), kr_test_inference_from_argument(), kr_test_inference_nested(), kr_println("All generic higher-order function tests completed!"), }, );
+    ] = kr_map(numbers, |, |, +, ), }, kr_test_inference_from_argument(), let, :[int], (int64_t[]){1, 2, 3}, let, =, (numbers), |, |, *, ), }, kr_test_inference_nested(), let, =[1], ,, ], let, =, (kr_map(numbers, |, |, *, ), |, |, +, ), }, kr_main(), kr_test_map_basic(), kr_test_map_transform(), kr_test_filter_basic(), kr_test_filter_strings(), kr_test_fold_sum(), kr_test_fold_product(), kr_test_fold_string_concat(), kr_test_chain_map_filter(), kr_test_chain_filter_map_fold(), kr_test_zip_basic(), kr_test_closure_capture_generic(), kr_test_closure_capture_multiple(), kr_test_make_adder(), kr_test_make_adder_with_map(), kr_test_flat_map(), kr_test_partition(), kr_test_move_closure_generic(), kr_test_inference_from_return(), kr_test_inference_from_argument(), kr_test_inference_nested(), kr_println("All generic higher-order function tests completed!"), }, )));
 }
 
 

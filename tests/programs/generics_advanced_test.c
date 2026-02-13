@@ -18,7 +18,7 @@ typedef char* kr_str;
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
-int64_t kr_strlen(kr_str s) { return (int64_t)strlen(s); }
+int64_t kr_strlen(kr_str s, ...) { return (int64_t)strlen(s); }
 int64_t kr_abs(int64_t x) { return x < 0 ? -x : x; }
 int kr_strcmp(kr_str a, kr_str b) { return strcmp(a, b); }
 static inline bool _kr_str_eq(kr_str a, kr_str b) { return strcmp(a,b)==0; }
@@ -299,7 +299,7 @@ int64_t kr_memcmp(void* a, void* b, int64_t n) { return (int64_t)memcmp(a,b,(siz
 void* kr_memcpy(void* dst, void* src, int64_t n) { return memcpy(dst,src,(size_t)n); }
 void* kr_memmove(void* dst, void* src, int64_t n) { return memmove(dst,src,(size_t)n); }
 void* kr_memset(void* p, int64_t c, int64_t n) { return memset(p,(int)c,(size_t)n); }
-void kr_setenv(kr_str name, kr_str val, ...) { setenv(name,val,1); }
+int64_t kr_setenv(kr_str name, kr_str val, ...) { return (int64_t)setenv(name,val,1); }
 void kr_unsetenv(kr_str name) { unsetenv(name); }
 kr_str kr_strstr(kr_str haystack, kr_str needle) { char* p=strstr(haystack,needle); return p?p:""; }
 kr_str kr_strchr(kr_str s, int64_t c) { char* p=strchr(s,(int)c); return p?p:""; }
@@ -342,8 +342,8 @@ int64_t kr_bytes_eq(void* a, void* b, int64_t n) { return memcmp(a,b,(size_t)n)=
 void kr_println(kr_str s) { printf("%s\n",s); }
 void* kr_mutex_new() { return malloc(64); }
 void kr_mutex_free(void* m) { free(m); }
-void* kr_channel_new() { return NULL; }
-void* kr_channel_create(int64_t cap) { (void)cap; return NULL; }
+#define kr_channel_new(...) ((void*)0)
+#define kr_channel_create(...) ((void*)0)
 void kr_channel_send(void* ch, int64_t val) { (void)ch; (void)val; }
 int64_t kr_channel_recv(void* ch) { (void)ch; return 0; }
 int64_t kr_channel_try_send(void* ch, int64_t val) { (void)ch; (void)val; return 0; }
@@ -361,24 +361,37 @@ void kr_executor_shutdown(void* e) { free(e); }
 void* kr_cancel_token_new() { return calloc(1,sizeof(int64_t)); }
 void kr_cancel_token_cancel(void* t) { *(int64_t*)t=1; }
 int64_t kr_cancel_token_is_cancelled(void* t) { return *(int64_t*)t; }
+void* kr_atomic_new(int64_t v) { int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=v; return p; }
+void kr_atomic_store(void* p, int64_t v) { *(int64_t*)p=v; }
+int64_t kr_atomic_load(void* p) { return *(int64_t*)p; }
+int64_t kr_atomic_add(void* p, int64_t v) { int64_t old=*(int64_t*)p; *(int64_t*)p=old+v; return old; }
+int64_t kr_atomic_sub(void* p, int64_t v) { int64_t old=*(int64_t*)p; *(int64_t*)p=old-v; return old; }
+int64_t kr_atomic_cas(void* p, int64_t expected, int64_t desired) { if(*(int64_t*)p==expected){*(int64_t*)p=desired; return 1;} return 0; }
 
 /* Forward declarations */
 typedef struct Container Container;
-int64_t kr_pair(U T, void* (, void* ,, void* ), void* ,, first return, void* second, void* fn);
-T kr_identity(void* T, void* :, void* T, void* ;, void* (, x {, identity int_val, void* 42, void* (, void* ), void* ;, void* :, void* (, void* if, void* ), void* ;, void* ;, void* (, x {, int64_t identity, void* (, x if, void* 42, void* 1, identity y, void* bool, void* ), void* !, void* return, void* return, void* struct, value >, void* T, T make_container, void* (, Container ), void* T, T Container, void* {, void* }, T get_value, void* (, void* <);
+void* kr_pair(int64_t first, int64_t second);
+int64_t kr_test_pair();
+int64_t kr_identity(int64_t x);
+int64_t kr_test_inference_from_context();
+int64_t kr_test_explicit_type_args();
+Container kr_make_container(int64_t v);
+int64_t kr_get_value(Container c);
 int64_t kr_test_generic_struct();
-void kr_wrap(void* T, void* :, T Container, Container {, void* T, void* :, unwrap }, void* T, void* :, void* >, c {, void* value, void* test_nested_generics, void* int_val, void* =, void* >);
-void kr_swap(U T, void* (, U T);
+Container kr_wrap(int64_t x);
+int64_t kr_unwrap(Container c);
+int64_t kr_test_nested_generics();
+void* kr_swap(void* p, void* ,);
 int64_t kr_test_swap();
-T kr_max(void* T, void* :, void* :, void* :, void* ,, void* bool, void* {, void* (, void* ), void* a, b {, void* }, void* <, T x);
+bool kr_max(int64_t a, int64_t b, void* compare, int64_t T);
+int64_t kr_double(int64_t x);
 int64_t kr_test_chained();
 int64_t kr_main();
 
 struct Container {
-void* T;
-T value;
+int64_t value;
 void* ,;
-T make_container;
+int64_t make_container;
 v >;
 void* :;
 void* ->;
@@ -388,13 +401,19 @@ void* T;
 v value;
 };
 
-int64_t kr_pair(U T, void* (, void* ,, void* ), void* ,, first return, void* second, void* fn) {
-    __auto_type p = pair < int;
+void* kr_pair(int64_t first, int64_t second) {
     ,;
-    bool > (42);
-    ,;
-    true;
+    U;
     );
+    {;
+    return (first);
+    ,;
+    second;
+    );
+}
+
+int64_t kr_test_pair() {
+    __auto_type p = kr_pair(42, true);
     int64_t (;
     x;
     ,;
@@ -409,32 +428,75 @@ int64_t kr_pair(U T, void* (, void* ,, void* ), void* ,, first return, void* sec
     return 0;
 }
 
-T kr_identity(void* T, void* :, void* T, void* ;, void* (, x {, identity int_val, void* 42, void* (, void* ), void* ;, void* :, void* (, void* if, void* ), void* ;, void* ;, void* (, x {, int64_t identity, void* (, x if, void* 42, void* 1, identity y, void* bool, void* ), void* !, void* return, void* return, void* struct, value >, void* T, T make_container, void* (, Container ), void* T, T Container, void* {, void* }, T get_value, void* (, void* <) {
+int64_t kr_identity(int64_t x) {
+    return x;
+}
+
+int64_t kr_test_inference_from_context() {
+    int64_t x = kr_identity(42);
+    if (_KR_NEQ(x, 42)) {
+        return 1;
+    }
+    bool y = kr_identity(true);
+    if (!y) {
+        return 2;
+    }
+    return 0;
+}
+
+int64_t kr_test_explicit_type_args() {
+    __auto_type x = kr_identity(42);
+    if (_KR_NEQ(x, 42)) {
+        return 1;
+    }
+    __auto_type y = kr_identity(true);
+    if (!y) {
+        return 2;
+    }
+    return 0;
+}
+
+Container kr_make_container(int64_t v) {
+    return (Container){.value = v};
+}
+
+int64_t kr_get_value(Container c) {
     return c.value;
 }
 
 int64_t kr_test_generic_struct() {
-    __auto_type c = make_container < int > (42);
+    __auto_type c = kr_make_container(42);
     if (_KR_NEQ(c.value, 42)) {
         return 1;
     }
-    __auto_type v = get_value < int > (c);
+    __auto_type v = kr_get_value(c);
     if (_KR_NEQ(v, 42)) {
         return 2;
     }
     return 0;
 }
 
-void kr_wrap(void* T, void* :, T Container, Container {, void* T, void* :, unwrap }, void* T, void* :, void* >, c {, void* value, void* test_nested_generics, void* int_val, void* =, void* >) {
-    __auto_type unwrapped = unwrap < int > (wrapped);
+Container kr_wrap(int64_t x) {
+    return (Container){.value = x};
+}
+
+int64_t kr_unwrap(Container c) {
+    return c.value;
+}
+
+int64_t kr_test_nested_generics() {
+    __auto_type wrapped = kr_wrap(42);
+    __auto_type unwrapped = kr_unwrap(wrapped);
     if (_KR_NEQ(unwrapped, 42)) {
         return 1;
     }
     return 0;
 }
 
-void kr_swap(U T, void* (, U T) {
-    ->(U, T);
+void* kr_swap(void* p, void* ,) {
+    ,;
+    T;
+    );
     {;
     int64_t (;
     a;
@@ -448,15 +510,8 @@ void kr_swap(U T, void* (, U T) {
 }
 
 int64_t kr_test_swap() {
-    __auto_type p1 = pair < int;
-    ,;
-    bool > (42);
-    ,;
-    true;
-    );
-    __auto_type p2 = swap < int;
-    ,;
-    bool > (p1);
+    __auto_type p1 = kr_pair(42, true);
+    __auto_type p2 = kr_swap(p1);
     int64_t (;
     b;
     ,;
@@ -471,12 +526,20 @@ int64_t kr_test_swap() {
     return 0;
 }
 
-T kr_max(void* T, void* :, void* :, void* :, void* ,, void* bool, void* {, void* (, void* ), void* a, b {, void* }, void* <, T x) {
+bool kr_max(int64_t a, int64_t b, void* compare, int64_t T) {
+    ->;
+    (T){.if = kr_compare(a, b), .{ = a};
+    else;
+    {;
+    return b;
+}
+
+int64_t kr_double(int64_t x) {
     return x;
 }
 
 int64_t kr_test_chained() {
-    __auto_type result = identity < int > (identity < int > (42));
+    __auto_type result = kr_identity(kr_identity(42));
     if (_KR_NEQ(result, 42)) {
         return 1;
     }

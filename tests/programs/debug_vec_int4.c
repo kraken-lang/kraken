@@ -18,7 +18,7 @@ typedef char* kr_str;
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
-int64_t kr_strlen(kr_str s) { return (int64_t)strlen(s); }
+int64_t kr_strlen(kr_str s, ...) { return (int64_t)strlen(s); }
 int64_t kr_abs(int64_t x) { return x < 0 ? -x : x; }
 int kr_strcmp(kr_str a, kr_str b) { return strcmp(a, b); }
 static inline bool _kr_str_eq(kr_str a, kr_str b) { return strcmp(a,b)==0; }
@@ -299,7 +299,7 @@ int64_t kr_memcmp(void* a, void* b, int64_t n) { return (int64_t)memcmp(a,b,(siz
 void* kr_memcpy(void* dst, void* src, int64_t n) { return memcpy(dst,src,(size_t)n); }
 void* kr_memmove(void* dst, void* src, int64_t n) { return memmove(dst,src,(size_t)n); }
 void* kr_memset(void* p, int64_t c, int64_t n) { return memset(p,(int)c,(size_t)n); }
-void kr_setenv(kr_str name, kr_str val, ...) { setenv(name,val,1); }
+int64_t kr_setenv(kr_str name, kr_str val, ...) { return (int64_t)setenv(name,val,1); }
 void kr_unsetenv(kr_str name) { unsetenv(name); }
 kr_str kr_strstr(kr_str haystack, kr_str needle) { char* p=strstr(haystack,needle); return p?p:""; }
 kr_str kr_strchr(kr_str s, int64_t c) { char* p=strchr(s,(int)c); return p?p:""; }
@@ -342,8 +342,8 @@ int64_t kr_bytes_eq(void* a, void* b, int64_t n) { return memcmp(a,b,(size_t)n)=
 void kr_println(kr_str s) { printf("%s\n",s); }
 void* kr_mutex_new() { return malloc(64); }
 void kr_mutex_free(void* m) { free(m); }
-void* kr_channel_new() { return NULL; }
-void* kr_channel_create(int64_t cap) { (void)cap; return NULL; }
+#define kr_channel_new(...) ((void*)0)
+#define kr_channel_create(...) ((void*)0)
 void kr_channel_send(void* ch, int64_t val) { (void)ch; (void)val; }
 int64_t kr_channel_recv(void* ch) { (void)ch; return 0; }
 int64_t kr_channel_try_send(void* ch, int64_t val) { (void)ch; (void)val; return 0; }
@@ -361,6 +361,12 @@ void kr_executor_shutdown(void* e) { free(e); }
 void* kr_cancel_token_new() { return calloc(1,sizeof(int64_t)); }
 void kr_cancel_token_cancel(void* t) { *(int64_t*)t=1; }
 int64_t kr_cancel_token_is_cancelled(void* t) { return *(int64_t*)t; }
+void* kr_atomic_new(int64_t v) { int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=v; return p; }
+void kr_atomic_store(void* p, int64_t v) { *(int64_t*)p=v; }
+int64_t kr_atomic_load(void* p) { return *(int64_t*)p; }
+int64_t kr_atomic_add(void* p, int64_t v) { int64_t old=*(int64_t*)p; *(int64_t*)p=old+v; return old; }
+int64_t kr_atomic_sub(void* p, int64_t v) { int64_t old=*(int64_t*)p; *(int64_t*)p=old-v; return old; }
+int64_t kr_atomic_cas(void* p, int64_t expected, int64_t desired) { if(*(int64_t*)p==expected){*(int64_t*)p=desired; return 1;} return 0; }
 
 /* Forward declarations */
 int64_t kr_main();

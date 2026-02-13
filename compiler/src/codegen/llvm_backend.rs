@@ -3259,7 +3259,7 @@ impl LLVMCodegen {
             }
 
             // Initialize local fields to 0
-            for (_lname, &field_idx) in &local_field_map {
+            for &field_idx in local_field_map.values() {
                 let gep = LLVMBuildStructGEP2(
                     self.builder,
                     future_struct,
@@ -5830,11 +5830,10 @@ impl LLVMCodegen {
                 }
             }
             Statement::Expression(e) => Self::collect_expr_free_vars(e, locals, free),
-            Statement::Return { value } => {
-                if let Some(v) = value {
-                    Self::collect_expr_free_vars(v, locals, free);
-                }
+            Statement::Return { value: Some(v) } => {
+                Self::collect_expr_free_vars(v, locals, free);
             }
+            Statement::Return { value: None } => {}
             Statement::If {
                 condition,
                 then_branch,

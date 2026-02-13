@@ -18,7 +18,7 @@ typedef char* kr_str;
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
-int64_t kr_strlen(kr_str s) { return (int64_t)strlen(s); }
+int64_t kr_strlen(kr_str s, ...) { return (int64_t)strlen(s); }
 int64_t kr_abs(int64_t x) { return x < 0 ? -x : x; }
 int kr_strcmp(kr_str a, kr_str b) { return strcmp(a, b); }
 static inline bool _kr_str_eq(kr_str a, kr_str b) { return strcmp(a,b)==0; }
@@ -299,7 +299,7 @@ int64_t kr_memcmp(void* a, void* b, int64_t n) { return (int64_t)memcmp(a,b,(siz
 void* kr_memcpy(void* dst, void* src, int64_t n) { return memcpy(dst,src,(size_t)n); }
 void* kr_memmove(void* dst, void* src, int64_t n) { return memmove(dst,src,(size_t)n); }
 void* kr_memset(void* p, int64_t c, int64_t n) { return memset(p,(int)c,(size_t)n); }
-void kr_setenv(kr_str name, kr_str val, ...) { setenv(name,val,1); }
+int64_t kr_setenv(kr_str name, kr_str val, ...) { return (int64_t)setenv(name,val,1); }
 void kr_unsetenv(kr_str name) { unsetenv(name); }
 kr_str kr_strstr(kr_str haystack, kr_str needle) { char* p=strstr(haystack,needle); return p?p:""; }
 kr_str kr_strchr(kr_str s, int64_t c) { char* p=strchr(s,(int)c); return p?p:""; }
@@ -342,8 +342,8 @@ int64_t kr_bytes_eq(void* a, void* b, int64_t n) { return memcmp(a,b,(size_t)n)=
 void kr_println(kr_str s) { printf("%s\n",s); }
 void* kr_mutex_new() { return malloc(64); }
 void kr_mutex_free(void* m) { free(m); }
-void* kr_channel_new() { return NULL; }
-void* kr_channel_create(int64_t cap) { (void)cap; return NULL; }
+#define kr_channel_new(...) ((void*)0)
+#define kr_channel_create(...) ((void*)0)
 void kr_channel_send(void* ch, int64_t val) { (void)ch; (void)val; }
 int64_t kr_channel_recv(void* ch) { (void)ch; return 0; }
 int64_t kr_channel_try_send(void* ch, int64_t val) { (void)ch; (void)val; return 0; }
@@ -361,53 +361,27 @@ void kr_executor_shutdown(void* e) { free(e); }
 void* kr_cancel_token_new() { return calloc(1,sizeof(int64_t)); }
 void kr_cancel_token_cancel(void* t) { *(int64_t*)t=1; }
 int64_t kr_cancel_token_is_cancelled(void* t) { return *(int64_t*)t; }
+void* kr_atomic_new(int64_t v) { int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=v; return p; }
+void kr_atomic_store(void* p, int64_t v) { *(int64_t*)p=v; }
+int64_t kr_atomic_load(void* p) { return *(int64_t*)p; }
+int64_t kr_atomic_add(void* p, int64_t v) { int64_t old=*(int64_t*)p; *(int64_t*)p=old+v; return old; }
+int64_t kr_atomic_sub(void* p, int64_t v) { int64_t old=*(int64_t*)p; *(int64_t*)p=old-v; return old; }
+int64_t kr_atomic_cas(void* p, int64_t expected, int64_t desired) { if(*(int64_t*)p==expected){*(int64_t*)p=desired; return 1;} return 0; }
 
 /* Forward declarations */
-int64_t kr_apply(U T, void* (, void* ,, void* (, void* U, transform {, void* value, void* fn);
-int64_t kr_test_apply_int_to_bool();
-int64_t kr_test_apply_inference();
-T kr_make_multiplier(void* T, void* :, T fn);
+void* kr_apply(int64_t value, void* transform, void* T, int64_t ), void* return, void* ), void* test_apply_int_to_int, void* int_val, void* =, void* ,, void* 5, void* |, void* ), void* !=, void* 1, void* 0, void* test_apply_int_to_bool, void* int_val, void* =, void* ,, void* 5, void* |, void* ), void* result, void* ;, void* ;, void* (, result {, void* apply, void* |, void* +, void* if, void* {, void* }, make_multiplier }, int64_t factor);
 int64_t kr_test_make_multiplier();
 int64_t kr_test_closure_capture_generic();
-void kr_combine(U T, void* V, void* :, void* :, void* :, void* ,, void* V, combiner {, b a);
+int64_t kr_combine(int64_t a, int64_t b, void* combiner, int64_t T);
 int64_t kr_test_combine();
 int64_t kr_test_combine_different_types();
 int64_t kr_test_nested_closures();
-int64_t kr_apply_move(U T, void* (, void* ,, void* (, void* U, transform {, void* value, void* fn);
-int64_t kr_test_chained_generic();
-T kr_process(void* T, void* :, void* :, T ));
-int64_t kr_test_complex_closure();
-int64_t kr_main();
+void kr_apply_move(int64_t value, void* transform, void* T, int64_t ), void* return, void* ), void* test_move_closure, void* int_val, void* :, result ;, int64_t apply_move, void* int_val, void* ,, void* |, void* ), void* !=, void* 1, void* 0, void* test_chained_generic, void* int_val, void* =, void* ,, int64_t apply, void* int_val, x ,, void* x);
+void kr_process(int64_t value, void* processor, void* T, int64_t ), void* return, void* ), void* test_complex_closure, void* int_val, void* =, void* >, void* |, void* let, void* *, temp temp2, void* 5, void* ;, void* if, void* {, void* }, main }, int64_t ), void* let, void* =, void* =, void* (, void* =, void* (, void* =, void* (, void* =, void* (, void* =, void* (, void* =, void* (, void* =, void* (, void* =, void* (, void* =, void* (, void* =, void* (, void* =, void* (, void* failures, void* );
 
-int64_t kr_apply(U T, void* (, void* ,, void* (, void* U, transform {, void* value, void* fn) {
-    __auto_type result = apply < int;
-    ,;
-    int > (5);
-    , | x | x * 2;
+void* kr_apply(int64_t value, void* transform, void* T, int64_t ), void* return, void* ), void* test_apply_int_to_int, void* int_val, void* =, void* ,, void* 5, void* |, void* ), void* !=, void* 1, void* 0, void* test_apply_int_to_bool, void* int_val, void* =, void* ,, void* 5, void* |, void* ), void* result, void* ;, void* ;, void* (, result {, void* apply, void* |, void* +, void* if, void* {, void* }, make_multiplier }, int64_t factor) {
+    T;
     );
-    if (_KR_NEQ(result, 10)) {
-        return 1;
-    }
-    return 0;
-}
-
-int64_t kr_test_apply_int_to_bool() {
-    __auto_type result = apply < int;
-    ,;
-    bool > (5);
-    , | x | x > 3;
-    );
-    if (!(result){.return = ;}) {
-        0;
-    }
-    fn;
-    kr_test_apply_inference();
-    ->;
-    int;
-    {;
-    __auto_type result = kr_apply(10, |, |, +, ), _KR_NEQ(if, !=), {, 1, }, 0, }, make_multiplier < T > (factor), T);
-    ->;
-    fn(T);
     ->;
     (T){.return = x | x * factor};
     fn;
@@ -415,7 +389,7 @@ int64_t kr_test_apply_int_to_bool() {
     ->;
     int;
     {;
-    __auto_type times_three = make_multiplier < int > (3);
+    __auto_type times_three = kr_make_multiplier(3);
     __auto_type result = kr_times_three(7);
     if (_KR_NEQ(result, 21)) {
         return 1;
@@ -425,124 +399,7 @@ int64_t kr_test_apply_int_to_bool() {
 
 int64_t kr_test_closure_capture_generic() {
     int64_t multiplier = 4;
-    __auto_type result = apply < int;
-    ,;
-    int > (5);
-    , | x | x * multiplier;
-    );
-    if (_KR_NEQ(result, 20)) {
-        return 1;
-    }
-    return 0;
-}
-
-void kr_combine(U T, void* V, void* :, void* :, void* :, void* ,, void* V, combiner {, b a) {
-}
-
-int64_t kr_test_combine() {
-    __auto_type result = combine < int;
-    ,;
-    int;
-    ,;
-    int > (3);
-    ,;
-    4;
-    , | x;
-    ,;
-    y | x + y;
-    );
-    if (_KR_NEQ(result, 7)) {
-        return 1;
-    }
-    return 0;
-}
-
-int64_t kr_test_combine_different_types() {
-    __auto_type result = combine < int;
-    ,;
-    int;
-    ,;
-    bool > (5);
-    ,;
-    3;
-    , | x;
-    ,;
-    y | x > y;
-    );
-    if (!(result){.return = ;}) {
-        0;
-    }
-    fn;
-    kr_test_nested_closures();
-    ->;
-    int;
-    {;
-    __auto_type outer = apply < int;
-    ,;
-    fn(int);
-    ->;
-    int > (2);
-    , | x | {;
-    return |;
-    y | x + y;
-}
-
-int64_t kr_apply_move(U T, void* (, void* ,, void* (, void* U, transform {, void* value, void* fn) {
-    int64_t data = 10;
-    __auto_type result = apply_move < int;
-    ,;
-    int > (5);
-    ,;
-    move | x | x + data;
-    );
-    if (_KR_NEQ(result, 15)) {
-        return 1;
-    }
-    return 0;
-}
-
-int64_t kr_test_chained_generic() {
-    __auto_type result = apply < int;
-    ,;
-    int > (apply < int);
-    ,;
-    int > (2);
-    , | x | x * 3;
-    );
-    , | y | y + 1;
-    );
-    if (_KR_NEQ(result, 7)) {
-        return 1;
-    }
-    return 0;
-}
-
-T kr_process(void* T, void* :, void* :, T )) {
-    return kr_processor(value);
-}
-
-int64_t kr_test_complex_closure() {
-    __auto_type result = process < int > (10);
-    , | x | {;
-    __auto_type temp = x * 2;
-    __auto_type temp2 = temp + 5;
-    return temp2;
-}
-
-int64_t kr_main() {
-    int64_t failures = 0;
-    failures = failures + kr_test_apply_int_to_int();
-    failures = failures + kr_test_apply_int_to_bool();
-    failures = failures + kr_test_apply_inference();
-    failures = failures + kr_test_make_multiplier();
-    failures = failures + kr_test_closure_capture_generic();
-    failures = failures + kr_test_combine();
-    failures = failures + kr_test_combine_different_types();
-    failures = failures + kr_test_nested_closures();
-    failures = failures + kr_test_move_closure();
-    failures = failures + kr_test_chained_generic();
-    failures = failures + kr_test_complex_closure();
-    return failures;
+    __auto_type result = kr_apply(5, |, |, *, ), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_combine(a, T, b, U, combiner, fn(T, U), V), (V){.return = (a), .b = ;}, kr_test_combine(), int, let, =, <, ,, ,, >(3, 4, |, ,, |, +, ), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_test_combine_different_types(), int, let, =, <, ,, ,, >(5, 3, |, ,, |, >, ), if, (result){.return = ;}, 0, }, kr_test_nested_closures(), int, let, =, <, ,, (int), int > (2), |, |, return | y | x + y, }), let, =, (3), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_apply_move(value, T, transform, fn(T), U), (U){.return = (value)}, kr_test_move_closure(), int, let, :, =, ;, result, kr_apply_move(5, move | x | x + data), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_test_chained_generic(), int, let, =, <, ,, >(kr_apply(2, |, |, *, ), |, |, +, ), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_process(value, T, processor, fn(T), T), (T){.return = (value)}, kr_test_complex_closure(), int, let, =, <, >(10, |, |, let, =, *, ;, temp2, temp + 5, return, ;, ), _KR_NEQ(if, !=), {, 1, }, 0, }, kr_main(), int, let, :, =, ;, =, +, ()), failures, failures + kr_test_apply_int_to_bool(), failures, failures + kr_test_apply_inference(), failures, failures + kr_test_make_multiplier(), failures, failures + kr_test_closure_capture_generic(), failures, failures + kr_test_combine(), failures, failures + kr_test_combine_different_types(), failures, failures + kr_test_nested_closures(), failures, failures + kr_test_move_closure(), failures, failures + kr_test_chained_generic(), failures, failures + kr_test_complex_closure(), return, ;, )))));
 }
 
 

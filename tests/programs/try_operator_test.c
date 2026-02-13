@@ -18,7 +18,7 @@ typedef char* kr_str;
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
-int64_t kr_strlen(kr_str s) { return (int64_t)strlen(s); }
+int64_t kr_strlen(kr_str s, ...) { return (int64_t)strlen(s); }
 int64_t kr_abs(int64_t x) { return x < 0 ? -x : x; }
 int kr_strcmp(kr_str a, kr_str b) { return strcmp(a, b); }
 static inline bool _kr_str_eq(kr_str a, kr_str b) { return strcmp(a,b)==0; }
@@ -299,7 +299,7 @@ int64_t kr_memcmp(void* a, void* b, int64_t n) { return (int64_t)memcmp(a,b,(siz
 void* kr_memcpy(void* dst, void* src, int64_t n) { return memcpy(dst,src,(size_t)n); }
 void* kr_memmove(void* dst, void* src, int64_t n) { return memmove(dst,src,(size_t)n); }
 void* kr_memset(void* p, int64_t c, int64_t n) { return memset(p,(int)c,(size_t)n); }
-void kr_setenv(kr_str name, kr_str val, ...) { setenv(name,val,1); }
+int64_t kr_setenv(kr_str name, kr_str val, ...) { return (int64_t)setenv(name,val,1); }
 void kr_unsetenv(kr_str name) { unsetenv(name); }
 kr_str kr_strstr(kr_str haystack, kr_str needle) { char* p=strstr(haystack,needle); return p?p:""; }
 kr_str kr_strchr(kr_str s, int64_t c) { char* p=strchr(s,(int)c); return p?p:""; }
@@ -342,8 +342,8 @@ int64_t kr_bytes_eq(void* a, void* b, int64_t n) { return memcmp(a,b,(size_t)n)=
 void kr_println(kr_str s) { printf("%s\n",s); }
 void* kr_mutex_new() { return malloc(64); }
 void kr_mutex_free(void* m) { free(m); }
-void* kr_channel_new() { return NULL; }
-void* kr_channel_create(int64_t cap) { (void)cap; return NULL; }
+#define kr_channel_new(...) ((void*)0)
+#define kr_channel_create(...) ((void*)0)
 void kr_channel_send(void* ch, int64_t val) { (void)ch; (void)val; }
 int64_t kr_channel_recv(void* ch) { (void)ch; return 0; }
 int64_t kr_channel_try_send(void* ch, int64_t val) { (void)ch; (void)val; return 0; }
@@ -361,19 +361,18 @@ void kr_executor_shutdown(void* e) { free(e); }
 void* kr_cancel_token_new() { return calloc(1,sizeof(int64_t)); }
 void kr_cancel_token_cancel(void* t) { *(int64_t*)t=1; }
 int64_t kr_cancel_token_is_cancelled(void* t) { return *(int64_t*)t; }
+void* kr_atomic_new(int64_t v) { int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=v; return p; }
+void kr_atomic_store(void* p, int64_t v) { *(int64_t*)p=v; }
+int64_t kr_atomic_load(void* p) { return *(int64_t*)p; }
+int64_t kr_atomic_add(void* p, int64_t v) { int64_t old=*(int64_t*)p; *(int64_t*)p=old+v; return old; }
+int64_t kr_atomic_sub(void* p, int64_t v) { int64_t old=*(int64_t*)p; *(int64_t*)p=old-v; return old; }
+int64_t kr_atomic_cas(void* p, int64_t expected, int64_t desired) { if(*(int64_t*)p==expected){*(int64_t*)p=desired; return 1;} return 0; }
 
 /* Forward declarations */
 typedef int64_t Result;
 typedef int64_t Option;
 Result kr_divide(int64_t a, int64_t b);
-void kr_find_value(void* arr, target ], void* int_val, i {, void* int_val, i while, void* 5, void* (, target ]);
-int64_t kr_test_result_propagation();
-int64_t kr_test_error_propagation();
-int64_t kr_test_option_some();
-int64_t kr_test_option_none();
-Result kr_test_chained_results();
-int64_t kr_test_mixed_types();
-int64_t kr_main();
+void kr_find_value(void* arr, target ], void* int_val, i {, void* int_val, i while);
 
 typedef int64_t Result;
 #define Result_Ok 0
@@ -392,117 +391,7 @@ Result kr_divide(int64_t a, int64_t b) {
     }
 }
 
-void kr_find_value(void* arr, target ], void* int_val, i {, void* int_val, i while, void* 5, void* (, target ]) {
-    return Option_Some;
-}
-
-int64_t kr_test_result_propagation() {
-    Result result = kr_divide(10, 2);
-    if (result == Result_Ok) {
-        kr_puts("Test 1 passed: Result propagation");
-        value;
-    }
-    else if (result == Result_Err) {
-        kr_puts("Test 1 failed: Unexpected error");
-        -1;
-    }
-}
-
-int64_t kr_test_error_propagation() {
-    Result result = kr_divide(10, 0);
-    if (result == Result_Ok) {
-        kr_puts("Test 2 failed: Should have errored");
-        -1;
-    }
-    else if (result == Result_Err) {
-        kr_puts("Test 2 passed: Error propagated correctly");
-        e;
-    }
-}
-
-int64_t kr_test_option_some() {
-    void* arr;
-    int;
-    ] = (int64_t[]){1, 2, 3, 4, 5};
-    Option result = kr_find_value(arr, 3);
-    if (result == Option_Some) {
-        kr_puts("Test 3 passed: Found value at index");
-        kr_print_int(index);
-        index;
-    }
-    else if (result == Option_None) {
-        kr_puts("Test 3 failed: Should have found value");
-        -1;
-    }
-}
-
-int64_t kr_test_option_none() {
-    void* arr;
-    int;
-    ] = (int64_t[]){1, 2, 3, 4, 5};
-    Option result = kr_find_value(arr, 10);
-    if (result == Option_Some) {
-        kr_puts("Test 4 failed: Should not have found value");
-        -1;
-    }
-    else if (result == Option_None) {
-        kr_puts("Test 4 passed: None propagated correctly");
-        0;
-    }
-}
-
-Result kr_test_chained_results() {
-    Result r1 = kr_divide(20, 2);
-    if (r1 == Result_Ok) {
-        Result r2 = kr_divide(v1, 2);
-        if (r2 == Result_Ok) {
-            kr_puts("Test 5 passed: Chained results");
-            kr_print_int(v2);
-            Result_Ok;
-        }
-        else if (r2 == Result_Err) {
-            Result_Err;
-        }
-    }
-    else if (r1 == Result_Err) {
-        Result_Err;
-    }
-}
-
-int64_t kr_test_mixed_types() {
-    void* arr;
-    int;
-    ] = (int64_t[]){10, 20, 30, 40, 50};
-    Option opt = kr_find_value(arr, 30);
-    if (opt == Option_Some) {
-        int64_t value = arr[index];
-        Result result = kr_divide(value, 3);
-        if (result == Result_Ok) {
-            kr_puts("Test 6 passed: Mixed types");
-            kr_print_int(v);
-            v;
-        }
-        else if (result == Result_Err) {
-            -1;
-        }
-    }
-    else if (opt == Option_None) {
-        -1;
-    }
-}
-
-int64_t kr_main() {
-    kr_puts("=== Try Operator Tests ===");
-    kr_puts("");
-    kr_test_result_propagation();
-    kr_test_error_propagation();
-    kr_test_option_some();
-    kr_test_option_none();
-    Result r = kr_test_chained_results();
-    kr_test_mixed_types();
-    kr_puts("");
-    kr_puts("=== All Tests Complete ===");
-    0;
+void kr_find_value(void* arr, target ], void* int_val, i {, void* int_val, i while) {
 }
 
 
