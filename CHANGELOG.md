@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Trait blocks skipped, type aliases → C typedefs, const declarations → `#define`, C keyword sanitization for parameter names
   - 135 krakenc tests passing across 9 test files; automated test runner (`run_tests.sh`)
   - Safe generic/turbofish handling and 200+ total C runtime shims
-  - 147/226 bootstrap test programs compile successfully (65.0%); 0 C warnings, 0 errors on self-hosting emitted code
+  - 167/226 bootstrap test programs compile successfully (73.9%); 0 C warnings, 0 errors on self-hosting emitted code
 
 ### Fixed
 - **Type Checker: Async Function Type Resolution** (`compiler/src/analyzer/type_checker.rs`)
@@ -83,6 +83,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Self-Hosted Parser: `const fn` Translation Routing** (`krakenc/src/parser.kr`)
   - Top-level `const fn` is now routed through function prototype/body translation instead of being emitted as malformed const macros
   - Function body duplication from `const fn` handling in the type-definition pass was removed
+- **Self-Hosted Import Resolution: Dotted Module Paths** (`krakenc/src/main.kr`)
+  - `import a.b.c;` now resolves to `a/b/c.kr` (via module-name path normalization) during import concatenation
+- **Self-Hosted Async/Spawn Bootstrap Compatibility** (`krakenc/src/parser.kr`, `krakenc/src/platform.kr`)
+  - Added compatibility lowering for `await`, `spawn`, and `defer` syntax paths used by bootstrap programs
+  - Added `join`/`timeout` plus broader `kr_kraken_*` shim family to remove linker-only failures in stdlib/ffi/bounds/union test programs
+- **Self-Hosted Type/Extern Parsing Robustness** (`krakenc/src/parser.kr`)
+  - Function-type annotations (`fn(...) -> T`) are now skipped cleanly in type positions to avoid residual-token C corruption
+  - Top-level `extern ...;` declarations are now skipped in translation passes to avoid invalid emitted C statements
 
 ### Changed
 - Total tests: 583 integration + 710 library + 822 runtime = 2115 tests passing, zero failures, zero warnings

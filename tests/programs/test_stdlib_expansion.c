@@ -271,6 +271,8 @@ void kr_mutex_lock(void* m) { (void)m; }
 void kr_mutex_unlock(void* m) { (void)m; }
 void* kr_thread_spawn(void* fn) { (void)fn; return NULL; }
 void kr_thread_join(void* h) { (void)h; }
+void kr_join(void* h) { (void)h; }
+int64_t kr_timeout(void* h, int64_t ms) { (void)h; (void)ms; return 0; }
 void kr_sleep_ms(int64_t ms) { usleep((unsigned)(ms*1000)); }
 int64_t kr_time() { return (int64_t)time(NULL); }
 int64_t kr_isalpha(int64_t c) { return isalpha((int)c); }
@@ -367,45 +369,72 @@ int64_t kr_atomic_load(void* p) { return *(int64_t*)p; }
 int64_t kr_atomic_add(void* p, int64_t v) { int64_t old=*(int64_t*)p; *(int64_t*)p=old+v; return old; }
 int64_t kr_atomic_sub(void* p, int64_t v) { int64_t old=*(int64_t*)p; *(int64_t*)p=old-v; return old; }
 int64_t kr_atomic_cas(void* p, int64_t expected, int64_t desired) { if(*(int64_t*)p==expected){*(int64_t*)p=desired; return 1;} return 0; }
+double kr_kraken_sin(double x){ return sin(x); }
+double kr_kraken_cos(double x){ return cos(x); }
+double kr_kraken_tan(double x){ return tan(x); }
+double kr_kraken_asin(double x){ return asin(x); }
+double kr_kraken_acos(double x){ return acos(x); }
+double kr_kraken_atan(double x){ return atan(x); }
+double kr_kraken_atan2(double y,double x){ return atan2(y,x); }
+double kr_kraken_sinh(double x){ return sinh(x); }
+double kr_kraken_cosh(double x){ return cosh(x); }
+double kr_kraken_tanh(double x){ return tanh(x); }
+double kr_kraken_exp(double x){ return exp(x); }
+double kr_kraken_log(double x){ return log(x); }
+double kr_kraken_log10(double x){ return log10(x); }
+double kr_kraken_log2(double x){ return log(x)/log(2.0); }
+double kr_kraken_pow(double b,double e){ return pow(b,e); }
+double kr_kraken_sqrt(double x){ return sqrt(x); }
+double kr_kraken_cbrt(double x){ return cbrt(x); }
+double kr_kraken_ceil(double x){ return ceil(x); }
+double kr_kraken_floor(double x){ return floor(x); }
+double kr_kraken_round(double x){ return round(x); }
+double kr_kraken_trunc(double x){ return trunc(x); }
+double kr_kraken_fmod(double x,double y){ return fmod(x,y); }
+double kr_kraken_remainder(double x,double y){ return remainder(x,y); }
+double kr_kraken_fabs(double x){ return fabs(x); }
+double kr_kraken_hypot(double x,double y){ return hypot(x,y); }
+int64_t kr_kraken_time(){ return (int64_t)time(NULL); }
+int64_t kr_kraken_clock(){ return (int64_t)clock(); }
+int64_t kr_kraken_clocks_per_sec(){ return (int64_t)CLOCKS_PER_SEC; }
+double kr_kraken_difftime(int64_t t1,int64_t t0){ return difftime((time_t)t1,(time_t)t0); }
+kr_str kr_kraken_strftime(kr_str fmt,int64_t ts){ static char b[128]; time_t t=(time_t)ts; struct tm* tmv=localtime(&t); if(!tmv)return ""; strftime(b,127,fmt,tmv); return b; }
+void* kr_kraken_calloc(int64_t c,int64_t sz){ return calloc((size_t)c,(size_t)sz); }
+void* kr_kraken_aligned_alloc(int64_t a,int64_t sz){ (void)a; return malloc((size_t)sz); }
+void* kr_kraken_calloc_tracked(int64_t c,int64_t sz, ...){ return calloc((size_t)c,(size_t)sz); }
+void* kr_kraken_malloc_tracked(int64_t sz, ...){ return malloc((size_t)sz); }
+void* kr_kraken_realloc_tracked(void* p,int64_t sz, ...){ return realloc(p,(size_t)sz); }
+void kr_kraken_free(void* p){ free(p); }
+void kr_kraken_free_tracked(void* p){ free(p); }
+int64_t kr_kraken_get_allocation_count(){ return 0; }
+int64_t kr_kraken_get_allocated_bytes(){ return 0; }
+void kr_kraken_print_allocation_stats(){}
+int64_t kr_kraken_ffi_check_null(int64_t p, ...){ return p==0; }
+int64_t kr_kraken_ffi_safe_malloc(int64_t sz){ return (int64_t)(intptr_t)malloc((size_t)sz); }
+int64_t kr_kraken_bounds_check(int64_t idx,int64_t len, ...){ return idx>=0 && idx<len; }
+int64_t kr_kraken_bounds_check_range(int64_t s0,int64_t e0,int64_t len, ...){ return s0>=0 && e0>=s0 && e0<=len; }
+void* kr_kraken_range_iter(int64_t s0,int64_t e0, ...){ int64_t* p=(int64_t*)malloc(sizeof(int64_t)*2); p[0]=s0; p[1]=e0; return p; }
+void kr_kraken_range_free(void* p){ free(p); }
+int64_t kr_kraken_type_alignment(int64_t sz){ if(sz>=8)return 8; if(sz>=4)return 4; if(sz>=2)return 2; return 1; }
+int64_t kr_kraken_align_offset(int64_t off,int64_t a){ int64_t m=off%a; return m==0?0:(a-m); }
+int64_t kr_kraken_calculate_padding(int64_t off,int64_t a){ return kr_kraken_align_offset(off,a); }
+kr_str kr_kraken_str_concat(kr_str a,kr_str b){ return kr_str_concat(a,b); }
+int64_t kr_kraken_str_len(kr_str s){ return (int64_t)strlen(s); }
+int64_t kr_kraken_str_contains(kr_str s,kr_str sub){ return strstr(s,sub)!=NULL; }
+int64_t kr_kraken_str_starts_with(kr_str s,kr_str p){ return strncmp(s,p,strlen(p))==0; }
+int64_t kr_kraken_str_ends_with(kr_str s,kr_str x){ size_t ls=strlen(s), lx=strlen(x); return lx<=ls && strcmp(s+ls-lx,x)==0; }
+kr_str kr_kraken_str_replace(kr_str s,kr_str old,kr_str rep){ return kr_str_replace(s,old,rep); }
+kr_str kr_kraken_str_to_lower(kr_str s){ return kr_str_to_lower(s); }
+kr_str kr_kraken_str_to_upper(kr_str s){ return kr_str_to_upper(s); }
+kr_str kr_kraken_str_trim(kr_str s){ return kr_str_trim(s); }
+kr_str kr_kraken_str_substring(kr_str s,int64_t a,int64_t b){ return kr_str_slice(s,a,b); }
+int64_t kr_kraken_union_create(int64_t tag, void* data, ...){ (void)data; int64_t* p=(int64_t*)malloc(sizeof(int64_t)); *p=tag; return (int64_t)(intptr_t)p; }
+void kr_kraken_union_free(int64_t u){ free((void*)(intptr_t)u); }
+int64_t kr_kraken_union_get_tag(int64_t u){ void* p=(void*)(intptr_t)u; return p?*(int64_t*)p:0; }
+void kr_kraken_union_set_tag(int64_t u,int64_t t){ void* p=(void*)(intptr_t)u; if(p)*(int64_t*)p=t; }
+int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(intptr_t)u; return p && *(int64_t*)p==t; }
 
 /* Forward declarations */
-double kr_kraken_sin(double x);
-double kr_kraken_cos(double x);
-double kr_kraken_tan(double x);
-double kr_kraken_asin(double x);
-double kr_kraken_acos(double x);
-double kr_kraken_atan(double x);
-double kr_kraken_atan2(double y, double x);
-double kr_kraken_sinh(double x);
-double kr_kraken_cosh(double x);
-double kr_kraken_tanh(double x);
-double kr_kraken_exp(double x);
-double kr_kraken_log(double x);
-double kr_kraken_log10(double x);
-double kr_kraken_log2(double x);
-double kr_kraken_pow(double base, double exp);
-double kr_kraken_sqrt(double x);
-double kr_kraken_cbrt(double x);
-double kr_kraken_ceil(double x);
-double kr_kraken_floor(double x);
-double kr_kraken_round(double x);
-double kr_kraken_trunc(double x);
-double kr_kraken_fmod(double x, double y);
-double kr_kraken_remainder(double x, double y);
-double kr_kraken_fabs(double x);
-double kr_kraken_hypot(double x, double y);
-int64_t kr_kraken_time();
-int64_t kr_kraken_clock();
-int64_t kr_kraken_clocks_per_sec();
-double kr_kraken_difftime(int64_t time1, int64_t time0);
-kr_str kr_kraken_strftime(kr_str format, int64_t timestamp);
-int64_t kr_kraken_calloc(int64_t count, int64_t size);
-int64_t kr_kraken_aligned_alloc(int64_t alignment, int64_t size);
-int64_t kr_kraken_realloc(int64_t ptr, int64_t new_size);
-void kr_kraken_free(int64_t ptr);
-int64_t kr_kraken_memcpy(int64_t dest, int64_t src, int64_t n);
-int64_t kr_kraken_memset(int64_t s, int64_t c, int64_t n);
-int64_t kr_kraken_memcmp(int64_t s1, int64_t s2, int64_t n);
 int64_t kr_test_trig_functions();
 int64_t kr_test_inverse_trig();
 int64_t kr_test_hyperbolic();
@@ -421,192 +450,7 @@ int64_t kr_test_calloc();
 int64_t kr_test_aligned_alloc();
 int64_t kr_main();
 
-double kr_kraken_sin(double x) {
-    extern;
-    fn;
-    kr_kraken_cos(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_tan(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_asin(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_acos(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_atan(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_atan2(y, float, x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_sinh(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_cosh(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_tanh(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_exp(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_log(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_log10(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_log2(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_pow(base, float, exp, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_sqrt(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_cbrt(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_ceil(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_floor(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_round(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_trunc(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_fmod(x, float, y, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_remainder(x, float, y, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_fabs(x, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_hypot(x, float, y, float);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_time();
-    ->;
-    int;
-    extern;
-    fn;
-    kr_kraken_clock();
-    ->;
-    int;
-    extern;
-    fn;
-    kr_kraken_clocks_per_sec();
-    ->;
-    int;
-    extern;
-    fn;
-    kr_kraken_difftime(time1, int, time0, int);
-    ->;
-    float;
-    extern;
-    fn;
-    kr_kraken_strftime(format, str, timestamp, int);
-    ->;
-    str;
-    extern;
-    fn;
-    kr_kraken_calloc(count, int, size, int);
-    ->;
-    int;
-    extern;
-    fn;
-    kr_kraken_aligned_alloc(alignment, int, size, int);
-    ->;
-    int;
-    extern;
-    fn;
-    kr_kraken_realloc(ptr, int, new_size, int);
-    ->;
-    int;
-    extern;
-    fn;
-    kr_kraken_free(ptr, int);
-    ->;
-    void;
-    extern;
-    fn;
-    kr_kraken_memcpy(dest, int, src, int, n, int);
-    ->;
-    int;
-    extern;
-    fn;
-    kr_kraken_memset(s, int, c, int, n, int);
-    ->;
-    int;
-    extern;
-    fn;
-    kr_kraken_memcmp(s1, int, s2, int, n, int);
-    ->;
-    int;
-    fn;
-    kr_test_trig_functions();
-    ->;
-    int;
-    {;
+int64_t kr_test_trig_functions() {
     __auto_type pi = 3.14159265359;
     __auto_type sin_val = kr_kraken_sin(pi / 2.0);
     __auto_type cos_val = kr_kraken_cos(0.0);
