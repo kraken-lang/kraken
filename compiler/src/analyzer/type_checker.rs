@@ -2798,10 +2798,7 @@ impl TypeChecker {
                         if let Some(trait_type) = self.env.lookup_trait(trait_name) {
                             for method in &trait_type.methods {
                                 if method.name == *member {
-                                    return Ok(method
-                                        .return_type
-                                        .clone()
-                                        .unwrap_or(Type::Void));
+                                    return Ok(method.return_type.clone().unwrap_or(Type::Void));
                                 }
                             }
                         }
@@ -3190,7 +3187,8 @@ impl TypeChecker {
                 let inferred_return_type = if let Some(ret_type) = return_type {
                     // Block closures with explicit return type use return statements
                     // so body_type == Void is expected
-                    if body_type != Type::Void && body_type != *ret_type && *ret_type != Type::Void {
+                    if body_type != Type::Void && body_type != *ret_type && *ret_type != Type::Void
+                    {
                         return Err(CompilerError::type_error(
                             SourceLocation::new(self.file_path.clone(), 0, 0),
                             format!("Closure body type {body_type} does not match declared return type {ret_type}"),

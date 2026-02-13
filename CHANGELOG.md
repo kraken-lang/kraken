@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `block_on` intrinsic — inline poll loop requiring no C runtime (loads poll_fn from field 0, loops until ready, extracts result from field 1)
   - `await` expression codegen — sub-future allocation, polling, and result extraction with state machine wiring
 - **Dynamic Dispatch (Vtables, dyn Trait)** (`compiler/src/codegen/llvm_backend.rs`)
-  - Vtable generation from `impl Trait for Type` — global constant arrays of function pointers using `LLVMConstBitCast` + `LLVMConstArray`
+  - Vtable generation from `impl Trait for Type` — global constant arrays of function pointers using `LLVMConstBitCast` + `LLVMConstArray2`
   - Trait method ordering stored from `TraitDeclaration` for deterministic vtable slot indexing
   - Fat pointer construction for `dyn Trait` variables — `{ data_ptr: *i8, vtable_ptr: *i8 }` struct with data and vtable pointers
   - Dynamic method dispatch via vtable slot lookup, function pointer load, and indirect `LLVMBuildCall2`
@@ -50,6 +50,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Self` type in trait method declarations now compatible with concrete `Custom` types in trait impls
   - `dyn Trait` types compatible with concrete struct types for assignment and parameter passing
   - Method calls on `dyn Trait` objects resolve return types from trait method signatures via `lookup_trait`
+- **LLVM Codegen: Windows UCRT Linker Failure** (`compiler/src/codegen/llvm_backend.rs`)
+  - Replaced `sprintf` with `snprintf` in `fmt_int`, `fmt_hex`, and `fmt_float` codegen — `sprintf` is not an exported symbol on Windows UCRT, causing unresolved external symbol linker errors on Windows CI
+  - Declaration updated from `sprintf(buf, fmt, ...)` to `snprintf(buf, size, fmt, ...)` with buffer size parameter
+- **LLVM Codegen: Deprecated API Warnings** (`compiler/src/codegen/llvm_backend.rs`)
+  - Replaced `LLVMArrayType` → `LLVMArrayType2` and `LLVMConstArray` → `LLVMConstArray2` in vtable construction and dyn dispatch slot lookup
+- **LLVM Codegen: Dead Code Warning** (`compiler/src/codegen/llvm_backend.rs`)
+  - Added `#[allow(dead_code)]` to `store_struct_fields_from_value` utility method (reserved for future use)
 - **LLVM Codegen: Vtable Global Construction** (`compiler/src/codegen/llvm_backend.rs`)
   - `LLVMConstBitCast` used instead of `LLVMBuildBitCast` for vtable entries — builder instructions cannot be emitted outside a function context
 - **Module Loader: Name Mangling Completeness** (`compiler/src/modules/loader.rs`)
@@ -60,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Total tests: 583 integration + 710 library + 822 runtime = 2115 tests passing, zero failures, zero warnings
+- Compiler builds with zero warnings (deprecated API, dead code, and formatting all resolved)
 
 ## [0.9.2] - 2026-02-07
 

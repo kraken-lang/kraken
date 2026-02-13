@@ -1,0 +1,9 @@
+fn main() -> int {
+    let s = "fn main() -> int";
+    let result = str_slice(s, 0, 2);
+    puts(str_concat("slice: [", str_concat(result, "]")));
+    puts(str_concat("len: ", fmt_int(strlen(result))));
+    let c = str_char_at(s, 0);
+    puts(str_concat("char_at(0): ", fmt_int(c)));
+    return 0;
+}

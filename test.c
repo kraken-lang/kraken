@@ -18,6 +18,67 @@ void kr_puts(kr_str s) { puts(s); }
 int64_t kr_strlen(kr_str s) { return (int64_t)strlen(s); }
 int64_t kr_abs(int64_t x) { return x < 0 ? -x : x; }
 int kr_strcmp(kr_str a, kr_str b) { return strcmp(a, b); }
+static inline bool _kr_str_eq(kr_str a, kr_str b) { return strcmp(a,b)==0; }
+static inline bool _kr_str_neq(kr_str a, kr_str b) { return strcmp(a,b)!=0; }
+kr_str kr_str_concat(kr_str a, kr_str b) {
+  size_t la = strlen(a), lb = strlen(b);
+  char* r = (char*)malloc(la + lb + 1);
+  memcpy(r, a, la); memcpy(r + la, b, lb); r[la+lb] = 0; return r;
+}
+int64_t kr_str_char_at(kr_str s, int64_t i) { return (int64_t)(unsigned char)s[i]; }
+kr_str kr_str_slice(kr_str s, int64_t start, int64_t end) {
+  int64_t len = end - start; char* r = (char*)malloc(len + 1);
+  memcpy(r, s + start, len); r[len] = 0; return r;
+}
+bool kr_str_ends_with(kr_str s, kr_str suffix) {
+  size_t ls = strlen(s), lx = strlen(suffix);
+  return lx <= ls && strcmp(s + ls - lx, suffix) == 0;
+}
+kr_str kr_fmt_int(int64_t v) {
+  char* r = (char*)malloc(32); snprintf(r, 32, "%lld", (long long)v); return r;
+}
+kr_str kr_getenv(kr_str name) {
+  const char* v = getenv(name); return v ? v : "";
+}
+int64_t kr_system(kr_str cmd) { return (int64_t)system(cmd); }
+void kr_exit(int64_t code) { exit((int)code); }
+void* kr_fopen(kr_str path, kr_str mode) { return (void*)fopen(path, mode); }
+void kr_fclose(void* f) { fclose((FILE*)f); }
+void kr_fputs(kr_str s, void* f) { fputs(s, (FILE*)f); }
+kr_str kr_file_read_string(kr_str path) {
+  FILE* f = fopen(path, "rb"); if(!f) return "";
+  fseek(f, 0, SEEK_END); long sz = ftell(f); fseek(f, 0, SEEK_SET);
+  char* buf = (char*)malloc(sz + 1); fread(buf, 1, sz, f); buf[sz] = 0;
+  fclose(f); return buf;
+}
+typedef struct { int64_t* data; int64_t len; int64_t cap; } KrVecInt;
+void* kr_vec_int_new() {
+  KrVecInt* v = (KrVecInt*)malloc(sizeof(KrVecInt));
+  v->data = (int64_t*)malloc(16 * sizeof(int64_t)); v->len = 0; v->cap = 16; return v;
+}
+void kr_vec_int_push(void* vp, int64_t val) {
+  KrVecInt* v = (KrVecInt*)vp;
+  if(v->len >= v->cap) { v->cap *= 2; v->data = (int64_t*)realloc(v->data, v->cap * sizeof(int64_t)); }
+  v->data[v->len++] = val;
+}
+int64_t kr_vec_int_get(void* vp, int64_t i) { return ((KrVecInt*)vp)->data[i]; }
+void kr_vec_int_set(void* vp, int64_t i, int64_t val) { ((KrVecInt*)vp)->data[i] = val; }
+int64_t kr_vec_int_len(void* vp) { return ((KrVecInt*)vp)->len; }
+void kr_vec_int_free(void* vp) { KrVecInt* v = (KrVecInt*)vp; free(v->data); free(v); }
+typedef struct { const char** data; int64_t len; int64_t cap; } KrVecString;
+void* kr_vec_string_new() {
+  KrVecString* v = (KrVecString*)malloc(sizeof(KrVecString));
+  v->data = (const char**)malloc(16 * sizeof(const char*)); v->len = 0; v->cap = 16; return v;
+}
+void kr_vec_string_push(void* vp, kr_str val) {
+  KrVecString* v = (KrVecString*)vp;
+  if(v->len >= v->cap) { v->cap *= 2; v->data = (const char**)realloc(v->data, v->cap * sizeof(const char*)); }
+  v->data[v->len++] = val;
+}
+kr_str kr_vec_string_get(void* vp, int64_t i) { return ((KrVecString*)vp)->data[i]; }
+void kr_vec_string_set(void* vp, int64_t i, kr_str val) { ((KrVecString*)vp)->data[i] = val; }
+int64_t kr_vec_string_len(void* vp) { return ((KrVecString*)vp)->len; }
+void kr_vec_string_free(void* vp) { KrVecString* v = (KrVecString*)vp; free(v->data); free(v); }
 
 /* Forward declarations */
 

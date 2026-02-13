@@ -384,6 +384,49 @@ char* kraken_file_read_string(const char* path) {
     return buf;
 }
 
+// String slice: extract substring [start, end)
+char* str_slice(const char* s, int64_t start, int64_t end) {
+    if (!s) return NULL;
+    int64_t len = end - start;
+    if (len < 0) len = 0;
+    char* buf = (char*)malloc((size_t)len + 1);
+    if (!buf) return NULL;
+    memcpy(buf, s + start, (size_t)len);
+    buf[len] = '\0';
+    return buf;
+}
+
+// Character at index (returns ASCII code point)
+int64_t str_char_at(const char* s, int64_t index) {
+    if (!s) return 0;
+    return (int64_t)(unsigned char)s[index];
+}
+
+// String ends_with (non-prefixed alias)
+int8_t str_ends_with(const char* s, const char* suffix) {
+    if (!s || !suffix) return 0;
+    size_t s_len = strlen(s);
+    size_t suffix_len = strlen(suffix);
+    if (suffix_len > s_len) return 0;
+    return strcmp(s + s_len - suffix_len, suffix) == 0 ? 1 : 0;
+}
+
+// Read entire file into string (non-prefixed alias)
+char* file_read_string(const char* path) {
+    if (!path) return NULL;
+    FILE* f = fopen(path, "rb");
+    if (!f) return NULL;
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char* buf = (char*)malloc((size_t)size + 1);
+    if (!buf) { fclose(f); return NULL; }
+    size_t read = fread(buf, 1, (size_t)size, f);
+    buf[read] = '\0';
+    fclose(f);
+    return buf;
+}
+
 // Create a 1-character string from an ASCII/Unicode code point
 char* kraken_str_from_char_code(int64_t code) {
     char* buf = (char*)malloc(2);

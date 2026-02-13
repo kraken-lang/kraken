@@ -537,10 +537,7 @@ fn rewrite_statement(
             generic_params,
             methods,
         } => {
-            let new_type_name = private_mangle
-                .get(&type_name)
-                .cloned()
-                .unwrap_or(type_name);
+            let new_type_name = private_mangle.get(&type_name).cloned().unwrap_or(type_name);
             let mut new_methods = Vec::with_capacity(methods.len());
             for m in methods {
                 new_methods.push(rewrite_statement(file, m, private_mangle)?);
@@ -559,10 +556,7 @@ fn rewrite_statement(
             where_constraints,
             methods,
         } => {
-            let new_type_name = private_mangle
-                .get(&type_name)
-                .cloned()
-                .unwrap_or(type_name);
+            let new_type_name = private_mangle.get(&type_name).cloned().unwrap_or(type_name);
             let new_trait_name = private_mangle
                 .get(&trait_name)
                 .cloned()

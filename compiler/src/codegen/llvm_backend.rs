@@ -52,9 +52,9 @@ pub struct LLVMCodegen {
     struct_alignments: HashMap<String, u32>, // struct name -> alignment (from repr(align(N)))
     vtables: HashMap<(String, String), LLVMValueRef>, // (trait_name, type_name) -> vtable global constant
     trait_methods: HashMap<String, Vec<String>>, // trait_name -> [method_names] in declaration order
-    dyn_trait_vars: HashMap<String, String>, // variable_name -> trait_name (for dyn dispatch)
+    dyn_trait_vars: HashMap<String, String>,     // variable_name -> trait_name (for dyn dispatch)
     function_return_structs: HashMap<String, String>, // fn_name -> return struct name (for struct tracking propagation)
-    method_map: HashMap<(String, String), String>, // (type_name, method_name) -> mangled fn name
+    method_map: HashMap<(String, String), String>,    // (type_name, method_name) -> mangled fn name
     defer_stack: Vec<Statement>, // LIFO stack of deferred statements for current function
     closure_captured_values: HashMap<String, Vec<LLVMValueRef>>, // variable_name -> captured values for indirect calls
     last_closure_captures: Option<Vec<LLVMValueRef>>, // temporary: set by closure codegen, consumed by variable decl
@@ -716,20 +716,15 @@ impl LLVMCodegen {
                     // Inside async poll function: store result in future struct and return READY (1)
                     if let Some((future_alloca, future_struct_ty)) = self.async_poll_context {
                         let i64_ty = LLVMInt64TypeInContext(self.context);
-                        let ptr_ty =
-                            LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                        let ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
                         let ret_val = if let Some(expr) = value {
                             self.codegen_expression(expr)?
                         } else {
                             LLVMConstInt(i64_ty, 0, 0)
                         };
 
-                        let fp = LLVMBuildLoad2(
-                            self.builder,
-                            ptr_ty,
-                            future_alloca,
-                            c"fp.ret".as_ptr(),
-                        );
+                        let fp =
+                            LLVMBuildLoad2(self.builder, ptr_ty, future_alloca, c"fp.ret".as_ptr());
                         // Store result in field 1
                         let res_gep = LLVMBuildStructGEP2(
                             self.builder,
@@ -747,11 +742,7 @@ impl LLVMCodegen {
                             2,
                             c"state_done_ret".as_ptr(),
                         );
-                        LLVMBuildStore(
-                            self.builder,
-                            LLVMConstInt(i64_ty, u64::MAX, 0),
-                            st_gep,
-                        );
+                        LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, u64::MAX, 0), st_gep);
                         // Return READY
                         LLVMBuildRet(self.builder, LLVMConstInt(i64_ty, 1, 0));
                         return Ok(());
@@ -931,7 +922,9 @@ impl LLVMCodegen {
 
                         if let Some(init_expr) = initializer {
                             let concrete_type_name = match init_expr {
-                                Expression::StructLiteral { name: sname, .. } => Some(sname.clone()),
+                                Expression::StructLiteral { name: sname, .. } => {
+                                    Some(sname.clone())
+                                }
                                 Expression::Identifier(vname) => {
                                     self.struct_variables.get(vname).cloned()
                                 }
@@ -940,10 +933,8 @@ impl LLVMCodegen {
                             if let Some(ref ctype) = concrete_type_name {
                                 let vtable_key = (trait_name.clone(), ctype.clone());
                                 if let Some(&vtable_global) = self.vtables.get(&vtable_key) {
-                                    let ptr_ty = LLVMPointerType(
-                                        LLVMInt8TypeInContext(self.context),
-                                        0,
-                                    );
+                                    let ptr_ty =
+                                        LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
 
                                     // Get the data pointer (the struct alloca as i8*)
                                     let data_ptr = self.codegen_expression(init_expr)?;
@@ -1045,8 +1036,7 @@ impl LLVMCodegen {
                     // If this variable was initialized from a closure with captures,
                     // associate the captured values with the variable name for indirect calls.
                     if let Some(captures) = self.last_closure_captures.take() {
-                        self.closure_captured_values
-                            .insert(name.clone(), captures);
+                        self.closure_captured_values.insert(name.clone(), captures);
                     }
 
                     // Track if this is an array (from type annotation)
@@ -1900,9 +1890,7 @@ impl LLVMCodegen {
             }
 
             Statement::ImplBlock {
-                type_name,
-                methods,
-                ..
+                type_name, methods, ..
             } => {
                 self.codegen_impl_block(type_name, methods)?;
                 Ok(())
@@ -1991,31 +1979,20 @@ impl LLVMCodegen {
                         }
 
                         // Create vtable as a global constant array of pointers
-                        let vtable_arr_ty = LLVMArrayType(ptr_ty, num_methods as u32);
-                        let vtable_const = LLVMConstArray(
-                            ptr_ty,
-                            fn_ptrs.as_mut_ptr(),
-                            num_methods as u32,
-                        );
+                        let vtable_arr_ty = LLVMArrayType2(ptr_ty, num_methods as u64);
+                        let vtable_const =
+                            LLVMConstArray2(ptr_ty, fn_ptrs.as_mut_ptr(), num_methods as u64);
                         let vtable_name = format!("__vtable_{trait_name}_{type_name}");
                         let vtable_name_c =
                             CString::new(vtable_name.as_str()).expect("CString failed");
-                        let vtable_global = LLVMAddGlobal(
-                            self.module,
-                            vtable_arr_ty,
-                            vtable_name_c.as_ptr(),
-                        );
+                        let vtable_global =
+                            LLVMAddGlobal(self.module, vtable_arr_ty, vtable_name_c.as_ptr());
                         LLVMSetInitializer(vtable_global, vtable_const);
                         LLVMSetGlobalConstant(vtable_global, 1);
-                        LLVMSetLinkage(
-                            vtable_global,
-                            llvm_sys::LLVMLinkage::LLVMPrivateLinkage,
-                        );
+                        LLVMSetLinkage(vtable_global, llvm_sys::LLVMLinkage::LLVMPrivateLinkage);
 
-                        self.vtables.insert(
-                            (trait_name.clone(), type_name.clone()),
-                            vtable_global,
-                        );
+                        self.vtables
+                            .insert((trait_name.clone(), type_name.clone()), vtable_global);
                     }
                 }
                 Ok(())
@@ -2163,39 +2140,26 @@ impl LLVMCodegen {
             // Returns "" instead of NULL when var is not set
             let kraken_getenv_type =
                 LLVMFunctionType(i8_ptr_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
-            let kraken_getenv_name =
-                CString::new("kraken_getenv_safe").expect("CString failed");
-            let kraken_getenv_func = LLVMAddFunction(
-                self.module,
-                kraken_getenv_name.as_ptr(),
-                kraken_getenv_type,
-            );
+            let kraken_getenv_name = CString::new("kraken_getenv_safe").expect("CString failed");
+            let kraken_getenv_func =
+                LLVMAddFunction(self.module, kraken_getenv_name.as_ptr(), kraken_getenv_type);
             self.functions
                 .insert("getenv".to_string(), kraken_getenv_func);
 
             // kraken_file_read_string: char* kraken_file_read_string(const char* path)
-            let kraken_frs_type =
-                LLVMFunctionType(i8_ptr_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
-            let kraken_frs_name =
-                CString::new("kraken_file_read_string").expect("CString failed");
-            let kraken_frs_func = LLVMAddFunction(
-                self.module,
-                kraken_frs_name.as_ptr(),
-                kraken_frs_type,
-            );
+            let kraken_frs_type = LLVMFunctionType(i8_ptr_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let kraken_frs_name = CString::new("kraken_file_read_string").expect("CString failed");
+            let kraken_frs_func =
+                LLVMAddFunction(self.module, kraken_frs_name.as_ptr(), kraken_frs_type);
             self.functions
                 .insert("file_read_string".to_string(), kraken_frs_func);
 
             // kraken_str_from_char_code: char* kraken_str_from_char_code(int64_t code)
-            let kraken_sfcc_type =
-                LLVMFunctionType(i8_ptr_type, [int_type].as_mut_ptr(), 1, 0);
+            let kraken_sfcc_type = LLVMFunctionType(i8_ptr_type, [int_type].as_mut_ptr(), 1, 0);
             let kraken_sfcc_name =
                 CString::new("kraken_str_from_char_code").expect("CString failed");
-            let kraken_sfcc_func = LLVMAddFunction(
-                self.module,
-                kraken_sfcc_name.as_ptr(),
-                kraken_sfcc_type,
-            );
+            let kraken_sfcc_func =
+                LLVMAddFunction(self.module, kraken_sfcc_name.as_ptr(), kraken_sfcc_type);
             self.functions
                 .insert("str_from_char_code".to_string(), kraken_sfcc_func);
 
@@ -2461,12 +2425,17 @@ impl LLVMCodegen {
             let getchar_func = LLVMAddFunction(self.module, getchar_name.as_ptr(), getchar_type);
             self.functions.insert("getchar".to_string(), getchar_func);
 
-            // sprintf: int sprintf(char* str, const char* format, ...)
-            let sprintf_type =
-                LLVMFunctionType(int_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 1);
-            let sprintf_name = CString::new("sprintf").expect("CString failed");
-            let sprintf_func = LLVMAddFunction(self.module, sprintf_name.as_ptr(), sprintf_type);
-            self.functions.insert("sprintf".to_string(), sprintf_func);
+            // snprintf: int snprintf(char* str, size_t size, const char* format, ...)
+            // Note: we use snprintf instead of sprintf for Windows UCRT compatibility
+            let snprintf_type = LLVMFunctionType(
+                int_type,
+                [i8_ptr_type, int_type, i8_ptr_type].as_mut_ptr(),
+                3,
+                1,
+            );
+            let snprintf_name = CString::new("snprintf").expect("CString failed");
+            let snprintf_func = LLVMAddFunction(self.module, snprintf_name.as_ptr(), snprintf_type);
+            self.functions.insert("snprintf".to_string(), snprintf_func);
 
             // sscanf: int sscanf(const char* str, const char* format, ...)
             let sscanf_type =
@@ -2868,8 +2837,7 @@ impl LLVMCodegen {
             self.current_function = Some(poll_fn);
 
             // Create entry block
-            let entry_bb =
-                LLVMAppendBasicBlockInContext(self.context, poll_fn, c"entry".as_ptr());
+            let entry_bb = LLVMAppendBasicBlockInContext(self.context, poll_fn, c"entry".as_ptr());
             LLVMPositionBuilderAtEnd(self.builder, entry_bb);
 
             // Store future pointer param
@@ -2884,8 +2852,7 @@ impl LLVMCodegen {
             let fp = LLVMBuildLoad2(self.builder, ptr_ty, future_alloca, c"fp".as_ptr());
             let state_gep =
                 LLVMBuildStructGEP2(self.builder, future_struct, fp, 2, c"state_ptr".as_ptr());
-            let state_val =
-                LLVMBuildLoad2(self.builder, i64_ty, state_gep, c"state".as_ptr());
+            let state_val = LLVMBuildLoad2(self.builder, i64_ty, state_gep, c"state".as_ptr());
 
             // Create state blocks
             let num_states = await_indices.len() + 1;
@@ -2898,12 +2865,10 @@ impl LLVMCodegen {
                     bn.as_ptr(),
                 ));
             }
-            let done_bb =
-                LLVMAppendBasicBlockInContext(self.context, poll_fn, c"done".as_ptr());
+            let done_bb = LLVMAppendBasicBlockInContext(self.context, poll_fn, c"done".as_ptr());
 
             // Switch dispatch
-            let switch_inst =
-                LLVMBuildSwitch(self.builder, state_val, done_bb, num_states as u32);
+            let switch_inst = LLVMBuildSwitch(self.builder, state_val, done_bb, num_states as u32);
             for (i, &bb) in state_bbs.iter().enumerate() {
                 LLVMAddCase(switch_inst, LLVMConstInt(i64_ty, i as u64, 0), bb);
             }
@@ -2926,12 +2891,7 @@ impl LLVMCodegen {
                 LLVMPositionBuilderAtEnd(self.builder, state_bbs[seg_idx]);
 
                 // Reload future pointer
-                let fp = LLVMBuildLoad2(
-                    self.builder,
-                    ptr_ty,
-                    future_alloca,
-                    c"fp".as_ptr(),
-                );
+                let fp = LLVMBuildLoad2(self.builder, ptr_ty, future_alloca, c"fp".as_ptr());
 
                 // Clear named_values for this state
                 self.named_values.clear();
@@ -2940,8 +2900,7 @@ impl LLVMCodegen {
 
                 // Load parameters from struct into allocas
                 for (pname, field_idx) in &param_field_map {
-                    let gep_name =
-                        CString::new(format!("{pname}.field")).expect("CString failed");
+                    let gep_name = CString::new(format!("{pname}.field")).expect("CString failed");
                     let field_gep = LLVMBuildStructGEP2(
                         self.builder,
                         future_struct,
@@ -2950,14 +2909,8 @@ impl LLVMCodegen {
                         gep_name.as_ptr(),
                     );
                     let field_ty = struct_field_types[*field_idx as usize];
-                    let load_name =
-                        CString::new(format!("{pname}.load")).expect("CString failed");
-                    let val = LLVMBuildLoad2(
-                        self.builder,
-                        field_ty,
-                        field_gep,
-                        load_name.as_ptr(),
-                    );
+                    let load_name = CString::new(format!("{pname}.load")).expect("CString failed");
+                    let val = LLVMBuildLoad2(self.builder, field_ty, field_gep, load_name.as_ptr());
                     let alloca = self.create_entry_block_alloca(field_ty, pname)?;
                     LLVMBuildStore(self.builder, val, alloca);
                     self.named_values.insert(pname.clone(), alloca);
@@ -2978,12 +2931,8 @@ impl LLVMCodegen {
                         );
                         let load_name =
                             CString::new(format!("{lname}.load")).expect("CString failed");
-                        let val = LLVMBuildLoad2(
-                            self.builder,
-                            i64_ty,
-                            field_gep,
-                            load_name.as_ptr(),
-                        );
+                        let val =
+                            LLVMBuildLoad2(self.builder, i64_ty, field_gep, load_name.as_ptr());
                         let alloca = self.create_entry_block_alloca(i64_ty, lname)?;
                         LLVMBuildStore(self.builder, val, alloca);
                         self.named_values.insert(lname.clone(), alloca);
@@ -2997,12 +2946,8 @@ impl LLVMCodegen {
                         3,
                         c"sub_future_ptr".as_ptr(),
                     );
-                    let sub_future = LLVMBuildLoad2(
-                        self.builder,
-                        ptr_ty,
-                        sub_gep,
-                        c"sub_future".as_ptr(),
-                    );
+                    let sub_future =
+                        LLVMBuildLoad2(self.builder, ptr_ty, sub_gep, c"sub_future".as_ptr());
 
                     // Load poll function from sub-future header (field 0)
                     let sub_poll_gep = LLVMBuildStructGEP2(
@@ -3012,16 +2957,11 @@ impl LLVMCodegen {
                         0,
                         c"sub_poll_fn_ptr".as_ptr(),
                     );
-                    let sub_poll_fn = LLVMBuildLoad2(
-                        self.builder,
-                        ptr_ty,
-                        sub_poll_gep,
-                        c"sub_poll_fn".as_ptr(),
-                    );
+                    let sub_poll_fn =
+                        LLVMBuildLoad2(self.builder, ptr_ty, sub_poll_gep, c"sub_poll_fn".as_ptr());
 
                     // Call sub_poll_fn(sub_future)
-                    let sub_poll_fn_type =
-                        LLVMFunctionType(i64_ty, [ptr_ty].as_mut_ptr(), 1, 0);
+                    let sub_poll_fn_type = LLVMFunctionType(i64_ty, [ptr_ty].as_mut_ptr(), 1, 0);
                     let sub_status = LLVMBuildCall2(
                         self.builder,
                         sub_poll_fn_type,
@@ -3090,12 +3030,8 @@ impl LLVMCodegen {
                     // For `return await expr;` the result is already in sub_result
                     if let Statement::Return { .. } = prev_await_stmt {
                         // Store result and return READY
-                        let fp2 = LLVMBuildLoad2(
-                            self.builder,
-                            ptr_ty,
-                            future_alloca,
-                            c"fp2".as_ptr(),
-                        );
+                        let fp2 =
+                            LLVMBuildLoad2(self.builder, ptr_ty, future_alloca, c"fp2".as_ptr());
                         let res_gep = LLVMBuildStructGEP2(
                             self.builder,
                             future_struct,
@@ -3111,11 +3047,7 @@ impl LLVMCodegen {
                             2,
                             c"state_done_await".as_ptr(),
                         );
-                        LLVMBuildStore(
-                            self.builder,
-                            LLVMConstInt(i64_ty, u64::MAX, 0),
-                            st_gep,
-                        );
+                        LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, u64::MAX, 0), st_gep);
                         LLVMBuildRet(self.builder, LLVMConstInt(i64_ty, 1, 0));
                         // This state is terminal; skip remaining code generation
                         continue;
@@ -3163,9 +3095,8 @@ impl LLVMCodegen {
                                         alloca,
                                         save_name.as_ptr(),
                                     );
-                                    let save_gep_name =
-                                        CString::new(format!("{lname}.save_ptr"))
-                                            .expect("CString failed");
+                                    let save_gep_name = CString::new(format!("{lname}.save_ptr"))
+                                        .expect("CString failed");
                                     let field_gep = LLVMBuildStructGEP2(
                                         self.builder,
                                         future_struct,
@@ -3195,8 +3126,7 @@ impl LLVMCodegen {
                                 2,
                                 c"state_next".as_ptr(),
                             );
-                            let next_state =
-                                LLVMConstInt(i64_ty, (seg_idx + 1) as u64, 0);
+                            let next_state = LLVMConstInt(i64_ty, (seg_idx + 1) as u64, 0);
                             LLVMBuildStore(self.builder, next_state, state_gep);
 
                             // Fall through to next state to try polling immediately
@@ -3207,12 +3137,8 @@ impl LLVMCodegen {
                     // Last segment (no await) - add default return if no terminator
                     let bb = LLVMGetInsertBlock(self.builder);
                     if LLVMGetBasicBlockTerminator(bb).is_null() {
-                        let fp4 = LLVMBuildLoad2(
-                            self.builder,
-                            ptr_ty,
-                            future_alloca,
-                            c"fp4".as_ptr(),
-                        );
+                        let fp4 =
+                            LLVMBuildLoad2(self.builder, ptr_ty, future_alloca, c"fp4".as_ptr());
                         let res_gep = LLVMBuildStructGEP2(
                             self.builder,
                             future_struct,
@@ -3220,11 +3146,7 @@ impl LLVMCodegen {
                             1,
                             c"result_default".as_ptr(),
                         );
-                        LLVMBuildStore(
-                            self.builder,
-                            LLVMConstInt(i64_ty, 0, 0),
-                            res_gep,
-                        );
+                        LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), res_gep);
                         let st_gep = LLVMBuildStructGEP2(
                             self.builder,
                             future_struct,
@@ -3232,11 +3154,7 @@ impl LLVMCodegen {
                             2,
                             c"state_done_dflt".as_ptr(),
                         );
-                        LLVMBuildStore(
-                            self.builder,
-                            LLVMConstInt(i64_ty, u64::MAX, 0),
-                            st_gep,
-                        );
+                        LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, u64::MAX, 0), st_gep);
                         LLVMBuildRet(self.builder, LLVMConstInt(i64_ty, 1, 0));
                     }
                 }
@@ -3265,18 +3183,16 @@ impl LLVMCodegen {
             let saved_function2 = self.current_function;
             let saved_block2 = LLVMGetInsertBlock(self.builder);
             self.current_function = Some(wrapper_fn);
-            let wrapper_entry = LLVMAppendBasicBlockInContext(
-                self.context,
-                wrapper_fn,
-                c"entry".as_ptr(),
-            );
+            let wrapper_entry =
+                LLVMAppendBasicBlockInContext(self.context, wrapper_fn, c"entry".as_ptr());
             LLVMPositionBuilderAtEnd(self.builder, wrapper_entry);
 
             // Allocate future struct via malloc
             let struct_size = LLVMSizeOf(future_struct);
-            let malloc_fn = *self.functions.get("malloc").ok_or_else(|| {
-                CompilerError::codegen_error("Missing malloc")
-            })?;
+            let malloc_fn = *self
+                .functions
+                .get("malloc")
+                .ok_or_else(|| CompilerError::codegen_error("Missing malloc"))?;
             let malloc_ty = LLVMGlobalGetValueType(malloc_fn);
             let future_mem = LLVMBuildCall2(
                 self.builder,
@@ -3331,8 +3247,7 @@ impl LLVMCodegen {
             for (i, _param) in parameters.iter().enumerate() {
                 let param_val = LLVMGetParam(wrapper_fn, i as u32);
                 let field_idx = header_fields + i as u32;
-                let gep_name =
-                    CString::new(format!("param_{i}_init")).expect("CString failed");
+                let gep_name = CString::new(format!("param_{i}_init")).expect("CString failed");
                 let gep = LLVMBuildStructGEP2(
                     self.builder,
                     future_struct,
@@ -3520,21 +3435,15 @@ impl LLVMCodegen {
                 }
 
                 // Register in method_map so method calls can resolve
-                self.method_map.insert(
-                    (type_name.to_string(), name.clone()),
-                    mangled,
-                );
+                self.method_map
+                    .insert((type_name.to_string(), name.clone()), mangled);
             }
         }
         Ok(())
     }
 
     /// Generate code for an impl block: codegen each method body.
-    fn codegen_impl_block(
-        &mut self,
-        type_name: &str,
-        methods: &[Statement],
-    ) -> CompilerResult<()> {
+    fn codegen_impl_block(&mut self, type_name: &str, methods: &[Statement]) -> CompilerResult<()> {
         for method in methods {
             if let Statement::FunctionDeclaration {
                 name,
@@ -3664,24 +3573,76 @@ impl LLVMCodegen {
                             )
                         }
                         Operator::Equal => {
-                            let name = CString::new("cmptmp").expect("CString failed");
-                            LLVMBuildICmp(
-                                self.builder,
-                                llvm_sys::LLVMIntPredicate::LLVMIntEQ,
-                                lhs,
-                                rhs,
-                                name.as_ptr(),
-                            )
+                            // String equality: use strcmp when both operands are non-null pointers
+                            let lhs_ty = LLVMTypeOf(lhs);
+                            let is_ptr = LLVMGetTypeKind(lhs_ty)
+                                == llvm_sys::LLVMTypeKind::LLVMPointerTypeKind;
+                            if is_ptr && LLVMIsNull(lhs) == 0 && LLVMIsNull(rhs) == 0 {
+                                let strcmp_fn = *self.functions.get("strcmp").ok_or_else(|| {
+                                    CompilerError::codegen_error("strcmp not declared".to_string())
+                                })?;
+                                let cmp_result = LLVMBuildCall2(
+                                    self.builder,
+                                    LLVMGlobalGetValueType(strcmp_fn),
+                                    strcmp_fn,
+                                    [lhs, rhs].as_mut_ptr(),
+                                    2,
+                                    c"strcmp".as_ptr(),
+                                );
+                                let zero = LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0);
+                                LLVMBuildICmp(
+                                    self.builder,
+                                    llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                                    cmp_result,
+                                    zero,
+                                    c"streq".as_ptr(),
+                                )
+                            } else {
+                                let name = CString::new("cmptmp").expect("CString failed");
+                                LLVMBuildICmp(
+                                    self.builder,
+                                    llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                                    lhs,
+                                    rhs,
+                                    name.as_ptr(),
+                                )
+                            }
                         }
                         Operator::NotEqual => {
-                            let name = CString::new("cmptmp").expect("CString failed");
-                            LLVMBuildICmp(
-                                self.builder,
-                                llvm_sys::LLVMIntPredicate::LLVMIntNE,
-                                lhs,
-                                rhs,
-                                name.as_ptr(),
-                            )
+                            // String inequality: use strcmp when both operands are non-null pointers
+                            let lhs_ty = LLVMTypeOf(lhs);
+                            let is_ptr = LLVMGetTypeKind(lhs_ty)
+                                == llvm_sys::LLVMTypeKind::LLVMPointerTypeKind;
+                            if is_ptr && LLVMIsNull(lhs) == 0 && LLVMIsNull(rhs) == 0 {
+                                let strcmp_fn = *self.functions.get("strcmp").ok_or_else(|| {
+                                    CompilerError::codegen_error("strcmp not declared".to_string())
+                                })?;
+                                let cmp_result = LLVMBuildCall2(
+                                    self.builder,
+                                    LLVMGlobalGetValueType(strcmp_fn),
+                                    strcmp_fn,
+                                    [lhs, rhs].as_mut_ptr(),
+                                    2,
+                                    c"strcmp".as_ptr(),
+                                );
+                                let zero = LLVMConstInt(LLVMInt32TypeInContext(self.context), 0, 0);
+                                LLVMBuildICmp(
+                                    self.builder,
+                                    llvm_sys::LLVMIntPredicate::LLVMIntNE,
+                                    cmp_result,
+                                    zero,
+                                    c"strneq".as_ptr(),
+                                )
+                            } else {
+                                let name = CString::new("cmptmp").expect("CString failed");
+                                LLVMBuildICmp(
+                                    self.builder,
+                                    llvm_sys::LLVMIntPredicate::LLVMIntNE,
+                                    lhs,
+                                    rhs,
+                                    name.as_ptr(),
+                                )
+                            }
                         }
                         Operator::LessEqual => {
                             let name = CString::new("cmptmp").expect("CString failed");
@@ -3762,23 +3723,17 @@ impl LLVMCodegen {
                                     if let Some(slot) =
                                         method_names.iter().position(|m| m == member)
                                     {
-                                        let ptr_ty = LLVMPointerType(
-                                            LLVMInt8TypeInContext(self.context),
-                                            0,
-                                        );
+                                        let ptr_ty =
+                                            LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
                                         let i64_ty = LLVMInt64TypeInContext(self.context);
-                                        let fat_ptr_ty = self.get_llvm_type(
-                                            &Type::TraitObject {
-                                                trait_name: trait_name.clone(),
-                                                bounds: vec![],
-                                            },
-                                        );
+                                        let fat_ptr_ty = self.get_llvm_type(&Type::TraitObject {
+                                            trait_name: trait_name.clone(),
+                                            bounds: vec![],
+                                        });
 
                                         // Load fat pointer from alloca
-                                        let fat_alloca = *self
-                                            .named_values
-                                            .get(var_name)
-                                            .ok_or_else(|| {
+                                        let fat_alloca =
+                                            *self.named_values.get(var_name).ok_or_else(|| {
                                                 CompilerError::codegen_error(format!(
                                                     "Undefined variable: {var_name}"
                                                 ))
@@ -3815,12 +3770,9 @@ impl LLVMCodegen {
                                         );
 
                                         // GEP into vtable array at slot index
-                                        let vtable_arr_ty = LLVMArrayType(
-                                            ptr_ty,
-                                            method_names.len() as u32,
-                                        );
-                                        let slot_idx =
-                                            LLVMConstInt(i64_ty, slot as u64, 0);
+                                        let vtable_arr_ty =
+                                            LLVMArrayType2(ptr_ty, method_names.len() as u64);
+                                        let slot_idx = LLVMConstInt(i64_ty, slot as u64, 0);
                                         let zero = LLVMConstInt(i64_ty, 0, 0);
                                         let fn_slot_gep = LLVMBuildGEP2(
                                             self.builder,
@@ -3841,8 +3793,7 @@ impl LLVMCodegen {
                                         let mut arg_vals = vec![data_ptr];
                                         let mut arg_types = vec![ptr_ty];
                                         for arg in arguments {
-                                            let arg_val =
-                                                self.codegen_expression(arg)?;
+                                            let arg_val = self.codegen_expression(arg)?;
                                             arg_vals.push(arg_val);
                                             arg_types.push(LLVMTypeOf(arg_val));
                                         }
@@ -3857,10 +3808,8 @@ impl LLVMCodegen {
                                             0,
                                         );
 
-                                        let call_name = CString::new(format!(
-                                            "dyn.{member}.ret"
-                                        ))
-                                        .expect("CString failed");
+                                        let call_name = CString::new(format!("dyn.{member}.ret"))
+                                            .expect("CString failed");
                                         let call_val = LLVMBuildCall2(
                                             self.builder,
                                             fn_type,
@@ -3904,8 +3853,9 @@ impl LLVMCodegen {
                                         Expression::Identifier(var_name)
                                             if self.struct_variables.contains_key(var_name) =>
                                         {
-                                            let load_name = CString::new(format!("{var_name}.load"))
-                                                .expect("CString failed");
+                                            let load_name =
+                                                CString::new(format!("{var_name}.load"))
+                                                    .expect("CString failed");
                                             LLVMBuildLoad2(
                                                 self.builder,
                                                 LLVMGetAllocatedType(arg_val),
@@ -3914,8 +3864,8 @@ impl LLVMCodegen {
                                             )
                                         }
                                         Expression::StructLiteral { .. } => {
-                                            let load_name =
-                                                CString::new("struct.load").expect("CString failed");
+                                            let load_name = CString::new("struct.load")
+                                                .expect("CString failed");
                                             LLVMBuildLoad2(
                                                 self.builder,
                                                 LLVMGetAllocatedType(arg_val),
@@ -4078,10 +4028,7 @@ impl LLVMCodegen {
                                 ));
                             }
                             let i64_ty = LLVMInt64TypeInContext(self.context);
-                            let ptr_ty = LLVMPointerType(
-                                LLVMInt8TypeInContext(self.context),
-                                0,
-                            );
+                            let ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
                             let future_header = self.get_or_create_future_header_type();
 
                             // Evaluate the future expression (call to async fn returns ptr)
@@ -4131,12 +4078,8 @@ impl LLVMCodegen {
                             );
 
                             // Call poll_fn(future_ptr)
-                            let poll_fn_type = LLVMFunctionType(
-                                i64_ty,
-                                [ptr_ty].as_mut_ptr(),
-                                1,
-                                0,
-                            );
+                            let poll_fn_type =
+                                LLVMFunctionType(i64_ty, [ptr_ty].as_mut_ptr(), 1, 0);
                             let status = LLVMBuildCall2(
                                 self.builder,
                                 poll_fn_type,
@@ -4682,14 +4625,10 @@ impl LLVMCodegen {
                             // Indirect call: load function pointer from variable
                             let i64_ty = LLVMInt64TypeInContext(self.context);
                             let ptr_ty = LLVMPointerType(i64_ty, 0);
-                            let fn_ptr_name = CString::new(format!("{name}.fnptr"))
-                                .expect("CString failed");
-                            let fn_ptr = LLVMBuildLoad2(
-                                self.builder,
-                                ptr_ty,
-                                alloca,
-                                fn_ptr_name.as_ptr(),
-                            );
+                            let fn_ptr_name =
+                                CString::new(format!("{name}.fnptr")).expect("CString failed");
+                            let fn_ptr =
+                                LLVMBuildLoad2(self.builder, ptr_ty, alloca, fn_ptr_name.as_ptr());
 
                             // Generate code for explicit arguments
                             let mut arg_values: Vec<LLVMValueRef> = Vec::new();
@@ -4699,8 +4638,7 @@ impl LLVMCodegen {
                             }
 
                             // Append captured values as hidden trailing arguments
-                            if let Some(captures) =
-                                self.closure_captured_values.get(name).cloned()
+                            if let Some(captures) = self.closure_captured_values.get(name).cloned()
                             {
                                 arg_values.extend(captures);
                             }
@@ -4715,8 +4653,8 @@ impl LLVMCodegen {
                                 param_types.len() as u32,
                                 0,
                             );
-                            let call_name = CString::new(format!("{name}.call"))
-                                .expect("CString failed");
+                            let call_name =
+                                CString::new(format!("{name}.call")).expect("CString failed");
                             let call = LLVMBuildCall2(
                                 self.builder,
                                 fn_type,
@@ -5114,20 +5052,13 @@ impl LLVMCodegen {
                         // If the original field type is ptr but the struct body
                         // uses i64, insert ptrtoint before storing.
                         let i64_ty = LLVMInt64TypeInContext(self.context);
-                        let ptr_ty =
-                            LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                        let ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
                         let orig_ft = field_types[field_idx as usize];
-                        let actual_val =
-                            if orig_ft == ptr_ty && LLVMTypeOf(field_val) == ptr_ty {
-                                LLVMBuildPtrToInt(
-                                    self.builder,
-                                    field_val,
-                                    i64_ty,
-                                    c"sf.p2i".as_ptr(),
-                                )
-                            } else {
-                                field_val
-                            };
+                        let actual_val = if orig_ft == ptr_ty && LLVMTypeOf(field_val) == ptr_ty {
+                            LLVMBuildPtrToInt(self.builder, field_val, i64_ty, c"sf.p2i".as_ptr())
+                        } else {
+                            field_val
+                        };
                         LLVMBuildStore(self.builder, actual_val, field_ptr);
                     }
 
@@ -5200,8 +5131,7 @@ impl LLVMCodegen {
                     // Load field value. The struct body uses i64 for pointer
                     // fields, so load as the actual body type then inttoptr if needed.
                     let orig_field_type = field_types[field_idx as usize];
-                    let ptr_ty =
-                        LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
+                    let ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.context), 0);
                     let i64_ty = LLVMInt64TypeInContext(self.context);
                     let load_type = if orig_field_type == ptr_ty {
                         i64_ty
@@ -5209,12 +5139,8 @@ impl LLVMCodegen {
                         orig_field_type
                     };
                     let load_name = CString::new(format!("{member}.load")).expect("CString failed");
-                    let loaded = LLVMBuildLoad2(
-                        self.builder,
-                        load_type,
-                        field_ptr,
-                        load_name.as_ptr(),
-                    );
+                    let loaded =
+                        LLVMBuildLoad2(self.builder, load_type, field_ptr, load_name.as_ptr());
                     if orig_field_type == ptr_ty {
                         Ok(LLVMBuildIntToPtr(
                             self.builder,
@@ -5635,8 +5561,7 @@ impl LLVMCodegen {
                         let cap_ty = LLVMGetAllocatedType(alloca);
                         let load_name =
                             CString::new(format!("{cap_name}.cap.load")).expect("CString failed");
-                        let val =
-                            LLVMBuildLoad2(self.builder, cap_ty, alloca, load_name.as_ptr());
+                        let val = LLVMBuildLoad2(self.builder, cap_ty, alloca, load_name.as_ptr());
                         captured_values.push(val);
                         captured_types.push(cap_ty);
                     }
@@ -5703,10 +5628,7 @@ impl LLVMCodegen {
                     for (i, cap_name) in captured_names.iter().enumerate() {
                         let param_idx = (explicit_param_count + i) as u32;
                         let cap_val = LLVMGetParam(closure_fn, param_idx);
-                        let alloca = self.create_entry_block_alloca(
-                            captured_types[i],
-                            cap_name,
-                        )?;
+                        let alloca = self.create_entry_block_alloca(captured_types[i], cap_name)?;
                         LLVMBuildStore(self.builder, cap_val, alloca);
                         self.named_values.insert(cap_name.clone(), alloca);
                     }
@@ -5739,8 +5661,7 @@ impl LLVMCodegen {
                     }
 
                     // Register the closure function and store capture info
-                    self.functions
-                        .insert(closure_name.clone(), closure_fn);
+                    self.functions.insert(closure_name.clone(), closure_fn);
 
                     // Store captured values so indirect calls can pass them
                     if !captured_values.is_empty() {
@@ -5990,6 +5911,7 @@ impl LLVMCodegen {
     /// Store a struct value to a destination alloca field-by-field using volatile stores.
     /// This prevents LLVM from merging the individual stores back into a single large
     /// aggregate store, which is miscompiled on x86_64 for structs > 40 bytes in LLVM 18.
+    #[allow(dead_code)]
     unsafe fn store_struct_fields_from_value(
         &self,
         val: LLVMValueRef,
@@ -5999,12 +5921,7 @@ impl LLVMCodegen {
     ) {
         let i32_ty = LLVMInt32TypeInContext(self.context);
         for i in 0..field_names.len() {
-            let extracted = LLVMBuildExtractValue(
-                self.builder,
-                val,
-                i as u32,
-                c"sf.ex".as_ptr(),
-            );
+            let extracted = LLVMBuildExtractValue(self.builder, val, i as u32, c"sf.ex".as_ptr());
             let zero = LLVMConstInt(i32_ty, 0, 0);
             let idx = LLVMConstInt(i32_ty, i as u64, 0);
             let mut indices = [zero, idx];
@@ -12530,7 +12447,7 @@ impl LLVMCodegen {
                 "fmt_int" => {
                     let n = self.codegen_expression(&arguments[0])?;
 
-                    // Allocate buffer and use sprintf
+                    // Allocate buffer and use snprintf (Windows UCRT compatible)
                     let malloc_fn = *self
                         .functions
                         .get("malloc")
@@ -12547,20 +12464,20 @@ impl LLVMCodegen {
                         c"fmt.buf".as_ptr(),
                     );
 
-                    let sprintf_fn = *self
+                    let snprintf_fn = *self
                         .functions
-                        .get("sprintf")
-                        .ok_or_else(|| CompilerError::codegen_error("Missing sprintf"))?;
-                    let sprintf_ty = LLVMGlobalGetValueType(sprintf_fn);
+                        .get("snprintf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing snprintf"))?;
+                    let snprintf_ty = LLVMGlobalGetValueType(snprintf_fn);
                     let fmt = CString::new("%ld").expect("CString failed");
                     let fmt_ptr =
                         LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"fmt.int".as_ptr());
                     LLVMBuildCall2(
                         self.builder,
-                        sprintf_ty,
-                        sprintf_fn,
-                        [buf, fmt_ptr, n].as_mut_ptr(),
-                        3,
+                        snprintf_ty,
+                        snprintf_fn,
+                        [buf, buf_size, fmt_ptr, n].as_mut_ptr(),
+                        4,
                         c"".as_ptr(),
                     );
 
@@ -12586,20 +12503,20 @@ impl LLVMCodegen {
                         c"fmt.buf".as_ptr(),
                     );
 
-                    let sprintf_fn = *self
+                    let snprintf_fn = *self
                         .functions
-                        .get("sprintf")
-                        .ok_or_else(|| CompilerError::codegen_error("Missing sprintf"))?;
-                    let sprintf_ty = LLVMGlobalGetValueType(sprintf_fn);
+                        .get("snprintf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing snprintf"))?;
+                    let snprintf_ty = LLVMGlobalGetValueType(snprintf_fn);
                     let fmt = CString::new("0x%lx").expect("CString failed");
                     let fmt_ptr =
                         LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"fmt.hex".as_ptr());
                     LLVMBuildCall2(
                         self.builder,
-                        sprintf_ty,
-                        sprintf_fn,
-                        [buf, fmt_ptr, n].as_mut_ptr(),
-                        3,
+                        snprintf_ty,
+                        snprintf_fn,
+                        [buf, buf_size, fmt_ptr, n].as_mut_ptr(),
+                        4,
                         c"".as_ptr(),
                     );
 
@@ -12670,11 +12587,11 @@ impl LLVMCodegen {
                         c"fmt.buf".as_ptr(),
                     );
 
-                    let sprintf_fn = *self
+                    let snprintf_fn = *self
                         .functions
-                        .get("sprintf")
-                        .ok_or_else(|| CompilerError::codegen_error("Missing sprintf"))?;
-                    let sprintf_ty = LLVMGlobalGetValueType(sprintf_fn);
+                        .get("snprintf")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing snprintf"))?;
+                    let snprintf_ty = LLVMGlobalGetValueType(snprintf_fn);
                     let fmt = CString::new("%.*f").expect("CString failed");
                     let fmt_ptr =
                         LLVMBuildGlobalStringPtr(self.builder, fmt.as_ptr(), c"fmt.float".as_ptr());
@@ -12685,10 +12602,10 @@ impl LLVMCodegen {
                         LLVMBuildTrunc(self.builder, precision, i32_ty, c"prec.trunc".as_ptr());
                     LLVMBuildCall2(
                         self.builder,
-                        sprintf_ty,
-                        sprintf_fn,
-                        [buf, fmt_ptr, prec_i32, f].as_mut_ptr(),
-                        4,
+                        snprintf_ty,
+                        snprintf_fn,
+                        [buf, buf_size, fmt_ptr, prec_i32, f].as_mut_ptr(),
+                        5,
                         c"".as_ptr(),
                     );
 
