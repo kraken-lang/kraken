@@ -895,6 +895,24 @@ impl LLVMCodegen {
                                     ))
                                 })?;
                             (st, None)
+                        } else if let Expression::Identifier(src_name) = init_expr {
+                            // Struct variable copy: `let x = y;` where y is a struct.
+                            // codegen_expression returns the alloca pointer (ptr type),
+                            // so we must use the struct's actual LLVM type for the new alloca.
+                            if let Some(sname) = self.struct_variables.get(src_name).cloned() {
+                                self.struct_variables.insert(name.clone(), sname.clone());
+                                let init_val = self.codegen_expression(init_expr)?;
+                                let (st, _, _) =
+                                    self.struct_types.get(&sname).cloned().ok_or_else(|| {
+                                        CompilerError::codegen_error(format!(
+                                            "Undefined struct: {sname}"
+                                        ))
+                                    })?;
+                                (st, Some(init_val))
+                            } else {
+                                let init_val = self.codegen_expression(init_expr)?;
+                                (LLVMTypeOf(init_val), Some(init_val))
+                            }
                         } else {
                             // Evaluate once and cache the result
                             let init_val = self.codegen_expression(init_expr)?;

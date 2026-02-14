@@ -544,8 +544,8 @@ void kr_test_nested_aliases() {
 typedef void* IntPair;
 typedef void* IntTriple;
 void kr_test_tuple_alias() {
-    IntPair pair = 0;
-    IntTriple triple = 0;
+    IntPair pair = (IntPair)(intptr_t)((10, 20));
+    IntTriple triple = (IntTriple)(intptr_t)((1, 2, 3));
 }
 
 MyInt kr_process(MyInt x) {

@@ -528,13 +528,20 @@ int64_t kr_make_adder() {
 
 void kr_test_make_adder() {
     __auto_type add5 = kr_make_adder(5);
-    __auto_type result = 0;
+    __auto_type result = ({
+        (void)(10);
+        0;
+    });
 }
 
 void kr_test_make_adder_with_map() {
     __auto_type add10 = kr_make_adder(10);
     __auto_type numbers = (int64_t[]){1, 2, 3};
-    __auto_type result = 0;
+    __auto_type result = ({
+        (void)(numbers);
+        (void)(add10);
+        0;
+    });
 }
 
 int64_t kr_flat_map() {
@@ -553,7 +560,15 @@ void kr_test_partition() {
 
 void kr_test_move_closure_generic() {
     __auto_type data = (int64_t[]){1, 2, 3};
-    __auto_type result = 0;
+    __auto_type result = ({
+        (void)(data);
+        (void)(({
+            int64_t x = 0;
+            (void)(x * 2);
+            0;
+        }));
+        0;
+    });
 }
 
 void kr_test_inference_from_return() {

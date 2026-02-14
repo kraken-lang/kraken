@@ -510,34 +510,34 @@ int64_t kr_test_for_in_with_operations() {
 int64_t kr_test_range_patterns() {
     kr_test_section("Range Patterns in Match");
     int64_t x = 5;
-    if (1) {
+    if (x >= 0 && x < 10) {
         kr_test_pass("Range pattern 0..10 matches 5");
     }
     else if (1) {
         kr_test_fail("Should match range");
     }
     int64_t y = 10;
-    if (1) {
+    if (y >= 0 && y <= 10) {
         kr_test_pass("Inclusive range 0..=10 matches 10");
     }
     else if (1) {
         kr_test_fail("Should match inclusive range");
     }
     int64_t z = 15;
-    if (1) {
+    if (z >= 0 && z < 10) {
         kr_test_fail("Should not match range");
     }
     else if (1) {
         kr_test_pass("Wildcard matches 15");
     }
     int64_t val = 25;
-    if (1) {
+    if (val >= 0 && val < 10) {
         kr_test_fail("Should not match 0..10");
     }
-    else if (1) {
+    else if (val >= 10 && val < 20) {
         kr_test_fail("Should not match 10..20");
     }
-    else if (1) {
+    else if (val >= 20 && val < 30) {
         kr_test_pass("Matches 20..30");
     }
     else if (1) {

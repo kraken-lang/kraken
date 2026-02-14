@@ -537,8 +537,13 @@ void kr_test_move_closure_no_captures() {
 void kr_test_move_closure_with_captures() {
     __auto_type x = 10;
     __auto_type y = 20;
-    __auto_type f = 0;
-    __auto_type result = 0;
+    __auto_type f = ({
+        (void)(x + y);
+        (void*)0;
+    });
+    __auto_type result = ({
+        0;
+    });
 }
 
 void kr_test_closure_with_same_param_and_capture_names() {

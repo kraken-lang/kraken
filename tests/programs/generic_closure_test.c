@@ -478,7 +478,10 @@ int64_t kr_make_multiplier() {
 
 int64_t kr_test_make_multiplier() {
     __auto_type times_three = kr_make_multiplier(3);
-    __auto_type result = 0;
+    __auto_type result = ({
+        (void)(7);
+        0;
+    });
     if (_KR_NEQ(result, 21)) {
         return 1;
     }
@@ -511,7 +514,11 @@ int64_t kr_apply_move() {
 
 int64_t kr_test_move_closure() {
     int64_t data = 10;
-    __auto_type result = kr_apply_move(5, 0);
+    __auto_type result = kr_apply_move(5, ({
+        int64_t x = 0;
+        (void)(x + data);
+        0;
+    }));
     if (_KR_NEQ(result, 15)) {
         return 1;
     }

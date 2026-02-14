@@ -441,7 +441,10 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 int64_t kr_main();
 
 int64_t kr_main() {
-    uint8_t* handle = (uint8_t*)(intptr_t)(((void*)0));
+    uint8_t* handle = (uint8_t*)(intptr_t)(({
+        kr_printf("Task running\n");
+        (void*)0;
+    }));
     int64_t result = kr_timeout(handle, 1000);
     kr_printf("Timeout check complete\n");
     return result;

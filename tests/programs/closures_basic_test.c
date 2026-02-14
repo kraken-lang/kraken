@@ -472,7 +472,11 @@ int64_t kr_test_type_inference() {
 
 int64_t kr_test_move_closure() {
     __auto_type x = 10;
-    __auto_type capture_x = 0;
+    __auto_type capture_x = ({
+        int64_t y = 0;
+        (void)(x + y);
+        0;
+    });
     0;
 }
 

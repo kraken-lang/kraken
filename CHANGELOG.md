@@ -56,6 +56,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 226/226 bootstrap test programs compile successfully (100.0%); 0 C warnings, 0 errors on self-hosting emitted code
 
 ### Fixed
+- **LLVM Codegen: Struct Variable Copy Alloca Type Inference** (`compiler/src/codegen/llvm_backend.rs`)
+  - `let x = y;` where `y` is a struct variable now infers the correct LLVM struct type for the alloca instead of using `LLVMTypeOf(ptr)` which yielded a pointer type
+  - Added `Expression::Identifier` branch in `VariableDeclaration` codegen that checks `struct_variables`, retrieves the struct's LLVM type from `struct_types`, and propagates struct variable tracking
+  - Root cause of "Call parameter type does not match function signature!" LLVM verification errors when struct variables initialized from other struct variables were passed to functions
+- **Self-Hosted Parser: Bailout Detector False Positives** (`krakenc/src/parser.kr`)
+  - `block_has_try_like`: removed `lexeme == "?"` check that matched string literal `"?"` inside `read_operator`; now only checks `TK_QUESTION` token kind
+  - `block_has_unsafe_like`: added `TK_IDENTIFIER` token kind guard before matching `"unsafe"` lexeme; prevents false positive on string literal `"unsafe"` inside `keyword_to_token_kind`
+  - `block_has_closure_like`: excluded `TK_OP_OR` (`||`) from `{`-lookahead; prevents false positive on `if (a || b) {` patterns incorrectly detected as closure syntax
+  - Root cause of `EXC_BAD_ACCESS` crash in gen2 compiler — critical functions (tokenizer, translator) were incorrectly stubbed out, zeroing the `Translator.out` pointer
+- **Self-Hosted Parser: Bailout Return Type Errors** (`krakenc/src/parser.kr`)
+  - All three bailout blocks emitted `return 0;` for struct-returning functions, causing 16 C compile errors
+  - Translator returns now emit `return tr;` (preserves output buffer), Lexer returns emit `return lex;`, other structs emit `return (TypeName){0};`
+- **Self-Hosted Parser: Generic Stub Return Type** (`krakenc/src/parser.kr`)
+  - Generic function stub emitter hardcoded `int64_t` return type; now captures declared return type after `->` via `type_to_c()` and emits typed default returns
 - **Type Checker: Async Function Type Resolution** (`compiler/src/analyzer/type_checker.rs`)
   - Async function calls now return `Type::Bytes` (future pointer) at the call site while preserving the original declared return type
   - `await` expressions resolve to the async function's original declared return type (not `Type::Bytes`)

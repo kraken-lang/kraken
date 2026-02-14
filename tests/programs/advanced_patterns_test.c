@@ -451,41 +451,41 @@ int64_t kr_test_or_patterns() {
 int64_t kr_test_guard_clauses() {
     kr_test_section("Guard Clauses");
     int64_t x = 15;
-    if (1) {
+    if (x > 10) {
         kr_test_pass("Guard clause x > 10 matches 15");
     }
     else if (1) {
         kr_test_fail("Should match guard");
     }
     int64_t y = 5;
-    if (1) {
+    if (y > 10) {
         kr_test_fail("Guard should not match");
     }
     else if (1) {
         kr_test_pass("Wildcard matches when guard fails");
     }
     int64_t z = 25;
-    if (1) {
+    if (z < 10) {
         kr_test_fail("First guard should not match");
     }
-    else if (1) {
+    else if (z < 20) {
         kr_test_fail("Second guard should not match");
     }
-    else if (1) {
+    else if (z >= 20) {
         kr_test_pass("Third guard matches");
     }
     else if (1) {
         kr_test_fail("Should match third guard");
     }
     int64_t val = 12;
-    if (1) {
+    if (_KR_EQ(val % 2, 0)) {
         kr_test_pass("Guard with modulo matches even number");
     }
     else if (1) {
         kr_test_fail("Should match even guard");
     }
     int64_t target = 42;
-    if (1) {
+    if (_KR_EQ(target, 42)) {
         kr_test_pass("Guard with equality matches");
     }
     else if (1) {

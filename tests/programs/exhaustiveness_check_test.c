@@ -466,7 +466,7 @@ int64_t kr_test_exhaustive_with_identifier() {
     kr_test_section("Exhaustive: Identifier Pattern");
     int64_t x = 100;
     if (1) {
-        int64_t n = 0;
+        int64_t n = x;
         kr_test_pass("Identifier pattern is exhaustive");
     }
     0;
@@ -493,10 +493,10 @@ int64_t kr_test_exhaustive_multiple_literals() {
 int64_t kr_test_exhaustive_range_with_wildcard() {
     kr_test_section("Exhaustive: Range with Wildcard");
     int64_t x = 25;
-    if (1) {
+    if (x >= 0 && x < 10) {
         kr_test_pass("Range 0..10");
     }
-    else if (1) {
+    else if (x >= 10 && x < 20) {
         kr_test_pass("Range 10..20");
     }
     else if (1) {
@@ -512,7 +512,7 @@ int64_t kr_test_exhaustive_or_pattern_with_wildcard() {
 int64_t kr_test_exhaustive_guard_with_wildcard() {
     kr_test_section("Exhaustive: Guard with Wildcard Fallback");
     int64_t x = 15;
-    if (1) {
+    if (x > 10) {
         kr_test_pass("Guard matches");
     }
     else if (1) {

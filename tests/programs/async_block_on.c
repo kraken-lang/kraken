@@ -446,7 +446,10 @@ int64_t kr_compute() {
 }
 
 int64_t kr_main() {
-    uint8_t* future = (uint8_t*)(intptr_t)(((void*)0));
+    uint8_t* future = (uint8_t*)(intptr_t)(({
+        kr_compute();
+        (void*)0;
+    }));
     int64_t result = kr_block_on((void*)(intptr_t)(future));
     return result;
 }

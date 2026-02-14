@@ -517,8 +517,13 @@ void kr_test_closure_array() {
 
 void kr_test_move_prevents_later_use() {
     __auto_type x = 42;
-    __auto_type closure = 0;
-    __auto_type result = 0;
+    __auto_type closure = ({
+        (void)(x);
+        (void*)0;
+    });
+    __auto_type result = ({
+        0;
+    });
 }
 
 void kr_main() {

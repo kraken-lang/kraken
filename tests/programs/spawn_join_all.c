@@ -456,9 +456,18 @@ void kr_task3() {
 }
 
 int64_t kr_main() {
-    uint8_t* h1 = (uint8_t*)(intptr_t)(((void*)0));
-    uint8_t* h2 = (uint8_t*)(intptr_t)(((void*)0));
-    uint8_t* h3 = (uint8_t*)(intptr_t)(((void*)0));
+    uint8_t* h1 = (uint8_t*)(intptr_t)(({
+        kr_task1();
+        (void*)0;
+    }));
+    uint8_t* h2 = (uint8_t*)(intptr_t)(({
+        kr_task2();
+        (void*)0;
+    }));
+    uint8_t* h3 = (uint8_t*)(intptr_t)(({
+        kr_task3();
+        (void*)0;
+    }));
     kr_join(h1);
     kr_join(h2);
     kr_join(h3);

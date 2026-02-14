@@ -446,7 +446,10 @@ void kr_work() {
 }
 
 int64_t kr_main() {
-    uint8_t* handle = (uint8_t*)(intptr_t)(((void*)0));
+    uint8_t* handle = (uint8_t*)(intptr_t)(({
+        kr_work();
+        (void*)0;
+    }));
     kr_join(handle);
     kr_printf("After join\n");
     return 0;
