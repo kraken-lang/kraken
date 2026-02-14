@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -440,7 +445,29 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 /* Forward declarations */
 int64_t kr_main();
 
+static int64_t _kr_cl_24(int64_t x) {
+    return x + offset;
+}
+
+static int64_t _kr_cl_79(int64_t x) {
+    return base + x * scale;
+}
+
+static int64_t _kr_cl_129(int64_t x) {
+    return x * factor;
+}
+
 int64_t kr_main() {
+    int64_t offset = 10;
+    void* add_offset = (void*)(intptr_t)((void*)_kr_cl_24);
+    kr_puts(kr_str_concat("add_offset(5): ", kr_fmt_int((int64_t)(intptr_t)(0))));
+    int64_t base = 100;
+    int64_t scale = 3;
+    void* compute = (void*)(intptr_t)((void*)_kr_cl_79);
+    kr_puts(kr_str_concat("compute(7): ", kr_fmt_int((int64_t)(intptr_t)(0))));
+    int64_t factor = 4;
+    void* multiply = (void*)(intptr_t)((void*)_kr_cl_129);
+    kr_puts(kr_str_concat("multiply(8): ", kr_fmt_int((int64_t)(intptr_t)(0))));
     return 0;
 }
 

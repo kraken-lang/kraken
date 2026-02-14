@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -455,55 +460,149 @@ void kr_test_closure_with_captures();
 void kr_test_multiple_closures();
 void kr_main();
 
+static int64_t _kr_cl_274(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_308(int64_t x) {
+    return x + 1;
+}
+
+static int64_t _kr_cl_342(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_360(int64_t x) {
+    return x + 1;
+}
+
+static int64_t _kr_cl_421(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_459(int64_t x) {
+    return _KR_EQ(x % 2, 0);
+}
+
+static int64_t _kr_cl_499(int64_t acc, int64_t x) {
+    return acc + x;
+}
+
+static int64_t _kr_cl_522(int64_t x) {
+    return x * 3;
+}
+
+static int64_t _kr_cl_537(int64_t x) {
+    return x + 2;
+}
+
+static int64_t _kr_cl_563(int64_t x) {
+    return x * multiplier;
+}
+
+static int64_t _kr_cl_580(int64_t x, int64_t y) {
+    return x + y;
+}
+
+static int64_t _kr_cl_602(int64_t x, int64_t y) {
+    return x * y;
+}
+
+static int64_t _kr_cl_639(int64_t x) {
+    return x + 10;
+}
+
+static int64_t _kr_cl_654(int64_t x) {
+    return x * 10;
+}
+
 int64_t kr_apply(int64_t x, void* f) {
     return 0;
 }
 
 int64_t kr_apply_twice(int64_t x, void* f) {
     return 0;
+    0;
 }
 
 void* kr_compose(void* f, void* g) {
-    return 0;
+    return (void*)_kr_cl_85;
 }
 
 void* kr_map_array(int64_t* arr, void* f) {
-    return 0;
+    int64_t* result = (int64_t[]){};
+    for (int64_t i = arr; i < ); i++) {
+        result.push(0);
+    }
+    return result;
 }
 
 void* kr_filter_array(int64_t* arr, void* predicate) {
-    return 0;
+    int64_t* result = (int64_t[]){};
+    for (int64_t i = arr; i < ); i++) {
+        if (kr_predicate(i)) {
+            result.push(i);
+        }
+    }
+    return result;
 }
 
 int64_t kr_reduce_array(int64_t* arr, int64_t initial, void* reducer) {
-    return 0;
+    __auto_type acc = initial;
+    for (int64_t i = arr; i < ); i++) {
+        acc = kr_reducer(acc, i);
+    }
+    return acc;
 }
 
 void kr_test_apply() {
+    __auto_type double_val = (void*)_kr_cl_274;
+    __auto_type result = kr_apply(5, double_val);
 }
 
 void kr_test_apply_twice() {
+    __auto_type increment = (void*)_kr_cl_308;
+    __auto_type result = kr_apply_twice(5, increment);
 }
 
 void kr_test_compose() {
+    __auto_type double_val = (void*)_kr_cl_342;
+    __auto_type increment = (void*)_kr_cl_360;
+    __auto_type composed = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_map() {
+    __auto_type arr = (int64_t[]){1, 2, 3, 4, 5};
+    __auto_type doubled = kr_map_array(arr, (void*)_kr_cl_421);
 }
 
 void kr_test_filter() {
+    __auto_type arr = (int64_t[]){1, 2, 3, 4, 5, 6};
+    __auto_type evens = kr_filter_array(arr, (void*)_kr_cl_459);
 }
 
 void kr_test_reduce() {
+    __auto_type arr = (int64_t[]){1, 2, 3, 4, 5};
+    __auto_type sum = kr_reduce_array(arr, 0, (void*)_kr_cl_499);
 }
 
 void kr_test_inline_closures() {
+    __auto_type result1 = kr_apply(10, (void*)_kr_cl_522);
+    __auto_type result2 = kr_apply_twice(5, (void*)_kr_cl_537);
 }
 
 void kr_test_closure_with_captures() {
+    __auto_type multiplier = 3;
+    __auto_type result = kr_apply(5, (void*)_kr_cl_563);
 }
 
 void kr_test_multiple_closures() {
+    __auto_type add = (void*)_kr_cl_580;
+    __auto_type multiply = (void*)_kr_cl_602;
+    __auto_type arr = (int64_t[]){1, 2, 3};
+    __auto_type sums = kr_map_array(arr, (void*)_kr_cl_639);
+    __auto_type products = kr_map_array(arr, (void*)_kr_cl_654);
 }
 
 void kr_main() {

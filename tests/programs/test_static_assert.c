@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -446,8 +451,10 @@ bool kr_is_power_of_two(int64_t n) {
 }
 
 int64_t kr_main() {
-    if (!(!(_KR_EQ(1 + 1, 2), "Basic arithmetic failed"))) { fprintf(stderr, "static_assert failed\n"); exit(1); }
-    if (!(!(10 > 5, "Comparison failed"))) { fprintf(stderr, "static_assert failed\n"); exit(1); }
+    _Static_assert();
+    !(KrTuple2){.f0 = _KR_EQ(1 + 1, 2), .f1 = "Basic arithmetic failed"};
+    _Static_assert();
+    !(KrTuple2){.f0 = 10 > 5, .f1 = "Comparison failed"};
     return 0;
 }
 

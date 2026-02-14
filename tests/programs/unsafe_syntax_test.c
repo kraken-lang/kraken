@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -458,7 +463,13 @@ int64_t kr_main();
 #define kr_int ,b:*mutint,c:*constbool)->int{return0
 #define kr_* mutint)->int{return0
 int64_t kr_test_unsafe_block() {
-    return 0;
+    __auto_type x = 42;
+    0;
+    0;
+    __auto_type y = x + 1;
+    if (_KR_NEQ(y, 43)) {
+        return 1;
+    }
 }
 
 int64_t kr_unsafe_function(int64_t x) {
@@ -482,15 +493,36 @@ int64_t kr_test_raw_pointer_mut(void* ptr) {
 }
 
 int64_t kr_test_nested_unsafe() {
-    return 0;
+    0;
+    0;
+    __auto_type x = 10;
+    0;
+    0;
+    __auto_type y = x + 5;
+    if (_KR_NEQ(y, 15)) {
+        return 1;
+    }
 }
 
 int64_t kr_test_unsafe_with_control_flow() {
-    return 0;
+    __auto_type result = 0;
+    0;
+    0;
+    __auto_type x = 42;
+    if (x > 40) {
+        result = 1;
+    }
 }
 
 int64_t kr_test_unsafe_with_loop() {
-    return 0;
+    __auto_type sum = 0;
+    0;
+    0;
+    __auto_type i = 0;
+    while (i < 5) {
+        sum = sum + i;
+        i = i + 1;
+    }
 }
 
 int64_t kr_test_multiple_raw_pointers(void* a, void* b, void* c) {
@@ -518,6 +550,8 @@ int64_t kr_test_unsafe_function_chain() {
 }
 
 int64_t kr_test_unsafe_with_return() {
+    0;
+    0;
     return 0;
 }
 

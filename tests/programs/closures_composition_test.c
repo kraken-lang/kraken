@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -460,87 +465,323 @@ void kr_test_composition_with_filtering();
 void kr_test_composition_memoization_style();
 void kr_main();
 
+static int64_t _kr_cl_92(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_110(int64_t x) {
+    return x + 1;
+}
+
+static int64_t _kr_cl_152(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_170(int64_t x) {
+    return x + 1;
+}
+
+static int64_t _kr_cl_212(int64_t x) {
+    return x + 1;
+}
+
+static int64_t _kr_cl_230(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_248(int64_t x) {
+    return x - 3;
+}
+
+static int64_t _kr_cl_295(int64_t x) {
+    return x + 1;
+}
+
+static int64_t _kr_cl_313(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_331(int64_t x) {
+    return x - 3;
+}
+
+static int64_t _kr_cl_378(int64_t x) {
+    return x;
+}
+
+static int64_t _kr_cl_394(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_459(int64_t x) {
+    return x + offset;
+}
+
+static int64_t _kr_cl_477(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_607(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_649(int64_t x) {
+    if (x < 0) {
+        return -x;
+    }
+    else {
+        return x;
+    }
+}
+
+static int64_t _kr_cl_680(int64_t x) {
+    return x * 2;
+}
+
+static kr_str _kr_cl_795(int64_t x) {
+    return "value";
+}
+
+static int64_t _kr_cl_811(kr_str s) {
+    return 5;
+}
+
+static int64_t _kr_cl_827(int64_t x) {
+    __auto_type s = kr_to_string(x);
+    return kr_get_length(s);
+}
+
+static int64_t _kr_cl_868(int64_t x) {
+    return x + 1;
+}
+
+static int64_t _kr_cl_886(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_904(int64_t x) {
+    return x - 3;
+}
+
+static int64_t _kr_cl_980(int64_t x) {
+    counter = counter + 1;
+    return x;
+}
+
+static int64_t _kr_cl_1002(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_1081(int64_t x) {
+    return x + 1;
+}
+
+static void* _kr_cl_1121(int64_t n) {
+    return (0);
+}
+
+static void* _kr_cl_1147(int64_t a, int64_t b) {
+    return (0);
+}
+
+static int64_t _kr_cl_1223(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_1238(int64_t x) {
+    return x - 3;
+}
+
+static int64_t _kr_cl_1253(int64_t x) {
+    return x / 2;
+}
+
+static int64_t _kr_cl_1273(int64_t x) {
+    __auto_type result = x;
+    result = operations[0](result);
+    result = operations[1](result);
+    result = operations[2](result);
+    result = operations[3](result);
+    return result;
+}
+
+static bool _kr_cl_1348(int64_t x) {
+    return x > 0;
+}
+
+static int64_t _kr_cl_1366(int64_t x) {
+    if (kr_is_positive(x)) {
+        return x * 2;
+    }
+    else {
+        return x;
+    }
+}
+
+static int64_t _kr_cl_1399(int64_t x) {
+    return x + 1;
+}
+
+static int64_t _kr_cl_1462(int64_t x) {
+    if (!cached) {
+        cache = x * x;
+        cached = true;
+    }
+    return cache;
+}
+
+static int64_t _kr_cl_1495(int64_t x) {
+    return x + 10;
+}
+
 void* kr_compose(void* f, void* g) {
-    return 0;
+    return (void*)_kr_cl_30;
 }
 
 void* kr_pipe(void* f, void* g) {
-    return 0;
+    return (void*)_kr_cl_72;
 }
 
 void kr_test_basic_composition() {
+    __auto_type double_val = (void*)_kr_cl_92;
+    __auto_type increment = (void*)_kr_cl_110;
+    __auto_type composed = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_pipe_composition() {
+    __auto_type double_val = (void*)_kr_cl_152;
+    __auto_type increment = (void*)_kr_cl_170;
+    __auto_type piped = kr_pipe(double_val, increment);
+    __auto_type result = 0;
 }
 
 void kr_test_triple_composition() {
+    __auto_type f = (void*)_kr_cl_212;
+    __auto_type g = (void*)_kr_cl_230;
+    __auto_type h = (void*)_kr_cl_248;
+    __auto_type composed = 0;
+    0;
+    __auto_type result = 0;
 }
 
 void kr_test_composition_chain() {
+    __auto_type add1 = (void*)_kr_cl_295;
+    __auto_type mul2 = (void*)_kr_cl_313;
+    __auto_type sub3 = (void*)_kr_cl_331;
+    __auto_type chain = 0;
+    0;
+    __auto_type result = 0;
 }
 
 void kr_test_identity_composition() {
+    __auto_type identity = (void*)_kr_cl_378;
+    __auto_type double_val = (void*)_kr_cl_394;
+    __auto_type composed1 = 0;
+    __auto_type composed2 = 0;
+    __auto_type r1 = 0;
+    __auto_type r2 = 0;
 }
 
 void kr_test_composition_with_captures() {
+    __auto_type offset = 10;
+    __auto_type add_offset = (void*)_kr_cl_459;
+    __auto_type double_val = (void*)_kr_cl_477;
+    __auto_type composed = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_composition_factory() {
+    0;
+    kr_make_adder(n, 0);
+    0;
+    0(0);
+    0;
+    0;
+    0;
+    return (void*)_kr_cl_532;
+}
+
+void* kr_make_multiplier(int64_t n) {
+    return (void*)_kr_cl_556;
 }
 
 void kr_test_self_composition() {
+    __auto_type double_val = (void*)_kr_cl_607;
+    __auto_type quad = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_composition_with_conditionals() {
+    __auto_type abs = (void*)_kr_cl_649;
+    __auto_type double_val = (void*)_kr_cl_680;
+    __auto_type composed = 0;
+    __auto_type r1 = 0;
+    __auto_type r2 = 0;
 }
 
 void kr_test_partial_application_composition() {
+    0;
+    kr_curry_add(x, 0);
+    0;
+    0(0);
+    0;
+    0;
+    0;
+    return (void*)_kr_cl_744;
 }
 
 void kr_test_composition_with_multiple_types() {
+    __auto_type to_string = (void*)_kr_cl_795;
+    __auto_type get_length = (void*)_kr_cl_811;
+    __auto_type combined = (void*)_kr_cl_827;
+    __auto_type result = 0;
 }
 
 void kr_test_composition_associativity() {
+    __auto_type f = (void*)_kr_cl_868;
+    __auto_type g = (void*)_kr_cl_886;
+    __auto_type h = (void*)_kr_cl_904;
+    __auto_type left = 0;
+    0;
+    h;
+    0;
+    __auto_type right = 0;
+    0;
+    __auto_type r1 = 0;
+    __auto_type r2 = 0;
 }
 
 void kr_test_composition_with_state() {
+    int64_t mut;
+    counter = 0;
+    __auto_type increment_counter = (void*)_kr_cl_980;
+    __auto_type double_val = (void*)_kr_cl_1002;
+    __auto_type composed = 0;
+    __auto_type r1 = 0;
+    __auto_type r2 = 0;
 }
 
 void kr_test_higher_order_composition() {
+    0;
+    kr_compose_twice(f, 0(0), 0);
+    0;
+    0(0);
+    0;
+    0;
+    0;
+    return 0;
 }
 
 void kr_test_composition_with_closures_returning_closures() {
+    __auto_type make_adder = (void*)_kr_cl_1121;
+    __auto_type compose_adders = (void*)_kr_cl_1147;
+    __auto_type add15 = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_composition_pipeline() {
-}
-
-void kr_test_composition_with_filtering() {
-}
-
-void kr_test_composition_memoization_style() {
-}
-
-void kr_main() {
-    kr_test_basic_composition();
-    kr_test_pipe_composition();
-    kr_test_triple_composition();
-    kr_test_composition_chain();
-    kr_test_identity_composition();
-    kr_test_composition_with_captures();
-    kr_test_composition_factory();
-    kr_test_self_composition();
-    kr_test_composition_with_conditionals();
-    kr_test_partial_application_composition();
-    kr_test_composition_with_multiple_types();
-    kr_test_composition_associativity();
-    kr_test_composition_with_state();
-    kr_test_higher_order_composition();
-    kr_test_composition_with_closures_returning_closures();
-    kr_test_composition_pipeline();
-    kr_test_composition_with_filtering();
-    kr_test_composition_memoization_style();
+    __auto_type operations = (int64_t[]){(void*)_kr_cl_1208, (void*)_kr_cl_1223, (void*)_kr_cl_1238, (void*)_kr_cl_1253, 0, 0, 0 | x, 0 | 0, 0, result, x, result, operations[0](result), result, operations[1](result), result, operations[2](result), result, operations[3](result), 0, 0, 0, result, 0, 0, kr_test_composition_with_filtering(), 0, 0 | x, 0 | 0, 0, x > 0, 0, 0, 0 | x, 0 | 0, 0, (kr_is_positive(x)), 0, 0, 0, 0, 0, 0, 0, 0, 0 | x, 0 | 0, 0, x + 1, 0, 0, 0, (KrTuple2){.f0 = increment, .f1 = double_if_positive}, 0, 0, (5), 0, 0, (-5), 0, kr_test_composition_memoization_style(), 0, cache, 0, 0, cached, false, 0, 0 | x, 0 | 0, 0, (!cached), cache, x * x, cached, true, 0, cache, 0, 0, 0 | x, 0 | 0, 0, x + 10, 0, 0, 0, (KrTuple2){.f0 = add10, .f1 = expensive}, 0, 0, (5), 0, 0, (6), 0, kr_main(), kr_test_basic_composition(), kr_test_pipe_composition(), kr_test_triple_composition(), kr_test_composition_chain(), kr_test_identity_composition(), kr_test_composition_with_captures(), kr_test_composition_factory(), kr_test_self_composition(), kr_test_composition_with_conditionals(), kr_test_partial_application_composition(), kr_test_composition_with_multiple_types(), kr_test_composition_associativity(), kr_test_composition_with_state(), kr_test_higher_order_composition(), kr_test_composition_with_closures_returning_closures(), kr_test_composition_pipeline(), kr_test_composition_with_filtering(), kr_test_composition_memoization_style(), 0, };
 }
 
 

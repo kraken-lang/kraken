@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -438,50 +443,102 @@ void kr_kraken_union_set_tag(int64_t u,int64_t t){ void* p=(void*)(intptr_t)u; i
 int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(intptr_t)u; return p && *(int64_t*)p==t; }
 
 /* Forward declarations */
-int64_t kr_apply();
+int64_t kr_apply(int64_t value, void* transform);
 int64_t kr_test_apply_int_to_int();
 int64_t kr_test_apply_int_to_bool();
 int64_t kr_test_apply_inference();
-int64_t kr_make_multiplier();
+void* kr_make_multiplier(int64_t factor);
 int64_t kr_test_make_multiplier();
 int64_t kr_test_closure_capture_generic();
-int64_t kr_combine();
+int64_t kr_combine(int64_t a, int64_t b, void* combiner);
 int64_t kr_test_combine();
 int64_t kr_test_combine_different_types();
 int64_t kr_test_nested_closures();
-int64_t kr_apply_move();
+int64_t kr_apply_move(int64_t value, void* transform);
 int64_t kr_test_move_closure();
 int64_t kr_test_chained_generic();
-int64_t kr_process();
+int64_t kr_process(int64_t value, void* processor);
 int64_t kr_test_complex_closure();
 int64_t kr_main();
 
-int64_t kr_apply() {
+static int64_t _kr_cl_50(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_90(int64_t x) {
+    return x > 3;
+}
+
+static int64_t _kr_cl_124(int64_t x) {
+    return x + 5;
+}
+
+static int64_t _kr_cl_237(int64_t x) {
+    return x * multiplier;
+}
+
+static int64_t _kr_cl_322(int64_t x, int64_t y) {
+    return x + y;
+}
+
+static int64_t _kr_cl_368(int64_t x, int64_t y) {
+    return x > y;
+}
+
+static int64_t _kr_cl_414(int64_t x) {
+    return (void*)_kr_cl_419;
+}
+
+static int64_t _kr_cl_555(int64_t x) {
+    return x * 3;
+}
+
+static int64_t _kr_cl_563(int64_t y) {
+    return y + 1;
+}
+
+static int64_t _kr_cl_630(int64_t x) {
+    __auto_type temp = x * 2;
+    __auto_type temp2 = temp + 5;
+    return temp2;
+}
+
+int64_t kr_apply(int64_t value, void* transform) {
     return 0;
 }
 
 int64_t kr_test_apply_int_to_int() {
+    __auto_type result = kr_apply(5, (void*)_kr_cl_50);
+    if (_KR_NEQ(result, 10)) {
+        return 1;
+    }
     return 0;
 }
 
 int64_t kr_test_apply_int_to_bool() {
+    __auto_type result = kr_apply(5, (void*)_kr_cl_90);
+    if (!(result){.return = 0}) {
+        0;
+    }
+    0;
+    kr_test_apply_inference();
+    0;
+    0;
+    0;
+    __auto_type result = kr_apply(10, (void*)_kr_cl_124);
+    if (_KR_NEQ(result, 15)) {
+        return 1;
+    }
     return 0;
 }
 
-int64_t kr_test_apply_inference() {
-    return 0;
-}
-
-int64_t kr_make_multiplier() {
-    return 0;
+void* kr_make_multiplier(int64_t factor) {
+    return (void*)_kr_cl_164;
 }
 
 int64_t kr_test_make_multiplier() {
     __auto_type times_three = kr_make_multiplier(3);
-    __auto_type result = ({
-        (void)(7);
-        0;
-    });
+    __auto_type result = 0;
     if (_KR_NEQ(result, 21)) {
         return 1;
     }
@@ -489,36 +546,51 @@ int64_t kr_test_make_multiplier() {
 }
 
 int64_t kr_test_closure_capture_generic() {
+    int64_t multiplier = 4;
+    __auto_type result = kr_apply(5, (void*)_kr_cl_237);
+    if (_KR_NEQ(result, 20)) {
+        return 1;
+    }
     return 0;
 }
 
-int64_t kr_combine() {
-    return 0;
+int64_t kr_combine(int64_t a, int64_t b, void* combiner) {
+    return kr_combiner(a, b);
 }
 
 int64_t kr_test_combine() {
+    __auto_type result = kr_combine(3, 4, (void*)_kr_cl_322);
+    if (_KR_NEQ(result, 7)) {
+        return 1;
+    }
     return 0;
 }
 
 int64_t kr_test_combine_different_types() {
+    __auto_type result = kr_combine(5, 3, (void*)_kr_cl_368);
+    if (!(result){.return = 0}) {
+        0;
+    }
+    0;
+    kr_test_nested_closures();
+    0;
+    0;
+    0;
+    __auto_type outer = kr_apply(2, (void*)_kr_cl_414);
+    __auto_type result = kr_outer(3);
+    if (_KR_NEQ(result, 5)) {
+        return 1;
+    }
     return 0;
 }
 
-int64_t kr_test_nested_closures() {
-    return 0;
-}
-
-int64_t kr_apply_move() {
+int64_t kr_apply_move(int64_t value, void* transform) {
     return 0;
 }
 
 int64_t kr_test_move_closure() {
     int64_t data = 10;
-    __auto_type result = kr_apply_move(5, ({
-        int64_t x = 0;
-        (void)(x + data);
-        0;
-    }));
+    __auto_type result = kr_apply_move(5, (void*)_kr_cl_508);
     if (_KR_NEQ(result, 15)) {
         return 1;
     }
@@ -526,14 +598,22 @@ int64_t kr_test_move_closure() {
 }
 
 int64_t kr_test_chained_generic() {
+    __auto_type result = kr_apply(kr_apply(2, (void*)_kr_cl_555), (void*)_kr_cl_563);
+    if (_KR_NEQ(result, 7)) {
+        return 1;
+    }
     return 0;
 }
 
-int64_t kr_process() {
-    return 0;
+int64_t kr_process(int64_t value, void* processor) {
+    return kr_processor(value);
 }
 
 int64_t kr_test_complex_closure() {
+    __auto_type result = kr_process(10, (void*)_kr_cl_630);
+    if (_KR_NEQ(result, 25)) {
+        return 1;
+    }
     return 0;
 }
 

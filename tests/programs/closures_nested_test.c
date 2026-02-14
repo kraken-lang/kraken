@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -455,49 +460,242 @@ void kr_test_deeply_nested_captures();
 void kr_test_nested_with_parameters_and_captures();
 void kr_main();
 
+static void* _kr_cl_8(int64_t x) {
+    return (0);
+}
+
+static void* _kr_cl_56(int64_t x) {
+    return (0);
+}
+
+static void* _kr_cl_131(int64_t b) {
+    return (0);
+}
+
+static int64_t _kr_cl_147(int64_t c) {
+    return a + b + c;
+}
+
+static void* _kr_cl_194(int64_t factor) {
+    return (0);
+}
+
+static int64_t _kr_cl_215(int64_t y) {
+    return y * 2;
+}
+
+static void* _kr_cl_267() {
+    return (0);
+}
+
+static void* _kr_cl_348(int64_t x) {
+    return 0(0);
+}
+
+static int64_t _kr_cl_373(int64_t y) {
+    return x + y;
+}
+
+static int64_t _kr_cl_391(int64_t y) {
+    return x * y;
+}
+
+static int64_t _kr_cl_484(int64_t x) {
+    return x * i;
+}
+
+static void* _kr_cl_549(bool flag) {
+    return (0);
+}
+
+static void* _kr_cl_630() {
+    return (0);
+}
+
+static int64_t _kr_cl_642(int64_t n) {
+    if (n <= 1) {
+        return 1;
+    }
+    else {
+        return n;
+    }
+}
+
+static void* _kr_cl_698(int64_t a) {
+    return (0);
+}
+
+static void* _kr_cl_767(int64_t x) {
+    return (0);
+}
+
+static void* _kr_cl_824(void* f, void* g) {
+    return (0);
+}
+
+static int64_t _kr_cl_868(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_886(int64_t x) {
+    return x + 1;
+}
+
+static void* _kr_cl_928(int64_t x) {
+    return (0);
+}
+
+static int64_t _kr_cl_1013() {
+    __auto_type b = 2;
+    __auto_type f2 = (void*)_kr_cl_1023;
+    return 0;
+}
+
+static int64_t _kr_cl_1023() {
+    __auto_type c = 3;
+    __auto_type f3 = (void*)_kr_cl_1033;
+    return 0;
+}
+
+static int64_t _kr_cl_1033() {
+    __auto_type d = 4;
+    __auto_type f4 = (void*)_kr_cl_1043;
+    return 0;
+}
+
+static int64_t _kr_cl_1043() {
+    return a + b + c + d;
+}
+
+static void* _kr_cl_1098(int64_t x) {
+    return (0);
+}
+
 void kr_test_simple_nested() {
+    __auto_type outer = (void*)_kr_cl_8;
+    __auto_type add5 = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_double_nested() {
+    __auto_type outer = (void*)_kr_cl_56;
+    __auto_type f1 = 0;
+    __auto_type f2 = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_nested_with_captures() {
+    __auto_type a = 10;
+    __auto_type outer = (void*)_kr_cl_131;
+    __auto_type f = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_nested_closure_chain() {
+    __auto_type make_multiplier = (void*)_kr_cl_194;
+    __auto_type triple = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_nested_with_state() {
+    __auto_type make_counter = (void*)_kr_cl_267;
+    __auto_type counter1 = 0;
+    __auto_type counter2 = 0;
+    __auto_type r1 = 0;
+    __auto_type r2 = 0;
+    __auto_type r3 = 0;
+    __auto_type r4 = 0;
 }
 
 void kr_test_nested_returning_multiple() {
+    __auto_type make_ops = (void*)_kr_cl_348;
+    0;
+    0(0);
+    0;
+    0;
+    0;
+    0;
+    __auto_type add = (void*)_kr_cl_373;
+    __auto_type mul = (void*)_kr_cl_391;
+    return (KrTuple2){.f0 = add, .f1 = mul};
 }
 
 void kr_test_nested_in_loop() {
+    int64_t* closures = (int64_t[]){};
+    for (int64_t i = [; i < 1; i++) {
+        2;
+        0;
+        3;
+        0;
+        4;
+        0;
+        5;
+        0;
+        0;
+        0;
+        __auto_type closure = (void*)_kr_cl_484;
+        closures.push(closure);
+    }
+    __auto_type r1 = closures[0](10);
+    __auto_type r2 = closures[2](10);
+    __auto_type r3 = closures[4](10);
 }
 
 void kr_test_nested_conditional() {
+    __auto_type make_conditional = (void*)_kr_cl_549;
+    __auto_type double_val = 0;
+    __auto_type add2 = 0;
+    __auto_type r1 = 0;
+    __auto_type r2 = 0;
 }
 
 void kr_test_nested_recursive_style() {
+    __auto_type make_factorial = (void*)_kr_cl_630;
+    __auto_type fact = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_triple_nested() {
+    __auto_type level1 = (void*)_kr_cl_698;
+    __auto_type result = 0(2)(3);
 }
 
 void kr_test_nested_with_mixed_captures() {
+    __auto_type global = 100;
+    __auto_type outer = (void*)_kr_cl_767;
+    __auto_type f = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_nested_closure_composition() {
+    __auto_type compose = (void*)_kr_cl_824;
+    __auto_type double_val = (void*)_kr_cl_868;
+    __auto_type increment = (void*)_kr_cl_886;
+    __auto_type composed = 0;
+    __auto_type result = 0;
 }
 
 void kr_test_nested_partial_application() {
+    __auto_type add = (void*)_kr_cl_928;
+    __auto_type add1 = 0;
+    __auto_type add2 = 0;
+    __auto_type add10 = 0;
+    __auto_type r1 = 0;
+    __auto_type r2 = 0;
+    __auto_type r3 = 0;
 }
 
 void kr_test_deeply_nested_captures() {
+    __auto_type a = 1;
+    __auto_type f1 = (void*)_kr_cl_1013;
+    __auto_type result = 0;
 }
 
 void kr_test_nested_with_parameters_and_captures() {
+    __auto_type multiplier = 3;
+    __auto_type outer = (void*)_kr_cl_1098;
+    __auto_type f = 0;
+    __auto_type result = 0;
 }
 
 void kr_main() {

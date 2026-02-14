@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -464,16 +469,16 @@ int64_t kr_Rect_area(Rect self) {
 }
 
 int64_t kr_print_area(void* s) {
-    return 0;
+    return s.area();
 }
 
 int64_t kr_main() {
     __auto_type c = (Circle){.radius = 10};
     __auto_type r = (Rect){.width = 20, .height = 10};
-    void* dc = 0;
-    void* dr = 0;
-    kr_puts(kr_str_concat("circle area: ", kr_fmt_int((int64_t)(intptr_t)(0))));
-    kr_puts(kr_str_concat("rect area: ", kr_fmt_int((int64_t)(intptr_t)(0))));
+    void* dc = c;
+    void* dr = r;
+    kr_puts(kr_str_concat("circle area: ", kr_fmt_int((int64_t)(intptr_t)(kr_Circle_area(dc)))));
+    kr_puts(kr_str_concat("rect area: ", kr_fmt_int((int64_t)(intptr_t)(kr_Rect_area(dr)))));
     kr_puts(kr_str_concat("print circle: ", kr_fmt_int((int64_t)(intptr_t)(kr_print_area(dc)))));
     kr_puts(kr_str_concat("print rect: ", kr_fmt_int((int64_t)(intptr_t)(kr_print_area(dr)))));
     return 0;

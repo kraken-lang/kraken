@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -441,10 +446,7 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 int64_t kr_main();
 
 int64_t kr_main() {
-    uint8_t* handle = (uint8_t*)(intptr_t)(({
-        kr_printf("Task running\n");
-        (void*)0;
-    }));
+    uint8_t* handle = (uint8_t*)(intptr_t)(((void*)0));
     int64_t result = kr_timeout(handle, 1000);
     kr_printf("Timeout check complete\n");
     return result;

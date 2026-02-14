@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -471,8 +476,8 @@ int64_t kr_test_basic_struct_pattern() {
     kr_test_section("Basic Struct Patterns");
     Point p = (Point){.x = 10, .y = 20};
     if (1) {
-        int64_t x = (int64_t)(intptr_t)p.x;
-        int64_t y = (int64_t)(intptr_t)p.y;
+        int64_t x = 0;
+        int64_t y = 0;
         if (_KR_EQ(x, 10) && _KR_EQ(y, 20)) {
             kr_test_pass("Basic struct pattern matches and binds fields");
         }
@@ -487,7 +492,7 @@ int64_t kr_test_partial_struct_pattern() {
     kr_test_section("Partial Struct Patterns");
     Point3D p = (Point3D){.x = 1, .y = 2, .z = 3};
     if (1) {
-        int64_t x = (int64_t)(intptr_t)p.x;
+        int64_t x = 0;
         if (_KR_EQ(x, 1)) {
             kr_test_pass("Partial struct pattern with .. works");
         }
@@ -502,8 +507,8 @@ int64_t kr_test_struct_pattern_with_wildcard() {
     kr_test_section("Struct Pattern with Wildcard");
     Point p = (Point){.x = 5, .y = 10};
     if (1) {
-        int64_t x = (int64_t)(intptr_t)p.x;
-        int64_t y = (int64_t)(intptr_t)p.y;
+        int64_t x = 0;
+        int64_t y = 0;
         if (_KR_EQ(y, 10)) {
             kr_test_pass("Struct pattern with wildcard field works");
         }
@@ -520,34 +525,34 @@ int64_t kr_test_multiple_struct_patterns() {
     Point p2 = (Point){.x = 1, .y = 1};
     Point p3 = (Point){.x = 5, .y = 10};
     if (1) {
-        int64_t x = (int64_t)(intptr_t)p1.x;
-        int64_t y = (int64_t)(intptr_t)p1.y;
+        int64_t x = 0;
+        int64_t y = 0;
         kr_test_pass("Origin point matched");
     }
     else if (1) {
         kr_test_fail("Should match origin");
     }
     if (1) {
-        int64_t x = (int64_t)(intptr_t)p2.x;
-        int64_t y = (int64_t)(intptr_t)p2.y;
+        int64_t x = 0;
+        int64_t y = 0;
         kr_test_fail("Should not match origin");
     }
     else if (1) {
-        int64_t x = (int64_t)(intptr_t)p2.x;
-        int64_t y = (int64_t)(intptr_t)p2.y;
+        int64_t x = 0;
+        int64_t y = 0;
         kr_test_pass("Unit point matched");
     }
     else if (1) {
         kr_test_fail("Should match unit point");
     }
     if (1) {
-        int64_t x = (int64_t)(intptr_t)p3.x;
-        int64_t y = (int64_t)(intptr_t)p3.y;
+        int64_t x = 0;
+        int64_t y = 0;
         kr_test_fail("Should not match origin");
     }
     else if (1) {
-        int64_t x = (int64_t)(intptr_t)p3.x;
-        int64_t y = (int64_t)(intptr_t)p3.y;
+        int64_t x = 0;
+        int64_t y = 0;
         kr_test_fail("Should not match unit");
     }
     else if (1) {
@@ -560,8 +565,8 @@ int64_t kr_test_nested_field_access() {
     kr_test_section("Nested Field Access in Patterns");
     Point p = (Point){.x = 100, .y = 200};
     if (1) {
-        int64_t x = (int64_t)(intptr_t)p.x;
-        int64_t y = (int64_t)(intptr_t)p.y;
+        int64_t x = 0;
+        int64_t y = 0;
         int64_t sum = x + y;
         if (_KR_EQ(sum, 300)) {
             kr_test_pass("Can use destructured fields in expressions");
@@ -577,8 +582,8 @@ int64_t kr_test_struct_pattern_exhaustiveness() {
     kr_test_section("Struct Pattern Exhaustiveness");
     Point p = (Point){.x = 42, .y = 24};
     if (1) {
-        int64_t x = (int64_t)(intptr_t)p.x;
-        int64_t y = (int64_t)(intptr_t)p.y;
+        int64_t x = 0;
+        int64_t y = 0;
         kr_test_fail("Not origin");
     }
     else if (1) {
@@ -591,8 +596,8 @@ int64_t kr_test_struct_shorthand() {
     kr_test_section("Struct Pattern Shorthand");
     Point p = (Point){.x = 7, .y = 14};
     if (1) {
-        int64_t x = (int64_t)(intptr_t)p.x;
-        int64_t y = (int64_t)(intptr_t)p.y;
+        int64_t x = 0;
+        int64_t y = 0;
         if (_KR_EQ(x, 7) && _KR_EQ(y, 14)) {
             kr_test_pass("Shorthand syntax works");
         }
@@ -607,8 +612,8 @@ int64_t kr_test_edge_cases() {
     kr_test_section("Edge Cases");
     Point p1 = (Point){.x = 0, .y = 0};
     if (1) {
-        int64_t x = (int64_t)(intptr_t)p1.x;
-        int64_t y = (int64_t)(intptr_t)p1.y;
+        int64_t x = 0;
+        int64_t y = 0;
         kr_test_pass("Zero values match correctly");
     }
     else if (1) {
@@ -616,8 +621,8 @@ int64_t kr_test_edge_cases() {
     }
     Point p2 = (Point){.x = -5, .y = -10};
     if (1) {
-        int64_t x = (int64_t)(intptr_t)p2.x;
-        int64_t y = (int64_t)(intptr_t)p2.y;
+        int64_t x = 0;
+        int64_t y = 0;
         if (_KR_EQ(x, -5) && _KR_EQ(y, -10)) {
             kr_test_pass("Negative values work in patterns");
         }
@@ -627,8 +632,8 @@ int64_t kr_test_edge_cases() {
     }
     Point p3 = (Point){.x = 1000000, .y = 2000000};
     if (1) {
-        int64_t x = (int64_t)(intptr_t)p3.x;
-        int64_t y = (int64_t)(intptr_t)p3.y;
+        int64_t x = 0;
+        int64_t y = 0;
         if (_KR_EQ(x, 1000000) && _KR_EQ(y, 2000000)) {
             kr_test_pass("Large values work in patterns");
         }

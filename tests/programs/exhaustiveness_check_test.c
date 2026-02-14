@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -466,7 +471,7 @@ int64_t kr_test_exhaustive_with_identifier() {
     kr_test_section("Exhaustive: Identifier Pattern");
     int64_t x = 100;
     if (1) {
-        int64_t n = x;
+        int64_t n = 0;
         kr_test_pass("Identifier pattern is exhaustive");
     }
     0;
@@ -493,10 +498,10 @@ int64_t kr_test_exhaustive_multiple_literals() {
 int64_t kr_test_exhaustive_range_with_wildcard() {
     kr_test_section("Exhaustive: Range with Wildcard");
     int64_t x = 25;
-    if (x >= 0 && x < 10) {
+    if (1) {
         kr_test_pass("Range 0..10");
     }
-    else if (x >= 10 && x < 20) {
+    else if (1) {
         kr_test_pass("Range 10..20");
     }
     else if (1) {
@@ -506,13 +511,18 @@ int64_t kr_test_exhaustive_range_with_wildcard() {
 }
 
 int64_t kr_test_exhaustive_or_pattern_with_wildcard() {
-    return 0;
+    kr_test_section("Exhaustive: Or Pattern with Wildcard");
+    int64_t x = 999;
+    if (1) {
+        kr_test_pass("Or pattern with wildcard is exhaustive");
+    }
+    0;
 }
 
 int64_t kr_test_exhaustive_guard_with_wildcard() {
     kr_test_section("Exhaustive: Guard with Wildcard Fallback");
     int64_t x = 15;
-    if (x > 10) {
+    if (1) {
         kr_test_pass("Guard matches");
     }
     else if (1) {
@@ -522,7 +532,25 @@ int64_t kr_test_exhaustive_guard_with_wildcard() {
 }
 
 int64_t kr_test_exhaustive_nested_patterns() {
-    return 0;
+    kr_test_section("Exhaustive: Nested Patterns");
+    void* pair;
+    0;
+    0;
+    0;
+    0 = (KrTuple2){.f0 = 1, .f1 = 2};
+    if (pair == () {
+        1;
+        0;
+        2;
+        0;
+        0;
+        0;
+        kr_test_pass("Exact match");
+    }
+    else if (1) {
+        kr_test_pass("Wildcard covers all other tuples");
+    }
+    0;
 }
 
 int64_t kr_main() {

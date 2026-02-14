@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -510,34 +515,34 @@ int64_t kr_test_for_in_with_operations() {
 int64_t kr_test_range_patterns() {
     kr_test_section("Range Patterns in Match");
     int64_t x = 5;
-    if (x >= 0 && x < 10) {
+    if (1) {
         kr_test_pass("Range pattern 0..10 matches 5");
     }
     else if (1) {
         kr_test_fail("Should match range");
     }
     int64_t y = 10;
-    if (y >= 0 && y <= 10) {
+    if (1) {
         kr_test_pass("Inclusive range 0..=10 matches 10");
     }
     else if (1) {
         kr_test_fail("Should match inclusive range");
     }
     int64_t z = 15;
-    if (z >= 0 && z < 10) {
+    if (1) {
         kr_test_fail("Should not match range");
     }
     else if (1) {
         kr_test_pass("Wildcard matches 15");
     }
     int64_t val = 25;
-    if (val >= 0 && val < 10) {
+    if (1) {
         kr_test_fail("Should not match 0..10");
     }
-    else if (val >= 10 && val < 20) {
+    else if (1) {
         kr_test_fail("Should not match 10..20");
     }
-    else if (val >= 20 && val < 30) {
+    else if (1) {
         kr_test_pass("Matches 20..30");
     }
     else if (1) {

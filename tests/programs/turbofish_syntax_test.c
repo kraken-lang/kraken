@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -438,26 +443,53 @@ void kr_kraken_union_set_tag(int64_t u,int64_t t){ void* p=(void*)(intptr_t)u; i
 int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(intptr_t)u; return p && *(int64_t*)p==t; }
 
 /* Forward declarations */
-int64_t kr_identity();
-int64_t kr_pair();
+int64_t kr_identity(int64_t x);
+void* kr_pair(int64_t first, int64_t second);
 int64_t kr_test_turbofish_function_call();
 int64_t kr_test_turbofish_multiple_params();
 int64_t kr_test_regular_syntax_still_works();
 int64_t kr_main();
 
-int64_t kr_identity() {
-    return 0;
+int64_t kr_identity(int64_t x) {
+    return x;
 }
 
-int64_t kr_pair() {
-    return 0;
+void* kr_pair(int64_t first, int64_t second) {
+    0;
+    0;
+    0;
+    0;
+    return (KrTuple2){.f0 = first, .f1 = second};
 }
 
 int64_t kr_test_turbofish_function_call() {
+    __auto_type x = identity_<;
+    0 > (42);
+    if (_KR_NEQ(x, 42)) {
+        return 1;
+    }
+    __auto_type y = identity_<;
+    0 > (true);
+    if (!y) {
+        return 2;
+    }
     return 0;
 }
 
 int64_t kr_test_turbofish_multiple_params() {
+    __auto_type p = pair_<;
+    0;
+    0;
+    0 > (KrTuple2){.f0 = 42, .f1 = true};
+    KrTuple2 _kr_tup = p;
+    __auto_type x = _kr_tup.f0;
+    __auto_type y = _kr_tup.f1;
+    if (_KR_NEQ(x, 42)) {
+        return 1;
+    }
+    if (!y) {
+        return 2;
+    }
     return 0;
 }
 

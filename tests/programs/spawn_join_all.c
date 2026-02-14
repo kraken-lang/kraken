@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -456,18 +461,9 @@ void kr_task3() {
 }
 
 int64_t kr_main() {
-    uint8_t* h1 = (uint8_t*)(intptr_t)(({
-        kr_task1();
-        (void*)0;
-    }));
-    uint8_t* h2 = (uint8_t*)(intptr_t)(({
-        kr_task2();
-        (void*)0;
-    }));
-    uint8_t* h3 = (uint8_t*)(intptr_t)(({
-        kr_task3();
-        (void*)0;
-    }));
+    uint8_t* h1 = (uint8_t*)(intptr_t)(((void*)0));
+    uint8_t* h2 = (uint8_t*)(intptr_t)(((void*)0));
+    uint8_t* h3 = (uint8_t*)(intptr_t)(((void*)0));
     kr_join(h1);
     kr_join(h2);
     kr_join(h3);

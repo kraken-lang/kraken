@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -506,6 +511,14 @@ int64_t value;
 };
 
 typedef Container Box;
+static int64_t _kr_cl_125(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_137(int64_t a, int64_t b) {
+    return a + b;
+}
+
 typedef int64_t MyInt;
 typedef double MyFloat;
 typedef kr_str MyString;
@@ -525,6 +538,10 @@ void kr_test_struct_alias() {
 typedef void* IntFunction;
 typedef void* BinaryOp;
 void kr_test_function_type_alias() {
+    IntFunction double_val = (void*)_kr_cl_125;
+    BinaryOp add = (void*)_kr_cl_137;
+    __auto_type result1 = kr_double(21);
+    __auto_type result2 = kr_add(10, 32);
 }
 
 typedef int64_t PublicInt;
@@ -544,8 +561,8 @@ void kr_test_nested_aliases() {
 typedef void* IntPair;
 typedef void* IntTriple;
 void kr_test_tuple_alias() {
-    IntPair pair = (IntPair)(intptr_t)((10, 20));
-    IntTriple triple = (IntTriple)(intptr_t)((1, 2, 3));
+    IntPair pair = (KrTuple2){.f0 = 10, .f1 = 20};
+    IntTriple triple = (KrTuple3){.f0 = 1, .f1 = 2, .f2 = 3};
 }
 
 MyInt kr_process(MyInt x) {

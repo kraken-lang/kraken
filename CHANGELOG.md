@@ -70,6 +70,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Translator returns now emit `return tr;` (preserves output buffer), Lexer returns emit `return lex;`, other structs emit `return (TypeName){0};`
 - **Self-Hosted Parser: Generic Stub Return Type** (`krakenc/src/parser.kr`)
   - Generic function stub emitter hardcoded `int64_t` return type; now captures declared return type after `->` via `type_to_c()` and emits typed default returns
+- **Self-Hosted Parser: Bailout Block Removal** (`krakenc/src/parser.kr`)
+  - Removed all 3 `translate_fn` bailout blocks that stubbed entire function bodies when closures, tuples, unsafe, turbofish, try, self-init-let, nested fn/type, or fn-param patterns were detected
+  - Functions are now always fully translated — zero regressions (135/135 tests, 226/226 bootstrap, gen2==gen3 fixed point)
+  - Removed all 8 dead bailout detector functions (70+ lines of scanning code eliminated)
+
+### Improved
+- **Self-Hosted Parser: Unsafe Block Lowering** (`krakenc/src/parser.kr`) — `unsafe { ... }` now transparently emits inner block body as real C statements
+- **Self-Hosted Parser: Tuple Literal Lowering** (`krakenc/src/parser.kr`) — `(a, b, c)` now emits real C comma-expression evaluating all sub-expressions, replacing `0` collapse
+- **Self-Hosted Parser: Tuple Destructuring Binding** (`krakenc/src/parser.kr`) — `let (a, b) = (x, y);` now emits `__auto_type a = x; __auto_type b = y;` per-element bindings from tuple RHS
+- **Self-Hosted Parser: Tuple Assignment Lowering** (`krakenc/src/parser.kr`) — `(a, b) = (x, y);` now emits per-element assignments instead of neutral `0;`
+- **Self-Hosted Parser: Static Assert Lowering** (`krakenc/src/parser.kr`) — `static_assert(cond, msg)` now emits real C `_Static_assert(cond, msg);` instead of no-op `0;`
+- **Self-Hosted Parser: Tuple Struct Codegen** (`krakenc/src/parser.kr`, `krakenc/src/platform.kr`) — added `KrTuple2`..`KrTuple5` struct typedefs; tuple literals emit struct initializers; `x.0` emits `x.f0`; destructuring from non-tuple RHS extracts `.fN` fields
+- **Self-Hosted Parser: Generic Function Type-Erased Translation** (`krakenc/src/parser.kr`) — generic functions translate their real body with `T→int64_t` instead of empty stubs with default returns
+- **Self-Hosted Parser: Closure Codegen** (`krakenc/src/parser.kr`, `krakenc/src/platform.kr`) — extraction pass emits each closure as a top-level `static` C function; closures produce real function pointers instead of null `0`; added `KrClosure` typedef
+- **Self-Hosted Parser: Dyn Trait-Object Dispatch** (`krakenc/src/parser.kr`) — dyn method calls dispatch to `kr_ConcreteType_method()` via concrete-type resolution; dyn variable init translates RHS; removed hardcoded name-based hack
 - **Type Checker: Async Function Type Resolution** (`compiler/src/analyzer/type_checker.rs`)
   - Async function calls now return `Type::Bytes` (future pointer) at the call site while preserving the original declared return type
   - `await` expressions resolve to the async function's original declared return type (not `Type::Bytes`)

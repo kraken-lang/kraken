@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -438,7 +443,7 @@ void kr_kraken_union_set_tag(int64_t u,int64_t t){ void* p=(void*)(intptr_t)u; i
 int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(intptr_t)u; return p && *(int64_t*)p==t; }
 
 /* Forward declarations */
-int64_t kr_id();
+int64_t kr_id(int64_t x);
 int64_t kr_test_explicit_types();
 int64_t kr_test_type_inference();
 int64_t kr_apply_int(int64_t x, void* f);
@@ -446,8 +451,16 @@ int64_t kr_test_higher_order();
 int64_t kr_test_closure_capture();
 int64_t kr_main();
 
-int64_t kr_id() {
-    return 0;
+static int64_t _kr_cl_118(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_158(int64_t x) {
+    return x * multiplier;
+}
+
+int64_t kr_id(int64_t x) {
+    return x;
 }
 
 int64_t kr_test_explicit_types() {
@@ -471,10 +484,19 @@ int64_t kr_apply_int(int64_t x, void* f) {
 }
 
 int64_t kr_test_higher_order() {
+    __auto_type result = kr_apply_int(5, (void*)_kr_cl_118);
+    if (_KR_NEQ(result, 10)) {
+        return 1;
+    }
     return 0;
 }
 
 int64_t kr_test_closure_capture() {
+    __auto_type multiplier = 3;
+    __auto_type result = kr_apply_int(5, (void*)_kr_cl_158);
+    if (_KR_NEQ(result, 15)) {
+        return 1;
+    }
     return 0;
 }
 

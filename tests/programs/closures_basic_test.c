@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -450,50 +455,99 @@ int64_t kr_test_no_params();
 int64_t kr_test_void_return();
 int64_t kr_main();
 
+static int64_t _kr_cl_10(int64_t x) {
+    return x + 1;
+}
+
+static int64_t _kr_cl_31(int64_t x, int64_t y) {
+    return x * y;
+}
+
+static int64_t _kr_cl_58(int64_t x) {
+    __auto_type doubled = x * 2;
+    __auto_type result = doubled + 10;
+    result;
+}
+
+static int64_t _kr_cl_93(int64_t a, int64_t b, int64_t c) {
+    return a + b + c;
+}
+
+static int64_t _kr_cl_124(int64_t x) {
+    return x * x;
+}
+
+static int64_t _kr_cl_177(int64_t y) {
+    return x + y;
+}
+
+static int64_t _kr_cl_198(int64_t x) {
+    __auto_type inner = (void*)_kr_cl_207;
+    x;
+}
+
+static int64_t _kr_cl_207(int64_t y) {
+    return x + y;
+}
+
+static int64_t _kr_cl_231() {
+    return 42;
+}
+
+static int64_t _kr_cl_246() {
+    kr_puts("Hello from closure");
+}
+
 int64_t kr_test_simple_closure() {
-    return 0;
+    __auto_type add_one = (void*)_kr_cl_10;
+    0;
 }
 
 int64_t kr_test_closure_with_return_type() {
-    return 0;
+    __auto_type multiply = (void*)_kr_cl_31;
+    0;
 }
 
 int64_t kr_test_closure_with_block() {
-    return 0;
+    __auto_type complex_calc = (void*)_kr_cl_58;
+    0;
 }
 
 int64_t kr_test_multi_param_closure() {
-    return 0;
+    __auto_type add_three = (void*)_kr_cl_93;
+    0;
 }
 
 int64_t kr_test_type_inference() {
-    return 0;
+    __auto_type square = (void*)_kr_cl_124;
+    0;
 }
 
 int64_t kr_test_move_closure() {
     __auto_type x = 10;
-    __auto_type capture_x = ({
-        int64_t y = 0;
-        (void)(x + y);
-        0;
-    });
+    __auto_type capture_x = (void*)_kr_cl_151;
     0;
 }
 
 int64_t kr_test_capture_by_reference() {
-    return 0;
+    __auto_type x = 20;
+    __auto_type use_x = (void*)_kr_cl_177;
+    0;
 }
 
 int64_t kr_test_nested_closures() {
-    return 0;
+    __auto_type outer = (void*)_kr_cl_198;
+    0;
 }
 
 int64_t kr_test_no_params() {
-    return 0;
+    __auto_type get_value = (void*)_kr_cl_231;
+    0;
 }
 
 int64_t kr_test_void_return() {
-    return 0;
+    __auto_type print_msg = (void*)_kr_cl_246;
+    0;
 }
 
 int64_t kr_main() {

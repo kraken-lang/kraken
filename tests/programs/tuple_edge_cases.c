@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -441,7 +446,11 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 int64_t kr_main();
 
 int64_t kr_main() {
-    return 0;
+    kr_test_section("Tuple Edge Cases");
+    void* single;
+    0;
+    0;
+    0 = (KrTuple2){.f0 = 42, .f1 = 0, .f2 = kr_assert_eq(single.f0, 42), .f3 = kr_test_pass("Single element tuple"), .f4 = 0, .f5 = 0(0, 0, 0, 0, 0, 0, 0, 0), .f6 = (KrTuple5){.f0 = 1, .f1 = 2, .f2 = 3, .f3 = 4, .f4 = 5, .f5 = 6, .f6 = 7, .f7 = 8}, .f7 = kr_assert_eq(large.f0, 1), .f8 = kr_assert_eq(large.f7, 8), .f9 = kr_test_pass("Large tuple (8 elements)"), .f10 = 0, .f11 = 0((KrTuple2){.f0 = (KrTuple2){.f0 = 0, .f1 = 0}, .f1 = 0}, 0), .f12 = (KrTuple2){.f0 = (KrTuple2){.f0 = (KrTuple2){.f0 = 1, .f1 = 2}, .f1 = 3}, .f1 = 4}, .f13 = 0, .f14 = 0((KrTuple2){.f0 = 0, .f1 = 0}, 0), .f15 = deep.f0, .f16 = 0, .f17 = 0(0, 0), .f18 = inner3.f0, .f19 = kr_assert_eq(inner2.f0, 1), .f20 = kr_assert_eq(inner2.f1, 2), .f21 = kr_assert_eq(inner3.f1, 3), .f22 = kr_assert_eq(deep.f1, 4), .f23 = kr_test_pass("Deeply nested tuples"), .f24 = 0, .f25 = 0(0, 0, 0, 0), .f26 = (KrTuple4){.f0 = 100, .f1 = 1, .f2 = 200, .f3 = 0}, .f27 = kr_assert_eq(t1.f0, 100), .f28 = kr_assert_eq(t1.f1, 1), .f29 = kr_assert_eq(t1.f2, 200), .f30 = kr_assert_eq(t1.f3, 0), .f31 = kr_test_pass("Multiple element tuples"), .f32 = 0, .f33 = 0(), .f34 = (0), .f35 = kr_test_pass("Empty tuple (unit type)"), .f36 = 0, .f37 = 0(0, 0), .f38 = (KrTuple2){.f0 = 1, .f1 = 2}, .f39 = 0, .f40 = 0(0, 0), .f41 = (KrTuple2){.f0 = 3, .f1 = 4}, .f42 = kr_assert_eq(first.f0, 1), .f43 = kr_assert_eq(second.f0, 3), .f44 = kr_test_pass("Multiple tuple variables"), .f45 = 0, .f46 = 0(0, 0, 0), .f47 = (KrTuple3){.f0 = 42, .f1 = "test", .f2 = 99}, .f48 = kr_assert_eq(with_str.f0, 42), .f49 = kr_assert_eq(with_str.f2, 99), .f50 = kr_test_pass("Tuple with string"), .f51 = 0, .f52 = 0(0, 0, 0, 0, 0), .f53 = (KrTuple5){.f0 = 10, .f1 = 20, .f2 = 30, .f3 = 40, .f4 = 50}, .f54 = kr_assert_eq(indexed.f0, 10), .f55 = kr_assert_eq(indexed.f1, 20), .f56 = kr_assert_eq(indexed.f2, 30), .f57 = kr_assert_eq(indexed.f3, 40), .f58 = kr_assert_eq(indexed.f4, 50), .f59 = kr_test_pass("Tuple indexing all positions"), .f60 = 0, .f61 = 0((KrTuple2){.f0 = 0, .f1 = 0}, (KrTuple2){.f0 = 0, .f1 = 0}), .f62 = (KrTuple2){.f0 = (KrTuple2){.f0 = 1, .f1 = 2}, .f1 = (KrTuple2){.f0 = 3, .f1 = 4}}, .f63 = 0, .f64 = 0(0, 0), .f65 = nested.f0, .f66 = 0, .f67 = 0(0, 0), .f68 = nested.f1, .f69 = kr_assert_eq(left.f0, 1), .f70 = kr_assert_eq(left.f1, 2), .f71 = kr_assert_eq(right.f0, 3), .f72 = kr_assert_eq(right.f1, 4), .f73 = kr_test_pass("Nested tuple indexing"), .f74 = kr_puts("All tuple edge case tests passed!"), .f75 = 0, .f76 = 0, .f77 = };
 }
 
 

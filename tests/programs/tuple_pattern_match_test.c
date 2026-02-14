@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -441,7 +446,69 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 int64_t kr_main();
 
 int64_t kr_main() {
-    return 0;
+    kr_test_section("Tuple Pattern Matching Tests");
+    void* pair;
+    0;
+    0;
+    0;
+    0 = (KrTuple2){.f0 = 10, .f1 = 20};
+    if (pair == () {
+        x;
+        0;
+        y;
+        0;
+        0;
+        0;
+        kr_assert_eq(x, 10);
+        kr_assert_eq(y, 20);
+        kr_test_pass("Tuple pattern with bindings");
+    }
+    void* data;
+    0;
+    0;
+    0;
+    0 = (KrTuple2){.f0 = 1, .f1 = 42};
+    if (data == () {
+        1;
+        0;
+        n;
+        0;
+        0;
+        0;
+        kr_assert_eq(n, 42);
+        kr_test_pass("Tuple pattern with literal and binding");
+    }
+    else if (data == () {
+        _;
+        0;
+        _;
+        0;
+        0;
+        0;
+        kr_test_fail("Should not match wildcard");
+    }
+    void* triple;
+    0;
+    0;
+    0;
+    0;
+    0;
+    0 = (KrTuple3){.f0 = 5, .f1 = 10, .f2 = 15};
+    if (triple == () {
+        a;
+        0;
+        _;
+        0;
+        c;
+        0;
+        0;
+        0;
+        kr_assert_eq(a, 5);
+        kr_assert_eq(c, 15);
+        kr_test_pass("Tuple pattern with wildcards");
+    }
+    kr_puts("All tuple pattern matching tests passed!");
+    0;
 }
 
 

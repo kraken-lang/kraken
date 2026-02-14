@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -438,14 +443,18 @@ void kr_kraken_union_set_tag(int64_t u,int64_t t){ void* p=(void*)(intptr_t)u; i
 int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(intptr_t)u; return p && *(int64_t*)p==t; }
 
 /* Forward declarations */
-int64_t kr_id_clone();
+int64_t kr_id_clone(int64_t x);
 int64_t kr_main();
 
-int64_t kr_id_clone() {
-    return 0;
-}
-
-int64_t kr_main() {
+int64_t kr_id_clone(int64_t x) {
+    0;
+    0;
+    (Clone){.return = 0};
+    0;
+    kr_main();
+    0;
+    0;
+    0;
     __auto_type a = kr_id_clone(123);
     if (_KR_NEQ(a, 123)) {
         return 1;

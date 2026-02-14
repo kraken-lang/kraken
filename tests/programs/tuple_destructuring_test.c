@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -441,7 +446,26 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 int64_t kr_main();
 
 int64_t kr_main() {
-    return 0;
+    kr_test_section("Tuple Destructuring Tests");
+    __auto_type x = 10;
+    __auto_type y = 20;
+    kr_assert_eq(x, 10);
+    kr_assert_eq(y, 20);
+    kr_test_pass("Simple tuple destructuring");
+    __auto_type a = 1;
+    __auto_type b = 2;
+    __auto_type c = 3;
+    kr_assert_eq(a, 1);
+    kr_assert_eq(b, 2);
+    kr_assert_eq(c, 3);
+    kr_test_pass("Three-element tuple destructuring");
+    __auto_type m = 100;
+    __auto_type n = 200;
+    kr_assert_eq(m, 100);
+    kr_assert_eq(n, 200);
+    kr_test_pass("Different values tuple destructuring");
+    kr_puts("All tuple destructuring tests passed!");
+    0;
 }
 
 

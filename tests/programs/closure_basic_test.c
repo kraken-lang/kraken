@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -441,11 +446,29 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 int64_t kr_apply(void* f, int64_t x);
 int64_t kr_main();
 
+static int64_t _kr_cl_43(int64_t x) {
+    return x * 2;
+}
+
+static int64_t _kr_cl_81(int64_t x) {
+    return x + 10;
+}
+
+static int64_t _kr_cl_122(int64_t x) {
+    return x * 3;
+}
+
 int64_t kr_apply(void* f, int64_t x) {
     return 0;
 }
 
 int64_t kr_main() {
+    void* double_val = (void*)(intptr_t)((void*)_kr_cl_43);
+    kr_puts(kr_str_concat("double(5): ", kr_fmt_int((int64_t)(intptr_t)(0))));
+    int64_t result = kr_apply((void*)_kr_cl_81, 32);
+    kr_puts(kr_str_concat("apply(+10, 32): ", kr_fmt_int((int64_t)(intptr_t)(result))));
+    void* triple = (void*)(intptr_t)((void*)_kr_cl_122);
+    kr_puts(kr_str_concat("triple(4): ", kr_fmt_int((int64_t)(intptr_t)(0))));
     return 0;
 }
 

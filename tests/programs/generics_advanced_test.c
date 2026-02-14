@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -439,21 +444,21 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 
 /* Forward declarations */
 typedef struct Container Container;
-int64_t kr_pair();
+void* kr_pair(int64_t first, int64_t second);
 int64_t kr_test_pair();
-int64_t kr_identity();
+int64_t kr_identity(int64_t x);
 int64_t kr_test_inference_from_context();
 int64_t kr_test_explicit_type_args();
-int64_t kr_make_container();
-int64_t kr_get_value();
+Container kr_make_container(int64_t v);
+int64_t kr_get_value(Container c);
 int64_t kr_test_generic_struct();
-int64_t kr_wrap();
-int64_t kr_unwrap();
+Container kr_wrap(int64_t x);
+int64_t kr_unwrap(Container c);
 int64_t kr_test_nested_generics();
-int64_t kr_swap();
+void* kr_swap(void* p, void* ,);
 int64_t kr_test_swap();
-int64_t kr_max();
-int64_t kr_double();
+int64_t kr_max(int64_t a, int64_t b, void* compare);
+int64_t kr_double(int64_t x);
 int64_t kr_test_chained();
 int64_t kr_main();
 
@@ -461,16 +466,30 @@ struct Container {
 int64_t value;
 };
 
-int64_t kr_pair() {
-    return 0;
+void* kr_pair(int64_t first, int64_t second) {
+    0;
+    0;
+    0;
+    0;
+    return (KrTuple2){.f0 = first, .f1 = second};
 }
 
 int64_t kr_test_pair() {
+    __auto_type p = kr_pair(42, true);
+    KrTuple2 _kr_tup = p;
+    __auto_type x = _kr_tup.f0;
+    __auto_type y = _kr_tup.f1;
+    if (_KR_NEQ(x, 42)) {
+        return 1;
+    }
+    if (!y) {
+        return 2;
+    }
     return 0;
 }
 
-int64_t kr_identity() {
-    return 0;
+int64_t kr_identity(int64_t x) {
+    return x;
 }
 
 int64_t kr_test_inference_from_context() {
@@ -497,12 +516,12 @@ int64_t kr_test_explicit_type_args() {
     return 0;
 }
 
-int64_t kr_make_container() {
-    return 0;
+Container kr_make_container(int64_t v) {
+    return (Container){.value = v};
 }
 
-int64_t kr_get_value() {
-    return 0;
+int64_t kr_get_value(Container c) {
+    return c.value;
 }
 
 int64_t kr_test_generic_struct() {
@@ -517,12 +536,12 @@ int64_t kr_test_generic_struct() {
     return 0;
 }
 
-int64_t kr_wrap() {
-    return 0;
+Container kr_wrap(int64_t x) {
+    return (Container){.value = x};
 }
 
-int64_t kr_unwrap() {
-    return 0;
+int64_t kr_unwrap(Container c) {
+    return c.value;
 }
 
 int64_t kr_test_nested_generics() {
@@ -534,20 +553,43 @@ int64_t kr_test_nested_generics() {
     return 0;
 }
 
-int64_t kr_swap() {
-    return 0;
+void* kr_swap(void* p, void* ,) {
+    0;
+    0;
+    0;
+    0;
+    KrTuple2 _kr_tup = p;
+    __auto_type a = _kr_tup.f0;
+    __auto_type b = _kr_tup.f1;
+    return (KrTuple2){.f0 = b, .f1 = a};
 }
 
 int64_t kr_test_swap() {
+    __auto_type p1 = kr_pair(42, true);
+    __auto_type p2 = kr_swap(p1);
+    KrTuple2 _kr_tup = p2;
+    __auto_type b = _kr_tup.f0;
+    __auto_type i = _kr_tup.f1;
+    if (!b) {
+        return 1;
+    }
+    if (_KR_NEQ(i, 42)) {
+        return 2;
+    }
     return 0;
 }
 
-int64_t kr_max() {
-    return 0;
+int64_t kr_max(int64_t a, int64_t b, void* compare) {
+    if (kr_compare(a, b)) {
+        return a;
+    }
+    else {
+        return b;
+    }
 }
 
-int64_t kr_double() {
-    return 0;
+int64_t kr_double(int64_t x) {
+    return x;
 }
 
 int64_t kr_test_chained() {

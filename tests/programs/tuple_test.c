@@ -15,6 +15,11 @@ typedef int64_t kr_int;
 typedef double kr_float;
 typedef bool kr_bool;
 typedef char* kr_str;
+typedef struct { int64_t f0; int64_t f1; } KrTuple2;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; } KrTuple3;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; } KrTuple4;
+typedef struct { int64_t f0; int64_t f1; int64_t f2; int64_t f3; int64_t f4; } KrTuple5;
+typedef int64_t (*KrClosure)(int64_t);
 typedef ssize_t kr_size;
 
 void kr_puts(kr_str s) { puts(s); }
@@ -441,7 +446,46 @@ int64_t kr_kraken_union_check_tag(int64_t u,int64_t t, ...){ void* p=(void*)(int
 int64_t kr_main();
 
 int64_t kr_main() {
-    return 0;
+    void* pair;
+    0;
+    0;
+    0;
+    0 = (KrTuple2){.f0 = 10, .f1 = 20};
+    void* triple;
+    0;
+    0;
+    0;
+    0;
+    0;
+    0 = (KrTuple3){.f0 = 42, .f1 = "hello", .f2 = true};
+    int64_t x = pair.f0;
+    int64_t y = pair.f1;
+    int64_t a = triple.f0;
+    kr_str b = (kr_str)(intptr_t)(triple.f1);
+    bool c = triple.f2;
+    void* unit;
+    0 = (0);
+    void* nested;
+    (KrTuple2){.f0 = 0, .f1 = 0};
+    0(0, 0);
+    0 = (KrTuple2){.f0 = (KrTuple2){.f0 = 1, .f1 = 2}, .f1 = (KrTuple2){.f0 = "test", .f1 = false}};
+    void* inner1;
+    0;
+    0;
+    0;
+    0 = nested.f0;
+    void* inner2;
+    0;
+    0;
+    0;
+    0 = nested.f1;
+    int64_t val = inner1.f0;
+    kr_assert_eq(x, 10);
+    kr_assert_eq(y, 20);
+    kr_assert_eq(a, 42);
+    kr_assert_eq(val, 1);
+    kr_puts("Tuple test passed!");
+    0;
 }
 
 
