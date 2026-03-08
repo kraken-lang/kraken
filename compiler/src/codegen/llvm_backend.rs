@@ -8401,11 +8401,106 @@ impl LLVMCodegen {
                     LLVMBuildStore(self.builder, value, val_ptr);
                     LLVMBuildBr(self.builder, done_bb);
                     LLVMPositionBuilderAtEnd(self.builder, append_bb);
-                    // Append new key-value pair at len position
+                    // --- Grow check: if len >= cap, realloc ---
+                    let cap_addr_a = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 24, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_field_a = LLVMBuildBitCast(
+                        self.builder,
+                        cap_addr_a,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let cap_val = LLVMBuildLoad2(
+                        self.builder,
+                        i64_ty,
+                        cap_field_a,
+                        c"cap".as_ptr(),
+                    );
+                    let need_grow = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntSGE,
+                        len_val,
+                        cap_val,
+                        c"".as_ptr(),
+                    );
+                    let grow_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_grow".as_ptr(),
+                    );
+                    let do_append_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_do_append".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, need_grow, grow_bb, do_append_bb);
+                    // --- Grow block: double capacity, realloc keys + vals ---
+                    LLVMPositionBuilderAtEnd(self.builder, grow_bb);
+                    let new_cap = LLVMBuildMul(
+                        self.builder,
+                        cap_val,
+                        LLVMConstInt(i64_ty, 2, 0),
+                        c"".as_ptr(),
+                    );
+                    let new_byte_size = LLVMBuildMul(
+                        self.builder,
+                        new_cap,
+                        LLVMConstInt(i64_ty, 8, 0),
+                        c"".as_ptr(),
+                    );
+                    let realloc_fn = *self
+                        .functions
+                        .get("realloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing realloc"))?;
+                    let realloc_ty = LLVMGlobalGetValueType(realloc_fn);
+                    let old_keys_g =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
+                    let old_keys_i8 =
+                        LLVMBuildBitCast(self.builder, old_keys_g, i8_ptr_ty, c"".as_ptr());
+                    let new_keys_raw = LLVMBuildCall2(
+                        self.builder,
+                        realloc_ty,
+                        realloc_fn,
+                        [old_keys_i8, new_byte_size].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    let new_keys_typed =
+                        LLVMBuildBitCast(self.builder, new_keys_raw, str_ptr_ty, c"".as_ptr());
+                    LLVMBuildStore(self.builder, new_keys_typed, keys_field);
+                    let old_vals_g =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, vals_field, c"".as_ptr());
+                    let old_vals_i8 =
+                        LLVMBuildBitCast(self.builder, old_vals_g, i8_ptr_ty, c"".as_ptr());
+                    let new_vals_raw = LLVMBuildCall2(
+                        self.builder,
+                        realloc_ty,
+                        realloc_fn,
+                        [old_vals_i8, new_byte_size].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    let new_vals_typed =
+                        LLVMBuildBitCast(self.builder, new_vals_raw, i64_ptr_ty, c"".as_ptr());
+                    LLVMBuildStore(self.builder, new_vals_typed, vals_field);
+                    LLVMBuildStore(self.builder, new_cap, cap_field_a);
+                    LLVMBuildBr(self.builder, do_append_bb);
+                    // --- Do append: re-read pointers from map struct ---
+                    LLVMPositionBuilderAtEnd(self.builder, do_append_bb);
+                    let final_keys =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
+                    let final_vals =
+                        LLVMBuildLoad2(self.builder, i64_ptr_ty, vals_field, c"".as_ptr());
                     let append_key_ptr = LLVMBuildGEP2(
                         self.builder,
                         i8_ptr_ty,
-                        keys_ptr,
+                        final_keys,
                         [len_val].as_mut_ptr(),
                         1,
                         c"".as_ptr(),
@@ -8414,7 +8509,7 @@ impl LLVMCodegen {
                     let append_val_ptr = LLVMBuildGEP2(
                         self.builder,
                         i64_ty,
-                        vals_ptr,
+                        final_vals,
                         [len_val].as_mut_ptr(),
                         1,
                         c"".as_ptr(),
@@ -8861,6 +8956,11 @@ impl LLVMCodegen {
                         current_fn,
                         c"get_trap".as_ptr(),
                     );
+                    let done_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"get_done".as_ptr(),
+                    );
                     let idx_ptr = LLVMBuildAlloca(self.builder, i64_ty, c"idx".as_ptr());
                     LLVMBuildStore(self.builder, LLVMConstInt(i64_ty, 0, 0), idx_ptr);
                     LLVMBuildBr(self.builder, loop_bb);
@@ -8906,20 +9006,10 @@ impl LLVMCodegen {
                         LLVMBuildAdd(self.builder, idx2, LLVMConstInt(i64_ty, 1, 0), c"".as_ptr());
                     LLVMBuildStore(self.builder, next_idx, idx_ptr);
                     LLVMBuildBr(self.builder, loop_bb);
+                    // Return "" when key not found (matches C preamble behavior)
                     LLVMPositionBuilderAtEnd(self.builder, trap_bb);
-                    let abort_fn = *self
-                        .functions
-                        .get("abort")
-                        .ok_or_else(|| CompilerError::codegen_error("Missing abort"))?;
-                    LLVMBuildCall2(
-                        self.builder,
-                        LLVMGlobalGetValueType(abort_fn),
-                        abort_fn,
-                        [].as_mut_ptr(),
-                        0,
-                        c"".as_ptr(),
-                    );
-                    LLVMBuildUnreachable(self.builder);
+                    let empty_str = LLVMBuildGlobalStringPtr(self.builder, c"".as_ptr(), c"empty".as_ptr());
+                    LLVMBuildBr(self.builder, done_bb);
                     LLVMPositionBuilderAtEnd(self.builder, found_bb);
                     let found_idx = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
                     let val_ptr = LLVMBuildGEP2(
@@ -8930,12 +9020,28 @@ impl LLVMCodegen {
                         1,
                         c"".as_ptr(),
                     );
-                    Ok(Some(LLVMBuildLoad2(
+                    let found_val = LLVMBuildLoad2(
                         self.builder,
                         i8_ptr_ty,
                         val_ptr,
                         c"".as_ptr(),
-                    )))
+                    );
+                    LLVMBuildBr(self.builder, done_bb);
+                    LLVMPositionBuilderAtEnd(self.builder, done_bb);
+                    let phi = LLVMBuildPhi(self.builder, i8_ptr_ty, c"result".as_ptr());
+                    LLVMAddIncoming(
+                        phi,
+                        [empty_str].as_mut_ptr(),
+                        [trap_bb].as_mut_ptr(),
+                        1,
+                    );
+                    LLVMAddIncoming(
+                        phi,
+                        [found_val].as_mut_ptr(),
+                        [found_bb].as_mut_ptr(),
+                        1,
+                    );
+                    Ok(Some(phi))
                 }
                 "map_string_string_set" => {
                     let map_ptr = self.codegen_expression(&arguments[0])?;
@@ -9074,10 +9180,106 @@ impl LLVMCodegen {
                     LLVMBuildStore(self.builder, value, val_ptr);
                     LLVMBuildBr(self.builder, done_bb);
                     LLVMPositionBuilderAtEnd(self.builder, append_bb);
+                    // --- Grow check: if len >= cap, realloc ---
+                    let cap_addr_a = LLVMBuildGEP2(
+                        self.builder,
+                        i8_ty,
+                        map_ptr,
+                        [LLVMConstInt(i64_ty, 24, 0)].as_mut_ptr(),
+                        1,
+                        c"".as_ptr(),
+                    );
+                    let cap_field_a = LLVMBuildBitCast(
+                        self.builder,
+                        cap_addr_a,
+                        LLVMPointerType(i64_ty, 0),
+                        c"".as_ptr(),
+                    );
+                    let cap_val = LLVMBuildLoad2(
+                        self.builder,
+                        i64_ty,
+                        cap_field_a,
+                        c"cap".as_ptr(),
+                    );
+                    let need_grow = LLVMBuildICmp(
+                        self.builder,
+                        LLVMIntPredicate::LLVMIntSGE,
+                        len_val,
+                        cap_val,
+                        c"".as_ptr(),
+                    );
+                    let grow_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_grow".as_ptr(),
+                    );
+                    let do_append_bb = LLVMAppendBasicBlockInContext(
+                        self.context,
+                        current_fn,
+                        c"set_do_append".as_ptr(),
+                    );
+                    LLVMBuildCondBr(self.builder, need_grow, grow_bb, do_append_bb);
+                    // --- Grow block: double capacity, realloc keys + vals ---
+                    LLVMPositionBuilderAtEnd(self.builder, grow_bb);
+                    let new_cap = LLVMBuildMul(
+                        self.builder,
+                        cap_val,
+                        LLVMConstInt(i64_ty, 2, 0),
+                        c"".as_ptr(),
+                    );
+                    let new_byte_size = LLVMBuildMul(
+                        self.builder,
+                        new_cap,
+                        LLVMConstInt(i64_ty, 8, 0),
+                        c"".as_ptr(),
+                    );
+                    let realloc_fn = *self
+                        .functions
+                        .get("realloc")
+                        .ok_or_else(|| CompilerError::codegen_error("Missing realloc"))?;
+                    let realloc_ty = LLVMGlobalGetValueType(realloc_fn);
+                    let old_keys_g =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
+                    let old_keys_i8 =
+                        LLVMBuildBitCast(self.builder, old_keys_g, i8_ptr_ty, c"".as_ptr());
+                    let new_keys_raw = LLVMBuildCall2(
+                        self.builder,
+                        realloc_ty,
+                        realloc_fn,
+                        [old_keys_i8, new_byte_size].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    let new_keys_typed =
+                        LLVMBuildBitCast(self.builder, new_keys_raw, str_ptr_ty, c"".as_ptr());
+                    LLVMBuildStore(self.builder, new_keys_typed, keys_field);
+                    let old_vals_g =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, vals_field, c"".as_ptr());
+                    let old_vals_i8 =
+                        LLVMBuildBitCast(self.builder, old_vals_g, i8_ptr_ty, c"".as_ptr());
+                    let new_vals_raw = LLVMBuildCall2(
+                        self.builder,
+                        realloc_ty,
+                        realloc_fn,
+                        [old_vals_i8, new_byte_size].as_mut_ptr(),
+                        2,
+                        c"".as_ptr(),
+                    );
+                    let new_vals_typed =
+                        LLVMBuildBitCast(self.builder, new_vals_raw, str_ptr_ty, c"".as_ptr());
+                    LLVMBuildStore(self.builder, new_vals_typed, vals_field);
+                    LLVMBuildStore(self.builder, new_cap, cap_field_a);
+                    LLVMBuildBr(self.builder, do_append_bb);
+                    // --- Do append: re-read pointers from map struct ---
+                    LLVMPositionBuilderAtEnd(self.builder, do_append_bb);
+                    let final_keys =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, keys_field, c"".as_ptr());
+                    let final_vals =
+                        LLVMBuildLoad2(self.builder, str_ptr_ty, vals_field, c"".as_ptr());
                     let append_key_ptr = LLVMBuildGEP2(
                         self.builder,
                         i8_ptr_ty,
-                        keys_ptr,
+                        final_keys,
                         [len_val].as_mut_ptr(),
                         1,
                         c"".as_ptr(),
@@ -9086,7 +9288,7 @@ impl LLVMCodegen {
                     let append_val_ptr = LLVMBuildGEP2(
                         self.builder,
                         i8_ptr_ty,
-                        vals_ptr,
+                        final_vals,
                         [len_val].as_mut_ptr(),
                         1,
                         c"".as_ptr(),
