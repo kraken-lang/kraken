@@ -128,81 +128,180 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_drop_checker_creation() {
-        let checker = DropChecker::new();
-        assert_eq!(checker.scope_stack.len(), 1);
-        assert!(!checker.has_drop_impl("String"));
+    fn test_default() {
+        let c = DropChecker::default();
+        assert_eq!(c.scope_stack.len(), 1);
+    }
+
+    #[test]
+    fn test_new() {
+        let c = DropChecker::new();
+        assert!(!c.has_drop_impl("X"));
+        assert_eq!(c.scope_stack.len(), 1);
     }
 
     #[test]
     fn test_register_drop_impl() {
-        let mut checker = DropChecker::new();
-        checker.register_drop_impl("MyType".to_string(), true);
-        assert!(checker.has_drop_impl("MyType"));
+        let mut c = DropChecker::new();
+        c.register_drop_impl("Res".into(), true);
+        assert!(c.has_drop_impl("Res"));
+        assert!(!c.has_drop_impl("Other"));
     }
 
     #[test]
-    fn test_needs_drop() {
-        let mut checker = DropChecker::new();
-        checker.register_drop_impl("MyType".to_string(), true);
-
-        assert!(checker.needs_drop(&Type::Custom("MyType".to_string())));
-        assert!(!checker.needs_drop(&Type::Int));
-        assert!(!checker.needs_drop(&Type::String));
+    fn test_register_drop_impl_custom_flag() {
+        let mut c = DropChecker::new();
+        c.register_drop_impl("A".into(), false);
+        assert!(c.has_drop_impl("A"));
+        assert!(!c.drop_impls["A"].has_custom_drop);
     }
 
     #[test]
-    fn test_scope_management() {
-        let mut checker = DropChecker::new();
-        checker.enter_scope();
-        assert_eq!(checker.scope_stack.len(), 2);
-
-        checker.register_variable("x".to_string(), Type::Int);
-        checker.register_variable("y".to_string(), Type::String);
-
-        let vars = checker.exit_scope();
-        assert_eq!(vars.len(), 2);
-        assert_eq!(vars[0].name, "y"); // Reverse order
-        assert_eq!(vars[1].name, "x");
+    fn test_needs_drop_custom() {
+        let mut c = DropChecker::new();
+        c.register_drop_impl("Res".into(), true);
+        assert!(c.needs_drop(&Type::Custom("Res".into())));
+        assert!(!c.needs_drop(&Type::Custom("Other".into())));
     }
 
     #[test]
-    fn test_drop_order() {
-        let mut checker = DropChecker::new();
-        checker.register_drop_impl("Resource".to_string(), true);
+    fn test_needs_drop_primitives() {
+        let c = DropChecker::new();
+        assert!(!c.needs_drop(&Type::Int));
+        assert!(!c.needs_drop(&Type::Float));
+        assert!(!c.needs_drop(&Type::Bool));
+        assert!(!c.needs_drop(&Type::String));
+        assert!(!c.needs_drop(&Type::Str));
+        assert!(!c.needs_drop(&Type::Void));
+    }
 
-        checker.enter_scope();
-        checker.register_variable("a".to_string(), Type::Custom("Resource".to_string()));
-        checker.register_variable("b".to_string(), Type::Custom("Resource".to_string()));
-        checker.register_variable("c".to_string(), Type::Custom("Resource".to_string()));
+    #[test]
+    fn test_needs_drop_array() {
+        let mut c = DropChecker::new();
+        c.register_drop_impl("Res".into(), true);
+        assert!(c.needs_drop(&Type::Array {
+            element_type: Box::new(Type::Custom("Res".into())),
+            size: None,
+        }));
+        assert!(!c.needs_drop(&Type::Array {
+            element_type: Box::new(Type::Int),
+            size: None,
+        }));
+    }
 
-        let vars = checker.exit_scope();
-        assert_eq!(vars.len(), 3);
-        assert_eq!(vars[0].name, "c"); // Dropped first (last declared)
+    #[test]
+    fn test_needs_drop_reference() {
+        let mut c = DropChecker::new();
+        c.register_drop_impl("Res".into(), true);
+        assert!(c.needs_drop(&Type::Reference {
+            inner_type: Box::new(Type::Custom("Res".into())),
+            is_mutable: false,
+        }));
+        assert!(!c.needs_drop(&Type::Reference {
+            inner_type: Box::new(Type::Int),
+            is_mutable: true,
+        }));
+    }
+
+    #[test]
+    fn test_needs_drop_tuple() {
+        let mut c = DropChecker::new();
+        c.register_drop_impl("Res".into(), true);
+        assert!(c.needs_drop(&Type::Tuple {
+            element_types: vec![Type::Int, Type::Custom("Res".into())],
+        }));
+        assert!(!c.needs_drop(&Type::Tuple {
+            element_types: vec![Type::Int, Type::Bool],
+        }));
+    }
+
+    #[test]
+    fn test_scope_enter_exit() {
+        let mut c = DropChecker::new();
+        c.enter_scope();
+        assert_eq!(c.scope_stack.len(), 2);
+        c.register_variable("x".into(), Type::Int);
+        let vars = c.exit_scope();
+        assert_eq!(vars.len(), 1);
+        assert_eq!(vars[0].name, "x");
+        assert_eq!(c.scope_stack.len(), 1);
+    }
+
+    #[test]
+    fn test_exit_scope_empty_stack() {
+        let mut c = DropChecker::new();
+        c.scope_stack.clear();
+        let vars = c.exit_scope();
+        assert!(vars.is_empty());
+    }
+
+    #[test]
+    fn test_drop_order_reverse() {
+        let mut c = DropChecker::new();
+        c.register_drop_impl("R".into(), true);
+        c.enter_scope();
+        c.register_variable("a".into(), Type::Custom("R".into()));
+        c.register_variable("b".into(), Type::Custom("R".into()));
+        c.register_variable("c".into(), Type::Custom("R".into()));
+        let vars = c.exit_scope();
+        assert_eq!(vars[0].name, "c");
         assert_eq!(vars[1].name, "b");
-        assert_eq!(vars[2].name, "a"); // Dropped last (first declared)
+        assert_eq!(vars[2].name, "a");
+    }
+
+    #[test]
+    fn test_register_variable_needs_drop() {
+        let mut c = DropChecker::new();
+        c.register_drop_impl("R".into(), true);
+        c.enter_scope();
+        c.register_variable("droppable".into(), Type::Custom("R".into()));
+        c.register_variable("plain".into(), Type::Int);
+        let vars = c.exit_scope();
+        assert!(vars[1].needs_drop); // droppable (reversed)
+        assert!(!vars[0].needs_drop); // plain (reversed)
+    }
+
+    #[test]
+    fn test_validate_drop_impl() {
+        let mut c = DropChecker::new();
+        c.register_drop_impl("R".into(), true);
+        assert!(c.validate_drop_impl("R").is_ok());
+        assert!(c.validate_drop_impl("Missing").is_err());
     }
 
     #[test]
     fn test_get_drop_variables() {
-        let mut checker = DropChecker::new();
-        checker.register_drop_impl("Resource".to_string(), true);
-
-        let variables = vec![
-            VariableInfo {
-                name: "x".to_string(),
-                var_type: Type::Custom("Resource".to_string()),
-                needs_drop: true,
-            },
-            VariableInfo {
-                name: "y".to_string(),
-                var_type: Type::Int,
-                needs_drop: false,
-            },
+        let c = DropChecker::new();
+        let vars = vec![
+            VariableInfo { name: "x".into(), var_type: Type::Int, needs_drop: true },
+            VariableInfo { name: "y".into(), var_type: Type::Int, needs_drop: false },
+            VariableInfo { name: "z".into(), var_type: Type::Int, needs_drop: true },
         ];
+        let drop_vars = c.get_drop_variables(&vars);
+        assert_eq!(drop_vars, vec!["x", "z"]);
+    }
 
-        let drop_vars = checker.get_drop_variables(&variables);
-        assert_eq!(drop_vars.len(), 1); // Only x needs drop
-        assert_eq!(drop_vars[0], "x");
+    #[test]
+    fn test_get_drop_variables_none() {
+        let c = DropChecker::new();
+        let vars = vec![
+            VariableInfo { name: "a".into(), var_type: Type::Int, needs_drop: false },
+        ];
+        assert!(c.get_drop_variables(&vars).is_empty());
+    }
+
+    #[test]
+    fn test_nested_scopes() {
+        let mut c = DropChecker::new();
+        c.enter_scope();
+        c.register_variable("outer".into(), Type::Int);
+        c.enter_scope();
+        c.register_variable("inner".into(), Type::Bool);
+        let inner_vars = c.exit_scope();
+        assert_eq!(inner_vars.len(), 1);
+        assert_eq!(inner_vars[0].name, "inner");
+        let outer_vars = c.exit_scope();
+        assert_eq!(outer_vars.len(), 1);
+        assert_eq!(outer_vars[0].name, "outer");
     }
 }

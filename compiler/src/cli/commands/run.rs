@@ -56,4 +56,22 @@ mod tests {
         let result = cmd.execute(vec!["run".to_string()]);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_run_create() {
+        let cmd = RunCommand::create();
+        assert_eq!(cmd.name(), "run");
+    }
+
+    #[test]
+    fn test_run_default() {
+        let _cmd = RunCommand::default();
+    }
+
+    #[test]
+    fn test_run_with_source() {
+        let cmd = RunCommand;
+        let result = cmd.execute(vec!["run".to_string(), "app.kr".to_string()]);
+        assert!(result.is_ok());
+    }
 }

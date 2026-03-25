@@ -209,4 +209,26 @@ mod tests {
         let _formatter = cmd.create_formatter();
         // Formatter created successfully
     }
+
+    #[test]
+    fn test_fmt_create() {
+        let cmd = FmtCommand::create();
+        assert_eq!(cmd.name(), "fmt");
+        assert!(!cmd.description().is_empty());
+    }
+
+    #[test]
+    fn test_discover_empty() {
+        let cmd = FmtCommand::default();
+        let files = cmd.discover_kraken_files(Path::new("/nonexistent"));
+        assert!(files.is_empty());
+    }
+
+    #[test]
+    fn test_format_files_empty() {
+        let cmd = FmtCommand::default();
+        let (formatted, unchanged) = cmd.format_files(&[]).unwrap();
+        assert_eq!(formatted, 0);
+        assert_eq!(unchanged, 0);
+    }
 }

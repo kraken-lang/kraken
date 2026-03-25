@@ -873,4 +873,125 @@ mod tests {
             "should have table of contents"
         );
     }
+
+    #[test]
+    fn test_doc_default() {
+        let cmd = DocCommand::default();
+        assert!(!cmd.open);
+        assert_eq!(cmd.output_dir, PathBuf::from("docs"));
+    }
+
+    #[test]
+    fn test_trailing_doc_comments() {
+        let cmd = DocCommand::default();
+        let source = "/// Trailing comment\n";
+        let fd = cmd.extract_file_doc(Path::new("test.kr"), source);
+        assert_eq!(fd.items.len(), 1);
+        assert_eq!(fd.items[0].name, "(trailing)");
+        assert_eq!(fd.items[0].kind, "unknown");
+    }
+
+    #[test]
+    fn test_detect_declaration_all_keywords() {
+        for (line, expected_kind) in [
+            ("enum Foo {", "enum"),
+            ("trait Bar {", "trait"),
+            ("impl Baz {", "impl"),
+            ("type Alias = int;", "type_alias"),
+            ("const MAX = 100;", "constant"),
+            ("let x = 5;", "variable"),
+            ("module foo;", "module"),
+            ("import std;", "import"),
+            ("class Widget {", "class"),
+            ("interface Drawable {", "interface"),
+            ("union Value {", "union"),
+            ("macro_rules my_macro {", "macro"),
+            ("async fn run() {", "function"),
+            ("something_else;", "unknown"),
+        ] {
+            let (_, kind) = DocCommand::detect_declaration(line);
+            assert_eq!(kind, expected_kind, "Failed for: {line}");
+        }
+    }
+
+    #[test]
+    fn test_render_markdown_italic() {
+        let lines = vec!["This is *italic* text.".into()];
+        let html = DocCommand::render_markdown(&lines, &[]);
+        assert!(html.contains("<em>italic</em>"));
+    }
+
+    #[test]
+    fn test_render_markdown_empty_line() {
+        let lines = vec!["First.".into(), "".into(), "Second.".into()];
+        let html = DocCommand::render_markdown(&lines, &[]);
+        assert!(html.contains("<br>"));
+    }
+
+    #[test]
+    fn test_render_markdown_h3() {
+        let lines = vec!["### Subsection".into()];
+        let html = DocCommand::render_markdown(&lines, &[]);
+        assert!(html.contains("<h4>Subsection</h4>"));
+    }
+
+    #[test]
+    fn test_render_markdown_unclosed_code_block() {
+        let lines = vec!["```".into(), "let x = 1;".into()];
+        let html = DocCommand::render_markdown(&lines, &[]);
+        assert!(html.contains("<pre>"));
+        assert!(html.contains("let x = 1;"));
+    }
+
+    #[test]
+    fn test_render_markdown_code_block_no_lang() {
+        let lines = vec!["```".into(), "code".into(), "```".into()];
+        let html = DocCommand::render_markdown(&lines, &[]);
+        assert!(html.contains("language-kraken"));
+    }
+
+    #[test]
+    fn test_discover_source_files_empty() {
+        let cmd = DocCommand::default();
+        let files = cmd.discover_source_files(Path::new("/nonexistent"));
+        assert!(files.is_empty());
+    }
+
+    #[test]
+    fn test_generate_index() {
+        let cmd = DocCommand::default();
+        let file_docs = vec![
+            FileDoc {
+                path: PathBuf::from("a.kr"),
+                module_docs: vec![],
+                items: vec![DocItem {
+                    name: "foo".into(),
+                    kind: "function",
+                    lines: vec!["A function.".into()],
+                    line_number: 1,
+                }],
+            },
+        ];
+        let html = cmd.generate_index(&file_docs);
+        assert!(html.contains("a.kr"));
+        assert!(html.contains("1 items"));
+        assert!(html.contains("filterFiles"));
+    }
+
+    #[test]
+    fn test_generate_html_no_docs() {
+        let cmd = DocCommand::default();
+        let fd = FileDoc {
+            path: PathBuf::from("empty.kr"),
+            module_docs: vec![],
+            items: vec![],
+        };
+        let html = cmd.generate_html(&fd, &[]);
+        assert!(html.contains("No documentation comments found"));
+    }
+
+    #[test]
+    fn test_escape_html_quotes() {
+        assert_eq!(DocCommand::escape_html("\"hi\""), "&quot;hi&quot;");
+    }
 }

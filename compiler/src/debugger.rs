@@ -97,9 +97,110 @@ impl Drop for DebugInfoBuilder {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use llvm_sys::core::*;
+
+    /// Helper: create an LLVM context + module pair for testing.
+    /// Returns (context, module). Caller must dispose context after module is freed.
+    unsafe fn make_module() -> (LLVMContextRef, LLVMModuleRef) {
+        let ctx = LLVMContextCreate();
+        let name = CString::new("test_module").unwrap();
+        let module = LLVMModuleCreateWithNameInContext(name.as_ptr(), ctx);
+        (ctx, module)
+    }
+
     #[test]
-    fn test_debug_info_creation() {
-        // Debug info builder can be created
-        // Full test requires LLVM module setup
+    fn test_debug_info_builder_new_and_drop() {
+        unsafe {
+            let (ctx, module) = make_module();
+            {
+                let _builder = DebugInfoBuilder::new(module, "test.kr", "/tmp");
+                // Builder created successfully; Drop impl will clean up
+            }
+            LLVMDisposeModule(module);
+            LLVMContextDispose(ctx);
+        }
+    }
+
+    #[test]
+    fn test_compile_unit_is_null_placeholder() {
+        unsafe {
+            let (ctx, module) = make_module();
+            let builder = DebugInfoBuilder::new(module, "main.kr", "/src");
+            assert!(builder.compile_unit.is_null());
+            drop(builder);
+            LLVMDisposeModule(module);
+            LLVMContextDispose(ctx);
+        }
+    }
+
+    #[test]
+    fn test_create_function_returns_null() {
+        unsafe {
+            let (ctx, module) = make_module();
+            let builder = DebugInfoBuilder::new(module, "main.kr", "/src");
+            let result = builder.create_function(
+                "my_fn",
+                "my_fn",
+                ptr::null_mut(),
+                1,
+                ptr::null_mut(),
+            );
+            assert!(result.is_null());
+            drop(builder);
+            LLVMDisposeModule(module);
+            LLVMContextDispose(ctx);
+        }
+    }
+
+    #[test]
+    fn test_create_debug_location_returns_null() {
+        unsafe {
+            let (ctx, module) = make_module();
+            let builder = DebugInfoBuilder::new(module, "main.kr", "/src");
+            let loc = builder.create_debug_location(10, 5, ptr::null_mut(), ctx);
+            assert!(loc.is_null());
+            drop(builder);
+            LLVMDisposeModule(module);
+            LLVMContextDispose(ctx);
+        }
+    }
+
+    #[test]
+    fn test_finalize() {
+        unsafe {
+            let (ctx, module) = make_module();
+            let builder = DebugInfoBuilder::new(module, "test.kr", "/tmp");
+            builder.finalize();
+            drop(builder);
+            LLVMDisposeModule(module);
+            LLVMContextDispose(ctx);
+        }
+    }
+
+    #[test]
+    fn test_different_filenames() {
+        unsafe {
+            let (ctx, module) = make_module();
+            let builder = DebugInfoBuilder::new(module, "lib.kr", "/home/user/project/src");
+            assert!(builder.compile_unit.is_null());
+            builder.finalize();
+            drop(builder);
+            LLVMDisposeModule(module);
+            LLVMContextDispose(ctx);
+        }
+    }
+
+    #[test]
+    fn test_empty_filename_and_dir() {
+        unsafe {
+            let (ctx, module) = make_module();
+            let builder = DebugInfoBuilder::new(module, "", "");
+            assert!(builder.compile_unit.is_null());
+            builder.finalize();
+            drop(builder);
+            LLVMDisposeModule(module);
+            LLVMContextDispose(ctx);
+        }
     }
 }

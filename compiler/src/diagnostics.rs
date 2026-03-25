@@ -606,4 +606,114 @@ mod tests {
             assert!(!code.code().is_empty());
         }
     }
+
+    #[test]
+    fn test_severity_display_all() {
+        assert_eq!(DiagnosticSeverity::Note.to_string(), "note");
+        assert_eq!(DiagnosticSeverity::Help.to_string(), "help");
+        assert_eq!(DiagnosticSeverity::Warning.to_string(), "warning");
+        assert_eq!(DiagnosticSeverity::Error.to_string(), "error");
+    }
+
+    #[test]
+    fn test_category_all_ranges() {
+        assert_eq!(DiagnosticCode::KRA0012_InvalidHexLiteral.category(), DiagnosticCategory::Lexer);
+        assert_eq!(DiagnosticCode::KRA1015_InvalidVisibility.category(), DiagnosticCategory::Parser);
+        assert_eq!(DiagnosticCode::KRA2015_MismatchedReturnType.category(), DiagnosticCategory::Type);
+        assert_eq!(DiagnosticCode::KRA3012_CannotResolveSymbol.category(), DiagnosticCategory::Resolution);
+        assert_eq!(DiagnosticCode::KRA4008_DanglingReference.category(), DiagnosticCategory::Borrow);
+        assert_eq!(DiagnosticCode::KRA5005_AssemblyError.category(), DiagnosticCategory::Codegen);
+        assert_eq!(DiagnosticCode::KRA6004_InvalidModuleStructure.category(), DiagnosticCategory::Module);
+        assert_eq!(DiagnosticCode::KRA7003_RecursiveMacroExpansion.category(), DiagnosticCategory::Macro);
+        assert_eq!(DiagnosticCode::KRA8003_DuplicateAttribute.category(), DiagnosticCategory::Attribute);
+        assert_eq!(DiagnosticCode::KRA9004_InvalidPath.category(), DiagnosticCategory::Io);
+        assert_eq!(DiagnosticCode::KRA9999_InternalCompilerError.category(), DiagnosticCategory::Codegen);
+    }
+
+    #[test]
+    fn test_diagnostic_code_display() {
+        assert_eq!(format!("{}", DiagnosticCode::KRA0001_UnexpectedCharacter), "KRA0001");
+        assert_eq!(format!("{}", DiagnosticCode::KRA9999_InternalCompilerError), "KRA9999");
+    }
+
+    #[test]
+    fn test_default_severity() {
+        assert_eq!(DiagnosticCode::KRA0001_UnexpectedCharacter.default_severity(), DiagnosticSeverity::Error);
+        assert_eq!(DiagnosticCode::KRA9999_InternalCompilerError.default_severity(), DiagnosticSeverity::Error);
+    }
+
+    #[test]
+    fn test_diagnostic_with_severity() {
+        let diag = Diagnostic::new(DiagnosticCode::KRA0001_UnexpectedCharacter, "bad char")
+            .with_severity(DiagnosticSeverity::Warning);
+        assert_eq!(diag.severity, DiagnosticSeverity::Warning);
+    }
+
+    #[test]
+    fn test_diagnostic_format_no_hints() {
+        let diag = Diagnostic::new(DiagnosticCode::KRA2000_TypeMismatch, "type mismatch");
+        let f = diag.format();
+        assert!(f.contains("[KRA2000]"));
+        assert!(f.contains("error"));
+        assert!(f.contains("type mismatch"));
+        assert!(!f.contains("note:"));
+        assert!(!f.contains("help:"));
+    }
+
+    #[test]
+    fn test_all_lexer_codes() {
+        let codes = [
+            DiagnosticCode::KRA0001_UnexpectedCharacter,
+            DiagnosticCode::KRA0002_UnterminatedStringLiteral,
+            DiagnosticCode::KRA0003_UnterminatedCharLiteral,
+            DiagnosticCode::KRA0004_InvalidNumberFormat,
+            DiagnosticCode::KRA0005_InvalidEscapeSequence,
+            DiagnosticCode::KRA0006_InvalidUnicodeEscape,
+            DiagnosticCode::KRA0007_UnterminatedBlockComment,
+            DiagnosticCode::KRA0008_InvalidFloatLiteral,
+            DiagnosticCode::KRA0009_IntegerLiteralTooLarge,
+            DiagnosticCode::KRA0010_InvalidBinaryLiteral,
+            DiagnosticCode::KRA0011_InvalidOctalLiteral,
+            DiagnosticCode::KRA0012_InvalidHexLiteral,
+        ];
+        for code in &codes {
+            assert!(code.code().starts_with("KRA0"));
+            assert_eq!(code.category(), DiagnosticCategory::Lexer);
+            assert!(!code.description().is_empty());
+        }
+    }
+
+    #[test]
+    fn test_all_borrow_codes() {
+        let codes = [
+            DiagnosticCode::KRA4000_UseAfterMove,
+            DiagnosticCode::KRA4001_UseAfterFree,
+            DiagnosticCode::KRA4002_DoubleFree,
+            DiagnosticCode::KRA4003_BorrowWhileMutable,
+            DiagnosticCode::KRA4004_MutableBorrowWhileBorrowed,
+            DiagnosticCode::KRA4005_CannotMoveOutOfBorrow,
+            DiagnosticCode::KRA4006_LifetimeTooShort,
+            DiagnosticCode::KRA4007_CannotReturnReference,
+            DiagnosticCode::KRA4008_DanglingReference,
+        ];
+        for code in &codes {
+            assert!(code.code().starts_with("KRA4"));
+            assert_eq!(code.category(), DiagnosticCategory::Borrow);
+        }
+    }
+
+    #[test]
+    fn test_all_io_codes() {
+        let codes = [
+            DiagnosticCode::KRA9000_FileNotFound,
+            DiagnosticCode::KRA9001_InvalidFileExtension,
+            DiagnosticCode::KRA9002_IoError,
+            DiagnosticCode::KRA9003_PermissionDenied,
+            DiagnosticCode::KRA9004_InvalidPath,
+        ];
+        for code in &codes {
+            assert!(code.code().starts_with("KRA9"));
+            assert_eq!(code.category(), DiagnosticCategory::Io);
+        }
+    }
 }

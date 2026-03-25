@@ -59,4 +59,22 @@ mod tests {
         let result = cmd.execute(vec!["check".to_string()]);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_check_create() {
+        let cmd = CheckCommand::create();
+        assert_eq!(cmd.name(), "check");
+    }
+
+    #[test]
+    fn test_check_default() {
+        let _cmd = CheckCommand::default();
+    }
+
+    #[test]
+    fn test_check_with_source() {
+        let cmd = CheckCommand;
+        let result = cmd.execute(vec!["check".to_string(), "src/main.kr".to_string()]);
+        assert!(result.is_ok());
+    }
 }

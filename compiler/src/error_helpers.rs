@@ -152,4 +152,68 @@ mod tests {
         assert!(msg.contains("expected `i64`"));
         assert!(msg.contains("found `string`"));
     }
+
+    #[test]
+    fn test_undefined_variable_no_suggestions() {
+        let loc = SourceLocation::new(PathBuf::from("test.kr"), 1, 1);
+        let err = undefined_variable_error(loc, "xyz", vec![]);
+        let msg = err.to_string();
+        assert!(msg.contains("undefined variable `xyz`"));
+        assert!(!msg.contains("did you mean"));
+    }
+
+    #[test]
+    fn test_undefined_function_with_suggestions() {
+        let loc = SourceLocation::new(PathBuf::from("test.kr"), 1, 1);
+        let suggestions = vec!["foo".to_string(), "foobar".to_string()];
+        let err = undefined_function_error(loc, "fo", suggestions);
+        let msg = err.to_string();
+        assert!(msg.contains("undefined function `fo`"));
+        assert!(msg.contains("did you mean `foo`?"));
+        assert!(msg.contains("or `foobar`?"));
+    }
+
+    #[test]
+    fn test_undefined_function_no_suggestions() {
+        let loc = SourceLocation::new(PathBuf::from("test.kr"), 1, 1);
+        let err = undefined_function_error(loc, "xyz", vec![]);
+        let msg = err.to_string();
+        assert!(msg.contains("undefined function `xyz`"));
+        assert!(!msg.contains("did you mean"));
+    }
+
+    #[test]
+    fn test_undefined_function_one_suggestion() {
+        let loc = SourceLocation::new(PathBuf::from("test.kr"), 1, 1);
+        let err = undefined_function_error(loc, "fo", vec!["foo".to_string()]);
+        let msg = err.to_string();
+        assert!(msg.contains("did you mean `foo`?"));
+        assert!(!msg.contains("or `"));
+    }
+
+    #[test]
+    fn test_find_similar_names_no_matches() {
+        let candidates = vec!["aaaaa".to_string(), "bbbbb".to_string()];
+        let suggestions = find_similar_names("zzzzz", &candidates, 2);
+        assert!(suggestions.is_empty());
+    }
+
+    #[test]
+    fn test_levenshtein_identical_long() {
+        assert_eq!(levenshtein_distance("abcdefgh", "abcdefgh"), 0);
+    }
+
+    #[test]
+    fn test_levenshtein_completely_different() {
+        assert_eq!(levenshtein_distance("abc", "xyz"), 3);
+    }
+
+    #[test]
+    fn test_undefined_variable_one_suggestion() {
+        let loc = SourceLocation::new(PathBuf::from("test.kr"), 1, 1);
+        let err = undefined_variable_error(loc, "cnt", vec!["count".to_string()]);
+        let msg = err.to_string();
+        assert!(msg.contains("did you mean `count`?"));
+        assert!(!msg.contains("or `"));
+    }
 }

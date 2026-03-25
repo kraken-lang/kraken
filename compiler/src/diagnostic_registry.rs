@@ -859,4 +859,84 @@ mod tests {
         assert!(!info.title.is_empty());
         assert!(!info.description.is_empty());
     }
+
+    #[test]
+    fn test_registry_default() {
+        let registry = DiagnosticRegistry::default();
+        assert!(!registry.entries.is_empty());
+    }
+
+    #[test]
+    fn test_lookup_all_categories() {
+        let registry = DiagnosticRegistry::new();
+        let categories = [
+            "KRA0001", "KRA1000", "KRA2000", "KRA3000", "KRA4000",
+            "KRA5000", "KRA6000", "KRA7000", "KRA8000", "KRA9000",
+            "KRA9999",
+        ];
+        for code in &categories {
+            assert!(registry.lookup(code).is_some(), "Missing: {code}");
+        }
+    }
+
+    #[test]
+    fn test_info_with_example() {
+        let registry = DiagnosticRegistry::new();
+        let info = registry.lookup("KRA0001").unwrap();
+        assert!(info.example.is_some());
+        assert!(info.suggestion.is_some());
+    }
+
+    #[test]
+    fn test_info_without_example() {
+        let registry = DiagnosticRegistry::new();
+        let info = registry.lookup("KRA5000").unwrap();
+        assert!(info.example.is_none());
+        assert!(info.suggestion.is_some());
+    }
+
+    #[test]
+    fn test_all_codes_count() {
+        let registry = DiagnosticRegistry::new();
+        let codes = registry.all_codes();
+        assert!(codes.len() >= 60, "Expected at least 60 codes, got {}", codes.len());
+    }
+
+    #[test]
+    fn test_diagnostic_info_clone_debug() {
+        let registry = DiagnosticRegistry::new();
+        let info = registry.lookup("KRA0001").unwrap();
+        let cloned = info.clone();
+        assert_eq!(cloned.title, info.title);
+        let debug = format!("{:?}", info);
+        assert!(debug.contains("KRA0001"));
+    }
+
+    #[test]
+    fn test_lookup_lexer_range() {
+        let registry = DiagnosticRegistry::new();
+        for code in ["KRA0002", "KRA0003", "KRA0004", "KRA0005", "KRA0006",
+                     "KRA0007", "KRA0008", "KRA0009", "KRA0010", "KRA0011", "KRA0012"] {
+            assert!(registry.lookup(code).is_some(), "Missing lexer code: {code}");
+        }
+    }
+
+    #[test]
+    fn test_lookup_parser_range() {
+        let registry = DiagnosticRegistry::new();
+        for code in ["KRA1001", "KRA1002", "KRA1003", "KRA1004", "KRA1005",
+                     "KRA1006", "KRA1007", "KRA1008", "KRA1009", "KRA1010",
+                     "KRA1011", "KRA1012", "KRA1013", "KRA1014", "KRA1015"] {
+            assert!(registry.lookup(code).is_some(), "Missing parser code: {code}");
+        }
+    }
+
+    #[test]
+    fn test_lookup_borrow_range() {
+        let registry = DiagnosticRegistry::new();
+        for code in ["KRA4000", "KRA4001", "KRA4002", "KRA4003", "KRA4004",
+                     "KRA4005", "KRA4006", "KRA4007", "KRA4008"] {
+            assert!(registry.lookup(code).is_some(), "Missing borrow code: {code}");
+        }
+    }
 }

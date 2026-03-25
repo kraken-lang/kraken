@@ -737,4 +737,435 @@ mod tests {
             Some(Value::Constant(0))
         );
     }
+
+    // --- Default impls ---
+
+    #[test]
+    fn test_constant_folder_default() {
+        let f = ConstantFolder::default();
+        assert_eq!(f.fold_binary_op("+", 1, 2), Some(3));
+    }
+
+    #[test]
+    fn test_dead_code_eliminator_default() {
+        let e = DeadCodeEliminator::default();
+        assert!(e.has_side_effects(&Instruction::Return { value: None }));
+    }
+
+    #[test]
+    fn test_loop_optimizer_default() {
+        let o = LoopOptimizer::default();
+        assert!(o.is_loop_invariant(&Value::Constant(0), &[]));
+    }
+
+    #[test]
+    fn test_memory_optimizer_default() {
+        let m = MemoryOptimizer::default();
+        assert_eq!(m.allocation_strategy(0), AllocationStrategy::None);
+    }
+
+    #[test]
+    fn test_compilation_cache_default() {
+        let c = CompilationCache::default();
+        assert_eq!(c.valid_count(), 0);
+    }
+
+    // --- Unknown ops return None ---
+
+    #[test]
+    fn test_fold_binary_unknown_op() {
+        let f = ConstantFolder::new();
+        assert_eq!(f.fold_binary_op("??", 1, 2), None);
+    }
+
+    #[test]
+    fn test_fold_unary_unknown_op() {
+        let f = ConstantFolder::new();
+        assert_eq!(f.fold_unary_op("!", 1), None);
+    }
+
+    #[test]
+    fn test_fold_comparison_unknown_op() {
+        let f = ConstantFolder::new();
+        assert_eq!(f.fold_comparison("??", 1, 2), None);
+    }
+
+    // --- Remaining comparison operators ---
+
+    #[test]
+    fn test_fold_comparison_all_ops() {
+        let f = ConstantFolder::new();
+        assert_eq!(f.fold_comparison("!=", 1, 2), Some(true));
+        assert_eq!(f.fold_comparison("!=", 1, 1), Some(false));
+        assert_eq!(f.fold_comparison("<=", 1, 2), Some(true));
+        assert_eq!(f.fold_comparison("<=", 2, 2), Some(true));
+        assert_eq!(f.fold_comparison("<=", 3, 2), Some(false));
+        assert_eq!(f.fold_comparison(">=", 3, 2), Some(true));
+        assert_eq!(f.fold_comparison(">=", 2, 2), Some(true));
+        assert_eq!(f.fold_comparison(">=", 1, 2), Some(false));
+    }
+
+    // --- Subtraction folding ---
+
+    #[test]
+    fn test_constant_fold_binary_sub() {
+        let f = ConstantFolder::new();
+        assert_eq!(f.fold_binary_op("-", 10, 3), Some(7));
+        assert_eq!(f.fold_binary_op("-", 3, 10), Some(-7));
+    }
+
+    // --- fold_identity: commutative left-side and missing branches ---
+
+    #[test]
+    fn test_fold_identity_add_zero_left() {
+        let f = ConstantFolder::new();
+        let val = Value::Register(2);
+        assert_eq!(f.fold_identity("+", &Value::Constant(0), &val), Some(val));
+    }
+
+    #[test]
+    fn test_fold_identity_sub_zero() {
+        let f = ConstantFolder::new();
+        let val = Value::Register(2);
+        assert_eq!(f.fold_identity("-", &val, &Value::Constant(0)), Some(val));
+    }
+
+    #[test]
+    fn test_fold_identity_mul_one_left() {
+        let f = ConstantFolder::new();
+        let val = Value::Register(2);
+        assert_eq!(f.fold_identity("*", &Value::Constant(1), &val), Some(val));
+    }
+
+    #[test]
+    fn test_fold_identity_mul_zero_left() {
+        let f = ConstantFolder::new();
+        let val = Value::Register(2);
+        assert_eq!(
+            f.fold_identity("*", &Value::Constant(0), &val),
+            Some(Value::Constant(0))
+        );
+    }
+
+    #[test]
+    fn test_fold_identity_div_one() {
+        let f = ConstantFolder::new();
+        let val = Value::Register(2);
+        assert_eq!(f.fold_identity("/", &val, &Value::Constant(1)), Some(val));
+    }
+
+    #[test]
+    fn test_fold_identity_or_zero_left() {
+        let f = ConstantFolder::new();
+        let val = Value::Register(2);
+        assert_eq!(f.fold_identity("|", &Value::Constant(0), &val), Some(val));
+    }
+
+    #[test]
+    fn test_fold_identity_and_zero_left() {
+        let f = ConstantFolder::new();
+        let val = Value::Register(2);
+        assert_eq!(
+            f.fold_identity("&", &Value::Constant(0), &val),
+            Some(Value::Constant(0))
+        );
+    }
+
+    #[test]
+    fn test_fold_identity_xor_zero_left() {
+        let f = ConstantFolder::new();
+        let val = Value::Register(2);
+        assert_eq!(f.fold_identity("^", &Value::Constant(0), &val), Some(val));
+    }
+
+    #[test]
+    fn test_fold_identity_unknown_op() {
+        let f = ConstantFolder::new();
+        assert_eq!(
+            f.fold_identity("??", &Value::Register(0), &Value::Constant(0)),
+            None
+        );
+    }
+
+    // --- DeadCodeEliminator: all side-effect instruction types ---
+
+    #[test]
+    fn test_has_side_effects_store() {
+        let e = DeadCodeEliminator::new();
+        assert!(e.has_side_effects(&Instruction::Store {
+            address: Value::Register(0),
+            value: Value::Constant(1),
+        }));
+    }
+
+    #[test]
+    fn test_has_side_effects_branch() {
+        let e = DeadCodeEliminator::new();
+        assert!(e.has_side_effects(&Instruction::Branch {
+            target: "loop".into(),
+        }));
+    }
+
+    #[test]
+    fn test_has_side_effects_cond_branch() {
+        let e = DeadCodeEliminator::new();
+        assert!(e.has_side_effects(&Instruction::CondBranch {
+            condition: Value::Register(0),
+            true_target: "then".into(),
+            false_target: "else".into(),
+        }));
+    }
+
+    #[test]
+    fn test_no_side_effects_binary_op() {
+        let e = DeadCodeEliminator::new();
+        assert!(!e.has_side_effects(&Instruction::BinaryOp {
+            op: "+".into(),
+            left: Value::Constant(1),
+            right: Value::Constant(2),
+            result: Value::Register(0),
+        }));
+    }
+
+    #[test]
+    fn test_no_side_effects_unary_op() {
+        let e = DeadCodeEliminator::new();
+        assert!(!e.has_side_effects(&Instruction::UnaryOp {
+            op: "-".into(),
+            operand: Value::Constant(1),
+            result: Value::Register(0),
+        }));
+    }
+
+    #[test]
+    fn test_no_side_effects_load() {
+        let e = DeadCodeEliminator::new();
+        assert!(!e.has_side_effects(&Instruction::Load {
+            address: Value::Register(0),
+            result: Value::Register(1),
+        }));
+    }
+
+    // --- instruction_uses_value: all instruction types ---
+
+    #[test]
+    fn test_value_used_in_unary_op() {
+        let e = DeadCodeEliminator::new();
+        let v = Value::Register(1);
+        let instrs = vec![Instruction::UnaryOp {
+            op: "-".into(),
+            operand: Value::Register(1),
+            result: Value::Register(2),
+        }];
+        assert!(e.is_value_used(&v, &instrs));
+    }
+
+    #[test]
+    fn test_value_used_in_load() {
+        let e = DeadCodeEliminator::new();
+        let v = Value::Register(1);
+        let instrs = vec![Instruction::Load {
+            address: Value::Register(1),
+            result: Value::Register(2),
+        }];
+        assert!(e.is_value_used(&v, &instrs));
+    }
+
+    #[test]
+    fn test_value_used_in_store_address() {
+        let e = DeadCodeEliminator::new();
+        let v = Value::Register(1);
+        let instrs = vec![Instruction::Store {
+            address: Value::Register(1),
+            value: Value::Constant(0),
+        }];
+        assert!(e.is_value_used(&v, &instrs));
+    }
+
+    #[test]
+    fn test_value_used_in_store_value() {
+        let e = DeadCodeEliminator::new();
+        let v = Value::Register(1);
+        let instrs = vec![Instruction::Store {
+            address: Value::Register(9),
+            value: Value::Register(1),
+        }];
+        assert!(e.is_value_used(&v, &instrs));
+    }
+
+    #[test]
+    fn test_value_used_in_call_args() {
+        let e = DeadCodeEliminator::new();
+        let v = Value::Register(1);
+        let instrs = vec![Instruction::Call {
+            function: "f".into(),
+            args: vec![Value::Register(1)],
+            result: None,
+        }];
+        assert!(e.is_value_used(&v, &instrs));
+    }
+
+    #[test]
+    fn test_value_used_in_return() {
+        let e = DeadCodeEliminator::new();
+        let v = Value::Register(1);
+        let instrs = vec![Instruction::Return {
+            value: Some(Value::Register(1)),
+        }];
+        assert!(e.is_value_used(&v, &instrs));
+    }
+
+    #[test]
+    fn test_value_used_in_cond_branch() {
+        let e = DeadCodeEliminator::new();
+        let v = Value::Register(1);
+        let instrs = vec![Instruction::CondBranch {
+            condition: Value::Register(1),
+            true_target: "t".into(),
+            false_target: "f".into(),
+        }];
+        assert!(e.is_value_used(&v, &instrs));
+    }
+
+    #[test]
+    fn test_value_not_used_in_branch() {
+        let e = DeadCodeEliminator::new();
+        let v = Value::Register(1);
+        let instrs = vec![Instruction::Branch {
+            target: "loop".into(),
+        }];
+        assert!(!e.is_value_used(&v, &instrs));
+    }
+
+    #[test]
+    fn test_value_not_used_in_return_none() {
+        let e = DeadCodeEliminator::new();
+        let v = Value::Register(1);
+        let instrs = vec![Instruction::Return { value: None }];
+        assert!(!e.is_value_used(&v, &instrs));
+    }
+
+    // --- LoopOptimizer: invariant for UnaryOp, Load, Call results ---
+
+    #[test]
+    fn test_loop_invariant_register_defined_by_unary() {
+        let o = LoopOptimizer::new();
+        let body = vec![Instruction::UnaryOp {
+            op: "-".into(),
+            operand: Value::Constant(1),
+            result: Value::Register(3),
+        }];
+        assert!(!o.is_loop_invariant(&Value::Register(3), &body));
+        assert!(o.is_loop_invariant(&Value::Register(9), &body));
+    }
+
+    #[test]
+    fn test_loop_invariant_register_defined_by_load() {
+        let o = LoopOptimizer::new();
+        let body = vec![Instruction::Load {
+            address: Value::Register(0),
+            result: Value::Register(4),
+        }];
+        assert!(!o.is_loop_invariant(&Value::Register(4), &body));
+    }
+
+    #[test]
+    fn test_loop_invariant_register_defined_by_call() {
+        let o = LoopOptimizer::new();
+        let body = vec![Instruction::Call {
+            function: "f".into(),
+            args: vec![],
+            result: Some(Value::Register(5)),
+        }];
+        assert!(!o.is_loop_invariant(&Value::Register(5), &body));
+    }
+
+    #[test]
+    fn test_loop_invariant_call_no_result() {
+        let o = LoopOptimizer::new();
+        let body = vec![Instruction::Call {
+            function: "f".into(),
+            args: vec![],
+            result: None,
+        }];
+        assert!(o.is_loop_invariant(&Value::Register(0), &body));
+    }
+
+    // --- Induction variable: subtraction and constant-on-left ---
+
+    #[test]
+    fn test_induction_variable_sub() {
+        let o = LoopOptimizer::new();
+        let body = vec![Instruction::BinaryOp {
+            op: "-".into(),
+            left: Value::Register(0),
+            right: Value::Constant(1),
+            result: Value::Register(0),
+        }];
+        assert!(o.is_induction_variable(&Value::Register(0), &body));
+    }
+
+    #[test]
+    fn test_induction_variable_constant_on_left() {
+        let o = LoopOptimizer::new();
+        let body = vec![Instruction::BinaryOp {
+            op: "+".into(),
+            left: Value::Constant(1),
+            right: Value::Register(0),
+            result: Value::Register(0),
+        }];
+        assert!(o.is_induction_variable(&Value::Register(0), &body));
+    }
+
+    #[test]
+    fn test_not_induction_variable_mul() {
+        let o = LoopOptimizer::new();
+        let body = vec![Instruction::BinaryOp {
+            op: "*".into(),
+            left: Value::Register(0),
+            right: Value::Constant(2),
+            result: Value::Register(0),
+        }];
+        assert!(!o.is_induction_variable(&Value::Register(0), &body));
+    }
+
+    // --- count_hoistable: with UnaryOp ---
+
+    #[test]
+    fn test_count_hoistable_unary() {
+        let o = LoopOptimizer::new();
+        let body = vec![
+            Instruction::UnaryOp {
+                op: "-".into(),
+                operand: Value::Constant(42),
+                result: Value::Register(1),
+            },
+            Instruction::UnaryOp {
+                op: "-".into(),
+                operand: Value::Register(0),
+                result: Value::Register(2),
+            },
+        ];
+        // First is hoistable (constant operand), second depends on reg defined outside
+        // Register(0) is not defined in the loop so it's invariant
+        assert_eq!(o.count_hoistable(&body), 2);
+    }
+
+    // --- CompilationCache: invalidate non-existent ---
+
+    #[test]
+    fn test_invalidate_nonexistent() {
+        let mut c = CompilationCache::new();
+        c.invalidate(999); // Should not panic
+        assert_eq!(c.valid_count(), 0);
+    }
+
+    // --- SIMD: remaining ops ---
+
+    #[test]
+    fn test_simd_all_supported_ops() {
+        for op in &["+", "-", "*", "/", "&", "|", "^"] {
+            assert!(SimdHints::is_vectorizable(op, 4));
+        }
+    }
 }

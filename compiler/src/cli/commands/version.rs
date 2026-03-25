@@ -62,4 +62,21 @@ mod tests {
         let result = cmd.execute(vec![]);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_version_create() {
+        let cmd = VersionCommand::create();
+        assert_eq!(cmd.name(), "version");
+    }
+
+    #[test]
+    fn test_version_default() {
+        let _cmd = VersionCommand::default();
+    }
+
+    #[test]
+    fn test_rustc_version_not_empty() {
+        let v = rustc_version();
+        assert!(!v.is_empty());
+    }
 }

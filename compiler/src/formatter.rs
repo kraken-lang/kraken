@@ -236,4 +236,87 @@ mod tests {
         let formatted = formatter.format_source("let x = 42;").unwrap();
         assert!(formatted.ends_with('\n'));
     }
+
+    #[test]
+    fn test_formatter_default() {
+        let f = Formatter::default();
+        assert_eq!(f.config.indent_size, 4);
+        assert_eq!(f.config.max_line_width, 100);
+    }
+
+    #[test]
+    fn test_format_file_nonexistent() {
+        let f = Formatter::new();
+        assert!(f.format_file(Path::new("/nonexistent/file.kr")).is_err());
+    }
+
+    #[test]
+    fn test_check_file_nonexistent() {
+        let f = Formatter::new();
+        assert!(f.check_file(Path::new("/nonexistent/file.kr")).is_err());
+    }
+
+    #[test]
+    fn test_format_file_in_place_nonexistent() {
+        let f = Formatter::new();
+        assert!(f.format_file_in_place(Path::new("/nonexistent/file.kr")).is_err());
+    }
+
+    #[test]
+    fn test_closing_bracket_indent() {
+        let f = Formatter::new();
+        let src = "fn foo() {\nlet arr = [\n1, 2, 3\n];\n}";
+        let formatted = f.format_source(src).unwrap();
+        assert!(formatted.contains("    let arr = ["));
+        assert!(formatted.contains("    ];"));
+    }
+
+    #[test]
+    fn test_closing_paren_indent() {
+        let f = Formatter::new();
+        let src = "call(\na,\nb\n);";
+        let formatted = f.format_source(src).unwrap();
+        assert!(formatted.contains(");"));
+    }
+
+    #[test]
+    fn test_open_and_close_same_line() {
+        let f = Formatter::new();
+        let src = "fn main() {\n{ let x = 1; }\n}";
+        let formatted = f.format_source(src).unwrap();
+        assert!(formatted.contains("{ let x = 1; }"));
+    }
+
+    #[test]
+    fn test_line_starting_with_close_and_opening_new() {
+        let f = Formatter::new();
+        // } else { pattern: closes one, opens one
+        let src = "fn main() {\nif true {\nx;\n} else {\ny;\n}\n}";
+        let formatted = f.format_source(src).unwrap();
+        assert!(formatted.contains("} else {"));
+    }
+
+    #[test]
+    fn test_multiple_consecutive_blank_lines_collapsed() {
+        let f = Formatter::new();
+        let src = "a;\n\n\n\n\nb;";
+        let formatted = f.format_source(src).unwrap();
+        let blank_count = formatted.matches("\n\n").count();
+        assert!(blank_count <= 1);
+    }
+
+    #[test]
+    fn test_only_blank_lines() {
+        let f = Formatter::new();
+        let formatted = f.format_source("\n\n\n").unwrap();
+        assert!(formatted.is_empty());
+    }
+
+    #[test]
+    fn test_deeply_nested() {
+        let f = Formatter::new();
+        let src = "a {\nb {\nc {\nd;\n}\n}\n}";
+        let formatted = f.format_source(src).unwrap();
+        assert!(formatted.contains("            d;"));
+    }
 }

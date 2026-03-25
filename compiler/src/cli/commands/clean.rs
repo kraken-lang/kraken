@@ -71,4 +71,15 @@ mod tests {
         let result = cmd.clean_directory(Path::new("/nonexistent/dir"));
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_clean_create() {
+        let cmd = CleanCommand::create();
+        assert_eq!(cmd.name(), "clean");
+    }
+
+    #[test]
+    fn test_clean_default() {
+        let _cmd = CleanCommand::default();
+    }
 }

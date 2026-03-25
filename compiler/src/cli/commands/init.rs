@@ -110,4 +110,15 @@ mod tests {
         assert_eq!(cmd.name(), "init");
         assert!(!cmd.description().is_empty());
     }
+
+    #[test]
+    fn test_init_create() {
+        let cmd = InitCommand::create();
+        assert_eq!(cmd.name(), "init");
+    }
+
+    #[test]
+    fn test_init_default() {
+        let _cmd = InitCommand::default();
+    }
 }

@@ -282,33 +282,185 @@ impl Default for DeriveGenerator {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_derive_generator_creation() {
-        let generator = DeriveGenerator::new();
-        assert!(std::mem::size_of_val(&generator) == 0);
+    fn fields_xy() -> Vec<(String, Type)> {
+        vec![("x".into(), Type::Int), ("y".into(), Type::Float)]
+    }
+    fn fields_single() -> Vec<(String, Type)> {
+        vec![("id".into(), Type::Int)]
     }
 
     #[test]
-    fn test_generate_clone_impl() {
-        let generator = DeriveGenerator::new();
-        let fields = vec![("x".to_string(), Type::Int), ("y".to_string(), Type::Int)];
-        let result = generator.generate_clone_impl("Point", &fields);
-        assert!(result.is_ok());
+    fn test_default() {
+        let _g = DeriveGenerator::default();
     }
 
     #[test]
-    fn test_generate_debug_impl() {
-        let generator = DeriveGenerator::new();
-        let fields = vec![("value".to_string(), Type::Int)];
-        let result = generator.generate_debug_impl("MyStruct", &fields);
-        assert!(result.is_ok());
+    fn test_new() {
+        let g = DeriveGenerator::new();
+        assert_eq!(std::mem::size_of_val(&g), 0);
+    }
+
+    // --- generate_trait_impl dispatch ---
+
+    #[test]
+    fn test_dispatch_clone() {
+        let g = DeriveGenerator::new();
+        let r = g.generate_trait_impl("Clone", "Pt", &fields_xy());
+        assert!(r.is_ok());
+        match r.unwrap() {
+            Statement::TraitImpl { trait_name, type_name, methods, .. } => {
+                assert_eq!(trait_name, "Clone");
+                assert_eq!(type_name, "Pt");
+                assert_eq!(methods.len(), 1);
+            }
+            _ => panic!("Expected TraitImpl"),
+        }
     }
 
     #[test]
-    fn test_generate_partial_eq_impl() {
-        let generator = DeriveGenerator::new();
-        let fields = vec![("id".to_string(), Type::Int)];
-        let result = generator.generate_partial_eq_impl("Entity", &fields);
-        assert!(result.is_ok());
+    fn test_dispatch_debug() {
+        let g = DeriveGenerator::new();
+        let r = g.generate_trait_impl("Debug", "S", &fields_single()).unwrap();
+        match r {
+            Statement::TraitImpl { trait_name, .. } => assert_eq!(trait_name, "Debug"),
+            _ => panic!("Expected TraitImpl"),
+        }
+    }
+
+    #[test]
+    fn test_dispatch_partial_eq() {
+        let g = DeriveGenerator::new();
+        assert!(g.generate_trait_impl("PartialEq", "S", &fields_single()).is_ok());
+    }
+
+    #[test]
+    fn test_dispatch_eq() {
+        let g = DeriveGenerator::new();
+        let r = g.generate_trait_impl("Eq", "S", &[]).unwrap();
+        match r {
+            Statement::TraitImpl { trait_name, methods, .. } => {
+                assert_eq!(trait_name, "Eq");
+                assert!(methods.is_empty()); // marker trait
+            }
+            _ => panic!("Expected TraitImpl"),
+        }
+    }
+
+    #[test]
+    fn test_dispatch_partial_ord() {
+        let g = DeriveGenerator::new();
+        assert!(g.generate_trait_impl("PartialOrd", "S", &[]).is_ok());
+    }
+
+    #[test]
+    fn test_dispatch_ord() {
+        let g = DeriveGenerator::new();
+        assert!(g.generate_trait_impl("Ord", "S", &[]).is_ok());
+    }
+
+    #[test]
+    fn test_dispatch_hash() {
+        let g = DeriveGenerator::new();
+        assert!(g.generate_trait_impl("Hash", "S", &[]).is_ok());
+    }
+
+    #[test]
+    fn test_dispatch_unknown_trait() {
+        let g = DeriveGenerator::new();
+        assert!(g.generate_trait_impl("Serialize", "S", &[]).is_err());
+    }
+
+    // --- Clone impl details ---
+
+    #[test]
+    fn test_clone_empty_fields() {
+        let g = DeriveGenerator::new();
+        let r = g.generate_clone_impl("Empty", &[]).unwrap();
+        match r {
+            Statement::TraitImpl { methods, .. } => {
+                assert_eq!(methods.len(), 1);
+            }
+            _ => panic!("Expected TraitImpl"),
+        }
+    }
+
+    #[test]
+    fn test_clone_multiple_fields() {
+        let g = DeriveGenerator::new();
+        let fields = vec![
+            ("a".into(), Type::Int),
+            ("b".into(), Type::String),
+            ("c".into(), Type::Bool),
+        ];
+        assert!(g.generate_clone_impl("Multi", &fields).is_ok());
+    }
+
+    // --- PartialEq impl details ---
+
+    #[test]
+    fn test_partial_eq_empty_fields() {
+        let g = DeriveGenerator::new();
+        let r = g.generate_partial_eq_impl("Empty", &[]).unwrap();
+        match r {
+            Statement::TraitImpl { methods, .. } => {
+                assert_eq!(methods.len(), 1);
+                // Should return true for empty struct
+                if let Statement::FunctionDeclaration { body, .. } = &methods[0] {
+                    match &body.statements[0] {
+                        Statement::Return { value: Some(Expression::BoolLiteral(true)) } => {}
+                        _ => panic!("Expected return true for empty PartialEq"),
+                    }
+                }
+            }
+            _ => panic!("Expected TraitImpl"),
+        }
+    }
+
+    #[test]
+    fn test_partial_eq_single_field() {
+        let g = DeriveGenerator::new();
+        assert!(g.generate_partial_eq_impl("One", &fields_single()).is_ok());
+    }
+
+    #[test]
+    fn test_partial_eq_multiple_fields() {
+        let g = DeriveGenerator::new();
+        let r = g.generate_partial_eq_impl("Multi", &fields_xy()).unwrap();
+        // Should chain comparisons with &&
+        match r {
+            Statement::TraitImpl { methods, .. } => {
+                assert_eq!(methods.len(), 1);
+                if let Statement::FunctionDeclaration { body, .. } = &methods[0] {
+                    match &body.statements[0] {
+                        Statement::Return { value: Some(Expression::Binary { operator, .. }) } => {
+                            assert_eq!(*operator, crate::lexer::token::Operator::And);
+                        }
+                        _ => panic!("Expected chained binary && for multi-field PartialEq"),
+                    }
+                }
+            }
+            _ => panic!("Expected TraitImpl"),
+        }
+    }
+
+    // --- Debug impl ---
+
+    #[test]
+    fn test_debug_returns_type_name() {
+        let g = DeriveGenerator::new();
+        let r = g.generate_debug_impl("Widget", &[]).unwrap();
+        match r {
+            Statement::TraitImpl { methods, .. } => {
+                if let Statement::FunctionDeclaration { body, .. } = &methods[0] {
+                    match &body.statements[0] {
+                        Statement::Return { value: Some(Expression::StringLiteral(s)) } => {
+                            assert!(s.contains("Widget"));
+                        }
+                        _ => panic!("Expected string literal return"),
+                    }
+                }
+            }
+            _ => panic!("Expected TraitImpl"),
+        }
     }
 }

@@ -143,53 +143,162 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_attribute_processor_creation() {
-        let processor = AttributeProcessor::new();
-        assert!(!processor.has_function_attr("test", "inline"));
+    fn test_default() {
+        let p = AttributeProcessor::default();
+        assert!(!p.has_function_attr("f", "x"));
     }
 
     #[test]
-    fn test_register_function_attr() {
-        let mut processor = AttributeProcessor::new();
-        processor.register_function_attr(
-            "my_func".to_string(),
-            "inline".to_string(),
-            AttributeValue::Flag,
-        );
-        assert!(processor.has_function_attr("my_func", "inline"));
+    fn test_new() {
+        let p = AttributeProcessor::new();
+        assert!(p.function_attrs.is_empty());
+        assert!(p.type_attrs.is_empty());
     }
+
+    // --- Function attributes ---
+
+    #[test]
+    fn test_register_function_attr_flag() {
+        let mut p = AttributeProcessor::new();
+        p.register_function_attr("f".into(), "inline".into(), AttributeValue::Flag);
+        assert!(p.has_function_attr("f", "inline"));
+        assert!(!p.has_function_attr("f", "test"));
+        assert!(!p.has_function_attr("g", "inline"));
+    }
+
+    #[test]
+    fn test_get_function_attr() {
+        let mut p = AttributeProcessor::new();
+        p.register_function_attr("f".into(), "inline".into(), AttributeValue::Flag);
+        assert_eq!(p.get_function_attr("f", "inline"), Some(&AttributeValue::Flag));
+        assert_eq!(p.get_function_attr("f", "test"), None);
+        assert_eq!(p.get_function_attr("g", "inline"), None);
+    }
+
+    #[test]
+    fn test_register_function_attr_args() {
+        let mut p = AttributeProcessor::new();
+        p.register_function_attr("f".into(), "cfg".into(), AttributeValue::Args(vec!["test".into()]));
+        match p.get_function_attr("f", "cfg") {
+            Some(AttributeValue::Args(args)) => assert_eq!(args, &["test"]),
+            _ => panic!("Expected Args"),
+        }
+    }
+
+    // --- Type attributes ---
 
     #[test]
     fn test_register_type_attr() {
-        let mut processor = AttributeProcessor::new();
-        processor.register_type_attr(
-            "MyStruct".to_string(),
-            "derive".to_string(),
-            AttributeValue::Args(vec!["Clone".to_string(), "Debug".to_string()]),
-        );
-        assert!(processor.has_type_attr("MyStruct", "derive"));
-        let traits = processor.get_derive_traits("MyStruct");
-        assert_eq!(traits, vec!["Clone", "Debug"]);
+        let mut p = AttributeProcessor::new();
+        p.register_type_attr("S".into(), "derive".into(), AttributeValue::Args(vec!["Clone".into()]));
+        assert!(p.has_type_attr("S", "derive"));
+        assert!(!p.has_type_attr("S", "repr"));
+        assert!(!p.has_type_attr("T", "derive"));
     }
 
     #[test]
-    fn test_validate_inline_attribute() {
-        let processor = AttributeProcessor::new();
-        assert!(processor.validate_attribute("inline", &[]).is_ok());
-        assert!(processor
-            .validate_attribute("inline", &["arg".to_string()])
-            .is_err());
+    fn test_get_type_attr() {
+        let mut p = AttributeProcessor::new();
+        p.register_type_attr("S".into(), "inline".into(), AttributeValue::Flag);
+        assert_eq!(p.get_type_attr("S", "inline"), Some(&AttributeValue::Flag));
+        assert_eq!(p.get_type_attr("S", "missing"), None);
+        assert_eq!(p.get_type_attr("T", "inline"), None);
+    }
+
+    // --- Derive traits ---
+
+    #[test]
+    fn test_get_derive_traits() {
+        let mut p = AttributeProcessor::new();
+        p.register_type_attr("S".into(), "derive".into(), AttributeValue::Args(vec!["Clone".into(), "Debug".into()]));
+        assert_eq!(p.get_derive_traits("S"), vec!["Clone", "Debug"]);
     }
 
     #[test]
-    fn test_validate_derive_attribute() {
-        let processor = AttributeProcessor::new();
-        assert!(processor
-            .validate_attribute("derive", &["Clone".to_string()])
-            .is_ok());
-        assert!(processor.validate_attribute("derive", &[]).is_err());
-        assert!(processor
-            .validate_attribute("derive", &["UnknownTrait".to_string()])
-            .is_err());
+    fn test_get_derive_traits_no_derive() {
+        let p = AttributeProcessor::new();
+        assert!(p.get_derive_traits("S").is_empty());
+    }
+
+    #[test]
+    fn test_get_derive_traits_flag_not_args() {
+        let mut p = AttributeProcessor::new();
+        p.register_type_attr("S".into(), "derive".into(), AttributeValue::Flag);
+        assert!(p.get_derive_traits("S").is_empty());
+    }
+
+    // --- Validate attributes ---
+
+    #[test]
+    fn test_validate_inline_ok() {
+        let p = AttributeProcessor::new();
+        assert!(p.validate_attribute("inline", &[]).is_ok());
+    }
+
+    #[test]
+    fn test_validate_inline_with_args_err() {
+        let p = AttributeProcessor::new();
+        assert!(p.validate_attribute("inline", &["x".into()]).is_err());
+    }
+
+    #[test]
+    fn test_validate_no_mangle_ok() {
+        let p = AttributeProcessor::new();
+        assert!(p.validate_attribute("no_mangle", &[]).is_ok());
+    }
+
+    #[test]
+    fn test_validate_no_mangle_with_args_err() {
+        let p = AttributeProcessor::new();
+        assert!(p.validate_attribute("no_mangle", &["x".into()]).is_err());
+    }
+
+    #[test]
+    fn test_validate_test_ok() {
+        let p = AttributeProcessor::new();
+        assert!(p.validate_attribute("test", &[]).is_ok());
+    }
+
+    #[test]
+    fn test_validate_test_with_args_err() {
+        let p = AttributeProcessor::new();
+        assert!(p.validate_attribute("test", &["x".into()]).is_err());
+    }
+
+    #[test]
+    fn test_validate_derive_ok_all_known() {
+        let p = AttributeProcessor::new();
+        for t in &["Clone", "Debug", "PartialEq", "Eq", "PartialOrd", "Ord", "Hash"] {
+            assert!(p.validate_attribute("derive", &[t.to_string()]).is_ok());
+        }
+    }
+
+    #[test]
+    fn test_validate_derive_empty_err() {
+        let p = AttributeProcessor::new();
+        assert!(p.validate_attribute("derive", &[]).is_err());
+    }
+
+    #[test]
+    fn test_validate_derive_unknown_trait_err() {
+        let p = AttributeProcessor::new();
+        assert!(p.validate_attribute("derive", &["Serialize".into()]).is_err());
+    }
+
+    #[test]
+    fn test_validate_unknown_attribute_err() {
+        let p = AttributeProcessor::new();
+        assert!(p.validate_attribute("repr", &[]).is_err());
+    }
+
+    // --- Multiple attrs on same item ---
+
+    #[test]
+    fn test_multiple_attrs_same_function() {
+        let mut p = AttributeProcessor::new();
+        p.register_function_attr("f".into(), "inline".into(), AttributeValue::Flag);
+        p.register_function_attr("f".into(), "test".into(), AttributeValue::Flag);
+        assert!(p.has_function_attr("f", "inline"));
+        assert!(p.has_function_attr("f", "test"));
     }
 }

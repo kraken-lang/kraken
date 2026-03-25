@@ -136,50 +136,161 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_future_tracker_creation() {
-        let tracker = FutureTracker::new();
-        assert!(!tracker.has_future_impl("MyFuture"));
+    fn test_default() {
+        let t = FutureTracker::default();
+        assert!(!t.has_future_impl("X"));
+    }
+
+    #[test]
+    fn test_new() {
+        let t = FutureTracker::new();
+        assert!(t.future_impls.is_empty());
     }
 
     #[test]
     fn test_register_future_impl() {
-        let mut tracker = FutureTracker::new();
-        tracker.register_future_impl("MyFuture".to_string(), Type::Int);
-        assert!(tracker.has_future_impl("MyFuture"));
+        let mut t = FutureTracker::new();
+        t.register_future_impl("MyFut".into(), Type::Int);
+        assert!(t.has_future_impl("MyFut"));
+        assert!(!t.has_future_impl("Other"));
     }
 
     #[test]
     fn test_get_output_type() {
-        let mut tracker = FutureTracker::new();
-        tracker.register_future_impl("MyFuture".to_string(), Type::Int);
-        let output = tracker.get_output_type("MyFuture");
-        assert_eq!(output, Some(&Type::Int));
+        let mut t = FutureTracker::new();
+        t.register_future_impl("F".into(), Type::String);
+        assert_eq!(t.get_output_type("F"), Some(&Type::String));
     }
 
     #[test]
-    fn test_validate_future_impl() {
-        let mut tracker = FutureTracker::new();
-        tracker.register_future_impl("MyFuture".to_string(), Type::Int);
-        assert!(tracker.validate_future_impl("MyFuture").is_ok());
-        assert!(tracker.validate_future_impl("NonExistent").is_err());
+    fn test_get_output_type_missing() {
+        let t = FutureTracker::new();
+        assert_eq!(t.get_output_type("Missing"), None);
     }
 
     #[test]
-    fn test_pin_creation() {
+    fn test_validate_future_impl_ok() {
+        let mut t = FutureTracker::new();
+        t.register_future_impl("F".into(), Type::Bool);
+        assert!(t.validate_future_impl("F").is_ok());
+    }
+
+    #[test]
+    fn test_validate_future_impl_err() {
+        let t = FutureTracker::new();
+        assert!(t.validate_future_impl("Missing").is_err());
+    }
+
+    #[test]
+    fn test_multiple_future_impls() {
+        let mut t = FutureTracker::new();
+        t.register_future_impl("A".into(), Type::Int);
+        t.register_future_impl("B".into(), Type::Float);
+        assert!(t.has_future_impl("A"));
+        assert!(t.has_future_impl("B"));
+        assert_eq!(t.get_output_type("A"), Some(&Type::Int));
+        assert_eq!(t.get_output_type("B"), Some(&Type::Float));
+    }
+
+    #[test]
+    fn test_overwrite_future_impl() {
+        let mut t = FutureTracker::new();
+        t.register_future_impl("F".into(), Type::Int);
+        t.register_future_impl("F".into(), Type::Bool);
+        assert_eq!(t.get_output_type("F"), Some(&Type::Bool));
+    }
+
+    // --- PollResult ---
+
+    #[test]
+    fn test_poll_result_eq() {
+        assert_eq!(PollResult::Ready, PollResult::Ready);
+        assert_eq!(PollResult::Pending, PollResult::Pending);
+        assert_ne!(PollResult::Ready, PollResult::Pending);
+    }
+
+    #[test]
+    fn test_poll_result_clone() {
+        let p = PollResult::Ready;
+        let p2 = p.clone();
+        assert_eq!(p, p2);
+    }
+
+    #[test]
+    fn test_poll_result_debug() {
+        assert_eq!(format!("{:?}", PollResult::Ready), "Ready");
+        assert_eq!(format!("{:?}", PollResult::Pending), "Pending");
+    }
+
+    // --- Pin ---
+
+    #[test]
+    fn test_pin_new_and_get_ref() {
         let pin = Pin::new(42);
         assert_eq!(*pin.get_ref(), 42);
     }
 
     #[test]
-    fn test_waker_creation() {
-        let waker = Waker::new(123);
-        assert_eq!(waker.task_id(), 123);
+    fn test_pin_with_string() {
+        let pin = Pin::new("hello".to_string());
+        assert_eq!(pin.get_ref(), "hello");
     }
 
     #[test]
-    fn test_context_creation() {
-        let waker = Waker::new(456);
-        let context = Context::new(waker);
-        assert_eq!(context.waker().task_id(), 456);
+    fn test_pin_clone() {
+        let pin = Pin::new(99);
+        let pin2 = pin.clone();
+        assert_eq!(*pin2.get_ref(), 99);
+    }
+
+    #[test]
+    fn test_pin_debug() {
+        let pin = Pin::new(7);
+        let s = format!("{:?}", pin);
+        assert!(s.contains("7"));
+    }
+
+    // --- Waker ---
+
+    #[test]
+    fn test_waker_new_and_task_id() {
+        let w = Waker::new(123);
+        assert_eq!(w.task_id(), 123);
+    }
+
+    #[test]
+    fn test_waker_wake() {
+        let w = Waker::new(0);
+        w.wake(); // Should not panic
+    }
+
+    #[test]
+    fn test_waker_clone() {
+        let w = Waker::new(42);
+        let w2 = w.clone();
+        assert_eq!(w2.task_id(), 42);
+    }
+
+    #[test]
+    fn test_waker_debug() {
+        let w = Waker::new(5);
+        let s = format!("{:?}", w);
+        assert!(s.contains("5"));
+    }
+
+    // --- Context ---
+
+    #[test]
+    fn test_context_new_and_waker() {
+        let w = Waker::new(456);
+        let ctx = Context::new(w);
+        assert_eq!(ctx.waker().task_id(), 456);
+    }
+
+    #[test]
+    fn test_context_debug() {
+        let ctx = Context::new(Waker::new(1));
+        let s = format!("{:?}", ctx);
+        assert!(s.contains("Context"));
     }
 }

@@ -174,4 +174,28 @@ mod tests {
         let tests = cmd.discover_tests(Path::new("/nonexistent"));
         assert_eq!(tests.len(), 0);
     }
+
+    #[test]
+    fn test_create() {
+        let cmd = TestCommand::create();
+        assert_eq!(cmd.name(), "test");
+        assert!(!cmd.description().is_empty());
+    }
+
+    #[test]
+    fn test_run_single_test_ok() {
+        let cmd = TestCommand::default();
+        assert!(cmd.run_single_test(Path::new("dummy.kr")).is_ok());
+    }
+
+    #[test]
+    fn test_run_tests_empty() {
+        let cmd = TestCommand::default();
+        let result = cmd.run_tests(&[]);
+        assert!(result.is_ok());
+        let r = result.unwrap();
+        assert_eq!(r.total, 0);
+        assert_eq!(r.passed, 0);
+        assert_eq!(r.failed, 0);
+    }
 }

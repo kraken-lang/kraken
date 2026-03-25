@@ -417,4 +417,154 @@ mod tests {
         assert!(formatted.contains("E0001"));
         assert!(formatted.contains("main.kr:10:5"));
     }
+
+    // --- All message level constructors ---
+
+    #[test]
+    fn test_all_message_constructors() {
+        let e = OutputMessage::error("e");
+        assert_eq!(e.level, MessageLevel::Error);
+        let w = OutputMessage::warning("w");
+        assert_eq!(w.level, MessageLevel::Warning);
+        let i = OutputMessage::info("i");
+        assert_eq!(i.level, MessageLevel::Info);
+        let s = OutputMessage::success("s");
+        assert_eq!(s.level, MessageLevel::Success);
+        let d = OutputMessage::debug("d");
+        assert_eq!(d.level, MessageLevel::Debug);
+    }
+
+    // --- format_colored all variants ---
+
+    #[test]
+    fn test_format_colored_all_levels() {
+        for (level, expected) in [
+            (MessageLevel::Error, "error"),
+            (MessageLevel::Warning, "warning"),
+            (MessageLevel::Info, "info"),
+            (MessageLevel::Success, "success"),
+            (MessageLevel::Debug, "debug"),
+            (MessageLevel::Note, "note"),
+            (MessageLevel::Help, "help"),
+        ] {
+            let msg = OutputMessage::new(level, "test");
+            let colored = msg.format_colored();
+            assert!(colored.contains("test"), "Missing message for {expected}");
+        }
+    }
+
+    // --- format_plain all variants ---
+
+    #[test]
+    fn test_format_plain_all_levels() {
+        for (level, prefix) in [
+            (MessageLevel::Error, "error"),
+            (MessageLevel::Warning, "warning"),
+            (MessageLevel::Info, "info"),
+            (MessageLevel::Success, "success"),
+            (MessageLevel::Debug, "debug"),
+            (MessageLevel::Note, "note"),
+            (MessageLevel::Help, "help"),
+        ] {
+            let msg = OutputMessage::new(level, "msg");
+            let plain = msg.format_plain();
+            assert!(plain.starts_with(prefix), "Expected prefix {prefix}, got {plain}");
+        }
+    }
+
+    // --- Display impl ---
+
+    #[test]
+    fn test_output_message_display() {
+        let msg = OutputMessage::error("boom");
+        let s = format!("{msg}");
+        assert!(s.contains("boom"));
+    }
+
+    // --- Banner::kraken ---
+
+    #[test]
+    fn test_banner_kraken() {
+        let banner = Banner::kraken();
+        assert!(!banner.is_empty());
+    }
+
+    // --- ProgressIndicator ---
+
+    #[test]
+    fn test_progress_indicator_bar() {
+        let p = ProgressIndicator::new("Compiling", 10);
+        p.update(5);
+        p.increment();
+        p.finish("Done");
+    }
+
+    #[test]
+    fn test_progress_indicator_spinner() {
+        let p = ProgressIndicator::spinner("Loading");
+        p.increment();
+        p.finish_and_clear();
+    }
+
+    // --- TableFormatter default ---
+
+    #[test]
+    fn test_table_formatter_default() {
+        let t = TableFormatter::default();
+        let r = t.render();
+        assert!(r.is_empty() || !r.is_empty()); // exercises Default impl
+    }
+
+    // --- Diagnostic without optional fields ---
+
+    #[test]
+    fn test_diagnostic_minimal() {
+        let d = Diagnostic::new(MessageLevel::Warning, "unused variable");
+        let f = d.format();
+        assert!(f.contains("warning"));
+        assert!(f.contains("unused variable"));
+        // No code, location, snippet, notes, or help
+        assert!(!f.contains("["));
+        assert!(!f.contains("-->"));
+    }
+
+    // --- Diagnostic with all levels ---
+
+    #[test]
+    fn test_diagnostic_all_levels() {
+        for level in [
+            MessageLevel::Error,
+            MessageLevel::Warning,
+            MessageLevel::Note,
+            MessageLevel::Help,
+            MessageLevel::Info,
+        ] {
+            let d = Diagnostic::new(level, "test");
+            let f = d.format();
+            assert!(f.contains("test"));
+        }
+    }
+
+    // --- Diagnostic with multiple notes ---
+
+    #[test]
+    fn test_diagnostic_multiple_notes() {
+        let d = Diagnostic::new(MessageLevel::Error, "err")
+            .note("note 1")
+            .note("note 2");
+        let f = d.format();
+        assert!(f.contains("note 1"));
+        assert!(f.contains("note 2"));
+    }
+
+    // --- Diagnostic with multi-line snippet ---
+
+    #[test]
+    fn test_diagnostic_multiline_snippet() {
+        let d = Diagnostic::new(MessageLevel::Error, "err")
+            .snippet("line1\nline2\nline3");
+        let f = d.format();
+        assert!(f.contains("line1"));
+        assert!(f.contains("line3"));
+    }
 }

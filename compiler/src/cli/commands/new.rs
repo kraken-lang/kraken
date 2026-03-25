@@ -136,4 +136,48 @@ mod tests {
         let result = cmd.execute(vec!["new".to_string()]);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_new_create() {
+        let cmd = NewCommand::create();
+        assert_eq!(cmd.name(), "new");
+        assert!(!cmd.description().is_empty());
+    }
+
+    #[test]
+    fn test_new_default() {
+        let _cmd = NewCommand::default();
+    }
+
+    #[test]
+    fn test_new_existing_dir_error() {
+        let tmp = std::env::temp_dir();
+        let existing = tmp.join("kraken_test_new_existing");
+        let _ = std::fs::create_dir(&existing);
+        let cmd = NewCommand;
+        let result = cmd.create_project(existing.to_str().unwrap());
+        assert!(result.is_err());
+        let _ = std::fs::remove_dir_all(&existing);
+    }
+
+    #[test]
+    fn test_new_creates_project() {
+        let tmp = std::env::temp_dir();
+        let name = format!("kraken_test_new_{}", std::process::id());
+        let project_dir = tmp.join(&name);
+        let _ = std::fs::remove_dir_all(&project_dir);
+
+        let cmd = NewCommand;
+        let saved = std::env::current_dir().unwrap();
+        std::env::set_current_dir(&tmp).unwrap();
+        let result = cmd.create_project(&name);
+        std::env::set_current_dir(&saved).unwrap();
+
+        assert!(result.is_ok());
+        assert!(project_dir.join("src/main.kr").exists());
+        assert!(project_dir.join("Kraken.toml").exists());
+        assert!(project_dir.join(".gitignore").exists());
+        assert!(project_dir.join("README.md").exists());
+        let _ = std::fs::remove_dir_all(&project_dir);
+    }
 }

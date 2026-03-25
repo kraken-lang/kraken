@@ -467,4 +467,149 @@ mod tests {
         assert!(output.contains("^^^"));
         assert!(output.contains("did you mean"));
     }
+
+    #[test]
+    fn test_error_code_display() {
+        assert_eq!(ErrorCode::E0001.to_string(), "E0001");
+        assert_eq!(ErrorCode::E0018.to_string(), "E0018");
+    }
+
+    #[test]
+    fn test_source_location_start_of_file() {
+        let loc = SourceLocation::start_of_file(PathBuf::from("main.kr"));
+        assert_eq!(loc.line, 1);
+        assert_eq!(loc.column, 1);
+        assert_eq!(loc.file, PathBuf::from("main.kr"));
+    }
+
+    #[test]
+    fn test_source_span_from_location() {
+        let loc = SourceLocation::new(PathBuf::from("test.kr"), 5, 10);
+        let span = SourceSpan::from_location(&loc);
+        assert_eq!(span.start_line, 5);
+        assert_eq!(span.start_col, 10);
+        assert_eq!(span.end_line, 5);
+        assert_eq!(span.end_col, 10);
+    }
+
+    #[test]
+    fn test_source_span_to_location() {
+        let span = SourceSpan::new(PathBuf::from("test.kr"), 3, 7, 5, 2);
+        let loc = span.to_location();
+        assert_eq!(loc.line, 3);
+        assert_eq!(loc.column, 7);
+    }
+
+    #[test]
+    fn test_type_error_creation() {
+        let loc = SourceLocation::new(PathBuf::from("test.kr"), 1, 1);
+        let err = CompilerError::type_error(loc, "expected int");
+        assert_eq!(err.code(), ErrorCode::E0007);
+        assert!(err.to_string().contains("expected int"));
+    }
+
+    #[test]
+    fn test_codegen_error_creation() {
+        let err = CompilerError::codegen_error("LLVM failure");
+        assert_eq!(err.code(), ErrorCode::E0013);
+        assert!(err.to_string().contains("LLVM failure"));
+    }
+
+    #[test]
+    fn test_internal_error_creation() {
+        let err = CompilerError::internal_error("ICE");
+        assert_eq!(err.code(), ErrorCode::E0017);
+        assert!(err.to_string().contains("ICE"));
+    }
+
+    #[test]
+    fn test_file_not_found_error() {
+        let err = CompilerError::FileNotFound(PathBuf::from("missing.kr"));
+        assert_eq!(err.code(), ErrorCode::E0014);
+        assert!(err.to_string().contains("missing.kr"));
+    }
+
+    #[test]
+    fn test_invalid_extension_error() {
+        let err = CompilerError::InvalidExtension(".txt".to_string());
+        assert_eq!(err.code(), ErrorCode::E0015);
+        assert!(err.to_string().contains(".txt"));
+    }
+
+    #[test]
+    fn test_multiple_errors() {
+        let errs = CompilerError::MultipleErrors(vec![
+            CompilerError::internal_error("err1"),
+            CompilerError::internal_error("err2"),
+        ]);
+        assert_eq!(errs.code(), ErrorCode::E0018);
+    }
+
+    #[test]
+    fn test_from_code() {
+        let err = CompilerError::from_code(
+            DiagnosticCode::KRA2000_TypeMismatch,
+            "type mismatch",
+        );
+        assert_eq!(err.code(), ErrorCode::E0017);
+        assert!(err.to_string().contains("type mismatch"));
+    }
+
+    #[test]
+    fn test_from_code_with_location() {
+        let loc = SourceLocation::new(PathBuf::from("test.kr"), 10, 5);
+        let err = CompilerError::from_code_with_location(
+            DiagnosticCode::KRA3000_UndefinedVariable,
+            "undefined x",
+            loc,
+        );
+        assert_eq!(err.code(), ErrorCode::E0017);
+    }
+
+    #[test]
+    fn test_diagnostic_warning() {
+        let span = SourceSpan::new(PathBuf::from("test.kr"), 1, 1, 1, 5);
+        let diag = Diagnostic::warning(span, "unused variable");
+        assert_eq!(diag.severity, DiagnosticSeverity::Warning);
+    }
+
+    #[test]
+    fn test_diagnostic_format_with_source_multiline() {
+        let span = SourceSpan::new(PathBuf::from("test.kr"), 1, 1, 3, 5);
+        let diag = Diagnostic::error(span, "multiline error");
+        let source = "line one\nline two\nline three";
+        let output = diag.format_with_source(source);
+        assert!(output.contains("error"));
+        assert!(output.contains("line one"));
+    }
+
+    #[test]
+    fn test_diagnostic_format_with_source_out_of_range() {
+        let span = SourceSpan::new(PathBuf::from("test.kr"), 999, 1, 999, 5);
+        let diag = Diagnostic::error(span, "out of range");
+        let source = "one line";
+        let output = diag.format_with_source(source);
+        assert!(output.contains("out of range"));
+    }
+
+    #[test]
+    fn test_diagnostic_format_info() {
+        let span = SourceSpan::new(PathBuf::from("test.kr"), 1, 1, 1, 1);
+        let diag = Diagnostic {
+            span,
+            message: "info msg".into(),
+            hints: vec![],
+            severity: DiagnosticSeverity::Info,
+        };
+        let output = diag.format_with_source("x");
+        assert!(output.contains("info"));
+    }
+
+    #[test]
+    fn test_diagnostic_hint_display_no_suggestion() {
+        let hint = DiagnosticHint::new("just a hint");
+        assert!(hint.suggestion.is_none());
+        let s = hint.to_string();
+        assert!(s.contains("just a hint"));
+    }
 }

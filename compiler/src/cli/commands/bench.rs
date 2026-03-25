@@ -307,4 +307,165 @@ mod tests {
         assert!(csv.contains("test"));
         assert!(csv.contains("100"));
     }
+
+    #[test]
+    fn test_bench_default() {
+        let cmd = BenchCommand::default();
+        assert!(cmd.filter.is_none());
+        assert!(cmd.baseline_file.is_some());
+    }
+
+    #[test]
+    fn test_to_json() {
+        let result = BenchmarkResults {
+            name: "bench1".to_string(),
+            iterations: 50,
+            mean: 5.0,
+            median: 4.5,
+            std_dev: 0.3,
+            min: 4.0,
+            max: 6.0,
+        };
+        let json = result.to_json();
+        assert!(json.contains("bench1"));
+        assert!(json.contains("50"));
+    }
+
+    #[test]
+    fn test_discover_benchmarks_empty() {
+        let cmd = BenchCommand::default();
+        let benchmarks = cmd.discover_benchmarks(Path::new("/nonexistent"));
+        assert!(benchmarks.is_empty());
+    }
+
+    #[test]
+    fn test_load_baseline_no_file() {
+        let cmd = BenchCommand {
+            filter: None,
+            output_format: OutputFormat::Text,
+            baseline_file: Some(PathBuf::from("/nonexistent/baseline.json")),
+        };
+        assert!(cmd.load_baseline().is_none());
+    }
+
+    #[test]
+    fn test_load_baseline_none() {
+        let cmd = BenchCommand {
+            filter: None,
+            output_format: OutputFormat::Text,
+            baseline_file: None,
+        };
+        assert!(cmd.load_baseline().is_none());
+    }
+
+    #[test]
+    fn test_save_baseline_no_path() {
+        let cmd = BenchCommand {
+            filter: None,
+            output_format: OutputFormat::Text,
+            baseline_file: None,
+        };
+        assert!(cmd.save_baseline(&[]).is_ok());
+    }
+
+    #[test]
+    fn test_compare_with_baseline_found() {
+        let cmd = BenchCommand::default();
+        let current = BenchmarkResults {
+            name: "x".into(),
+            iterations: 10,
+            mean: 11.0,
+            median: 10.0,
+            std_dev: 1.0,
+            min: 9.0,
+            max: 13.0,
+        };
+        let baseline = vec![BenchmarkResults {
+            name: "x".into(),
+            iterations: 10,
+            mean: 10.0,
+            median: 10.0,
+            std_dev: 1.0,
+            min: 9.0,
+            max: 12.0,
+        }];
+        let change = cmd.compare_with_baseline(&current, &baseline);
+        assert!(change.is_some());
+        assert!((change.unwrap() - 10.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_compare_with_baseline_not_found() {
+        let cmd = BenchCommand::default();
+        let current = BenchmarkResults {
+            name: "y".into(),
+            iterations: 10,
+            mean: 10.0,
+            median: 10.0,
+            std_dev: 1.0,
+            min: 9.0,
+            max: 12.0,
+        };
+        assert!(cmd.compare_with_baseline(&current, &[]).is_none());
+    }
+
+    #[test]
+    fn test_output_results_json() {
+        let cmd = BenchCommand {
+            filter: None,
+            output_format: OutputFormat::Json,
+            baseline_file: None,
+        };
+        let results = vec![BenchmarkResults {
+            name: "j".into(),
+            iterations: 1,
+            mean: 1.0,
+            median: 1.0,
+            std_dev: 0.0,
+            min: 1.0,
+            max: 1.0,
+        }];
+        cmd.output_results(&results, None);
+    }
+
+    #[test]
+    fn test_output_results_csv() {
+        let cmd = BenchCommand {
+            filter: None,
+            output_format: OutputFormat::Csv,
+            baseline_file: None,
+        };
+        cmd.output_results(&[], None);
+    }
+
+    #[test]
+    fn test_output_results_text_with_baseline() {
+        let cmd = BenchCommand::default();
+        let results = vec![BenchmarkResults {
+            name: "t".into(),
+            iterations: 1,
+            mean: 10.0,
+            median: 10.0,
+            std_dev: 0.0,
+            min: 10.0,
+            max: 10.0,
+        }];
+        let baseline = vec![BenchmarkResults {
+            name: "t".into(),
+            iterations: 1,
+            mean: 9.0,
+            median: 9.0,
+            std_dev: 0.0,
+            min: 9.0,
+            max: 9.0,
+        }];
+        cmd.output_results(&results, Some(&baseline));
+    }
+
+    #[test]
+    fn test_run_benchmark() {
+        let cmd = BenchCommand::default();
+        let samples = cmd.run_benchmark(Path::new("dummy.kr"), 3);
+        assert_eq!(samples.len(), 3);
+    }
 }

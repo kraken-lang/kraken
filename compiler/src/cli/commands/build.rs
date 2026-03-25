@@ -103,4 +103,18 @@ mod tests {
         assert!(!cmd.release);
         assert!(cmd.jobs > 0);
     }
+
+    #[test]
+    fn test_build_execute_default_source() {
+        let cmd = BuildCommand::create();
+        let result = cmd.execute(vec!["build".to_string()]);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_build_execute_with_source() {
+        let cmd = BuildCommand::create();
+        let result = cmd.execute(vec!["build".to_string(), "src/main.kr".to_string()]);
+        assert!(result.is_ok());
+    }
 }

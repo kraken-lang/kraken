@@ -117,4 +117,51 @@ mod tests {
         let config = CliConfig::new().with_jobs(0);
         assert_eq!(config.jobs, 1);
     }
+
+    #[test]
+    fn test_with_verbose() {
+        let config = CliConfig::new().with_verbose(true);
+        assert!(config.verbose);
+    }
+
+    #[test]
+    fn test_with_format() {
+        let config = CliConfig::new().with_format(OutputFormat::Json);
+        assert_eq!(config.format, OutputFormat::Json);
+        let config2 = CliConfig::new().with_format(OutputFormat::Quiet);
+        assert_eq!(config2.format, OutputFormat::Quiet);
+    }
+
+    #[test]
+    fn test_with_project_root() {
+        let config = CliConfig::new().with_project_root(PathBuf::from("/tmp"));
+        assert_eq!(config.project_root, Some(PathBuf::from("/tmp")));
+    }
+
+    #[test]
+    fn test_new_equals_default() {
+        let a = CliConfig::new();
+        let b = CliConfig::default();
+        assert_eq!(a.color, b.color);
+        assert_eq!(a.quiet, b.quiet);
+        assert_eq!(a.verbose, b.verbose);
+        assert_eq!(a.format, b.format);
+    }
+
+    #[test]
+    fn test_full_builder_chain() {
+        let config = CliConfig::new()
+            .with_color(false)
+            .with_quiet(true)
+            .with_verbose(true)
+            .with_format(OutputFormat::Json)
+            .with_jobs(8)
+            .with_project_root(PathBuf::from("/project"));
+        assert!(!config.color);
+        assert!(config.quiet);
+        assert!(config.verbose);
+        assert_eq!(config.format, OutputFormat::Json);
+        assert_eq!(config.jobs, 8);
+        assert_eq!(config.project_root, Some(PathBuf::from("/project")));
+    }
 }

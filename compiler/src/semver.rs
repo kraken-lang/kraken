@@ -612,4 +612,218 @@ mod tests {
         assert!(SemVer::new(0, 9, 0) < SemVer::new(1, 0, 0));
         assert!(SemVer::new(1, 0, 0) > SemVer::new(0, 99, 99));
     }
+
+    // --- SemVer edge cases ---
+
+    #[test]
+    fn test_semver_parse_non_numeric() {
+        assert!(SemVer::parse("a.b.c").is_none());
+        assert!(SemVer::parse("1.2.x").is_none());
+        assert!(SemVer::parse("1..3").is_none());
+    }
+
+    #[test]
+    fn test_semver_parse_empty() {
+        assert!(SemVer::parse("").is_none());
+    }
+
+    #[test]
+    fn test_semver_clone_eq() {
+        let v = SemVer::new(1, 2, 3);
+        let v2 = v.clone();
+        assert_eq!(v, v2);
+    }
+
+    #[test]
+    fn test_semver_debug() {
+        let v = SemVer::new(1, 2, 3);
+        let s = format!("{:?}", v);
+        assert!(s.contains("SemVer"));
+    }
+
+    // --- SymbolKind Display all variants ---
+
+    #[test]
+    fn test_symbol_kind_display_all() {
+        assert_eq!(format!("{}", SymbolKind::Struct), "struct");
+        assert_eq!(format!("{}", SymbolKind::Enum), "enum");
+        assert_eq!(format!("{}", SymbolKind::Trait), "trait");
+        assert_eq!(format!("{}", SymbolKind::Function), "fn");
+        assert_eq!(format!("{}", SymbolKind::TypeAlias), "type");
+        assert_eq!(format!("{}", SymbolKind::Module), "mod");
+    }
+
+    // --- ChangeSeverity Display ---
+
+    #[test]
+    fn test_change_severity_display() {
+        assert_eq!(format!("{}", ChangeSeverity::Patch), "patch");
+        assert_eq!(format!("{}", ChangeSeverity::Additive), "minor");
+        assert_eq!(format!("{}", ChangeSeverity::Breaking), "BREAKING");
+    }
+
+    #[test]
+    fn test_change_severity_ordering() {
+        assert!(ChangeSeverity::Patch < ChangeSeverity::Additive);
+        assert!(ChangeSeverity::Additive < ChangeSeverity::Breaking);
+    }
+
+    // --- ApiSurface Default ---
+
+    #[test]
+    fn test_api_surface_default() {
+        let s = ApiSurface::default();
+        assert_eq!(s.symbol_count(), 0);
+    }
+
+    // --- validate_bump: additive post-1.0 insufficient ---
+
+    #[test]
+    fn test_validate_bump_additive_post_1_0_insufficient() {
+        let old = ApiSurface::new();
+        let mut new = ApiSurface::new();
+        new.add_symbol(ApiSymbol {
+            path: "kraken::New".into(),
+            kind: SymbolKind::Function,
+            signature: "()".into(),
+        });
+        let diff = old.diff(&new);
+
+        let v_old = SemVer::new(1, 5, 0);
+        let v_patch = SemVer::new(1, 5, 1);
+        let v_minor = SemVer::new(1, 6, 0);
+
+        assert!(diff.validate_bump(&v_old, &v_patch).is_err());
+        assert!(diff.validate_bump(&v_old, &v_minor).is_ok());
+    }
+
+    // --- validate_bump: additive pre-1.0 no bump at all ---
+
+    #[test]
+    fn test_validate_bump_additive_pre_1_0_no_bump() {
+        let old = ApiSurface::new();
+        let mut new = ApiSurface::new();
+        new.add_symbol(ApiSymbol {
+            path: "kraken::New".into(),
+            kind: SymbolKind::Function,
+            signature: "()".into(),
+        });
+        let diff = old.diff(&new);
+
+        let v = SemVer::new(0, 8, 50);
+        assert!(diff.validate_bump(&v, &v).is_err());
+    }
+
+    // --- validate_bump: patch no-bump error ---
+
+    #[test]
+    fn test_validate_bump_patch_no_bump() {
+        let surface = ApiSurface::new();
+        let diff = surface.diff(&surface);
+        // Empty diff = Patch severity, but version must still increase
+        let v = SemVer::new(1, 0, 0);
+        assert!(diff.validate_bump(&v, &v).is_err());
+    }
+
+    #[test]
+    fn test_validate_bump_patch_ok() {
+        let surface = ApiSurface::new();
+        let diff = surface.diff(&surface);
+        let v_old = SemVer::new(1, 0, 0);
+        let v_new = SemVer::new(1, 0, 1);
+        assert!(diff.validate_bump(&v_old, &v_new).is_ok());
+    }
+
+    // --- ApiSymbol overwrite ---
+
+    #[test]
+    fn test_add_symbol_overwrites() {
+        let mut s = ApiSurface::new();
+        s.add_symbol(ApiSymbol {
+            path: "a".into(),
+            kind: SymbolKind::Function,
+            signature: "v1".into(),
+        });
+        s.add_symbol(ApiSymbol {
+            path: "a".into(),
+            kind: SymbolKind::Function,
+            signature: "v2".into(),
+        });
+        assert_eq!(s.symbol_count(), 1);
+        assert_eq!(s.symbols["a"].signature, "v2");
+    }
+
+    // --- ApiDiff Display with additive + breaking ---
+
+    #[test]
+    fn test_diff_display_mixed() {
+        let mut old = ApiSurface::new();
+        old.add_symbol(ApiSymbol {
+            path: "r".into(),
+            kind: SymbolKind::Struct,
+            signature: "{}".into(),
+        });
+        let mut new = ApiSurface::new();
+        new.add_symbol(ApiSymbol {
+            path: "a".into(),
+            kind: SymbolKind::Enum,
+            signature: "{}".into(),
+        });
+        let diff = old.diff(&new);
+        let output = format!("{diff}");
+        assert!(output.contains("BREAKING"));
+        assert!(output.contains("minor"));
+        assert!(output.contains("2 total"));
+    }
+
+    // --- ChangeKind/ApiChange clone/debug ---
+
+    #[test]
+    fn test_change_kind_clone_eq() {
+        let k = ChangeKind::Removed;
+        assert_eq!(k.clone(), ChangeKind::Removed);
+        assert_ne!(k, ChangeKind::Added);
+    }
+
+    #[test]
+    fn test_api_change_debug() {
+        let c = ApiChange {
+            path: "x".into(),
+            kind: ChangeKind::Added,
+            severity: ChangeSeverity::Additive,
+            description: "added x".into(),
+        };
+        let s = format!("{:?}", c);
+        assert!(s.contains("Added"));
+    }
+
+    // --- ApiDiff count_by_severity with patch ---
+
+    #[test]
+    fn test_count_by_severity_empty() {
+        let diff = ApiDiff { changes: vec![] };
+        assert_eq!(diff.count_by_severity(), (0, 0, 0));
+        assert!(!diff.has_breaking_changes());
+    }
+
+    // --- Signature AND kind change on same symbol ---
+
+    #[test]
+    fn test_signature_and_kind_change() {
+        let mut old = ApiSurface::new();
+        old.add_symbol(ApiSymbol {
+            path: "x".into(),
+            kind: SymbolKind::Struct,
+            signature: "{ a: i64 }".into(),
+        });
+        let mut new = ApiSurface::new();
+        new.add_symbol(ApiSymbol {
+            path: "x".into(),
+            kind: SymbolKind::Enum,
+            signature: "{ A, B }".into(),
+        });
+        let diff = old.diff(&new);
+        assert_eq!(diff.changes.len(), 2); // signature + kind
+        assert!(diff.has_breaking_changes());
+    }
 }
