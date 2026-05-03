@@ -438,6 +438,19 @@ async fn compile_file(file: &Path) -> Result<PathBuf> {
 
     // Phase 4: Linking
     let link_start = std::time::Instant::now();
+    // On Windows, use a short hash of the module name as the exe stem.
+    // Windows AppCompat heuristics match installer-pattern words (e.g.
+    // "dispatch", "setup", "install", "test", "patch") in exe filenames and
+    // demand UAC elevation (os error 740) when spawning via CreateProcess.
+    // A hex hash is neutral and never matches any shim-database entry.
+    #[cfg(target_os = "windows")]
+    let executable = {
+        let h = module_name
+            .bytes()
+            .fold(0u32, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u32));
+        build_dir.join(format!("kr{h:08x}.exe"))
+    };
+    #[cfg(not(target_os = "windows"))]
     let executable = build_dir.join(&module_name);
     link_executable(&object_file, &executable)?;
     let link_time = link_start.elapsed();
@@ -469,9 +482,67 @@ async fn compile_file(file: &Path) -> Result<PathBuf> {
     Ok(executable)
 }
 
+/// Resolve the C compiler / linker driver used to produce the final executable.
+///
+/// Returns `(path, is_zig)`. When `is_zig` is true the caller must prepend `"cc"`
+/// to the argument list so the invocation becomes `zig cc <args>`.
+///
+/// Search order:
+/// 1. `KRAKEN_LINKER` environment variable — user override, highest priority.
+/// 2. `LLVM_SYS_180_PREFIX/bin/clang[.exe]` — matches the LLVM 18 used for compilation.
+/// 3. Well-known Windows LLVM installation paths.
+/// 4. `zig` in well-known locations — `zig cc` is a drop-in clang substitute.
+/// 5. Bare `"clang"` — relies on PATH (works on macOS / Linux / correctly-configured Windows).
+fn resolve_clang() -> (PathBuf, bool) {
+    // User override.
+    if let Ok(linker) = std::env::var("KRAKEN_LINKER") {
+        return (PathBuf::from(linker), false);
+    }
+
+    // Try LLVM_SYS_180_PREFIX — ensures ABI compatibility with the LLVM used at build time.
+    if let Ok(prefix) = std::env::var("LLVM_SYS_180_PREFIX") {
+        for name in ["clang.exe", "clang"] {
+            let candidate = PathBuf::from(&prefix).join("bin").join(name);
+            if candidate.exists() {
+                return (candidate, false);
+            }
+        }
+    }
+
+    // Well-known Windows LLVM installation paths (winget / official installer defaults).
+    // C:\Program Files\LLVM is the default for the official LLVM 18.1.8 Windows installer.
+    #[cfg(target_os = "windows")]
+    for dir in [
+        r"C:\Program Files\LLVM\bin",
+        r"C:\Program Files (x86)\LLVM\bin",
+        r"C:\LLVM\bin",
+        r"C:\Tools\LLVM\bin",
+        r"C:\Tools\LLVM18\bin",
+    ] {
+        let candidate = PathBuf::from(dir).join("clang.exe");
+        if candidate.exists() {
+            return (candidate, false);
+        }
+    }
+
+    // zig cc — available on many Windows dev machines as a clang substitute.
+    #[cfg(target_os = "windows")]
+    for zig_path in [r"C:\Tools\zig\zig.exe", r"C:\zig\zig.exe"] {
+        if PathBuf::from(zig_path).exists() {
+            return (PathBuf::from(zig_path), true);
+        }
+    }
+
+    (PathBuf::from("clang"), false)
+}
+
 /// Link object file to executable.
 fn link_executable(object_file: &PathBuf, output: &PathBuf) -> Result<()> {
-    let mut cmd = std::process::Command::new("clang");
+    let (linker, is_zig) = resolve_clang();
+    let mut cmd = std::process::Command::new(&linker);
+    if is_zig {
+        cmd.arg("cc");
+    }
     cmd.arg(object_file).arg("-o").arg(output);
 
     // Link Kraken runtime library

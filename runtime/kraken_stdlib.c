@@ -231,3 +231,38 @@ int64_t kraken_memcmp(const void* s1, const void* s2, int64_t n) {
     if (!s1 || !s2 || n <= 0) return 0;
     return (int64_t)memcmp(s1, s2, (size_t)n);
 }
+
+// ============================================================================
+// HOST PLATFORM DETECTION
+// Resolved at C compile time via predefined macros — always correct,
+// no env vars, no subprocesses, no shell dependency.
+// Integer constants match krakenc's OS_*() / ARCH_*() values.
+// ============================================================================
+
+int64_t detect_host_os(void) {
+#if defined(_WIN32) || defined(_WIN64)
+    return 3;
+#elif defined(__APPLE__) && defined(__MACH__)
+    return 2;
+#elif defined(__linux__)
+    return 1;
+#elif defined(__FreeBSD__)
+    return 4;
+#elif defined(__wasi__) || defined(__WASI__)
+    return 5;
+#else
+    return 0;
+#endif
+}
+
+int64_t detect_host_arch(void) {
+#if defined(__x86_64__) || defined(_M_X64)
+    return 1;
+#elif defined(__aarch64__) || defined(_M_ARM64)
+    return 2;
+#elif defined(__wasm32__)
+    return 5;
+#else
+    return 0;
+#endif
+}

@@ -8416,12 +8416,8 @@ impl LLVMCodegen {
                         LLVMPointerType(i64_ty, 0),
                         c"".as_ptr(),
                     );
-                    let cap_val = LLVMBuildLoad2(
-                        self.builder,
-                        i64_ty,
-                        cap_field_a,
-                        c"cap".as_ptr(),
-                    );
+                    let cap_val =
+                        LLVMBuildLoad2(self.builder, i64_ty, cap_field_a, c"cap".as_ptr());
                     let need_grow = LLVMBuildICmp(
                         self.builder,
                         LLVMIntPredicate::LLVMIntSGE,
@@ -9008,7 +9004,8 @@ impl LLVMCodegen {
                     LLVMBuildBr(self.builder, loop_bb);
                     // Return "" when key not found (matches C preamble behavior)
                     LLVMPositionBuilderAtEnd(self.builder, trap_bb);
-                    let empty_str = LLVMBuildGlobalStringPtr(self.builder, c"".as_ptr(), c"empty".as_ptr());
+                    let empty_str =
+                        LLVMBuildGlobalStringPtr(self.builder, c"".as_ptr(), c"empty".as_ptr());
                     LLVMBuildBr(self.builder, done_bb);
                     LLVMPositionBuilderAtEnd(self.builder, found_bb);
                     let found_idx = LLVMBuildLoad2(self.builder, i64_ty, idx_ptr, c"".as_ptr());
@@ -9020,27 +9017,12 @@ impl LLVMCodegen {
                         1,
                         c"".as_ptr(),
                     );
-                    let found_val = LLVMBuildLoad2(
-                        self.builder,
-                        i8_ptr_ty,
-                        val_ptr,
-                        c"".as_ptr(),
-                    );
+                    let found_val = LLVMBuildLoad2(self.builder, i8_ptr_ty, val_ptr, c"".as_ptr());
                     LLVMBuildBr(self.builder, done_bb);
                     LLVMPositionBuilderAtEnd(self.builder, done_bb);
                     let phi = LLVMBuildPhi(self.builder, i8_ptr_ty, c"result".as_ptr());
-                    LLVMAddIncoming(
-                        phi,
-                        [empty_str].as_mut_ptr(),
-                        [trap_bb].as_mut_ptr(),
-                        1,
-                    );
-                    LLVMAddIncoming(
-                        phi,
-                        [found_val].as_mut_ptr(),
-                        [found_bb].as_mut_ptr(),
-                        1,
-                    );
+                    LLVMAddIncoming(phi, [empty_str].as_mut_ptr(), [trap_bb].as_mut_ptr(), 1);
+                    LLVMAddIncoming(phi, [found_val].as_mut_ptr(), [found_bb].as_mut_ptr(), 1);
                     Ok(Some(phi))
                 }
                 "map_string_string_set" => {
@@ -9195,12 +9177,8 @@ impl LLVMCodegen {
                         LLVMPointerType(i64_ty, 0),
                         c"".as_ptr(),
                     );
-                    let cap_val = LLVMBuildLoad2(
-                        self.builder,
-                        i64_ty,
-                        cap_field_a,
-                        c"cap".as_ptr(),
-                    );
+                    let cap_val =
+                        LLVMBuildLoad2(self.builder, i64_ty, cap_field_a, c"cap".as_ptr());
                     let need_grow = LLVMBuildICmp(
                         self.builder,
                         LLVMIntPredicate::LLVMIntSGE,
