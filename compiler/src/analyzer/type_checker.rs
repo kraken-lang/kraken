@@ -1828,6 +1828,22 @@ impl TypeChecker {
                 is_async: false,
             },
         );
+        env.define_function(
+            "setenv".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String, Type::String, Type::Int],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
+        env.define_function(
+            "unsetenv".to_string(),
+            FunctionType {
+                parameter_types: vec![Type::String],
+                return_type: Type::Int,
+                is_async: false,
+            },
+        );
 
         // File I/O helpers
         env.define_function(

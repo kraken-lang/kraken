@@ -2164,6 +2164,25 @@ impl LLVMCodegen {
             self.functions
                 .insert("getenv".to_string(), kraken_getenv_func);
 
+            // setenv: int setenv(const char* name, const char* value, int overwrite)
+            // Declared with i64 return for consistency with the int_type convention
+            // used by atoi etc. (the codebase chose ABI coercion over strict typing).
+            let setenv_type = LLVMFunctionType(
+                int_type,
+                [i8_ptr_type, i8_ptr_type, int_type].as_mut_ptr(),
+                3,
+                0,
+            );
+            let setenv_name = CString::new("setenv").expect("CString failed");
+            let setenv_func = LLVMAddFunction(self.module, setenv_name.as_ptr(), setenv_type);
+            self.functions.insert("setenv".to_string(), setenv_func);
+
+            // unsetenv: int unsetenv(const char* name)
+            let unsetenv_type = LLVMFunctionType(int_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
+            let unsetenv_name = CString::new("unsetenv").expect("CString failed");
+            let unsetenv_func = LLVMAddFunction(self.module, unsetenv_name.as_ptr(), unsetenv_type);
+            self.functions.insert("unsetenv".to_string(), unsetenv_func);
+
             // kraken_file_read_string: char* kraken_file_read_string(const char* path)
             let kraken_frs_type = LLVMFunctionType(i8_ptr_type, [i8_ptr_type].as_mut_ptr(), 1, 0);
             let kraken_frs_name = CString::new("kraken_file_read_string").expect("CString failed");
