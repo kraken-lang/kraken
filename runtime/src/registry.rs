@@ -15,7 +15,7 @@ pub enum RegistryHive {
 
 #[cfg(windows)]
 impl RegistryHive {
-    fn to_hkey(&self) -> RegKey {
+    fn to_hkey(self) -> RegKey {
         match self {
             RegistryHive::ClassesRoot => RegKey::predef(HKEY_CLASSES_ROOT),
             RegistryHive::CurrentUser => RegKey::predef(HKEY_CURRENT_USER),
@@ -114,12 +114,7 @@ impl Registry {
             .open_subkey(path)
             .map_err(|e| format!("Failed to open registry key: {e}"))?;
 
-        let mut subkeys = Vec::new();
-        for subkey in key.enum_keys() {
-            if let Ok(name) = subkey {
-                subkeys.push(name);
-            }
-        }
+        let subkeys: Vec<_> = key.enum_keys().flatten().collect();
         Ok(subkeys)
     }
 
@@ -129,12 +124,7 @@ impl Registry {
             .open_subkey(path)
             .map_err(|e| format!("Failed to open registry key: {e}"))?;
 
-        let mut values = Vec::new();
-        for value in key.enum_values() {
-            if let Ok((name, _)) = value {
-                values.push(name);
-            }
-        }
+        let values: Vec<_> = key.enum_values().flatten().map(|(name, _)| name).collect();
         Ok(values)
     }
 }

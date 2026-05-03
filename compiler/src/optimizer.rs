@@ -742,25 +742,25 @@ mod tests {
 
     #[test]
     fn test_constant_folder_default() {
-        let f = ConstantFolder::default();
+        let f = ConstantFolder;
         assert_eq!(f.fold_binary_op("+", 1, 2), Some(3));
     }
 
     #[test]
     fn test_dead_code_eliminator_default() {
-        let e = DeadCodeEliminator::default();
+        let e = DeadCodeEliminator;
         assert!(e.has_side_effects(&Instruction::Return { value: None }));
     }
 
     #[test]
     fn test_loop_optimizer_default() {
-        let o = LoopOptimizer::default();
+        let o = LoopOptimizer;
         assert!(o.is_loop_invariant(&Value::Constant(0), &[]));
     }
 
     #[test]
     fn test_memory_optimizer_default() {
-        let m = MemoryOptimizer::default();
+        let m = MemoryOptimizer;
         assert_eq!(m.allocation_strategy(0), AllocationStrategy::None);
     }
 

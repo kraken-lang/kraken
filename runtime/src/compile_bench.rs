@@ -90,7 +90,7 @@ impl CompilationBenchmark {
         output.push_str("=============================\n\n");
 
         let mut phases: Vec<_> = self.measurements.values().collect();
-        phases.sort_by(|a, b| b.duration.cmp(&a.duration));
+        phases.sort_by_key(|m| std::cmp::Reverse(m.duration));
 
         for measurement in phases {
             output.push_str(&format!(

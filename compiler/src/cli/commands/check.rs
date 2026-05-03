@@ -68,7 +68,7 @@ mod tests {
 
     #[test]
     fn test_check_default() {
-        let _cmd = CheckCommand::default();
+        let _cmd = CheckCommand;
     }
 
     #[test]

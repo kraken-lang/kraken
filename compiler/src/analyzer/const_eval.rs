@@ -313,22 +313,27 @@ mod tests {
     fn test_eval_float_literal() {
         let mut e = ConstEvaluator::new();
         assert_eq!(
-            e.eval_expression(&Expression::FloatLiteral(3.14)).unwrap(),
-            ConstValue::Float(3.14)
+            e.eval_expression(&Expression::FloatLiteral(std::f64::consts::PI))
+                .unwrap(),
+            ConstValue::Float(std::f64::consts::PI)
         );
     }
 
     #[test]
     fn test_eval_bool_literal() {
         let mut e = ConstEvaluator::new();
-        assert_eq!(e.eval_expression(&boolv(true)).unwrap(), ConstValue::Bool(true));
+        assert_eq!(
+            e.eval_expression(&boolv(true)).unwrap(),
+            ConstValue::Bool(true)
+        );
     }
 
     #[test]
     fn test_eval_string_literal() {
         let mut e = ConstEvaluator::new();
         assert_eq!(
-            e.eval_expression(&Expression::StringLiteral("hello".into())).unwrap(),
+            e.eval_expression(&Expression::StringLiteral("hello".into()))
+                .unwrap(),
             ConstValue::String("hello".into())
         );
     }
@@ -336,103 +341,213 @@ mod tests {
     #[test]
     fn test_eval_binary_arithmetic() {
         let mut e = ConstEvaluator::new();
-        assert_eq!(e.eval_expression(&binop(int(10), Operator::Plus, int(20))).unwrap(), ConstValue::Int(30));
-        assert_eq!(e.eval_expression(&binop(int(20), Operator::Minus, int(7))).unwrap(), ConstValue::Int(13));
-        assert_eq!(e.eval_expression(&binop(int(6), Operator::Star, int(7))).unwrap(), ConstValue::Int(42));
-        assert_eq!(e.eval_expression(&binop(int(100), Operator::Slash, int(4))).unwrap(), ConstValue::Int(25));
-        assert_eq!(e.eval_expression(&binop(int(10), Operator::Percent, int(3))).unwrap(), ConstValue::Int(1));
+        assert_eq!(
+            e.eval_expression(&binop(int(10), Operator::Plus, int(20)))
+                .unwrap(),
+            ConstValue::Int(30)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(int(20), Operator::Minus, int(7)))
+                .unwrap(),
+            ConstValue::Int(13)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(int(6), Operator::Star, int(7)))
+                .unwrap(),
+            ConstValue::Int(42)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(int(100), Operator::Slash, int(4)))
+                .unwrap(),
+            ConstValue::Int(25)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(int(10), Operator::Percent, int(3)))
+                .unwrap(),
+            ConstValue::Int(1)
+        );
     }
 
     #[test]
     fn test_eval_division_by_zero() {
         let mut e = ConstEvaluator::new();
-        assert!(e.eval_expression(&binop(int(10), Operator::Slash, int(0))).is_err());
+        assert!(e
+            .eval_expression(&binop(int(10), Operator::Slash, int(0)))
+            .is_err());
     }
 
     #[test]
     fn test_eval_comparison_ops() {
         let mut e = ConstEvaluator::new();
-        assert_eq!(e.eval_expression(&binop(int(10), Operator::Equal, int(10))).unwrap(), ConstValue::Bool(true));
-        assert_eq!(e.eval_expression(&binop(int(10), Operator::Equal, int(5))).unwrap(), ConstValue::Bool(false));
-        assert_eq!(e.eval_expression(&binop(int(10), Operator::NotEqual, int(5))).unwrap(), ConstValue::Bool(true));
-        assert_eq!(e.eval_expression(&binop(int(5), Operator::Less, int(10))).unwrap(), ConstValue::Bool(true));
-        assert_eq!(e.eval_expression(&binop(int(5), Operator::LessEqual, int(5))).unwrap(), ConstValue::Bool(true));
-        assert_eq!(e.eval_expression(&binop(int(10), Operator::Greater, int(5))).unwrap(), ConstValue::Bool(true));
-        assert_eq!(e.eval_expression(&binop(int(5), Operator::GreaterEqual, int(5))).unwrap(), ConstValue::Bool(true));
+        assert_eq!(
+            e.eval_expression(&binop(int(10), Operator::Equal, int(10)))
+                .unwrap(),
+            ConstValue::Bool(true)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(int(10), Operator::Equal, int(5)))
+                .unwrap(),
+            ConstValue::Bool(false)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(int(10), Operator::NotEqual, int(5)))
+                .unwrap(),
+            ConstValue::Bool(true)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(int(5), Operator::Less, int(10)))
+                .unwrap(),
+            ConstValue::Bool(true)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(int(5), Operator::LessEqual, int(5)))
+                .unwrap(),
+            ConstValue::Bool(true)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(int(10), Operator::Greater, int(5)))
+                .unwrap(),
+            ConstValue::Bool(true)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(int(5), Operator::GreaterEqual, int(5)))
+                .unwrap(),
+            ConstValue::Bool(true)
+        );
     }
 
     #[test]
     fn test_eval_bitwise_ops() {
         let mut e = ConstEvaluator::new();
-        assert_eq!(e.eval_expression(&binop(int(0xFF), Operator::BitAnd, int(0x0F))).unwrap(), ConstValue::Int(0x0F));
-        assert_eq!(e.eval_expression(&binop(int(0xF0), Operator::BitOr, int(0x0F))).unwrap(), ConstValue::Int(0xFF));
-        assert_eq!(e.eval_expression(&binop(int(0xFF), Operator::BitXor, int(0x0F))).unwrap(), ConstValue::Int(0xF0));
-        assert_eq!(e.eval_expression(&binop(int(1), Operator::LeftShift, int(4))).unwrap(), ConstValue::Int(16));
-        assert_eq!(e.eval_expression(&binop(int(16), Operator::RightShift, int(2))).unwrap(), ConstValue::Int(4));
+        assert_eq!(
+            e.eval_expression(&binop(int(0xFF), Operator::BitAnd, int(0x0F)))
+                .unwrap(),
+            ConstValue::Int(0x0F)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(int(0xF0), Operator::BitOr, int(0x0F)))
+                .unwrap(),
+            ConstValue::Int(0xFF)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(int(0xFF), Operator::BitXor, int(0x0F)))
+                .unwrap(),
+            ConstValue::Int(0xF0)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(int(1), Operator::LeftShift, int(4)))
+                .unwrap(),
+            ConstValue::Int(16)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(int(16), Operator::RightShift, int(2)))
+                .unwrap(),
+            ConstValue::Int(4)
+        );
     }
 
     #[test]
     fn test_eval_unsupported_int_op() {
         let mut e = ConstEvaluator::new();
-        assert!(e.eval_expression(&binop(int(1), Operator::Assign, int(2))).is_err());
+        assert!(e
+            .eval_expression(&binop(int(1), Operator::Assign, int(2)))
+            .is_err());
     }
 
     #[test]
     fn test_eval_boolean_ops() {
         let mut e = ConstEvaluator::new();
-        assert_eq!(e.eval_expression(&binop(boolv(true), Operator::And, boolv(false))).unwrap(), ConstValue::Bool(false));
-        assert_eq!(e.eval_expression(&binop(boolv(true), Operator::Or, boolv(false))).unwrap(), ConstValue::Bool(true));
-        assert_eq!(e.eval_expression(&binop(boolv(true), Operator::Equal, boolv(true))).unwrap(), ConstValue::Bool(true));
-        assert_eq!(e.eval_expression(&binop(boolv(true), Operator::NotEqual, boolv(false))).unwrap(), ConstValue::Bool(true));
+        assert_eq!(
+            e.eval_expression(&binop(boolv(true), Operator::And, boolv(false)))
+                .unwrap(),
+            ConstValue::Bool(false)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(boolv(true), Operator::Or, boolv(false)))
+                .unwrap(),
+            ConstValue::Bool(true)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(boolv(true), Operator::Equal, boolv(true)))
+                .unwrap(),
+            ConstValue::Bool(true)
+        );
+        assert_eq!(
+            e.eval_expression(&binop(boolv(true), Operator::NotEqual, boolv(false)))
+                .unwrap(),
+            ConstValue::Bool(true)
+        );
     }
 
     #[test]
     fn test_eval_unsupported_bool_op() {
         let mut e = ConstEvaluator::new();
-        assert!(e.eval_expression(&binop(boolv(true), Operator::Plus, boolv(false))).is_err());
+        assert!(e
+            .eval_expression(&binop(boolv(true), Operator::Plus, boolv(false)))
+            .is_err());
     }
 
     #[test]
     fn test_eval_type_mismatch_binary() {
         let mut e = ConstEvaluator::new();
-        assert!(e.eval_expression(&binop(int(1), Operator::Plus, boolv(true))).is_err());
+        assert!(e
+            .eval_expression(&binop(int(1), Operator::Plus, boolv(true)))
+            .is_err());
     }
 
     #[test]
     fn test_eval_unary_negate() {
         let mut e = ConstEvaluator::new();
-        assert_eq!(e.eval_expression(&unop(Operator::Minus, int(42))).unwrap(), ConstValue::Int(-42));
+        assert_eq!(
+            e.eval_expression(&unop(Operator::Minus, int(42))).unwrap(),
+            ConstValue::Int(-42)
+        );
     }
 
     #[test]
     fn test_eval_unary_not() {
         let mut e = ConstEvaluator::new();
-        assert_eq!(e.eval_expression(&unop(Operator::Not, boolv(true))).unwrap(), ConstValue::Bool(false));
+        assert_eq!(
+            e.eval_expression(&unop(Operator::Not, boolv(true)))
+                .unwrap(),
+            ConstValue::Bool(false)
+        );
     }
 
     #[test]
     fn test_eval_unary_bitnot() {
         let mut e = ConstEvaluator::new();
-        assert_eq!(e.eval_expression(&unop(Operator::BitNot, int(0))).unwrap(), ConstValue::Int(!0i64));
+        assert_eq!(
+            e.eval_expression(&unop(Operator::BitNot, int(0))).unwrap(),
+            ConstValue::Int(!0i64)
+        );
     }
 
     #[test]
     fn test_eval_unsupported_unary() {
         let mut e = ConstEvaluator::new();
-        assert!(e.eval_expression(&unop(Operator::Plus, boolv(true))).is_err());
+        assert!(e
+            .eval_expression(&unop(Operator::Plus, boolv(true)))
+            .is_err());
     }
 
     #[test]
     fn test_eval_identifier() {
         let mut e = ConstEvaluator::new();
         e.const_values.insert("X".into(), ConstValue::Int(100));
-        assert_eq!(e.eval_expression(&Expression::Identifier("X".into())).unwrap(), ConstValue::Int(100));
+        assert_eq!(
+            e.eval_expression(&Expression::Identifier("X".into()))
+                .unwrap(),
+            ConstValue::Int(100)
+        );
     }
 
     #[test]
     fn test_eval_identifier_not_found() {
         let mut e = ConstEvaluator::new();
-        assert!(e.eval_expression(&Expression::Identifier("MISSING".into())).is_err());
+        assert!(e
+            .eval_expression(&Expression::Identifier("MISSING".into()))
+            .is_err());
     }
 
     #[test]
@@ -503,9 +618,13 @@ mod tests {
     #[test]
     fn test_eval_block_return_no_value() {
         let mut e = ConstEvaluator::new();
-        e.register_const_function("nop".into(), vec![], Block {
-            statements: vec![Statement::Return { value: None }],
-        });
+        e.register_const_function(
+            "nop".into(),
+            vec![],
+            Block {
+                statements: vec![Statement::Return { value: None }],
+            },
+        );
         let call = Expression::Call {
             callee: Box::new(Expression::Identifier("nop".into())),
             type_args: None,
@@ -517,9 +636,13 @@ mod tests {
     #[test]
     fn test_eval_block_expression_stmt() {
         let mut e = ConstEvaluator::new();
-        e.register_const_function("f".into(), vec![], Block {
-            statements: vec![Statement::Expression(int(99))],
-        });
+        e.register_const_function(
+            "f".into(),
+            vec![],
+            Block {
+                statements: vec![Statement::Expression(int(99))],
+            },
+        );
         let call = Expression::Call {
             callee: Box::new(Expression::Identifier("f".into())),
             type_args: None,
@@ -531,13 +654,25 @@ mod tests {
     #[test]
     fn test_eval_block_if_true() {
         let mut e = ConstEvaluator::new();
-        e.register_const_function("f".into(), vec![], Block {
-            statements: vec![Statement::If {
-                condition: boolv(true),
-                then_branch: Block { statements: vec![Statement::Return { value: Some(int(1)) }] },
-                else_branch: Some(Block { statements: vec![Statement::Return { value: Some(int(2)) }] }),
-            }],
-        });
+        e.register_const_function(
+            "f".into(),
+            vec![],
+            Block {
+                statements: vec![Statement::If {
+                    condition: boolv(true),
+                    then_branch: Block {
+                        statements: vec![Statement::Return {
+                            value: Some(int(1)),
+                        }],
+                    },
+                    else_branch: Some(Block {
+                        statements: vec![Statement::Return {
+                            value: Some(int(2)),
+                        }],
+                    }),
+                }],
+            },
+        );
         let call = Expression::Call {
             callee: Box::new(Expression::Identifier("f".into())),
             type_args: None,
@@ -549,13 +684,25 @@ mod tests {
     #[test]
     fn test_eval_block_if_false_with_else() {
         let mut e = ConstEvaluator::new();
-        e.register_const_function("f".into(), vec![], Block {
-            statements: vec![Statement::If {
-                condition: boolv(false),
-                then_branch: Block { statements: vec![Statement::Return { value: Some(int(1)) }] },
-                else_branch: Some(Block { statements: vec![Statement::Return { value: Some(int(2)) }] }),
-            }],
-        });
+        e.register_const_function(
+            "f".into(),
+            vec![],
+            Block {
+                statements: vec![Statement::If {
+                    condition: boolv(false),
+                    then_branch: Block {
+                        statements: vec![Statement::Return {
+                            value: Some(int(1)),
+                        }],
+                    },
+                    else_branch: Some(Block {
+                        statements: vec![Statement::Return {
+                            value: Some(int(2)),
+                        }],
+                    }),
+                }],
+            },
+        );
         let call = Expression::Call {
             callee: Box::new(Expression::Identifier("f".into())),
             type_args: None,
@@ -567,16 +714,24 @@ mod tests {
     #[test]
     fn test_eval_block_if_false_no_else() {
         let mut e = ConstEvaluator::new();
-        e.register_const_function("f".into(), vec![], Block {
-            statements: vec![
-                Statement::If {
-                    condition: boolv(false),
-                    then_branch: Block { statements: vec![Statement::Return { value: Some(int(99)) }] },
-                    else_branch: None,
-                },
-                Statement::Expression(int(0)),
-            ],
-        });
+        e.register_const_function(
+            "f".into(),
+            vec![],
+            Block {
+                statements: vec![
+                    Statement::If {
+                        condition: boolv(false),
+                        then_branch: Block {
+                            statements: vec![Statement::Return {
+                                value: Some(int(99)),
+                            }],
+                        },
+                        else_branch: None,
+                    },
+                    Statement::Expression(int(0)),
+                ],
+            },
+        );
         let call = Expression::Call {
             callee: Box::new(Expression::Identifier("f".into())),
             type_args: None,
@@ -588,13 +743,17 @@ mod tests {
     #[test]
     fn test_eval_block_if_non_bool_condition() {
         let mut e = ConstEvaluator::new();
-        e.register_const_function("f".into(), vec![], Block {
-            statements: vec![Statement::If {
-                condition: int(42),
-                then_branch: Block { statements: vec![] },
-                else_branch: None,
-            }],
-        });
+        e.register_const_function(
+            "f".into(),
+            vec![],
+            Block {
+                statements: vec![Statement::If {
+                    condition: int(42),
+                    then_branch: Block { statements: vec![] },
+                    else_branch: None,
+                }],
+            },
+        );
         let call = Expression::Call {
             callee: Box::new(Expression::Identifier("f".into())),
             type_args: None,
@@ -606,9 +765,13 @@ mod tests {
     #[test]
     fn test_eval_block_unsupported_stmt() {
         let mut e = ConstEvaluator::new();
-        e.register_const_function("f".into(), vec![], Block {
-            statements: vec![Statement::Break],
-        });
+        e.register_const_function(
+            "f".into(),
+            vec![],
+            Block {
+                statements: vec![Statement::Break],
+            },
+        );
         let call = Expression::Call {
             callee: Box::new(Expression::Identifier("f".into())),
             type_args: None,
@@ -620,13 +783,17 @@ mod tests {
     #[test]
     fn test_static_assert_pass() {
         let mut e = ConstEvaluator::new();
-        assert!(e.validate_static_assert(&boolv(true), "should pass").is_ok());
+        assert!(e
+            .validate_static_assert(&boolv(true), "should pass")
+            .is_ok());
     }
 
     #[test]
     fn test_static_assert_fail() {
         let mut e = ConstEvaluator::new();
-        assert!(e.validate_static_assert(&boolv(false), "should fail").is_err());
+        assert!(e
+            .validate_static_assert(&boolv(false), "should fail")
+            .is_err());
     }
 
     #[test]
@@ -639,9 +806,15 @@ mod tests {
     fn test_const_function_preserves_outer_scope() {
         let mut e = ConstEvaluator::new();
         e.const_values.insert("OUTER".into(), ConstValue::Int(999));
-        e.register_const_function("f".into(), vec!["x".into()], Block {
-            statements: vec![Statement::Return { value: Some(Expression::Identifier("x".into())) }],
-        });
+        e.register_const_function(
+            "f".into(),
+            vec!["x".into()],
+            Block {
+                statements: vec![Statement::Return {
+                    value: Some(Expression::Identifier("x".into())),
+                }],
+            },
+        );
         let call = Expression::Call {
             callee: Box::new(Expression::Identifier("f".into())),
             type_args: None,

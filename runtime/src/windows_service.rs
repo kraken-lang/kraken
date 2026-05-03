@@ -107,7 +107,7 @@ impl WindowsService {
         use std::process::Command;
 
         let output = Command::new("sc")
-            .args(&[
+            .args([
                 "create",
                 &self.service_name,
                 "binPath=",
@@ -127,7 +127,7 @@ impl WindowsService {
         if output.status.success() {
             // Set description
             let _ = Command::new("sc")
-                .args(&["description", &self.service_name, description])
+                .args(["description", &self.service_name, description])
                 .output();
             Ok(())
         } else {
@@ -154,7 +154,7 @@ impl WindowsService {
         use std::process::Command;
 
         let output = Command::new("sc")
-            .args(&["delete", &self.service_name])
+            .args(["delete", &self.service_name])
             .output()
             .map_err(|e| format!("Failed to execute sc command: {e}"))?;
 
@@ -178,7 +178,7 @@ impl WindowsService {
         use std::process::Command;
 
         let output = Command::new("sc")
-            .args(&["start", &self.service_name])
+            .args(["start", &self.service_name])
             .output()
             .map_err(|e| format!("Failed to execute sc command: {e}"))?;
 
@@ -202,7 +202,7 @@ impl WindowsService {
         use std::process::Command;
 
         let output = Command::new("sc")
-            .args(&["stop", &self.service_name])
+            .args(["stop", &self.service_name])
             .output()
             .map_err(|e| format!("Failed to execute sc command: {e}"))?;
 
@@ -226,7 +226,7 @@ impl WindowsService {
         use std::process::Command;
 
         let output = Command::new("sc")
-            .args(&["query", &self.service_name])
+            .args(["query", &self.service_name])
             .output()
             .map_err(|e| format!("Failed to execute sc command: {e}"))?;
 

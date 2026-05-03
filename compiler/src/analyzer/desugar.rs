@@ -553,10 +553,7 @@ mod tests {
             statements: vec![expr_stmt(Expression::StructLiteral {
                 name: "Point".to_string(),
                 type_args: None,
-                fields: vec![
-                    ("x".to_string(), int_lit(1)),
-                    ("y".to_string(), int_lit(2)),
-                ],
+                fields: vec![("x".to_string(), int_lit(1)), ("y".to_string(), int_lit(2))],
             })],
         };
         assert!(d.desugar_program(&mut program).is_ok());
@@ -674,7 +671,7 @@ mod tests {
         let mut d = AstDesugar::new();
         let mut program = Program {
             statements: vec![
-                expr_stmt(Expression::FloatLiteral(3.14)),
+                expr_stmt(Expression::FloatLiteral(std::f64::consts::PI)),
                 expr_stmt(Expression::StringLiteral("hello".to_string())),
                 expr_stmt(Expression::BoolLiteral(false)),
                 expr_stmt(Expression::NullLiteral),
@@ -711,44 +708,42 @@ mod tests {
     fn test_desugar_complex_program() {
         let mut d = AstDesugar::new();
         let mut program = Program {
-            statements: vec![
-                Statement::FunctionDeclaration {
-                    name: "main".to_string(),
-                    generic_params: vec![],
-                    where_constraints: vec![],
-                    parameters: vec![],
-                    return_type: Some(Type::Int),
-                    body: block(vec![
-                        Statement::VariableDeclaration {
-                            pattern: Pattern::Identifier("x".to_string()),
-                            type_annotation: None,
-                            initializer: Some(int_lit(10)),
-                            is_mutable: true,
-                        },
-                        Statement::While {
-                            condition: bin(ident("x"), int_lit(0)),
-                            body: block(vec![
-                                Statement::If {
-                                    condition: bin(ident("x"), int_lit(5)),
-                                    then_branch: block(vec![Statement::Break]),
-                                    else_branch: None,
-                                },
-                                expr_stmt(Expression::Assignment {
-                                    target: Box::new(ident("x")),
-                                    value: Box::new(bin(ident("x"), int_lit(1))),
-                                }),
-                            ]),
-                        },
-                        Statement::Return {
-                            value: Some(ident("x")),
-                        },
-                    ]),
-                    is_async: false,
-                    is_unsafe: false,
-                    is_public: true,
-                    is_variadic: false,
-                },
-            ],
+            statements: vec![Statement::FunctionDeclaration {
+                name: "main".to_string(),
+                generic_params: vec![],
+                where_constraints: vec![],
+                parameters: vec![],
+                return_type: Some(Type::Int),
+                body: block(vec![
+                    Statement::VariableDeclaration {
+                        pattern: Pattern::Identifier("x".to_string()),
+                        type_annotation: None,
+                        initializer: Some(int_lit(10)),
+                        is_mutable: true,
+                    },
+                    Statement::While {
+                        condition: bin(ident("x"), int_lit(0)),
+                        body: block(vec![
+                            Statement::If {
+                                condition: bin(ident("x"), int_lit(5)),
+                                then_branch: block(vec![Statement::Break]),
+                                else_branch: None,
+                            },
+                            expr_stmt(Expression::Assignment {
+                                target: Box::new(ident("x")),
+                                value: Box::new(bin(ident("x"), int_lit(1))),
+                            }),
+                        ]),
+                    },
+                    Statement::Return {
+                        value: Some(ident("x")),
+                    },
+                ]),
+                is_async: false,
+                is_unsafe: false,
+                is_public: true,
+                is_variadic: false,
+            }],
         };
         assert!(d.desugar_program(&mut program).is_ok());
     }

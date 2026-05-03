@@ -253,6 +253,7 @@ fn build_private_mangle_map(module_id: &str, program: &Program) -> HashMap<Strin
     let mut map = HashMap::new();
 
     for statement in &program.statements {
+        #[allow(clippy::collapsible_match)]
         match statement {
             Statement::FunctionDeclaration {
                 name, is_public, ..
@@ -999,9 +1000,16 @@ mod tests {
     #[test]
     fn test_build_private_mangle_map_public_excluded() {
         let p = Program::new(vec![Statement::FunctionDeclaration {
-            name: "pub_fn".into(), generic_params: vec![], where_constraints: vec![],
-            parameters: vec![], return_type: None, body: Block::new(vec![]),
-            is_async: false, is_unsafe: false, is_public: true, is_variadic: false,
+            name: "pub_fn".into(),
+            generic_params: vec![],
+            where_constraints: vec![],
+            parameters: vec![],
+            return_type: None,
+            body: Block::new(vec![]),
+            is_async: false,
+            is_unsafe: false,
+            is_public: true,
+            is_variadic: false,
         }]);
         assert!(build_private_mangle_map("t", &p).is_empty());
     }
@@ -1009,9 +1017,16 @@ mod tests {
     #[test]
     fn test_build_private_mangle_map_private_included() {
         let p = Program::new(vec![Statement::FunctionDeclaration {
-            name: "priv_fn".into(), generic_params: vec![], where_constraints: vec![],
-            parameters: vec![], return_type: None, body: Block::new(vec![]),
-            is_async: false, is_unsafe: false, is_public: false, is_variadic: false,
+            name: "priv_fn".into(),
+            generic_params: vec![],
+            where_constraints: vec![],
+            parameters: vec![],
+            return_type: None,
+            body: Block::new(vec![]),
+            is_async: false,
+            is_unsafe: false,
+            is_public: false,
+            is_variadic: false,
         }]);
         assert!(build_private_mangle_map("t", &p).contains_key("priv_fn"));
     }
@@ -1019,9 +1034,16 @@ mod tests {
     #[test]
     fn test_build_private_mangle_map_main_excluded() {
         let p = Program::new(vec![Statement::FunctionDeclaration {
-            name: "main".into(), generic_params: vec![], where_constraints: vec![],
-            parameters: vec![], return_type: None, body: Block::new(vec![]),
-            is_async: false, is_unsafe: false, is_public: false, is_variadic: false,
+            name: "main".into(),
+            generic_params: vec![],
+            where_constraints: vec![],
+            parameters: vec![],
+            return_type: None,
+            body: Block::new(vec![]),
+            is_async: false,
+            is_unsafe: false,
+            is_public: false,
+            is_variadic: false,
         }]);
         assert!(!build_private_mangle_map("t", &p).contains_key("main"));
     }
@@ -1029,8 +1051,12 @@ mod tests {
     #[test]
     fn test_build_private_mangle_map_struct() {
         let p = Program::new(vec![Statement::StructDeclaration {
-            name: "Secret".into(), generic_params: vec![], where_constraints: vec![],
-            fields: vec![], is_public: false, repr: None,
+            name: "Secret".into(),
+            generic_params: vec![],
+            where_constraints: vec![],
+            fields: vec![],
+            is_public: false,
+            repr: None,
         }]);
         assert!(build_private_mangle_map("t", &p).contains_key("Secret"));
     }
@@ -1039,52 +1065,109 @@ mod tests {
     fn test_rewrite_type_custom_mangled() {
         let mut m = HashMap::new();
         m.insert("S".into(), "__m_S".into());
-        assert_eq!(rewrite_type(Type::Custom("S".into()), &m), Type::Custom("__m_S".into()));
+        assert_eq!(
+            rewrite_type(Type::Custom("S".into()), &m),
+            Type::Custom("__m_S".into())
+        );
     }
 
     #[test]
     fn test_rewrite_type_custom_not_mangled() {
-        assert_eq!(rewrite_type(Type::Custom("P".into()), &HashMap::new()), Type::Custom("P".into()));
+        assert_eq!(
+            rewrite_type(Type::Custom("P".into()), &HashMap::new()),
+            Type::Custom("P".into())
+        );
     }
 
     #[test]
     fn test_rewrite_type_array() {
         let mut m = HashMap::new();
         m.insert("I".into(), "__m_I".into());
-        let t = rewrite_type(Type::Array { element_type: Box::new(Type::Custom("I".into())), size: None }, &m);
-        match t { Type::Array { element_type, .. } => assert_eq!(*element_type, Type::Custom("__m_I".into())), _ => panic!() }
+        let t = rewrite_type(
+            Type::Array {
+                element_type: Box::new(Type::Custom("I".into())),
+                size: None,
+            },
+            &m,
+        );
+        match t {
+            Type::Array { element_type, .. } => {
+                assert_eq!(*element_type, Type::Custom("__m_I".into()))
+            }
+            _ => panic!(),
+        }
     }
 
     #[test]
     fn test_rewrite_type_reference() {
         let mut m = HashMap::new();
         m.insert("S".into(), "__m_S".into());
-        let t = rewrite_type(Type::Reference { inner_type: Box::new(Type::Custom("S".into())), is_mutable: false }, &m);
-        match t { Type::Reference { inner_type, .. } => assert_eq!(*inner_type, Type::Custom("__m_S".into())), _ => panic!() }
+        let t = rewrite_type(
+            Type::Reference {
+                inner_type: Box::new(Type::Custom("S".into())),
+                is_mutable: false,
+            },
+            &m,
+        );
+        match t {
+            Type::Reference { inner_type, .. } => {
+                assert_eq!(*inner_type, Type::Custom("__m_S".into()))
+            }
+            _ => panic!(),
+        }
     }
 
     #[test]
     fn test_rewrite_type_pointer() {
         let mut m = HashMap::new();
         m.insert("S".into(), "__m_S".into());
-        let t = rewrite_type(Type::Pointer { inner_type: Box::new(Type::Custom("S".into())), is_mutable: true }, &m);
-        match t { Type::Pointer { inner_type, .. } => assert_eq!(*inner_type, Type::Custom("__m_S".into())), _ => panic!() }
+        let t = rewrite_type(
+            Type::Pointer {
+                inner_type: Box::new(Type::Custom("S".into())),
+                is_mutable: true,
+            },
+            &m,
+        );
+        match t {
+            Type::Pointer { inner_type, .. } => {
+                assert_eq!(*inner_type, Type::Custom("__m_S".into()))
+            }
+            _ => panic!(),
+        }
     }
 
     #[test]
     fn test_rewrite_type_generic() {
         let mut m = HashMap::new();
         m.insert("C".into(), "__m_C".into());
-        let t = rewrite_type(Type::Generic { name: "C".into(), type_params: vec![Type::Int] }, &m);
-        match t { Type::Generic { name, .. } => assert_eq!(name, "__m_C"), _ => panic!() }
+        let t = rewrite_type(
+            Type::Generic {
+                name: "C".into(),
+                type_params: vec![Type::Int],
+            },
+            &m,
+        );
+        match t {
+            Type::Generic { name, .. } => assert_eq!(name, "__m_C"),
+            _ => panic!(),
+        }
     }
 
     #[test]
     fn test_rewrite_type_trait_object() {
         let mut m = HashMap::new();
         m.insert("T".into(), "__m_T".into());
-        let t = rewrite_type(Type::TraitObject { trait_name: "T".into(), bounds: vec![] }, &m);
-        match t { Type::TraitObject { trait_name, .. } => assert_eq!(trait_name, "__m_T"), _ => panic!() }
+        let t = rewrite_type(
+            Type::TraitObject {
+                trait_name: "T".into(),
+                bounds: vec![],
+            },
+            &m,
+        );
+        match t {
+            Type::TraitObject { trait_name, .. } => assert_eq!(trait_name, "__m_T"),
+            _ => panic!(),
+        }
     }
 
     #[test]
@@ -1098,15 +1181,24 @@ mod tests {
     fn test_first_private_type_ref_custom() {
         let mut m = HashMap::new();
         m.insert("P".into(), "__m_P".into());
-        assert_eq!(first_private_type_reference(&Type::Custom("P".into()), &m), Some("P".into()));
-        assert_eq!(first_private_type_reference(&Type::Custom("X".into()), &m), None);
+        assert_eq!(
+            first_private_type_reference(&Type::Custom("P".into()), &m),
+            Some("P".into())
+        );
+        assert_eq!(
+            first_private_type_reference(&Type::Custom("X".into()), &m),
+            None
+        );
     }
 
     #[test]
     fn test_first_private_type_ref_nested() {
         let mut m = HashMap::new();
         m.insert("P".into(), "__m_P".into());
-        let t = Type::Array { element_type: Box::new(Type::Custom("P".into())), size: None };
+        let t = Type::Array {
+            element_type: Box::new(Type::Custom("P".into())),
+            size: None,
+        };
         assert_eq!(first_private_type_reference(&t, &m), Some("P".into()));
     }
 
@@ -1114,7 +1206,10 @@ mod tests {
     fn test_first_private_type_ref_generic() {
         let mut m = HashMap::new();
         m.insert("P".into(), "__m_P".into());
-        let t = Type::Generic { name: "V".into(), type_params: vec![Type::Custom("P".into())] };
+        let t = Type::Generic {
+            name: "V".into(),
+            type_params: vec![Type::Custom("P".into())],
+        };
         assert_eq!(first_private_type_reference(&t, &m), Some("P".into()));
     }
 
@@ -1122,177 +1217,435 @@ mod tests {
     fn test_rewrite_expr_call_mangled() {
         let mut m = HashMap::new();
         m.insert("h".into(), "__m_h".into());
-        let e = rewrite_expression(Expression::Call {
-            callee: Box::new(Expression::Identifier("h".into())),
-            type_args: None, arguments: vec![],
-        }, &m);
-        match e { Expression::Call { callee, .. } => assert_eq!(*callee, Expression::Identifier("__m_h".into())), _ => panic!() }
+        let e = rewrite_expression(
+            Expression::Call {
+                callee: Box::new(Expression::Identifier("h".into())),
+                type_args: None,
+                arguments: vec![],
+            },
+            &m,
+        );
+        match e {
+            Expression::Call { callee, .. } => {
+                assert_eq!(*callee, Expression::Identifier("__m_h".into()))
+            }
+            _ => panic!(),
+        }
     }
 
     #[test]
     fn test_rewrite_expr_struct_literal_mangled() {
         let mut m = HashMap::new();
         m.insert("S".into(), "__m_S".into());
-        let e = rewrite_expression(Expression::StructLiteral {
-            name: "S".into(), type_args: None, fields: vec![],
-        }, &m);
-        match e { Expression::StructLiteral { name, .. } => assert_eq!(name, "__m_S"), _ => panic!() }
+        let e = rewrite_expression(
+            Expression::StructLiteral {
+                name: "S".into(),
+                type_args: None,
+                fields: vec![],
+            },
+            &m,
+        );
+        match e {
+            Expression::StructLiteral { name, .. } => assert_eq!(name, "__m_S"),
+            _ => panic!(),
+        }
     }
 
     #[test]
     fn test_rewrite_expr_literals_passthrough() {
         let m = HashMap::new();
-        assert!(matches!(rewrite_expression(Expression::IntLiteral(1), &m), Expression::IntLiteral(1)));
-        assert!(matches!(rewrite_expression(Expression::BoolLiteral(true), &m), Expression::BoolLiteral(true)));
-        assert!(matches!(rewrite_expression(Expression::NullLiteral, &m), Expression::NullLiteral));
+        assert!(matches!(
+            rewrite_expression(Expression::IntLiteral(1), &m),
+            Expression::IntLiteral(1)
+        ));
+        assert!(matches!(
+            rewrite_expression(Expression::BoolLiteral(true), &m),
+            Expression::BoolLiteral(true)
+        ));
+        assert!(matches!(
+            rewrite_expression(Expression::NullLiteral, &m),
+            Expression::NullLiteral
+        ));
     }
 
     #[test]
     fn test_rewrite_expr_binary() {
         let m = HashMap::new();
-        let e = rewrite_expression(Expression::Binary {
-            left: Box::new(Expression::IntLiteral(1)),
-            operator: crate::lexer::token::Operator::Plus,
-            right: Box::new(Expression::IntLiteral(2)),
-        }, &m);
+        let e = rewrite_expression(
+            Expression::Binary {
+                left: Box::new(Expression::IntLiteral(1)),
+                operator: crate::lexer::token::Operator::Plus,
+                right: Box::new(Expression::IntLiteral(2)),
+            },
+            &m,
+        );
         assert!(matches!(e, Expression::Binary { .. }));
     }
 
     #[test]
     fn test_rewrite_expr_array_tuple_index_member() {
         let m = HashMap::new();
-        assert!(matches!(rewrite_expression(Expression::Array { elements: vec![] }, &m), Expression::Array { .. }));
-        assert!(matches!(rewrite_expression(Expression::Tuple { elements: vec![] }, &m), Expression::Tuple { .. }));
-        assert!(matches!(rewrite_expression(Expression::Index {
-            array: Box::new(Expression::Identifier("a".into())),
-            index: Box::new(Expression::IntLiteral(0)),
-        }, &m), Expression::Index { .. }));
-        assert!(matches!(rewrite_expression(Expression::MemberAccess {
-            object: Box::new(Expression::Identifier("o".into())), member: "f".into(),
-        }, &m), Expression::MemberAccess { .. }));
+        assert!(matches!(
+            rewrite_expression(Expression::Array { elements: vec![] }, &m),
+            Expression::Array { .. }
+        ));
+        assert!(matches!(
+            rewrite_expression(Expression::Tuple { elements: vec![] }, &m),
+            Expression::Tuple { .. }
+        ));
+        assert!(matches!(
+            rewrite_expression(
+                Expression::Index {
+                    array: Box::new(Expression::Identifier("a".into())),
+                    index: Box::new(Expression::IntLiteral(0)),
+                },
+                &m
+            ),
+            Expression::Index { .. }
+        ));
+        assert!(matches!(
+            rewrite_expression(
+                Expression::MemberAccess {
+                    object: Box::new(Expression::Identifier("o".into())),
+                    member: "f".into(),
+                },
+                &m
+            ),
+            Expression::MemberAccess { .. }
+        ));
     }
 
     #[test]
     fn test_rewrite_expr_ref_deref_await_try() {
         let m = HashMap::new();
-        assert!(matches!(rewrite_expression(Expression::Reference { expression: Box::new(Expression::Identifier("x".into())) }, &m), Expression::Reference { .. }));
-        assert!(matches!(rewrite_expression(Expression::Dereference { expression: Box::new(Expression::Identifier("x".into())) }, &m), Expression::Dereference { .. }));
-        assert!(matches!(rewrite_expression(Expression::Await { expression: Box::new(Expression::Identifier("x".into())) }, &m), Expression::Await { .. }));
-        assert!(matches!(rewrite_expression(Expression::Try { expression: Box::new(Expression::Identifier("x".into())) }, &m), Expression::Try { .. }));
+        assert!(matches!(
+            rewrite_expression(
+                Expression::Reference {
+                    expression: Box::new(Expression::Identifier("x".into()))
+                },
+                &m
+            ),
+            Expression::Reference { .. }
+        ));
+        assert!(matches!(
+            rewrite_expression(
+                Expression::Dereference {
+                    expression: Box::new(Expression::Identifier("x".into()))
+                },
+                &m
+            ),
+            Expression::Dereference { .. }
+        ));
+        assert!(matches!(
+            rewrite_expression(
+                Expression::Await {
+                    expression: Box::new(Expression::Identifier("x".into()))
+                },
+                &m
+            ),
+            Expression::Await { .. }
+        ));
+        assert!(matches!(
+            rewrite_expression(
+                Expression::Try {
+                    expression: Box::new(Expression::Identifier("x".into()))
+                },
+                &m
+            ),
+            Expression::Try { .. }
+        ));
     }
 
     #[test]
     fn test_rewrite_expr_closure_and_spawn() {
         let m = HashMap::new();
-        assert!(matches!(rewrite_expression(Expression::Closure {
-            parameters: vec![], return_type: None, is_move: false,
-            body: ClosureBody::Expression(Box::new(Expression::IntLiteral(1))),
-        }, &m), Expression::Closure { .. }));
-        assert!(matches!(rewrite_expression(Expression::Closure {
-            parameters: vec![], return_type: None, is_move: false,
-            body: ClosureBody::Block(Block::new(vec![])),
-        }, &m), Expression::Closure { .. }));
-        assert!(matches!(rewrite_expression(Expression::Spawn { body: Block::new(vec![]) }, &m), Expression::Spawn { .. }));
+        assert!(matches!(
+            rewrite_expression(
+                Expression::Closure {
+                    parameters: vec![],
+                    return_type: None,
+                    is_move: false,
+                    body: ClosureBody::Expression(Box::new(Expression::IntLiteral(1))),
+                },
+                &m
+            ),
+            Expression::Closure { .. }
+        ));
+        assert!(matches!(
+            rewrite_expression(
+                Expression::Closure {
+                    parameters: vec![],
+                    return_type: None,
+                    is_move: false,
+                    body: ClosureBody::Block(Block::new(vec![])),
+                },
+                &m
+            ),
+            Expression::Closure { .. }
+        ));
+        assert!(matches!(
+            rewrite_expression(
+                Expression::Spawn {
+                    body: Block::new(vec![])
+                },
+                &m
+            ),
+            Expression::Spawn { .. }
+        ));
     }
 
     #[test]
     fn test_rewrite_pattern_all() {
         let m = HashMap::new();
-        assert!(matches!(rewrite_pattern(Pattern::Wildcard, &m), Pattern::Wildcard));
-        assert!(matches!(rewrite_pattern(Pattern::Identifier("x".into()), &m), Pattern::Identifier(_)));
-        assert!(matches!(rewrite_pattern(Pattern::Literal(Expression::IntLiteral(1)), &m), Pattern::Literal(_)));
-        assert!(matches!(rewrite_pattern(Pattern::Tuple { patterns: vec![] }, &m), Pattern::Tuple { .. }));
-        assert!(matches!(rewrite_pattern(Pattern::Or { patterns: vec![] }, &m), Pattern::Or { .. }));
-        assert!(matches!(rewrite_pattern(Pattern::Range {
-            start: Box::new(Expression::IntLiteral(0)),
-            end: Box::new(Expression::IntLiteral(9)), inclusive: true,
-        }, &m), Pattern::Range { .. }));
-        assert!(matches!(rewrite_pattern(Pattern::Struct {
-            struct_name: "P".into(), fields: vec![], partial: false,
-        }, &m), Pattern::Struct { .. }));
+        assert!(matches!(
+            rewrite_pattern(Pattern::Wildcard, &m),
+            Pattern::Wildcard
+        ));
+        assert!(matches!(
+            rewrite_pattern(Pattern::Identifier("x".into()), &m),
+            Pattern::Identifier(_)
+        ));
+        assert!(matches!(
+            rewrite_pattern(Pattern::Literal(Expression::IntLiteral(1)), &m),
+            Pattern::Literal(_)
+        ));
+        assert!(matches!(
+            rewrite_pattern(Pattern::Tuple { patterns: vec![] }, &m),
+            Pattern::Tuple { .. }
+        ));
+        assert!(matches!(
+            rewrite_pattern(Pattern::Or { patterns: vec![] }, &m),
+            Pattern::Or { .. }
+        ));
+        assert!(matches!(
+            rewrite_pattern(
+                Pattern::Range {
+                    start: Box::new(Expression::IntLiteral(0)),
+                    end: Box::new(Expression::IntLiteral(9)),
+                    inclusive: true,
+                },
+                &m
+            ),
+            Pattern::Range { .. }
+        ));
+        assert!(matches!(
+            rewrite_pattern(
+                Pattern::Struct {
+                    struct_name: "P".into(),
+                    fields: vec![],
+                    partial: false,
+                },
+                &m
+            ),
+            Pattern::Struct { .. }
+        ));
     }
 
     #[test]
     fn test_rewrite_stmt_branches() {
         let m = HashMap::new();
         let p = Path::new("t");
-        assert!(matches!(rewrite_statement(p, Statement::Break, &m).unwrap(), Statement::Break));
-        assert!(matches!(rewrite_statement(p, Statement::Continue, &m).unwrap(), Statement::Continue));
-        assert!(matches!(rewrite_statement(p, Statement::Module { path: vec![] }, &m).unwrap(), Statement::Module { .. }));
-        assert!(matches!(rewrite_statement(p, Statement::Import { path: vec![] }, &m).unwrap(), Statement::Import { .. }));
-        assert!(matches!(rewrite_statement(p, Statement::Return { value: None }, &m).unwrap(), Statement::Return { .. }));
-        assert!(matches!(rewrite_statement(p, Statement::Expression(Expression::IntLiteral(1)), &m).unwrap(), Statement::Expression(_)));
-        assert!(matches!(rewrite_statement(p, Statement::While { condition: Expression::BoolLiteral(true), body: Block::new(vec![]) }, &m).unwrap(), Statement::While { .. }));
-        assert!(matches!(rewrite_statement(p, Statement::Unsafe { block: Block::new(vec![]) }, &m).unwrap(), Statement::Unsafe { .. }));
-        assert!(matches!(rewrite_statement(p, Statement::Defer { statement: Box::new(Statement::Break) }, &m).unwrap(), Statement::Defer { .. }));
+        assert!(matches!(
+            rewrite_statement(p, Statement::Break, &m).unwrap(),
+            Statement::Break
+        ));
+        assert!(matches!(
+            rewrite_statement(p, Statement::Continue, &m).unwrap(),
+            Statement::Continue
+        ));
+        assert!(matches!(
+            rewrite_statement(p, Statement::Module { path: vec![] }, &m).unwrap(),
+            Statement::Module { .. }
+        ));
+        assert!(matches!(
+            rewrite_statement(p, Statement::Import { path: vec![] }, &m).unwrap(),
+            Statement::Import { .. }
+        ));
+        assert!(matches!(
+            rewrite_statement(p, Statement::Return { value: None }, &m).unwrap(),
+            Statement::Return { .. }
+        ));
+        assert!(matches!(
+            rewrite_statement(p, Statement::Expression(Expression::IntLiteral(1)), &m).unwrap(),
+            Statement::Expression(_)
+        ));
+        assert!(matches!(
+            rewrite_statement(
+                p,
+                Statement::While {
+                    condition: Expression::BoolLiteral(true),
+                    body: Block::new(vec![])
+                },
+                &m
+            )
+            .unwrap(),
+            Statement::While { .. }
+        ));
+        assert!(matches!(
+            rewrite_statement(
+                p,
+                Statement::Unsafe {
+                    block: Block::new(vec![])
+                },
+                &m
+            )
+            .unwrap(),
+            Statement::Unsafe { .. }
+        ));
+        assert!(matches!(
+            rewrite_statement(
+                p,
+                Statement::Defer {
+                    statement: Box::new(Statement::Break)
+                },
+                &m
+            )
+            .unwrap(),
+            Statement::Defer { .. }
+        ));
     }
 
     #[test]
     fn test_rewrite_stmt_if_else() {
         let m = HashMap::new();
-        let s = rewrite_statement(Path::new("t"), Statement::If {
-            condition: Expression::BoolLiteral(true),
-            then_branch: Block::new(vec![]),
-            else_branch: Some(Block::new(vec![])),
-        }, &m).unwrap();
-        match s { Statement::If { else_branch, .. } => assert!(else_branch.is_some()), _ => panic!() }
+        let s = rewrite_statement(
+            Path::new("t"),
+            Statement::If {
+                condition: Expression::BoolLiteral(true),
+                then_branch: Block::new(vec![]),
+                else_branch: Some(Block::new(vec![])),
+            },
+            &m,
+        )
+        .unwrap();
+        match s {
+            Statement::If { else_branch, .. } => assert!(else_branch.is_some()),
+            _ => panic!(),
+        }
     }
 
     #[test]
     fn test_rewrite_stmt_for_and_for_in() {
         let m = HashMap::new();
         let p = Path::new("t");
-        assert!(matches!(rewrite_statement(p, Statement::For {
-            initializer: None, condition: None, increment: None, body: Block::new(vec![]),
-        }, &m).unwrap(), Statement::For { .. }));
-        assert!(matches!(rewrite_statement(p, Statement::ForIn {
-            variable: "i".into(), iterable: Expression::Identifier("a".into()), body: Block::new(vec![]),
-        }, &m).unwrap(), Statement::ForIn { .. }));
+        assert!(matches!(
+            rewrite_statement(
+                p,
+                Statement::For {
+                    initializer: None,
+                    condition: None,
+                    increment: None,
+                    body: Block::new(vec![]),
+                },
+                &m
+            )
+            .unwrap(),
+            Statement::For { .. }
+        ));
+        assert!(matches!(
+            rewrite_statement(
+                p,
+                Statement::ForIn {
+                    variable: "i".into(),
+                    iterable: Expression::Identifier("a".into()),
+                    body: Block::new(vec![]),
+                },
+                &m
+            )
+            .unwrap(),
+            Statement::ForIn { .. }
+        ));
     }
 
     #[test]
     fn test_rewrite_stmt_match() {
         let m = HashMap::new();
-        assert!(matches!(rewrite_statement(Path::new("t"), Statement::Match {
-            expression: Expression::IntLiteral(1),
-            arms: vec![MatchArm { pattern: Pattern::Wildcard, guard: None, body: Block::new(vec![]) }],
-        }, &m).unwrap(), Statement::Match { .. }));
+        assert!(matches!(
+            rewrite_statement(
+                Path::new("t"),
+                Statement::Match {
+                    expression: Expression::IntLiteral(1),
+                    arms: vec![MatchArm {
+                        pattern: Pattern::Wildcard,
+                        guard: None,
+                        body: Block::new(vec![])
+                    }],
+                },
+                &m
+            )
+            .unwrap(),
+            Statement::Match { .. }
+        ));
     }
 
     #[test]
     fn test_rewrite_stmt_impl_block() {
         let mut m = HashMap::new();
         m.insert("S".into(), "__m_S".into());
-        let s = rewrite_statement(Path::new("t"), Statement::ImplBlock {
-            type_name: "S".into(), generic_params: vec![], methods: vec![],
-        }, &m).unwrap();
-        match s { Statement::ImplBlock { type_name, .. } => assert_eq!(type_name, "__m_S"), _ => panic!() }
+        let s = rewrite_statement(
+            Path::new("t"),
+            Statement::ImplBlock {
+                type_name: "S".into(),
+                generic_params: vec![],
+                methods: vec![],
+            },
+            &m,
+        )
+        .unwrap();
+        match s {
+            Statement::ImplBlock { type_name, .. } => assert_eq!(type_name, "__m_S"),
+            _ => panic!(),
+        }
     }
 
     #[test]
     fn test_rewrite_stmt_trait_impl() {
         let mut m = HashMap::new();
         m.insert("S".into(), "__m_S".into());
-        let s = rewrite_statement(Path::new("t"), Statement::TraitImpl {
-            trait_name: "D".into(), type_name: "S".into(),
-            generic_params: vec![], where_constraints: vec![], methods: vec![],
-        }, &m).unwrap();
-        match s { Statement::TraitImpl { type_name, trait_name, .. } => {
-            assert_eq!(type_name, "__m_S"); assert_eq!(trait_name, "D");
-        }, _ => panic!() }
+        let s = rewrite_statement(
+            Path::new("t"),
+            Statement::TraitImpl {
+                trait_name: "D".into(),
+                type_name: "S".into(),
+                generic_params: vec![],
+                where_constraints: vec![],
+                methods: vec![],
+            },
+            &m,
+        )
+        .unwrap();
+        match s {
+            Statement::TraitImpl {
+                type_name,
+                trait_name,
+                ..
+            } => {
+                assert_eq!(type_name, "__m_S");
+                assert_eq!(trait_name, "D");
+            }
+            _ => panic!(),
+        }
     }
 
     #[test]
     fn test_validate_module_decl_no_module() {
         let p = Program::new(vec![]);
-        assert!(validate_module_declaration(Path::new("/r/t.kr"), Path::new("/r"), &p).unwrap().is_none());
+        assert!(
+            validate_module_declaration(Path::new("/r/t.kr"), Path::new("/r"), &p)
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]
     fn test_validate_module_decl_multiple() {
         let p = Program::new(vec![
-            Statement::Module { path: vec!["a".into()] },
-            Statement::Module { path: vec!["b".into()] },
+            Statement::Module {
+                path: vec!["a".into()],
+            },
+            Statement::Module {
+                path: vec!["b".into()],
+            },
         ]);
         assert!(validate_module_declaration(Path::new("/r/a.kr"), Path::new("/r"), &p).is_err());
     }
@@ -1301,7 +1654,9 @@ mod tests {
     fn test_validate_module_decl_not_first() {
         let p = Program::new(vec![
             Statement::Expression(Expression::IntLiteral(1)),
-            Statement::Module { path: vec!["a".into()] },
+            Statement::Module {
+                path: vec!["a".into()],
+            },
         ]);
         assert!(validate_module_declaration(Path::new("/r/a.kr"), Path::new("/r"), &p).is_err());
     }
@@ -1313,7 +1668,8 @@ mod tests {
 
     #[test]
     fn test_apply_module_mangling_empty() {
-        let r = apply_module_mangling(Path::new("t"), Program::new(vec![]), &HashMap::new()).unwrap();
+        let r =
+            apply_module_mangling(Path::new("t"), Program::new(vec![]), &HashMap::new()).unwrap();
         assert!(r.statements.is_empty());
     }
 }

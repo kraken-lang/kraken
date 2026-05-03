@@ -400,6 +400,7 @@ fn scan_declarations(source: &str) -> Vec<SourceDecl> {
         let start = if tokens.first() == Some(&"pub") { 1 } else { 0 };
         let kw = tokens.get(start).copied().unwrap_or("");
 
+        #[allow(clippy::collapsible_match)]
         let kind: &'static str = match kw {
             "fn" => "function",
             "async" => {

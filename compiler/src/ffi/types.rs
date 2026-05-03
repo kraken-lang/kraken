@@ -76,7 +76,7 @@ mod tests {
     #[test]
     fn test_type_markers_clone_debug() {
         let c = CInt;
-        let c2 = c.clone();
+        let c2 = c;
         assert_eq!(c, c2);
         assert_eq!(format!("{:?}", c), "CInt");
 
@@ -111,7 +111,10 @@ mod tests {
     #[test]
     fn test_errno_debug() {
         assert_eq!(format!("{:?}", ErrnoConvention::None), "None");
-        assert_eq!(format!("{:?}", ErrnoConvention::ReturnsNegOne), "ReturnsNegOne");
+        assert_eq!(
+            format!("{:?}", ErrnoConvention::ReturnsNegOne),
+            "ReturnsNegOne"
+        );
         assert_eq!(format!("{:?}", ErrnoConvention::ReturnsNull), "ReturnsNull");
     }
 }

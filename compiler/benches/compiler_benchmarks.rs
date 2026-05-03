@@ -1,6 +1,7 @@
 //! Compiler performance benchmarks
 //!
 //! Benchmarks for compiler hot paths to track performance regressions.
+#![allow(clippy::result_large_err)]
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use kraken::analyzer::type_checker::TypeChecker;

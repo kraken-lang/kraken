@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_new_default() {
-        let _cmd = NewCommand::default();
+        let _cmd = NewCommand;
     }
 
     #[test]

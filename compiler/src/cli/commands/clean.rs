@@ -80,6 +80,6 @@ mod tests {
 
     #[test]
     fn test_clean_default() {
-        let _cmd = CleanCommand::default();
+        let _cmd = CleanCommand;
     }
 }

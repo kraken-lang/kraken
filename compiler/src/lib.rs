@@ -2,6 +2,7 @@
 //!
 //! A high-performance systems programming language compiler that combines
 //! C's raw power with Rust's safety and Go's simplicity.
+#![allow(clippy::result_large_err)]
 
 /// Semantic analysis: type checking, closure analysis, monomorphization, macros, and traits.
 pub mod analyzer;

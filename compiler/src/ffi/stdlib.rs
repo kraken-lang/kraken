@@ -66,7 +66,8 @@ pub struct StdlibFnSig {
 /// math, string libc wrappers, pthreads) are NOT listed here to avoid duplicate
 /// LLVM declarations.
 pub fn stdlib_functions() -> &'static [StdlibFnSig] {
-    &STDLIB_TABLE
+    #[allow(clippy::needless_borrow)]
+    return &STDLIB_TABLE;
 }
 
 /// Look up the signature for a single function by name.

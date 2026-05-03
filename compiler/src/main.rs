@@ -1,6 +1,7 @@
 //! Kraken Compiler CLI
 //!
 //! High-performance systems programming language compiler.
+#![allow(clippy::result_large_err)]
 
 use anyhow::{Context, Result};
 use clap::{Parser as ClapParser, Subcommand};

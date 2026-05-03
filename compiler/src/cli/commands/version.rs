@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_version_default() {
-        let _cmd = VersionCommand::default();
+        let _cmd = VersionCommand;
     }
 
     #[test]

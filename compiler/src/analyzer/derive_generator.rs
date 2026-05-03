@@ -291,7 +291,7 @@ mod tests {
 
     #[test]
     fn test_default() {
-        let _g = DeriveGenerator::default();
+        let _g = DeriveGenerator;
     }
 
     #[test]
@@ -308,7 +308,12 @@ mod tests {
         let r = g.generate_trait_impl("Clone", "Pt", &fields_xy());
         assert!(r.is_ok());
         match r.unwrap() {
-            Statement::TraitImpl { trait_name, type_name, methods, .. } => {
+            Statement::TraitImpl {
+                trait_name,
+                type_name,
+                methods,
+                ..
+            } => {
                 assert_eq!(trait_name, "Clone");
                 assert_eq!(type_name, "Pt");
                 assert_eq!(methods.len(), 1);
@@ -320,7 +325,9 @@ mod tests {
     #[test]
     fn test_dispatch_debug() {
         let g = DeriveGenerator::new();
-        let r = g.generate_trait_impl("Debug", "S", &fields_single()).unwrap();
+        let r = g
+            .generate_trait_impl("Debug", "S", &fields_single())
+            .unwrap();
         match r {
             Statement::TraitImpl { trait_name, .. } => assert_eq!(trait_name, "Debug"),
             _ => panic!("Expected TraitImpl"),
@@ -330,7 +337,9 @@ mod tests {
     #[test]
     fn test_dispatch_partial_eq() {
         let g = DeriveGenerator::new();
-        assert!(g.generate_trait_impl("PartialEq", "S", &fields_single()).is_ok());
+        assert!(g
+            .generate_trait_impl("PartialEq", "S", &fields_single())
+            .is_ok());
     }
 
     #[test]
@@ -338,7 +347,11 @@ mod tests {
         let g = DeriveGenerator::new();
         let r = g.generate_trait_impl("Eq", "S", &[]).unwrap();
         match r {
-            Statement::TraitImpl { trait_name, methods, .. } => {
+            Statement::TraitImpl {
+                trait_name,
+                methods,
+                ..
+            } => {
                 assert_eq!(trait_name, "Eq");
                 assert!(methods.is_empty()); // marker trait
             }
@@ -407,7 +420,9 @@ mod tests {
                 // Should return true for empty struct
                 if let Statement::FunctionDeclaration { body, .. } = &methods[0] {
                     match &body.statements[0] {
-                        Statement::Return { value: Some(Expression::BoolLiteral(true)) } => {}
+                        Statement::Return {
+                            value: Some(Expression::BoolLiteral(true)),
+                        } => {}
                         _ => panic!("Expected return true for empty PartialEq"),
                     }
                 }
@@ -432,7 +447,9 @@ mod tests {
                 assert_eq!(methods.len(), 1);
                 if let Statement::FunctionDeclaration { body, .. } = &methods[0] {
                     match &body.statements[0] {
-                        Statement::Return { value: Some(Expression::Binary { operator, .. }) } => {
+                        Statement::Return {
+                            value: Some(Expression::Binary { operator, .. }),
+                        } => {
                             assert_eq!(*operator, crate::lexer::token::Operator::And);
                         }
                         _ => panic!("Expected chained binary && for multi-field PartialEq"),
@@ -453,7 +470,9 @@ mod tests {
             Statement::TraitImpl { methods, .. } => {
                 if let Statement::FunctionDeclaration { body, .. } = &methods[0] {
                     match &body.statements[0] {
-                        Statement::Return { value: Some(Expression::StringLiteral(s)) } => {
+                        Statement::Return {
+                            value: Some(Expression::StringLiteral(s)),
+                        } => {
                             assert!(s.contains("Widget"));
                         }
                         _ => panic!("Expected string literal return"),

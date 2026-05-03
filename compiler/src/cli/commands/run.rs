@@ -65,7 +65,7 @@ mod tests {
 
     #[test]
     fn test_run_default() {
-        let _cmd = RunCommand::default();
+        let _cmd = RunCommand;
     }
 
     #[test]

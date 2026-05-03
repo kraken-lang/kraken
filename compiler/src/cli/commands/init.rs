@@ -119,6 +119,6 @@ mod tests {
 
     #[test]
     fn test_init_default() {
-        let _cmd = InitCommand::default();
+        let _cmd = InitCommand;
     }
 }
