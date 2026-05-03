@@ -164,10 +164,7 @@ mod tests {
     #[test]
     fn test_expand_simple_variable() {
         let mut e = MacroExpander::new();
-        e.register_macro(
-            "id".into(),
-            vec![rule(vec![var("x")], vec![var("x")])],
-        );
+        e.register_macro("id".into(), vec![rule(vec![var("x")], vec![var("x")])]);
         let result = e.expand_macro("id", &[Expression::IntLiteral(42)]).unwrap();
         match result {
             Statement::Expression(Expression::IntLiteral(42)) => {}
@@ -192,12 +189,17 @@ mod tests {
     #[test]
     fn test_expand_multiple_rules_first_match() {
         let mut e = MacroExpander::new();
-        e.register_macro("m".into(), vec![
-            rule(vec![var("a"), var("b")], vec![var("a")]),
-            rule(vec![var("x")], vec![var("x")]),
-        ]);
+        e.register_macro(
+            "m".into(),
+            vec![
+                rule(vec![var("a"), var("b")], vec![var("a")]),
+                rule(vec![var("x")], vec![var("x")]),
+            ],
+        );
         // Should match first rule with 2 args
-        let result = e.expand_macro("m", &[Expression::IntLiteral(1), Expression::IntLiteral(2)]).unwrap();
+        let result = e
+            .expand_macro("m", &[Expression::IntLiteral(1), Expression::IntLiteral(2)])
+            .unwrap();
         match result {
             Statement::Expression(Expression::IntLiteral(1)) => {}
             _ => panic!("Expected IntLiteral(1)"),
@@ -207,10 +209,13 @@ mod tests {
     #[test]
     fn test_expand_multiple_rules_fallback() {
         let mut e = MacroExpander::new();
-        e.register_macro("m".into(), vec![
-            rule(vec![var("a"), var("b")], vec![var("a")]),
-            rule(vec![var("x")], vec![var("x")]),
-        ]);
+        e.register_macro(
+            "m".into(),
+            vec![
+                rule(vec![var("a"), var("b")], vec![var("a")]),
+                rule(vec![var("x")], vec![var("x")]),
+            ],
+        );
         // First rule fails (needs 2 args), second matches
         let result = e.expand_macro("m", &[Expression::IntLiteral(99)]).unwrap();
         match result {
@@ -229,10 +234,16 @@ mod tests {
                 vec![var("items")],
             )],
         );
-        let result = e.expand_macro(
-            "rep",
-            &[Expression::IntLiteral(1), Expression::IntLiteral(2), Expression::IntLiteral(3)],
-        ).unwrap();
+        let result = e
+            .expand_macro(
+                "rep",
+                &[
+                    Expression::IntLiteral(1),
+                    Expression::IntLiteral(2),
+                    Expression::IntLiteral(3),
+                ],
+            )
+            .unwrap();
         // Should expand to first item in the repetition binding
         match result {
             Statement::Expression(Expression::IntLiteral(1)) => {}
@@ -266,10 +277,15 @@ mod tests {
             "m".into(),
             vec![rule(vec![lit(","), var("x")], vec![var("x")])],
         );
-        let result = e.expand_macro(
-            "m",
-            &[Expression::StringLiteral(",".into()), Expression::IntLiteral(5)],
-        ).unwrap();
+        let result = e
+            .expand_macro(
+                "m",
+                &[
+                    Expression::StringLiteral(",".into()),
+                    Expression::IntLiteral(5),
+                ],
+            )
+            .unwrap();
         match result {
             Statement::Expression(Expression::IntLiteral(5)) => {}
             _ => panic!("Expected IntLiteral(5)"),
@@ -280,10 +296,7 @@ mod tests {
     fn test_expand_tokens_no_binding() {
         let mut e = MacroExpander::new();
         // Expansion references a variable not in bindings
-        e.register_macro(
-            "m".into(),
-            vec![rule(vec![], vec![var("nonexistent")])],
-        );
+        e.register_macro("m".into(), vec![rule(vec![], vec![var("nonexistent")])]);
         let result = e.expand_macro("m", &[]).unwrap();
         match result {
             Statement::Expression(Expression::IntLiteral(0)) => {}
@@ -330,7 +343,9 @@ mod tests {
     fn test_expand_with_string_literal_arg() {
         let mut e = MacroExpander::new();
         e.register_macro("m".into(), vec![rule(vec![var("s")], vec![var("s")])]);
-        let result = e.expand_macro("m", &[Expression::StringLiteral("hello".into())]).unwrap();
+        let result = e
+            .expand_macro("m", &[Expression::StringLiteral("hello".into())])
+            .unwrap();
         match result {
             Statement::Expression(Expression::StringLiteral(s)) => assert_eq!(s, "hello"),
             _ => panic!("Expected StringLiteral"),
@@ -341,7 +356,9 @@ mod tests {
     fn test_expand_with_bool_arg() {
         let mut e = MacroExpander::new();
         e.register_macro("m".into(), vec![rule(vec![var("b")], vec![var("b")])]);
-        let result = e.expand_macro("m", &[Expression::BoolLiteral(true)]).unwrap();
+        let result = e
+            .expand_macro("m", &[Expression::BoolLiteral(true)])
+            .unwrap();
         match result {
             Statement::Expression(Expression::BoolLiteral(true)) => {}
             _ => panic!("Expected BoolLiteral(true)"),

@@ -617,29 +617,74 @@ mod tests {
 
     #[test]
     fn test_category_all_ranges() {
-        assert_eq!(DiagnosticCode::KRA0012_InvalidHexLiteral.category(), DiagnosticCategory::Lexer);
-        assert_eq!(DiagnosticCode::KRA1015_InvalidVisibility.category(), DiagnosticCategory::Parser);
-        assert_eq!(DiagnosticCode::KRA2015_MismatchedReturnType.category(), DiagnosticCategory::Type);
-        assert_eq!(DiagnosticCode::KRA3012_CannotResolveSymbol.category(), DiagnosticCategory::Resolution);
-        assert_eq!(DiagnosticCode::KRA4008_DanglingReference.category(), DiagnosticCategory::Borrow);
-        assert_eq!(DiagnosticCode::KRA5005_AssemblyError.category(), DiagnosticCategory::Codegen);
-        assert_eq!(DiagnosticCode::KRA6004_InvalidModuleStructure.category(), DiagnosticCategory::Module);
-        assert_eq!(DiagnosticCode::KRA7003_RecursiveMacroExpansion.category(), DiagnosticCategory::Macro);
-        assert_eq!(DiagnosticCode::KRA8003_DuplicateAttribute.category(), DiagnosticCategory::Attribute);
-        assert_eq!(DiagnosticCode::KRA9004_InvalidPath.category(), DiagnosticCategory::Io);
-        assert_eq!(DiagnosticCode::KRA9999_InternalCompilerError.category(), DiagnosticCategory::Codegen);
+        assert_eq!(
+            DiagnosticCode::KRA0012_InvalidHexLiteral.category(),
+            DiagnosticCategory::Lexer
+        );
+        assert_eq!(
+            DiagnosticCode::KRA1015_InvalidVisibility.category(),
+            DiagnosticCategory::Parser
+        );
+        assert_eq!(
+            DiagnosticCode::KRA2015_MismatchedReturnType.category(),
+            DiagnosticCategory::Type
+        );
+        assert_eq!(
+            DiagnosticCode::KRA3012_CannotResolveSymbol.category(),
+            DiagnosticCategory::Resolution
+        );
+        assert_eq!(
+            DiagnosticCode::KRA4008_DanglingReference.category(),
+            DiagnosticCategory::Borrow
+        );
+        assert_eq!(
+            DiagnosticCode::KRA5005_AssemblyError.category(),
+            DiagnosticCategory::Codegen
+        );
+        assert_eq!(
+            DiagnosticCode::KRA6004_InvalidModuleStructure.category(),
+            DiagnosticCategory::Module
+        );
+        assert_eq!(
+            DiagnosticCode::KRA7003_RecursiveMacroExpansion.category(),
+            DiagnosticCategory::Macro
+        );
+        assert_eq!(
+            DiagnosticCode::KRA8003_DuplicateAttribute.category(),
+            DiagnosticCategory::Attribute
+        );
+        assert_eq!(
+            DiagnosticCode::KRA9004_InvalidPath.category(),
+            DiagnosticCategory::Io
+        );
+        assert_eq!(
+            DiagnosticCode::KRA9999_InternalCompilerError.category(),
+            DiagnosticCategory::Codegen
+        );
     }
 
     #[test]
     fn test_diagnostic_code_display() {
-        assert_eq!(format!("{}", DiagnosticCode::KRA0001_UnexpectedCharacter), "KRA0001");
-        assert_eq!(format!("{}", DiagnosticCode::KRA9999_InternalCompilerError), "KRA9999");
+        assert_eq!(
+            format!("{}", DiagnosticCode::KRA0001_UnexpectedCharacter),
+            "KRA0001"
+        );
+        assert_eq!(
+            format!("{}", DiagnosticCode::KRA9999_InternalCompilerError),
+            "KRA9999"
+        );
     }
 
     #[test]
     fn test_default_severity() {
-        assert_eq!(DiagnosticCode::KRA0001_UnexpectedCharacter.default_severity(), DiagnosticSeverity::Error);
-        assert_eq!(DiagnosticCode::KRA9999_InternalCompilerError.default_severity(), DiagnosticSeverity::Error);
+        assert_eq!(
+            DiagnosticCode::KRA0001_UnexpectedCharacter.default_severity(),
+            DiagnosticSeverity::Error
+        );
+        assert_eq!(
+            DiagnosticCode::KRA9999_InternalCompilerError.default_severity(),
+            DiagnosticSeverity::Error
+        );
     }
 
     #[test]

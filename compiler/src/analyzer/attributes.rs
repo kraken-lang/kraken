@@ -170,7 +170,10 @@ mod tests {
     fn test_get_function_attr() {
         let mut p = AttributeProcessor::new();
         p.register_function_attr("f".into(), "inline".into(), AttributeValue::Flag);
-        assert_eq!(p.get_function_attr("f", "inline"), Some(&AttributeValue::Flag));
+        assert_eq!(
+            p.get_function_attr("f", "inline"),
+            Some(&AttributeValue::Flag)
+        );
         assert_eq!(p.get_function_attr("f", "test"), None);
         assert_eq!(p.get_function_attr("g", "inline"), None);
     }
@@ -178,7 +181,11 @@ mod tests {
     #[test]
     fn test_register_function_attr_args() {
         let mut p = AttributeProcessor::new();
-        p.register_function_attr("f".into(), "cfg".into(), AttributeValue::Args(vec!["test".into()]));
+        p.register_function_attr(
+            "f".into(),
+            "cfg".into(),
+            AttributeValue::Args(vec!["test".into()]),
+        );
         match p.get_function_attr("f", "cfg") {
             Some(AttributeValue::Args(args)) => assert_eq!(args, &["test"]),
             _ => panic!("Expected Args"),
@@ -190,7 +197,11 @@ mod tests {
     #[test]
     fn test_register_type_attr() {
         let mut p = AttributeProcessor::new();
-        p.register_type_attr("S".into(), "derive".into(), AttributeValue::Args(vec!["Clone".into()]));
+        p.register_type_attr(
+            "S".into(),
+            "derive".into(),
+            AttributeValue::Args(vec!["Clone".into()]),
+        );
         assert!(p.has_type_attr("S", "derive"));
         assert!(!p.has_type_attr("S", "repr"));
         assert!(!p.has_type_attr("T", "derive"));
@@ -210,7 +221,11 @@ mod tests {
     #[test]
     fn test_get_derive_traits() {
         let mut p = AttributeProcessor::new();
-        p.register_type_attr("S".into(), "derive".into(), AttributeValue::Args(vec!["Clone".into(), "Debug".into()]));
+        p.register_type_attr(
+            "S".into(),
+            "derive".into(),
+            AttributeValue::Args(vec!["Clone".into(), "Debug".into()]),
+        );
         assert_eq!(p.get_derive_traits("S"), vec!["Clone", "Debug"]);
     }
 
@@ -268,7 +283,15 @@ mod tests {
     #[test]
     fn test_validate_derive_ok_all_known() {
         let p = AttributeProcessor::new();
-        for t in &["Clone", "Debug", "PartialEq", "Eq", "PartialOrd", "Ord", "Hash"] {
+        for t in &[
+            "Clone",
+            "Debug",
+            "PartialEq",
+            "Eq",
+            "PartialOrd",
+            "Ord",
+            "Hash",
+        ] {
             assert!(p.validate_attribute("derive", &[t.to_string()]).is_ok());
         }
     }
@@ -282,7 +305,9 @@ mod tests {
     #[test]
     fn test_validate_derive_unknown_trait_err() {
         let p = AttributeProcessor::new();
-        assert!(p.validate_attribute("derive", &["Serialize".into()]).is_err());
+        assert!(p
+            .validate_attribute("derive", &["Serialize".into()])
+            .is_err());
     }
 
     #[test]

@@ -273,9 +273,21 @@ mod tests {
     fn test_get_drop_variables() {
         let c = DropChecker::new();
         let vars = vec![
-            VariableInfo { name: "x".into(), var_type: Type::Int, needs_drop: true },
-            VariableInfo { name: "y".into(), var_type: Type::Int, needs_drop: false },
-            VariableInfo { name: "z".into(), var_type: Type::Int, needs_drop: true },
+            VariableInfo {
+                name: "x".into(),
+                var_type: Type::Int,
+                needs_drop: true,
+            },
+            VariableInfo {
+                name: "y".into(),
+                var_type: Type::Int,
+                needs_drop: false,
+            },
+            VariableInfo {
+                name: "z".into(),
+                var_type: Type::Int,
+                needs_drop: true,
+            },
         ];
         let drop_vars = c.get_drop_variables(&vars);
         assert_eq!(drop_vars, vec!["x", "z"]);
@@ -284,9 +296,11 @@ mod tests {
     #[test]
     fn test_get_drop_variables_none() {
         let c = DropChecker::new();
-        let vars = vec![
-            VariableInfo { name: "a".into(), var_type: Type::Int, needs_drop: false },
-        ];
+        let vars = vec![VariableInfo {
+            name: "a".into(),
+            var_type: Type::Int,
+            needs_drop: false,
+        }];
         assert!(c.get_drop_variables(&vars).is_empty());
     }
 

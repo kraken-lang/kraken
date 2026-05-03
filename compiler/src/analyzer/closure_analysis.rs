@@ -372,8 +372,16 @@ mod tests {
     #[test]
     fn test_env_add_capture_dedup() {
         let mut env = ClosureEnvironment::new(false);
-        env.add_capture(CapturedVariable { name: "x".into(), is_mutable: false, capture_by_value: false });
-        env.add_capture(CapturedVariable { name: "x".into(), is_mutable: true, capture_by_value: true });
+        env.add_capture(CapturedVariable {
+            name: "x".into(),
+            is_mutable: false,
+            capture_by_value: false,
+        });
+        env.add_capture(CapturedVariable {
+            name: "x".into(),
+            is_mutable: true,
+            capture_by_value: true,
+        });
         assert_eq!(env.captured_vars.len(), 1);
     }
 
@@ -414,7 +422,9 @@ mod tests {
     fn test_simple_capture() {
         let mut a = ClosureAnalyzer::new();
         a.local_vars.first_mut().unwrap().insert("x".into());
-        let env = a.analyze_closure(&[], &ClosureBody::Expression(Box::new(ident("x"))), false).unwrap();
+        let env = a
+            .analyze_closure(&[], &ClosureBody::Expression(Box::new(ident("x"))), false)
+            .unwrap();
         assert_eq!(env.captured_vars.len(), 1);
         assert_eq!(env.captured_vars[0].name, "x");
         assert!(!env.captured_vars[0].capture_by_value);
@@ -424,7 +434,9 @@ mod tests {
     fn test_move_capture() {
         let mut a = ClosureAnalyzer::new();
         a.local_vars.first_mut().unwrap().insert("x".into());
-        let env = a.analyze_closure(&[], &ClosureBody::Expression(Box::new(ident("x"))), true).unwrap();
+        let env = a
+            .analyze_closure(&[], &ClosureBody::Expression(Box::new(ident("x"))), true)
+            .unwrap();
         assert!(env.captured_vars[0].capture_by_value);
         assert!(env.is_move);
     }
@@ -432,7 +444,13 @@ mod tests {
     #[test]
     fn test_no_capture_for_param() {
         let mut a = ClosureAnalyzer::new();
-        let env = a.analyze_closure(&[param("x")], &ClosureBody::Expression(Box::new(ident("x"))), false).unwrap();
+        let env = a
+            .analyze_closure(
+                &[param("x")],
+                &ClosureBody::Expression(Box::new(ident("x"))),
+                false,
+            )
+            .unwrap();
         assert!(env.captured_vars.is_empty());
     }
 
@@ -683,14 +701,12 @@ mod tests {
     #[test]
     fn test_block_body_variable_decl() {
         let mut a = ClosureAnalyzer::new();
-        let body = ClosureBody::Block(block(vec![
-            Statement::VariableDeclaration {
-                pattern: Pattern::Identifier("y".into()),
-                type_annotation: None,
-                initializer: Some(ident("x")),
-                is_mutable: false,
-            },
-        ]));
+        let body = ClosureBody::Block(block(vec![Statement::VariableDeclaration {
+            pattern: Pattern::Identifier("y".into()),
+            type_annotation: None,
+            initializer: Some(ident("x")),
+            is_mutable: false,
+        }]));
         let env = a.analyze_closure(&[], &body, false).unwrap();
         assert_eq!(env.captured_vars.len(), 1);
         assert_eq!(env.captured_vars[0].name, "x");
@@ -699,14 +715,12 @@ mod tests {
     #[test]
     fn test_block_body_variable_decl_no_init() {
         let mut a = ClosureAnalyzer::new();
-        let body = ClosureBody::Block(block(vec![
-            Statement::VariableDeclaration {
-                pattern: Pattern::Identifier("y".into()),
-                type_annotation: Some(Type::Int),
-                initializer: None,
-                is_mutable: false,
-            },
-        ]));
+        let body = ClosureBody::Block(block(vec![Statement::VariableDeclaration {
+            pattern: Pattern::Identifier("y".into()),
+            type_annotation: Some(Type::Int),
+            initializer: None,
+            is_mutable: false,
+        }]));
         let env = a.analyze_closure(&[], &body, false).unwrap();
         assert!(env.captured_vars.is_empty());
     }
@@ -714,13 +728,11 @@ mod tests {
     #[test]
     fn test_block_body_const_decl() {
         let mut a = ClosureAnalyzer::new();
-        let body = ClosureBody::Block(block(vec![
-            Statement::ConstantDeclaration {
-                name: "C".into(),
-                type_annotation: None,
-                initializer: ident("val"),
-            },
-        ]));
+        let body = ClosureBody::Block(block(vec![Statement::ConstantDeclaration {
+            name: "C".into(),
+            type_annotation: None,
+            initializer: ident("val"),
+        }]));
         let env = a.analyze_closure(&[], &body, false).unwrap();
         assert_eq!(env.captured_vars.len(), 1);
     }
@@ -728,9 +740,9 @@ mod tests {
     #[test]
     fn test_block_body_return() {
         let mut a = ClosureAnalyzer::new();
-        let body = ClosureBody::Block(block(vec![
-            Statement::Return { value: Some(ident("x")) },
-        ]));
+        let body = ClosureBody::Block(block(vec![Statement::Return {
+            value: Some(ident("x")),
+        }]));
         let env = a.analyze_closure(&[], &body, false).unwrap();
         assert_eq!(env.captured_vars.len(), 1);
     }
@@ -738,9 +750,7 @@ mod tests {
     #[test]
     fn test_block_body_return_void() {
         let mut a = ClosureAnalyzer::new();
-        let body = ClosureBody::Block(block(vec![
-            Statement::Return { value: None },
-        ]));
+        let body = ClosureBody::Block(block(vec![Statement::Return { value: None }]));
         let env = a.analyze_closure(&[], &body, false).unwrap();
         assert!(env.captured_vars.is_empty());
     }
@@ -748,13 +758,11 @@ mod tests {
     #[test]
     fn test_block_body_if_else() {
         let mut a = ClosureAnalyzer::new();
-        let body = ClosureBody::Block(block(vec![
-            Statement::If {
-                condition: ident("cond"),
-                then_branch: block(vec![Statement::Expression(ident("a"))]),
-                else_branch: Some(block(vec![Statement::Expression(ident("b"))])),
-            },
-        ]));
+        let body = ClosureBody::Block(block(vec![Statement::If {
+            condition: ident("cond"),
+            then_branch: block(vec![Statement::Expression(ident("a"))]),
+            else_branch: Some(block(vec![Statement::Expression(ident("b"))])),
+        }]));
         let env = a.analyze_closure(&[], &body, false).unwrap();
         assert_eq!(env.captured_vars.len(), 3); // cond, a, b
     }
@@ -762,12 +770,10 @@ mod tests {
     #[test]
     fn test_block_body_while() {
         let mut a = ClosureAnalyzer::new();
-        let body = ClosureBody::Block(block(vec![
-            Statement::While {
-                condition: ident("c"),
-                body: block(vec![Statement::Expression(ident("x"))]),
-            },
-        ]));
+        let body = ClosureBody::Block(block(vec![Statement::While {
+            condition: ident("c"),
+            body: block(vec![Statement::Expression(ident("x"))]),
+        }]));
         let env = a.analyze_closure(&[], &body, false).unwrap();
         assert_eq!(env.captured_vars.len(), 2);
     }
@@ -775,14 +781,12 @@ mod tests {
     #[test]
     fn test_block_body_for() {
         let mut a = ClosureAnalyzer::new();
-        let body = ClosureBody::Block(block(vec![
-            Statement::For {
-                initializer: None,
-                condition: Some(ident("c")),
-                increment: None,
-                body: block(vec![Statement::Expression(ident("x"))]),
-            },
-        ]));
+        let body = ClosureBody::Block(block(vec![Statement::For {
+            initializer: None,
+            condition: Some(ident("c")),
+            increment: None,
+            body: block(vec![Statement::Expression(ident("x"))]),
+        }]));
         let env = a.analyze_closure(&[], &body, false).unwrap();
         assert_eq!(env.captured_vars.len(), 2);
     }
@@ -790,14 +794,12 @@ mod tests {
     #[test]
     fn test_block_body_for_no_cond() {
         let mut a = ClosureAnalyzer::new();
-        let body = ClosureBody::Block(block(vec![
-            Statement::For {
-                initializer: None,
-                condition: None,
-                increment: None,
-                body: block(vec![]),
-            },
-        ]));
+        let body = ClosureBody::Block(block(vec![Statement::For {
+            initializer: None,
+            condition: None,
+            increment: None,
+            body: block(vec![]),
+        }]));
         let env = a.analyze_closure(&[], &body, false).unwrap();
         assert!(env.captured_vars.is_empty());
     }
@@ -805,13 +807,11 @@ mod tests {
     #[test]
     fn test_block_body_for_in() {
         let mut a = ClosureAnalyzer::new();
-        let body = ClosureBody::Block(block(vec![
-            Statement::ForIn {
-                variable: "i".into(),
-                iterable: ident("items"),
-                body: block(vec![Statement::Expression(ident("acc"))]),
-            },
-        ]));
+        let body = ClosureBody::Block(block(vec![Statement::ForIn {
+            variable: "i".into(),
+            iterable: ident("items"),
+            body: block(vec![Statement::Expression(ident("acc"))]),
+        }]));
         let env = a.analyze_closure(&[], &body, false).unwrap();
         assert!(env.captured_vars.iter().any(|v| v.name == "items"));
         assert!(env.captured_vars.iter().any(|v| v.name == "acc"));
@@ -820,16 +820,14 @@ mod tests {
     #[test]
     fn test_block_body_match() {
         let mut a = ClosureAnalyzer::new();
-        let body = ClosureBody::Block(block(vec![
-            Statement::Match {
-                expression: ident("val"),
-                arms: vec![MatchArm {
-                    pattern: Pattern::Wildcard,
-                    guard: None,
-                    body: block(vec![Statement::Expression(ident("r"))]),
-                }],
-            },
-        ]));
+        let body = ClosureBody::Block(block(vec![Statement::Match {
+            expression: ident("val"),
+            arms: vec![MatchArm {
+                pattern: Pattern::Wildcard,
+                guard: None,
+                body: block(vec![Statement::Expression(ident("r"))]),
+            }],
+        }]));
         let env = a.analyze_closure(&[], &body, false).unwrap();
         assert_eq!(env.captured_vars.len(), 2); // val, r
     }
@@ -845,11 +843,9 @@ mod tests {
     #[test]
     fn test_block_body_defer() {
         let mut a = ClosureAnalyzer::new();
-        let body = ClosureBody::Block(block(vec![
-            Statement::Defer {
-                statement: Box::new(Statement::Expression(ident("cleanup"))),
-            },
-        ]));
+        let body = ClosureBody::Block(block(vec![Statement::Defer {
+            statement: Box::new(Statement::Expression(ident("cleanup"))),
+        }]));
         let env = a.analyze_closure(&[], &body, false).unwrap();
         assert_eq!(env.captured_vars.len(), 1);
     }
@@ -857,11 +853,9 @@ mod tests {
     #[test]
     fn test_block_body_unsafe() {
         let mut a = ClosureAnalyzer::new();
-        let body = ClosureBody::Block(block(vec![
-            Statement::Unsafe {
-                block: block(vec![Statement::Expression(ident("ptr"))]),
-            },
-        ]));
+        let body = ClosureBody::Block(block(vec![Statement::Unsafe {
+            block: block(vec![Statement::Expression(ident("ptr"))]),
+        }]));
         let env = a.analyze_closure(&[], &body, false).unwrap();
         assert_eq!(env.captured_vars.len(), 1);
     }
@@ -871,16 +865,31 @@ mod tests {
         let mut a = ClosureAnalyzer::new();
         let body = ClosureBody::Block(block(vec![
             Statement::FunctionDeclaration {
-                name: "f".into(), generic_params: vec![], where_constraints: vec![],
-                parameters: vec![], return_type: None, body: block(vec![]),
-                is_async: false, is_unsafe: false, is_public: false, is_variadic: false,
+                name: "f".into(),
+                generic_params: vec![],
+                where_constraints: vec![],
+                parameters: vec![],
+                return_type: None,
+                body: block(vec![]),
+                is_async: false,
+                is_unsafe: false,
+                is_public: false,
+                is_variadic: false,
             },
             Statement::StructDeclaration {
-                name: "S".into(), generic_params: vec![], where_constraints: vec![],
-                fields: vec![], is_public: false, repr: None,
+                name: "S".into(),
+                generic_params: vec![],
+                where_constraints: vec![],
+                fields: vec![],
+                is_public: false,
+                repr: None,
             },
-            Statement::Import { path: vec!["std".into()] },
-            Statement::Module { path: vec!["mod".into()] },
+            Statement::Import {
+                path: vec!["std".into()],
+            },
+            Statement::Module {
+                path: vec!["mod".into()],
+            },
         ]));
         let env = a.analyze_closure(&[], &body, false).unwrap();
         assert!(env.captured_vars.is_empty());

@@ -139,13 +139,8 @@ mod tests {
         unsafe {
             let (ctx, module) = make_module();
             let builder = DebugInfoBuilder::new(module, "main.kr", "/src");
-            let result = builder.create_function(
-                "my_fn",
-                "my_fn",
-                ptr::null_mut(),
-                1,
-                ptr::null_mut(),
-            );
+            let result =
+                builder.create_function("my_fn", "my_fn", ptr::null_mut(), 1, ptr::null_mut());
             assert!(result.is_null());
             drop(builder);
             LLVMDisposeModule(module);

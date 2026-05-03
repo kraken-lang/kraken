@@ -468,7 +468,10 @@ mod tests {
         ] {
             let msg = OutputMessage::new(level, "msg");
             let plain = msg.format_plain();
-            assert!(plain.starts_with(prefix), "Expected prefix {prefix}, got {plain}");
+            assert!(
+                plain.starts_with(prefix),
+                "Expected prefix {prefix}, got {plain}"
+            );
         }
     }
 
@@ -561,8 +564,7 @@ mod tests {
 
     #[test]
     fn test_diagnostic_multiline_snippet() {
-        let d = Diagnostic::new(MessageLevel::Error, "err")
-            .snippet("line1\nline2\nline3");
+        let d = Diagnostic::new(MessageLevel::Error, "err").snippet("line1\nline2\nline3");
         let f = d.format();
         assert!(f.contains("line1"));
         assert!(f.contains("line3"));

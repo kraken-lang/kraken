@@ -870,9 +870,8 @@ mod tests {
     fn test_lookup_all_categories() {
         let registry = DiagnosticRegistry::new();
         let categories = [
-            "KRA0001", "KRA1000", "KRA2000", "KRA3000", "KRA4000",
-            "KRA5000", "KRA6000", "KRA7000", "KRA8000", "KRA9000",
-            "KRA9999",
+            "KRA0001", "KRA1000", "KRA2000", "KRA3000", "KRA4000", "KRA5000", "KRA6000", "KRA7000",
+            "KRA8000", "KRA9000", "KRA9999",
         ];
         for code in &categories {
             assert!(registry.lookup(code).is_some(), "Missing: {code}");
@@ -899,7 +898,11 @@ mod tests {
     fn test_all_codes_count() {
         let registry = DiagnosticRegistry::new();
         let codes = registry.all_codes();
-        assert!(codes.len() >= 60, "Expected at least 60 codes, got {}", codes.len());
+        assert!(
+            codes.len() >= 60,
+            "Expected at least 60 codes, got {}",
+            codes.len()
+        );
     }
 
     #[test]
@@ -915,28 +918,42 @@ mod tests {
     #[test]
     fn test_lookup_lexer_range() {
         let registry = DiagnosticRegistry::new();
-        for code in ["KRA0002", "KRA0003", "KRA0004", "KRA0005", "KRA0006",
-                     "KRA0007", "KRA0008", "KRA0009", "KRA0010", "KRA0011", "KRA0012"] {
-            assert!(registry.lookup(code).is_some(), "Missing lexer code: {code}");
+        for code in [
+            "KRA0002", "KRA0003", "KRA0004", "KRA0005", "KRA0006", "KRA0007", "KRA0008", "KRA0009",
+            "KRA0010", "KRA0011", "KRA0012",
+        ] {
+            assert!(
+                registry.lookup(code).is_some(),
+                "Missing lexer code: {code}"
+            );
         }
     }
 
     #[test]
     fn test_lookup_parser_range() {
         let registry = DiagnosticRegistry::new();
-        for code in ["KRA1001", "KRA1002", "KRA1003", "KRA1004", "KRA1005",
-                     "KRA1006", "KRA1007", "KRA1008", "KRA1009", "KRA1010",
-                     "KRA1011", "KRA1012", "KRA1013", "KRA1014", "KRA1015"] {
-            assert!(registry.lookup(code).is_some(), "Missing parser code: {code}");
+        for code in [
+            "KRA1001", "KRA1002", "KRA1003", "KRA1004", "KRA1005", "KRA1006", "KRA1007", "KRA1008",
+            "KRA1009", "KRA1010", "KRA1011", "KRA1012", "KRA1013", "KRA1014", "KRA1015",
+        ] {
+            assert!(
+                registry.lookup(code).is_some(),
+                "Missing parser code: {code}"
+            );
         }
     }
 
     #[test]
     fn test_lookup_borrow_range() {
         let registry = DiagnosticRegistry::new();
-        for code in ["KRA4000", "KRA4001", "KRA4002", "KRA4003", "KRA4004",
-                     "KRA4005", "KRA4006", "KRA4007", "KRA4008"] {
-            assert!(registry.lookup(code).is_some(), "Missing borrow code: {code}");
+        for code in [
+            "KRA4000", "KRA4001", "KRA4002", "KRA4003", "KRA4004", "KRA4005", "KRA4006", "KRA4007",
+            "KRA4008",
+        ] {
+            assert!(
+                registry.lookup(code).is_some(),
+                "Missing borrow code: {code}"
+            );
         }
     }
 }

@@ -259,7 +259,9 @@ mod tests {
     #[test]
     fn test_format_file_in_place_nonexistent() {
         let f = Formatter::new();
-        assert!(f.format_file_in_place(Path::new("/nonexistent/file.kr")).is_err());
+        assert!(f
+            .format_file_in_place(Path::new("/nonexistent/file.kr"))
+            .is_err());
     }
 
     #[test]

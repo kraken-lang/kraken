@@ -12,7 +12,7 @@ Current version: `v0.9.2`
 ### Type System (0.8.14)
 - **Tuples**: `(int, string, bool)` with destructuring and pattern matching
 - **Enums**: Variant types with payloads (`Option<T>`, `Result<T, E>`)
-- **Pattern Matching**: Comprehensive match expressions with literal, tuple, and enum patterns
+- **Pattern Matching**: Match expressions with literal, tuple, and enum patterns
 - **Generics**: Generic functions and types with monomorphization
 
 ### Iteration & Ranges (0.8.15)
@@ -43,7 +43,7 @@ Current version: `v0.9.2`
 - **Capture Analysis**: Automatic detection of captured variables
 - **Move Closures**: `move |x| ...` for capture by value
 - **Higher-Order Functions**: Functions accepting and returning closures
-- **Comprehensive Tests**: 1,027 lines of tests covering all scenarios
+- **Tests**: 1,027 lines of tests covering all scenarios
 
 ### Type Aliases & Impl Blocks (0.8.20)
 - **Type Aliases**: `type MyInt = int;` with generic support
@@ -80,20 +80,20 @@ Current version: `v0.9.2`
 - **Memory Leak Detection**: Track malloc/free pairs with detailed reporting
 - **Safety Helpers**: Null pointer checking, allocation tracking, debugging utilities
 - **Environment Variables**: `KRAKEN_BOUNDS_CHECK=1`, `KRAKEN_LEAK_CHECK=1`
-- **Documentation**: Comprehensive STRINGS.md guide, string_processing.kr, safe_pointers.kr examples
-- **Total**: 11 new safety functions + comprehensive documentation
+- **Documentation**: STRINGS.md guide with `string_processing.kr` and `safe_pointers.kr` examples
+- **Total**: 11 new safety functions
 
 ### Trait System Specification & Collection Helpers (0.8.25)
 - **Collection Helper Functions**: 15+ runtime functions for array operations, iterators, and utilities
 - **Array Operations**: map, filter, fold, any, all, find
 - **Range Iterator**: create, next, free for efficient iteration
 - **Utility Functions**: clone, compare, hash, default, conversion helpers
-- **Comprehensive Documentation**: 1,000+ line TRAITS.md guide with complete trait system specification
+- **Documentation**: 1,000+ line TRAITS.md guide with complete trait system specification
 - **Standard Traits**: Clone, Copy, Debug, Display, Default, Drop specifications
 - **Operator Traits**: Add, Sub, Mul, Div, comparison, bitwise, indexing, dereference
 - **Conversion Traits**: From, Into, TryFrom, TryInto, AsRef, AsMut
 - **Iterator Traits**: Iterator, IntoIterator with adapter methods
-- **Usage Examples**: 400+ line trait_patterns.kr with 14 comprehensive examples
+- **Usage Examples**: 400+ line `trait_patterns.kr` with 14 examples
 - **Total**: 83+ runtime library functions
 
 ### Trait System Foundation & Parser (0.8.26)
@@ -123,27 +123,38 @@ Current version: `v0.9.2`
   - Dereference traits: Deref, DerefMut
   - Indexing traits: Index, IndexMut
   - Thread safety: Send, Sync
-- **Test Coverage**: 4 comprehensive test files covering all trait patterns
+- **Test Coverage**: 4 test files covering all trait patterns
 - **All Tests Passing**: 105/105 tests passing with complete trait system
 
-### Trait Objects & Dynamic Dispatch Foundation (0.8.28)
-- **Trait Object Types**: `dyn Trait` syntax for dynamic dispatch
-- **Parser Support**: Parse trait object types with multiple bounds (`dyn Trait + Send + Sync`)
-- **Type System**: Full compiler pass support for TraitObject types
-- **Vtable Infrastructure**: Data structures for vtable generation and management
-- **Fat Pointers**: Infrastructure for fat pointer representation (data + vtable)
-- **Foundation Complete**: All infrastructure in place for future dynamic dispatch implementation
+### Trait Objects & Dynamic Dispatch (0.8.28)
+- **Trait Object Types**: `dyn Trait` syntax with multiple bounds (`dyn Trait + Send + Sync`)
+- **Vtable Generation**: Vtable construction from `impl Trait for Type` using `LLVMConstArray2` / `LLVMConstBitCast`
+- **Fat Pointers**: `{ data_ptr, vtable_ptr }` fat pointer construction at assignment and parameter sites
+- **Indirect Calls**: Method dispatch through vtable slots via `LLVMBuildCall2`
+- **Type Checker**: `dyn Trait` types compatible with concrete struct types; method calls on `dyn Trait` objects resolve return types from trait method signatures
+- **`Self` compatibility**: `Self` type in trait method declarations compatible with concrete types in trait impls
 
-### Advanced FFI & C Interop Infrastructure (0.8.29)
-- **Variadic Functions**: Infrastructure for variadic function support (printf-style)
-- **Union Types**: Union keyword and AST support for C-compatible unions
-- **Compiler Support**: All compiler passes updated for variadic and union types
-- **Foundation Complete**: Infrastructure ready for full FFI implementation
+### Advanced FFI & C Interop (0.8.29)
+- **Variadic Functions**: Full support for variadic function calls (printf-style)
+- **Union Types**: `union` keyword with C-compatible layout; all compiler passes updated
+- **Raw Pointer FFI**: `*const T` / `*mut T` in function signatures and FFI declarations
+
+### Async Runtime (unreleased)
+- **Async Functions**: Transform async functions into future struct + poll function + state machine wrapper
+- **State Machines**: Multi-state codegen splitting function bodies at `await` points; locals saved and restored across suspension
+- **`await` Expressions**: Polls sub-futures, extracts results, and resolves to the original declared return type
+- **`block_on` Intrinsic**: Inline poll loop with no C runtime dependency
+- **Type Checker**: Async call sites return `Type::Bytes` (future pointer); `await` resolves to the declared return type
+
+### Windows & LLVM Fixes (unreleased)
+- **Windows UCRT Linker**: Replaced `sprintf` with `snprintf` in `fmt_int`, `fmt_hex`, `fmt_float` codegen — `sprintf` is not exported by Windows UCRT
+- **LLVM API updates**: `LLVMArrayType` → `LLVMArrayType2`, `LLVMConstArray` → `LLVMConstArray2` in vtable construction
+- **Module Loader**: `TraitDeclaration`, `TraitObject`, `ImplBlock`, `TraitImpl`, and `Type::Generic` names now mangled consistently across the module system
 
 ### Core Features
 - **Static Typing**: Strong type system with type inference
 - **LLVM Backend**: Efficient native code generation
-- **C FFI**: Seamless interop with C libraries
+- **C FFI**: Direct interop with C libraries
 - **Module System**: Organized code with imports and visibility control
 - **Memory Safety**: Ownership-based memory management (in development)
 
@@ -152,7 +163,7 @@ Current version: `v0.9.2`
  - **compiler/** — Kraken compiler implementation
  - **runtime/** — Runtime library and C FFI bindings
  - **examples/** — Example programs
- - **tests/programs/** — Comprehensive test suite
+ - **tests/programs/** — Integration and stress test suite
 
 ## Prerequisites
 

@@ -960,18 +960,16 @@ mod tests {
     #[test]
     fn test_generate_index() {
         let cmd = DocCommand::default();
-        let file_docs = vec![
-            FileDoc {
-                path: PathBuf::from("a.kr"),
-                module_docs: vec![],
-                items: vec![DocItem {
-                    name: "foo".into(),
-                    kind: "function",
-                    lines: vec!["A function.".into()],
-                    line_number: 1,
-                }],
-            },
-        ];
+        let file_docs = vec![FileDoc {
+            path: PathBuf::from("a.kr"),
+            module_docs: vec![],
+            items: vec![DocItem {
+                name: "foo".into(),
+                kind: "function",
+                lines: vec!["A function.".into()],
+                line_number: 1,
+            }],
+        }];
         let html = cmd.generate_index(&file_docs);
         assert!(html.contains("a.kr"));
         assert!(html.contains("1 items"));

@@ -547,10 +547,7 @@ mod tests {
 
     #[test]
     fn test_from_code() {
-        let err = CompilerError::from_code(
-            DiagnosticCode::KRA2000_TypeMismatch,
-            "type mismatch",
-        );
+        let err = CompilerError::from_code(DiagnosticCode::KRA2000_TypeMismatch, "type mismatch");
         assert_eq!(err.code(), ErrorCode::E0017);
         assert!(err.to_string().contains("type mismatch"));
     }
