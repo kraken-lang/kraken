@@ -27,7 +27,7 @@ resolver = "2"
 # Workspace Package
 [workspace.package]
 #####################################################
-version       = "0.9.2"
+version       = "0.9.3"
 readme        = "README.md"
 license       = "Apache-2.0"
 publish       = false
@@ -49,12 +49,6 @@ authors = [
 [workspace.dependencies]
 #####################################################
 
-# Internal Dependencie
-# ========================s
-error-forge  = "0.9.6"
-metrics-lib  = { version = "0.9.0", features = ["timer", "count", "gauge", "meter", "async"] }
-config-lib   = { version = "0.9.0", features = ["json", "toml", "noml", "validation", "async"] }
-
 # External Dependencies
 # ========================
 serde = { version = "1.0", features = ["derive"] }
@@ -66,16 +60,9 @@ clap = { version = "4.5", features = ["derive", "cargo"] }
 
 # Async Runtime
 tokio = { version = "1.40", features = ["full"] }
-futures = "0.3"
 
-# File Watching
-notify = "6.0"
-notify-debouncer-full = "0.3"
+# File Discovery
 glob = "0.3"
-
-# Parallel Processing
-rayon = "1.10"
-dashmap = "5.5"
 
 # Testing
 criterion = "0.5"

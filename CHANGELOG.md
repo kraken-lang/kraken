@@ -10,7 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-05-03
+
 ### Added
+- **POSIX env mutation FFI** (`compiler/src/analyzer/type_checker.rs`, `compiler/src/codegen/llvm_backend.rs`) — `setenv(name, value, overwrite) -> int` and `unsetenv(name) -> int` registered alongside the existing `getenv`. Resolves the `tests::ffi_setenv_getenv_compile_and_run` failure on macOS / Linux CI runners (test was `#[cfg(unix)]`).
 - **Async Runtime & State Machine Codegen** (`compiler/src/codegen/llvm_backend.rs`)
   - `codegen_async_function()` — transforms async functions into future struct + poll function + wrapper function
   - Future struct layout: `{ poll_fn: ptr, result: i64, state: i64, sub_future: ptr, params..., locals... }`
@@ -195,6 +198,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Total tests: 583 integration + 710 library + 822 runtime = 2115 tests passing, zero failures, zero warnings
 - Compiler builds with zero warnings (deprecated API, dead code, and formatting all resolved)
+- **Workspace dependency cleanup** (`Cargo.toml`, `compiler/Cargo.toml`) — removed eight unused crates that had no `use` statements anywhere in the source: `error-forge`, `metrics-lib`, `config-lib`, `dashmap`, `notify`, `notify-debouncer-full`, `rayon`, `futures`. The first four were straight cruft; the last four were aspirational placeholders for future watch-mode / parallel-codegen / extra-async features that haven't been started. They can be re-added with one `cargo add` line when the corresponding feature work begins. Build, clippy, and test results unchanged after removal.
+- **GitHub Actions workflow versions** (`.github/workflows/ci.yml`) — bumped `actions/checkout` and `actions/cache` from `@v4` to `@v5`. Removes the Node.js 20 deprecation warnings before the June 2026 cutoff.
 
 ## [0.9.2] - 2026-02-07
 
@@ -3011,7 +3016,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and th
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
-[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/kraken-lang/kraken/compare/v0.9.3...HEAD
+[0.9.3]: https://github.com/kraken-lang/kraken/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/kraken-lang/kraken/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/kraken-lang/kraken/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/kraken-lang/kraken/compare/v0.8.50...v0.9.0

@@ -5,7 +5,9 @@
 
 **Kraken** is an open-source, general-purpose programming language designed for performance, safety, and expressiveness.
 
-Current version: `v0.9.2`
+Current version: `v0.9.3`
+
+CI status: build + test + clippy green on Windows, Linux, macOS — see [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Language Features
 
@@ -169,8 +171,9 @@ Current version: `v0.9.2`
 
  - **LLVM 18** (required to build the compiler via `llvm-sys`)
  - **Clang** (used for linking)
+ - **Rust 1.80+** (MSRV declared in `Cargo.toml`)
 
-See `docs/platform.md` for macOS/Linux platform notes.
+See [`docs/platform.md`](docs/platform.md) for additional platform notes.
 
 ### macOS (Homebrew)
 
@@ -187,25 +190,35 @@ export PATH="${LLVM_SYS_180_PREFIX}/bin:${PATH}"
 llvm-config --version
 ```
 
-### Using direnv (Recommended)
-
-The project includes a `.envrc` file that automatically sets up LLVM environment variables. Install [direnv](https://direnv.net/) and allow the config:
+### Linux (apt-based distros)
 
 ```bash
-# Install direnv
-brew install direnv
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+sudo ./llvm.sh 18
+sudo apt-get install -y libzstd-dev libpolly-18-dev clang-18 lld-18
 
-# Add to your shell (e.g., ~/.zshrc)
-eval "$(direnv hook zsh)"
-
-# Allow the project's .envrc
-cd /path/to/kraken
-direnv allow
+export LLVM_SYS_180_PREFIX=/usr/lib/llvm-18
 ```
 
-After setup, LLVM paths are loaded automatically when you enter the project directory.
+### Windows (Chocolatey)
 
-**IDE Note**: Most IDEs don't load direnv automatically. If you see LLVM-related errors in your IDE, they can be ignored - building from terminal with `source .envrc && cargo build` works correctly.
+```powershell
+choco install llvm --version=18.1.8 -y
+
+$env:LLVM_SYS_180_PREFIX = "C:\Program Files\LLVM"
+$env:Path = "$env:LLVM_SYS_180_PREFIX\bin;$env:Path"
+
+llvm-config --version
+```
+
+If you build LLVM yourself or use a different distribution, point `LLVM_SYS_180_PREFIX` at the install root (the directory containing `bin/llvm-config`).
+
+### Using direnv (optional, macOS/Linux)
+
+The project includes a `.envrc` file that sets the LLVM environment variables automatically. Install [direnv](https://direnv.net/), hook it into your shell, then `cd` into the repo and `direnv allow`. After that, the variables load whenever you enter the directory.
+
+Most IDEs don't pick up direnv on their own. If your IDE shows LLVM errors but `source .envrc && cargo build` works in a terminal, that's the cause.
 
 ## Build
 

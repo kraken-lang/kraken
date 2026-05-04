@@ -1,0 +1,34 @@
+// Enums and pattern matching.
+//
+// Run with:
+//     cargo run -p kraken -- run examples/enum_match.kr
+
+enum Color {
+    Red,
+    Green,
+    Blue
+}
+
+enum Status {
+    Ok,
+    Error,
+    Pending
+}
+
+fn main() -> int {
+    let c = Color::Green;
+    match (c) {
+        Color::Red   -> { puts("color: red"); }
+        Color::Green -> { puts("color: green"); }
+        Color::Blue  -> { puts("color: blue"); }
+    }
+
+    let s = Status::Error;
+    match (s) {
+        Status::Ok      -> { puts("status: ok"); }
+        Status::Error   -> { puts("status: error"); }
+        Status::Pending -> { puts("status: pending"); }
+    }
+
+    return 0;
+}

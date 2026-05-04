@@ -42,9 +42,6 @@ harness = false
 # Local Dependencies
 kraken-runtime = { path = "../runtime" }
 
-# Internal Dependencies
-metrics-lib = { workspace = true }
-
 # External Dependencies
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -64,14 +61,8 @@ comfy-table = "7.1"
 
 # Async Runtime
 tokio = { workspace = true }
-futures = { workspace = true }
 
-# Parallel Processing
-rayon = { workspace = true }
-
-# File Watching & Discovery
-notify = { workspace = true }
-notify-debouncer-full = { workspace = true }
+# File Discovery
 glob = { workspace = true }
 
 [dev-dependencies]

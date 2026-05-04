@@ -1,0 +1,24 @@
+// Closures: function-typed values, higher-order functions, captures.
+//
+// Run with:
+//     cargo run -p kraken -- run examples/closures.kr
+
+fn apply(f: fn(int) -> int, x: int) -> int {
+    return f(x);
+}
+
+fn main() -> int {
+    // A closure with no captured variables, stored in a fn-typed local.
+    let double: fn(int) -> int = |x: int| -> int { return x * 2; };
+    puts(str_concat("double(5): ", fmt_int(double(5))));
+
+    // Closures can be passed directly to higher-order functions.
+    let result: int = apply(|x: int| -> int { return x + 10; }, 32);
+    puts(str_concat("apply(+10, 32): ", fmt_int(result)));
+
+    // Reuse the same fn-typed slot for a different closure.
+    let triple: fn(int) -> int = |x: int| -> int { return x * 3; };
+    puts(str_concat("triple(4): ", fmt_int(triple(4))));
+
+    return 0;
+}

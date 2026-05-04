@@ -1,0 +1,40 @@
+// VecInt and VecString basics.
+//
+// Both are heap-backed dynamic arrays from the Kraken runtime. Indices and
+// lengths are int (i64).
+//
+// Run with:
+//     cargo run -p kraken -- run examples/vec_basics.kr
+
+fn main() -> int {
+    // VecInt
+    let nums = vec_int_new();
+    vec_int_push(nums, 10);
+    vec_int_push(nums, 20);
+    vec_int_push(nums, 30);
+
+    puts(str_concat("nums.len = ", fmt_int(vec_int_len(nums))));
+
+    let i = 0;
+    let len = vec_int_len(nums);
+    while (i < len) {
+        let v = vec_int_get(nums, i);
+        puts(str_concat("nums[", str_concat(fmt_int(i), str_concat("] = ", fmt_int(v)))));
+        i = i + 1;
+    }
+
+    vec_int_free(nums);
+
+    // VecString
+    let names = vec_string_new();
+    vec_string_push(names, "alice");
+    vec_string_push(names, "bob");
+    vec_string_push(names, "carol");
+
+    puts(str_concat("names.len = ", fmt_int(vec_string_len(names))));
+    puts(str_concat("names[1] = ", vec_string_get(names, 1)));
+
+    vec_string_free(names);
+
+    return 0;
+}

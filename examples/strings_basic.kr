@@ -1,0 +1,29 @@
+// String basics: concat, length, slicing, lookup.
+//
+// Run with:
+//     cargo run -p kraken -- run examples/strings_basic.kr
+
+fn main() -> int {
+    let greeting = str_concat("Hello, ", "Kraken");
+    puts(greeting);
+    puts(str_concat("length: ", fmt_int(strlen(greeting))));
+
+    // Slicing returns a new string [start, end).
+    let prefix = str_slice(greeting, 0, 5);
+    puts(str_concat("prefix: ", prefix));
+
+    // Predicates.
+    if (str_starts_with(greeting, "Hello")) {
+        puts("starts with Hello");
+    }
+    if (str_contains(greeting, "Kra")) {
+        puts("contains Kra");
+    }
+
+    // Equality. Use str_eq / str_ne or `==` / `!=` on strings.
+    if (str_eq(prefix, "Hello")) {
+        puts("prefix == \"Hello\"");
+    }
+
+    return 0;
+}
