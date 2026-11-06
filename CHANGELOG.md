@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Minimum Rust version raised from 1.80 to 1.81.** `define-err` builds on `core::error::Error`, which is stable from 1.81.
+- **`CompilerError` is declared with `define-err`** (`compiler/src/error.rs`) instead of `thiserror`: no proc macro and no build dependency. Every message is unchanged, `IoError` still converts from `std::io::Error` with `?` and still returns it from `source()`, and the enum stays exhaustive.
+
 ## [0.9.3] - 2026-05-03
 
 ### Added

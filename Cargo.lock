@@ -461,6 +461,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "define-err"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41a1e96c09d2b59d25bf91b1628985e735a053ae78584172a52f944747b63431"
+
+[[package]]
 name = "der"
 version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -735,6 +741,7 @@ dependencies = [
  "colored",
  "comfy-table",
  "criterion",
+ "define-err",
  "figlet-rs",
  "glob",
  "indicatif",
@@ -744,7 +751,6 @@ dependencies = [
  "rustc_version",
  "serde",
  "serde_json",
- "thiserror",
  "tokio",
  "toml",
 ]
@@ -1375,26 +1381,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "thiserror"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
-dependencies = [
- "thiserror-impl",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

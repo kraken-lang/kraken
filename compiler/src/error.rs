@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use thiserror::Error;
 
 use crate::diagnostics::{Diagnostic as NewDiagnostic, DiagnosticCode};
 
@@ -35,63 +34,55 @@ impl std::fmt::Display for ErrorCode {
     }
 }
 
-/// Comprehensive compiler error types.
-#[derive(Error, Debug)]
-pub enum CompilerError {
-    /// New diagnostic-based error with KRA codes
-    #[error("{}", .diagnostic.format())]
-    DiagnosticError {
-        diagnostic: NewDiagnostic,
-        location: Option<SourceLocation>,
-    },
+define_err::define_errors! {
+    /// Comprehensive compiler error types.
+    #[exhaustive]
+    pub enum CompilerError {
+        /// New diagnostic-based error with KRA codes
+        DiagnosticError {
+            diagnostic: NewDiagnostic,
+            location: Option<SourceLocation>,
+        } => ("{}", diagnostic.format()),
 
-    /// Lexer errors
-    #[error("[{code}] Lexer error at {location}: {message}")]
-    LexerError {
-        code: ErrorCode,
-        location: SourceLocation,
-        message: String,
-    },
+        /// Lexer errors
+        LexerError {
+            code: ErrorCode,
+            location: SourceLocation,
+            message: String,
+        } => "[{code}] Lexer error at {location}: {message}",
 
-    /// Parser errors
-    #[error("[{code}] Parser error at {location}: {message}")]
-    ParserError {
-        code: ErrorCode,
-        location: SourceLocation,
-        message: String,
-    },
+        /// Parser errors
+        ParserError {
+            code: ErrorCode,
+            location: SourceLocation,
+            message: String,
+        } => "[{code}] Parser error at {location}: {message}",
 
-    /// Type checking errors
-    #[error("[{code}] Type error at {location}: {message}")]
-    TypeError {
-        code: ErrorCode,
-        location: SourceLocation,
-        message: String,
-    },
+        /// Type checking errors
+        TypeError {
+            code: ErrorCode,
+            location: SourceLocation,
+            message: String,
+        } => "[{code}] Type error at {location}: {message}",
 
-    /// Code generation errors
-    #[error("[{code}] Code generation error: {message}")]
-    CodegenError { code: ErrorCode, message: String },
+        /// Code generation errors
+        CodegenError { code: ErrorCode, message: String } => "[{code}] Code generation error: {message}",
 
-    /// File I/O errors
-    #[error("[E0016] I/O error: {0}")]
-    IoError(#[from] std::io::Error),
+        /// File I/O errors
+        IoError(#[from] source: std::io::Error) => "[E0016] I/O error: {source}",
 
-    /// File not found
-    #[error("[E0014] File not found: {0}")]
-    FileNotFound(PathBuf),
+        /// File not found
+        FileNotFound(path: PathBuf) => ("[E0014] File not found: {}", path.display()),
 
-    /// Invalid file extension
-    #[error("[E0015] Invalid file extension: expected .kr or .krak, found {0}")]
-    InvalidExtension(String),
+        /// Invalid file extension
+        InvalidExtension(found: String) => "[E0015] Invalid file extension: expected .kr or .krak, found {found}",
 
-    /// Multiple errors
-    #[error("[E0018] Multiple compilation errors occurred")]
-    MultipleErrors(Vec<CompilerError>),
+        /// Multiple errors
+        MultipleErrors(errors: Vec<CompilerError>) => "[E0018] Multiple compilation errors occurred",
 
-    /// Internal compiler error
-    #[error("[E0017] Internal compiler error: {0}")]
-    InternalError(String),
+        /// Internal compiler error
+        InternalError(detail: String) => "[E0017] Internal compiler error: {detail}",
+    }
 }
 
 /// Source code location for error reporting.
