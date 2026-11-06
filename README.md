@@ -171,7 +171,7 @@ CI status: build + test + clippy green on Windows, Linux, macOS — see [`.githu
 
  - **LLVM 18** (required to build the compiler via `llvm-sys`)
  - **Clang** (used for linking)
- - **Rust 1.80+** (MSRV declared in `Cargo.toml`)
+ - **Rust 1.81+** (MSRV declared in `Cargo.toml`)
 
 See [`docs/platform.md`](docs/platform.md) for additional platform notes.
 
