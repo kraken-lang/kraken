@@ -72,7 +72,7 @@ define_err::define_errors! {
         IoError(#[from] source: std::io::Error) => "[E0016] I/O error: {source}",
 
         /// File not found
-        FileNotFound(path: PathBuf) => ("[E0014] File not found: {}", path.display()),
+        FileNotFound(path: PathBuf) => "[E0014] File not found: {path}",
 
         /// Invalid file extension
         InvalidExtension(found: String) => "[E0015] Invalid file extension: expected .kr or .krak, found {found}",

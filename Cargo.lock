@@ -462,9 +462,9 @@ dependencies = [
 
 [[package]]
 name = "define-err"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41a1e96c09d2b59d25bf91b1628985e735a053ae78584172a52f944747b63431"
+checksum = "255792814c18ded89163eba4ebc77baea6e21f3155c451cfd1d8e7650895fa36"
 
 [[package]]
 name = "der"
